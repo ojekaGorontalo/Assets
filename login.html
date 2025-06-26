@@ -77,18 +77,35 @@
     firebase.initializeApp(firebaseConfig);
 
     let confirmationResult;
+    let appVerifier;
 
-    // Cek login otomatis
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) {
-        window.location.href = "beranda.html";
-      }
-    });
+    // Render Recaptcha hanya sekali
+    window.onload = () => {
+      appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'normal',
+        callback: (response) => {
+          console.log("reCAPTCHA berhasil diverifikasi.");
+        },
+        'expired-callback': () => {
+          alert("reCAPTCHA kadaluarsa. Silakan ulangi.");
+        }
+      });
+
+      appVerifier.render().then(widgetId => {
+        window.recaptchaWidgetId = widgetId;
+      });
+
+      // Jika sudah login, arahkan langsung
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          window.location.href = "beranda.html";
+        }
+      });
+    };
 
     function sendOTP() {
       let phoneNumber = document.getElementById('phoneNumber').value.trim();
 
-      // Ubah otomatis 08 ke +62
       if (phoneNumber.startsWith("08")) {
         phoneNumber = "+62" + phoneNumber.slice(1);
       }
@@ -98,20 +115,15 @@
         return;
       }
 
-      const appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        size: 'normal',
-        callback: response => console.log("reCAPTCHA verified")
-      });
-
       firebase.auth().signInWithPhoneNumber(phoneNumber, appVerifier)
         .then(result => {
           confirmationResult = result;
           document.getElementById('otpSection').classList.remove('hidden');
-          alert("Kode OTP dikirim ke " + phoneNumber);
+          alert("Kode OTP telah dikirim ke " + phoneNumber);
         })
         .catch(error => {
           console.error(error);
-          alert("Gagal mengirim OTP. Cek nomor dan quota.");
+          alert("❌ Gagal mengirim OTP. Cek nomor atau kuota SMS di Firebase.");
         });
     }
 
@@ -128,11 +140,10 @@
           const uid = user.uid;
           const phone = user.phoneNumber;
 
-          // Cek apakah user sudah ada di database
+          // Simpan data user ke Realtime Database jika belum ada
           const userRef = firebase.database().ref("users/" + uid);
           userRef.once("value", snapshot => {
             if (!snapshot.exists()) {
-              // Jika belum ada, buat data baru
               userRef.set({
                 uid: uid,
                 phone: phone,
@@ -142,14 +153,13 @@
               });
             }
 
-            // Redirect ke beranda
             alert("Login berhasil!");
             window.location.href = "beranda.html";
           });
         })
         .catch(error => {
           console.error(error);
-          alert("Kode OTP salah atau kadaluarsa.");
+          alert("❌ Kode OTP salah atau sudah kadaluarsa.");
         });
     }
   </script>
