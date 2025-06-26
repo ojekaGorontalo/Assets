@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login OloRide</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #ffffff;
+      color: #026aa7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      height: 100vh;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    input {
+      padding: 10px;
+      margin: 10px 0;
+      width: 90%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      background-color: #026aa7;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 90%;
+      max-width: 300px;
+    }
+
+    button:hover {
+      background-color: #005c91;
+    }
+
+    #recaptcha-container {
+      margin-top: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>Masuk ke OloRide</h1>
+
+  <input type="tel" id="phoneNumber" placeholder="Masukkan nomor HP (0812xxxxxxx)" />
+  <div id="recaptcha-container"></div>
+  <button onclick="sendOTP()">Kirim Kode OTP</button>
+
+  <div id="otpSection" class="hidden">
+    <input type="text" id="otpCode" placeholder="Masukkan Kode OTP" />
+    <button onclick="verifyOTP()">Verifikasi OTP</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC9PQ3eKgkPN9V-240yKd8sTkWe-kUCtGI",
+      authDomain: "telescancreator-9b50a.firebaseapp.com",
+      databaseURL: "https://telescancreator-9b50a-default-rtdb.firebaseio.com",
+      projectId: "telescancreator-9b50a",
+      storageBucket: "telescancreator-9b50a.appspot.com",
+      messagingSenderId: "1001228274341",
+      appId: "1:1001228274341:android:0acaf8599f1d54537b1b4c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    let confirmationResult;
+
+    function sendOTP() {
+      let phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+      if (phoneNumber.startsWith("08")) {
+        phoneNumber = "+62" + phoneNumber.slice(1);
+      }
+
+      if (!phoneNumber.startsWith("+62") || phoneNumber.length < 10) {
+        alert("Nomor tidak valid. Contoh: 081234567890");
+        return;
+      }
+
+      const appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'normal',
+        callback: response => console.log("reCAPTCHA verified")
+      });
+
+      firebase.auth().signInWithPhoneNumber(phoneNumber, appVerifier)
+        .then(result => {
+          confirmationResult = result;
+          document.getElementById('otpSection').classList.remove('hidden');
+          alert("Kode OTP telah dikirim ke " + phoneNumber);
+        })
+        .catch(error => {
+          console.error("Gagal kirim OTP:", error);
+          alert("Gagal mengirim OTP. Pastikan nomor valid & kuota belum habis.");
+        });
+    }
+
+    function verifyOTP() {
+      const code = document.getElementById('otpCode').value.trim();
+      if (!code) {
+        alert("Kode OTP tidak boleh kosong");
+        return;
+      }
+
+      confirmationResult.confirm(code)
+        .then(result => {
+          const user = result.user;
+          const uid = user.uid;
+          const phone = user.phoneNumber;
+
+          // Cek apakah user sudah punya profil
+          firebase.database().ref("users/" + uid).once("value")
+            .then(snapshot => {
+              if (snapshot.exists()) {
+                // Sudah ada → ke beranda
+                window.location.href = "beranda.html";
+              } else {
+                // Belum ada → ke form daftar
+                window.location.href = `daftar.html?uid=${uid}&phone=${encodeURIComponent(phone)}`;
+              }
+            });
+        })
+        .catch(error => {
+          console.error("OTP salah:", error);
+          alert("Kode OTP salah atau kadaluarsa.");
+        });
+    }
+  </script>
+</body>
+</html>
