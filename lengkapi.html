@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lengkapi Profil</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #ffffff;
+      color: #026aa7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 90%;
+      max-width: 320px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #026aa7;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    img {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-top: 10px;
+      display: none;
+    }
+
+    #preview {
+      display: none;
+    }
+  </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h2>Lengkapi Profil</h2>
+  <input type="text" id="name" placeholder="Nama Lengkap" />
+  <input type="file" id="photo" accept="image/*" onchange="previewImage(event)" />
+  <img id="preview" src="" alt="Preview Foto" />
+  <button onclick="submitData()">Simpan dan Lanjut</button>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC9PQ3eKgkPN9V-240yKd8sTkWe-kUCtGI",
+      authDomain: "telescancreator-9b50a.firebaseapp.com",
+      databaseURL: "https://telescancreator-9b50a-default-rtdb.firebaseio.com",
+      projectId: "telescancreator-9b50a",
+      appId: "1:1001228274341:android:0acaf8599f1d54537b1b4c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    let currentUser = null;
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    const imgbbAPI = "3f244d81c0cb33bbb3c2e489ff9c75dd"; // Ganti dengan API key ImgBB Anda
+
+    function previewImage(event) {
+      const img = document.getElementById("preview");
+      img.src = URL.createObjectURL(event.target.files[0]);
+      img.style.display = "block";
+    }
+
+    async function submitData() {
+      const name = document.getElementById("name").value.trim();
+      const fileInput = document.getElementById("photo");
+      const file = fileInput.files[0];
+
+      if (!name) {
+        alert("Nama wajib diisi");
+        return;
+      }
+
+      if (!file) {
+        alert("Silakan pilih foto profil");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      try {
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbAPI}`, {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        const imageUrl = data.data.url;
+
+        // Simpan ke Firebase
+        const uid = currentUser.uid;
+        await firebase.database().ref("users/" + uid).update({
+          name: name,
+          photo_url: imageUrl
+        });
+
+        alert("Profil berhasil dilengkapi!");
+        window.location.href = "beranda.html";
+      } catch (error) {
+        console.error(error);
+        alert("Gagal mengupload atau menyimpan data.");
+      }
+    }
+  </script>
+</body>
+</html>
