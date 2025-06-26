@@ -21,7 +21,7 @@
       margin-bottom: 10px;
     }
 
-    input {
+    input, button {
       padding: 10px;
       margin: 10px 0;
       width: 90%;
@@ -33,16 +33,8 @@
     button {
       background-color: #026aa7;
       color: white;
-      padding: 10px;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
-      width: 90%;
-      max-width: 300px;
-    }
-
-    button:hover {
-      background-color: #005c91;
     }
 
     #recaptcha-container {
@@ -86,9 +78,17 @@
 
     let confirmationResult;
 
+    // Cek login otomatis
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        window.location.href = "beranda.html";
+      }
+    });
+
     function sendOTP() {
       let phoneNumber = document.getElementById('phoneNumber').value.trim();
 
+      // Ubah otomatis 08 ke +62
       if (phoneNumber.startsWith("08")) {
         phoneNumber = "+62" + phoneNumber.slice(1);
       }
@@ -107,11 +107,11 @@
         .then(result => {
           confirmationResult = result;
           document.getElementById('otpSection').classList.remove('hidden');
-          alert("Kode OTP telah dikirim ke " + phoneNumber);
+          alert("Kode OTP dikirim ke " + phoneNumber);
         })
         .catch(error => {
-          console.error("Gagal kirim OTP:", error);
-          alert("Gagal mengirim OTP. Pastikan nomor valid & kuota belum habis.");
+          console.error(error);
+          alert("Gagal mengirim OTP. Cek nomor dan quota.");
         });
     }
 
@@ -128,20 +128,27 @@
           const uid = user.uid;
           const phone = user.phoneNumber;
 
-          // Cek apakah user sudah punya profil
-          firebase.database().ref("users/" + uid).once("value")
-            .then(snapshot => {
-              if (snapshot.exists()) {
-                // Sudah ada → ke beranda
-                window.location.href = "beranda.html";
-              } else {
-                // Belum ada → ke form daftar
-                window.location.href = `daftar.html?uid=${uid}&phone=${encodeURIComponent(phone)}`;
-              }
-            });
+          // Cek apakah user sudah ada di database
+          const userRef = firebase.database().ref("users/" + uid);
+          userRef.once("value", snapshot => {
+            if (!snapshot.exists()) {
+              // Jika belum ada, buat data baru
+              userRef.set({
+                uid: uid,
+                phone: phone,
+                name: "",
+                photo_url: "",
+                rating: 5
+              });
+            }
+
+            // Redirect ke beranda
+            alert("Login berhasil!");
+            window.location.href = "beranda.html";
+          });
         })
         .catch(error => {
-          console.error("OTP salah:", error);
+          console.error(error);
           alert("Kode OTP salah atau kadaluarsa.");
         });
     }
