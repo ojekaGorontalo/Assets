@@ -8,9 +8,9 @@
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(to bottom right, #026aa7, #00b4d8);
+      background: #ffffff;
       font-family: 'Segoe UI', sans-serif;
-      color: white;
+      color: #026aa7;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -52,5 +52,46 @@
   <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="OloRide Icon" />
   <h1>OloRide</h1>
   <p>Bangga Deng Produk Sandiri</p>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC9PQ3eKgkPN9V-240yKd8sTkWe-kUCtGI",
+      authDomain: "telescancreator-9b50a.firebaseapp.com",
+      databaseURL: "https://telescancreator-9b50a-default-rtdb.firebaseio.com",
+      projectId: "telescancreator-9b50a",
+      storageBucket: "telescancreator-9b50a.appspot.com",
+      messagingSenderId: "1001228274341",
+      appId: "1:1001228274341:android:0acaf8599f1d54537b1b4c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    // Delay 2 detik sebelum redirect
+    setTimeout(() => {
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          const uid = user.uid;
+          const userRef = firebase.database().ref("users/" + uid);
+          userRef.once("value").then(snapshot => {
+            if (snapshot.exists() && snapshot.val().name !== "") {
+              // Sudah login & data lengkap
+              window.location.href = "beranda.html";
+            } else {
+              // Login tapi belum lengkapi profil
+              window.location.href = "lengkapi.html";
+            }
+          });
+        } else {
+          // Belum login
+          window.location.href = "login.html";
+        }
+      });
+    }, 2000);
+  </script>
 </body>
 </html>
