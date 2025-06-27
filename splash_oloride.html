@@ -5,9 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OloRide</title>
   <style>
-    /* CSS Anda tetap sama */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      color: #026aa7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      flex-direction: column;
+      animation: fadeIn 1s ease-in-out;
+    }
+    img {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin: 0;
+    }
+    p {
+      margin-top: 10px;
+      font-size: 1em;
+      opacity: 0.85;
+    }
+    #loading {
+      display: none;
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #666;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
   </style>
-  <!-- Firebase SDK AMAN via Hosting -->
+  <!-- Firebase SDK via Hosting (Aman) -->
   <script defer src="/__/firebase/9.22.2/firebase-app-compat.js"></script>
   <script defer src="/__/firebase/9.22.2/firebase-auth-compat.js"></script>
   <script defer src="/__/firebase/9.22.2/firebase-database-compat.js"></script>
@@ -21,30 +62,46 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Konfigurasi diambil otomatis dari Firebase Hosting
-      firebase.initializeApp();
+      // Inisialisasi Firebase (otomatis dari Hosting)
+      try {
+        firebase.initializeApp();
+      } catch (e) {
+        console.error("Firebase init error:", e);
+        document.getElementById('loading').textContent = 'Error inisialisasi. Coba refresh halaman.';
+        return;
+      }
 
       // Fungsi Login Google
       const loginWithGoogle = () => {
-        document.getElementById('loading').style.display = 'block';
+        const loadingEl = document.getElementById('loading');
+        loadingEl.style.display = 'block';
+
         const provider = new firebase.auth.GoogleAuthProvider();
-        
         firebase.auth().signInWithPopup(provider)
           .then((result) => {
             const user = result.user;
             firebase.database().ref("users/" + user.uid).update({
-              name: user.displayName,
+              name: user.displayName || "Pengguna OloRide",
               email: user.email,
+              photoURL: user.photoURL || "",
               lastLogin: firebase.database.ServerValue.TIMESTAMP
             }).then(() => window.location.href = "beranda.html");
           })
-          .catch(() => window.location.href = "login.html");
+          .catch((error) => {
+            console.error("Login error:", error);
+            loadingEl.textContent = 'Gagal login. Mengarahkan ke halaman manual...';
+            setTimeout(() => window.location.href = "login.html", 2000);
+          });
       };
 
       // Auto-login setelah 2 detik
       setTimeout(() => {
         firebase.auth().onAuthStateChanged(user => {
-          user ? window.location.href = "beranda.html" : loginWithGoogle();
+          if (user) {
+            window.location.href = "beranda.html";
+          } else {
+            loginWithGoogle();
+          }
         });
       }, 2000);
     });
