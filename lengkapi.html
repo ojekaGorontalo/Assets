@@ -190,6 +190,12 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
+    .permission-note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -211,7 +217,7 @@
         <label>Alamat Lengkap</label>
         <div class="address-options">
           <button type="button" class="address-option-btn" id="currentLocationBtn">Gunakan Lokasi Sekarang</button>
-          <button type="button" class="address-option-btn" id="manualAddressBtn">Masukkan Manual</button>
+          <button type="button" class="address-option-btn active" id="manualAddressBtn">Masukkan Manual</button>
         </div>
         
         <div class="detected-address" id="detectedAddress">
@@ -219,8 +225,9 @@
           <p id="addressText"></p>
         </div>
         
-        <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required style="display: none;">
+        <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required>
         <div class="error" id="addressError">Alamat harus diisi</div>
+        <p class="permission-note" id="permissionNote">Aplikasi akan meminta izin untuk mengakses lokasi Anda</p>
       </div>
       
       <button type="submit" class="btn" id="submitBtn">Simpan Data</button>
@@ -239,6 +246,7 @@
       const detectedAddress = document.getElementById('detectedAddress');
       const addressInput = document.getElementById('address');
       const addressText = document.getElementById('addressText');
+      const permissionNote = document.getElementById('permissionNote');
       
       // Current location button click handler
       currentLocationBtn.addEventListener('click', function() {
@@ -249,17 +257,9 @@
         
         // Show loading in address box
         addressText.innerHTML = '<i>Mendeteksi lokasi...</i>';
+        permissionNote.style.display = 'block';
         
-        // Simulate geolocation detection (in real app, use navigator.geolocation)
-        setTimeout(function() {
-          const addresses = [
-            "Jl. Jendral Sudirman No. 45, Kota Gorontalo",
-            "Jl. 23 Januari No. 12, Limboto",
-            "Jl. Ahmad Yani No. 78, Gorontalo Utara"
-          ];
-          const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
-          addressText.textContent = randomAddress;
-        }, 1500);
+        getCurrentLocation();
       });
       
       // Manual address button click handler
@@ -268,13 +268,91 @@
         currentLocationBtn.classList.remove('active');
         detectedAddress.style.display = 'none';
         addressInput.style.display = 'block';
+        permissionNote.style.display = 'none';
         addressInput.focus();
       });
       
-      // When clicked on detected address, copy to input field (hidden)
+      // When clicked on detected address, copy to input field
       detectedAddress.addEventListener('click', function() {
         addressInput.value = addressText.textContent;
       });
+      
+      // Real geolocation and reverse geocoding
+      function getCurrentLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              reverseGeocode(position.coords.latitude, position.coords.longitude);
+            },
+            function(error) {
+              let errorMessage = "Gagal mendapatkan lokasi: ";
+              switch(error.code) {
+                case error.PERMISSION_DENIED:
+                  errorMessage += "Izin ditolak oleh pengguna";
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  errorMessage += "Informasi lokasi tidak tersedia";
+                  break;
+                case error.TIMEOUT:
+                  errorMessage += "Permintaan lokasi timeout";
+                  break;
+                default:
+                  errorMessage += "Error tidak diketahui";
+              }
+              addressText.textContent = errorMessage;
+              manualAddressBtn.click(); // Fallback to manual entry
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        } else {
+          addressText.textContent = "Geolocation tidak didukung di browser ini";
+          manualAddressBtn.click(); // Fallback to manual entry
+        }
+      }
+      
+      // Reverse geocoding using Nominatim (OpenStreetMap)
+      function reverseGeocode(lat, lng) {
+        addressText.innerHTML = '<i>Mengkonversi koordinat ke alamat...</i>';
+        
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              addressText.textContent = "Tidak dapat menemukan alamat untuk lokasi ini";
+              return;
+            }
+            
+            // Format address from response
+            const address = formatAddress(data.address);
+            addressText.textContent = address;
+            
+            // Auto-fill the input field
+            addressInput.value = address;
+          })
+          .catch(error => {
+            console.error("Geocoding error:", error);
+            addressText.textContent = "Error saat mengkonversi lokasi ke alamat";
+          });
+      }
+      
+      // Format address from Nominatim response
+      function formatAddress(address) {
+        const parts = [];
+        if (address.road) parts.push(address.road);
+        if (address.house_number) parts.push(address.house_number);
+        if (parts.length === 0 && address.pedestrian) parts.push(address.pedestrian);
+        
+        let formatted = parts.join(' ');
+        if (address.village) formatted += `, ${address.village}`;
+        else if (address.town) formatted += `, ${address.town}`;
+        else if (address.city) formatted += `, ${address.city}`;
+        
+        if (address.state && !formatted.includes(address.state)) {
+          formatted += `, ${address.state}`;
+        }
+        
+        return formatted || "Alamat tidak dapat diformat";
+      }
       
       // Form submission
       document.getElementById('dataForm').addEventListener('submit', function(e) {
@@ -286,6 +364,11 @@
         // Get address based on selected method
         if (currentLocationBtn.classList.contains('active')) {
           address = addressText.textContent;
+          if (address.includes('<i>') || address.includes('Error') || address.includes('Gagal')) {
+            document.getElementById('addressError').textContent = "Harap deteksi alamat lagi atau gunakan input manual";
+            document.getElementById('addressError').style.display = 'block';
+            return;
+          }
         } else {
           address = addressInput.value.trim();
         }
@@ -301,7 +384,8 @@
         }
         
         // Validate address
-        if (!address || address.includes('<i>')) {
+        if (!address) {
+          document.getElementById('addressError').textContent = "Alamat harus diisi";
           document.getElementById('addressError').style.display = 'block';
           valid = false;
         } else {
@@ -322,46 +406,18 @@
             timestamp: new Date().getTime()
           };
           
-          // Simulate API call delay
-          setTimeout(function() {
-            // Send to App Inventor
-            if (window.AppInventor) {
-              window.AppInventor.setWebViewString(JSON.stringify(userData));
-            } else {
-              console.log("Data would be sent:", userData);
-              alert("Data berhasil disimpan!\n" + JSON.stringify(userData, null, 2));
-              document.getElementById('loading').style.display = 'none';
-              document.getElementById('submitBtn').style.display = 'block';
-            }
-          }, 1500);
+          // Send to App Inventor
+          if (window.AppInventor) {
+            window.AppInventor.setWebViewString(JSON.stringify(userData));
+          } else {
+            console.log("Data would be sent:", userData);
+            alert("Data berhasil disimpan!\n" + JSON.stringify(userData, null, 2));
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
+          }
         }
       });
-      
-      // Default to manual entry
-      manualAddressBtn.click();
     });
-    
-    // Real implementation would use this:
-    function getCurrentLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          function(position) {
-            // Use a geocoding service to get address from coordinates
-            // Example with Google Maps Geocoding API:
-            // fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.coords.latitude},${position.coords.longitude}&key=YOUR_API_KEY`)
-            //   .then(response => response.json())
-            //   .then(data => {
-            //     addressText.textContent = data.results[0].formatted_address;
-            //   });
-          },
-          function(error) {
-            addressText.textContent = "Gagal mendapatkan lokasi: " + error.message;
-          }
-        );
-      } else {
-        addressText.textContent = "Geolocation tidak didukung di browser ini";
-      }
-    }
   </script>
 </body>
 </html>
