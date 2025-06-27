@@ -1,387 +1,148 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login OloRide</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f5f5f5;
-      color: #026aa7;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      min-height: 100vh;
-      margin: 0;
-    }
-
-    .login-container {
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      padding: 30px;
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      color: #026aa7;
-      font-size: 24px;
-    }
-
-    .logo {
-      width: 100px;
-      margin-bottom: 20px;
-    }
-
-    input {
-      padding: 12px 15px;
-      margin: 10px 0;
-      width: 100%;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-      box-sizing: border-box;
-      transition: border 0.3s;
-    }
-
-    input:focus {
-      border-color: #026aa7;
-      outline: none;
-    }
-
-    button {
-      padding: 12px;
-      margin: 15px 0;
-      width: 100%;
-      background-color: #026aa7;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #035b8e;
-    }
-
-    button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
-    }
-
-    #recaptcha-container {
-      margin: 15px 0;
-      display: flex;
-      justify-content: center;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 1s ease-in-out infinite;
-      margin-right: 10px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .error-message {
-      color: #d32f2f;
-      margin: 10px 0;
-      font-size: 14px;
-    }
-
-    .resend-link {
-      color: #026aa7;
-      cursor: pointer;
-      font-size: 14px;
-      margin-top: 10px;
-      display: inline-block;
-    }
-  </style>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  
-  <!-- reCAPTCHA -->
-  <script src="https://www.google.com/recaptcha/api.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OloRide - Login</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        
+        h1 {
+            color: #026aa7;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .google-btn {
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            transition: all 0.3s;
+        }
+        
+        .google-btn:hover {
+            background: #357ABD;
+        }
+        
+        .google-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            background: white;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
 </head>
 <body>
-  <div class="login-container">
-    <img src="https://via.placeholder.com/100x100?text=OloRide" alt="Logo OloRide" class="logo">
-    <h1>Masuk ke OloRide</h1>
-    
-    <div id="phoneSection">
-      <input type="tel" id="phoneNumber" placeholder="Masukkan nomor HP (0812xxxxxxx)" />
-      <div id="recaptcha-container"></div>
-      <div id="errorMessage" class="error-message"></div>
-      <button id="sendOTPBtn" onclick="sendOTP()">
-        <span id="sendOTPText">Kirim Kode OTP</span>
-      </button>
-    </div>
-
-    <div id="otpSection" class="hidden">
-      <p style="text-align: left; margin-bottom: 15px;">Kode OTP telah dikirim ke <strong id="phoneNumberDisplay"></strong></p>
-      <input type="text" id="otpCode" placeholder="Masukkan 6 digit kode OTP" maxlength="6" />
-      <div id="otpErrorMessage" class="error-message"></div>
-      <button id="verifyOTPBtn" onclick="verifyOTP()">
-        <span id="verifyOTPText">Verifikasi OTP</span>
-      </button>
-      <a class="resend-link" onclick="resendOTP()">Kirim ulang kode OTP</a>
-    </div>
-  </div>
-
-  <script>
-    // Konfigurasi Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyC9PQ3eKgkPN9V-240yKd8sTkWe-kUCtGI",
-      authDomain: "telescancreator-9b50a.firebaseapp.com",
-      databaseURL: "https://telescancreator-9b50a-default-rtdb.firebaseio.com",
-      projectId: "telescancreator-9b50a",
-      storageBucket: "telescancreator-9b50a.appspot.com",
-      messagingSenderId: "1001228274341",
-      appId: "1:1001228274341:web:b82fef9e8f4bff407b1b4c"
-    };
-
-    // Inisialisasi Firebase
-    firebase.initializeApp(firebaseConfig);
-
-    let confirmationResult;
-    let appVerifier;
-    let recaptchaWidgetId;
-    let phoneNumber = '';
-
-    // Inisialisasi reCAPTCHA
-    window.onload = () => {
-      // Cek status login
-      firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-          window.location.href = "beranda.html";
-        }
-      });
-
-      // Setup reCAPTCHA
-      appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        size: 'normal',
-        callback: (response) => {
-          console.log("reCAPTCHA berhasil diverifikasi");
-          document.getElementById('errorMessage').textContent = '';
-        },
-        'expired-callback': () => {
-          document.getElementById('errorMessage').textContent = 'Verifikasi reCAPTCHA kadaluarsa. Silakan coba lagi.';
-        },
-        'error-callback': () => {
-          document.getElementById('errorMessage').textContent = 'Terjadi error saat verifikasi reCAPTCHA.';
-        }
-      });
-
-      appVerifier.render().then(widgetId => {
-        recaptchaWidgetId = widgetId;
-      }).catch(error => {
-        console.error("reCAPTCHA render error:", error);
-        document.getElementById('errorMessage').textContent = 'Gagal memuat reCAPTCHA. Silakan refresh halaman.';
-      });
-    };
-
-    // Format nomor telepon
-    function formatPhoneNumber(phone) {
-      // Hapus semua karakter non-digit
-      let cleaned = phone.replace(/\D/g, '');
-      
-      // Format ke +62
-      if (cleaned.startsWith('0')) {
-        return '+62' + cleaned.substring(1);
-      } else if (cleaned.startsWith('62')) {
-        return '+' + cleaned;
-      } else if (!cleaned.startsWith('+62')) {
-        return '+62' + cleaned;
-      }
-      return cleaned;
-    }
-
-    // Kirim OTP
-    function sendOTP() {
-      const phoneInput = document.getElementById('phoneNumber').value.trim();
-      phoneNumber = formatPhoneNumber(phoneInput);
-      
-      // Validasi nomor telepon
-      if (!phoneNumber.startsWith('+62') || phoneNumber.length < 11) {
-        document.getElementById('errorMessage').textContent = 'Nomor tidak valid. Contoh: 081234567890';
-        return;
-      }
-
-      // Tampilkan loading
-      const sendOTPBtn = document.getElementById('sendOTPBtn');
-      const sendOTPText = document.getElementById('sendOTPText');
-      sendOTPBtn.disabled = true;
-      sendOTPText.innerHTML = '<span class="loading"></span> Mengirim...';
-
-      // Kirim OTP
-      firebase.auth().signInWithPhoneNumber(phoneNumber, appVerifier)
-        .then(result => {
-          confirmationResult = result;
-          
-          // Sembunyikan form nomor, tampilkan form OTP
-          document.getElementById('phoneSection').classList.add('hidden');
-          document.getElementById('otpSection').classList.remove('hidden');
-          document.getElementById('phoneNumberDisplay').textContent = phoneNumber;
-          
-          // Mulai hitung mundur untuk kirim ulang
-          startResendTimer();
-        })
-        .catch(error => {
-          console.error("OTP Error:", error);
-          
-          let errorMessage = "Gagal mengirim OTP. ";
-          switch(error.code) {
-            case 'auth/invalid-phone-number':
-              errorMessage = "Format nomor telepon tidak valid.";
-              break;
-            case 'auth/missing-phone-number':
-              errorMessage = "Nomor telepon harus diisi.";
-              break;
-            case 'auth/quota-exceeded':
-              errorMessage = "Kuota SMS harian telah habis. Silakan coba lagi besok.";
-              break;
-            case 'auth/captcha-check-failed':
-              errorMessage = "Verifikasi reCAPTCHA gagal. Silakan coba lagi.";
-              // Reset reCAPTCHA
-              if (recaptchaWidgetId) {
-                grecaptcha.reset(recaptchaWidgetId);
-              }
-              break;
-            case 'auth/too-many-requests':
-              errorMessage = "Terlalu banyak permintaan. Silakan coba lagi nanti.";
-              break;
-            default:
-              errorMessage += error.message;
-          }
-          
-          document.getElementById('errorMessage').textContent = errorMessage;
-        })
-        .finally(() => {
-          sendOTPBtn.disabled = false;
-          sendOTPText.textContent = 'Kirim Kode OTP';
-        });
-    }
-
-    // Verifikasi OTP
-    function verifyOTP() {
-      const code = document.getElementById('otpCode').value.trim();
-      
-      if (!code || code.length !== 6) {
-        document.getElementById('otpErrorMessage').textContent = 'Masukkan 6 digit kode OTP';
-        return;
-      }
-
-      // Tampilkan loading
-      const verifyOTPBtn = document.getElementById('verifyOTPBtn');
-      const verifyOTPText = document.getElementById('verifyOTPText');
-      verifyOTPBtn.disabled = true;
-      verifyOTPText.innerHTML = '<span class="loading"></span> Memverifikasi...';
-
-      confirmationResult.confirm(code)
-        .then(result => {
-          const user = result.user;
-          
-          // Simpan data user ke database jika belum ada
-          const userRef = firebase.database().ref("users/" + user.uid);
-          userRef.once("value", snapshot => {
-            if (!snapshot.exists()) {
-              userRef.set({
-                uid: user.uid,
-                phone: user.phoneNumber,
-                name: "",
-                photo_url: "",
-                rating: 5,
-                created_at: firebase.database.ServerValue.TIMESTAMP
-              });
-            }
-            
-            // Redirect ke halaman beranda setelah login berhasil
-            window.location.href = "beranda.html";
-          });
-        })
-        .catch(error => {
-          console.error("Verification Error:", error);
-          
-          let errorMessage = "Gagal verifikasi OTP. ";
-          switch(error.code) {
-            case 'auth/invalid-verification-code':
-              errorMessage = "Kode OTP salah. Silakan coba lagi.";
-              break;
-            case 'auth/code-expired':
-              errorMessage = "Kode OTP sudah kadaluarsa. Silakan minta kode baru.";
-              break;
-            default:
-              errorMessage += error.message;
-          }
-          
-          document.getElementById('otpErrorMessage').textContent = errorMessage;
-        })
-        .finally(() => {
-          verifyOTPBtn.disabled = false;
-          verifyOTPText.textContent = 'Verifikasi OTP';
-        });
-    }
-
-    // Kirim ulang OTP
-    function resendOTP() {
-      const resendLink = document.querySelector('.resend-link');
-      resendLink.style.pointerEvents = 'none';
-      resendLink.textContent = 'Mengirim ulang...';
-      
-      firebase.auth().signInWithPhoneNumber(phoneNumber, appVerifier)
-        .then(result => {
-          confirmationResult = result;
-          document.getElementById('otpErrorMessage').textContent = '';
-          startResendTimer();
-        })
-        .catch(error => {
-          console.error("Resend Error:", error);
-          document.getElementById('otpErrorMessage').textContent = 'Gagal mengirim ulang OTP. Silakan coba lagi.';
-        });
-    }
-
-    // Timer untuk kirim ulang OTP
-    function startResendTimer() {
-      const resendLink = document.querySelector('.resend-link');
-      let timeLeft = 30;
-      
-      resendLink.style.pointerEvents = 'none';
-      resendLink.textContent = `Kirim ulang (${timeLeft}s)`;
-      
-      const timer = setInterval(() => {
-        timeLeft--;
-        resendLink.textContent = `Kirim ulang (${timeLeft}s)`;
+    <div class="login-container">
+        <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="OloRide Logo" class="logo">
+        <h1>OloRide</h1>
+        <p>Silakan login dengan akun Google Anda</p>
         
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          resendLink.textContent = 'Kirim ulang kode OTP';
-          resendLink.style.pointerEvents = 'auto';
-        }
-      }, 1000);
-    }
-  </script>
+        <button class="google-btn" id="googleSignIn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="google-icon">
+            Login dengan Google
+        </button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
+            authDomain: "chatting-87e87.firebaseapp.com",
+            projectId: "chatting-87e87",
+            storageBucket: "chatting-87e87.appspot.com",
+            messagingSenderId: "240910634931",
+            appId: "1:240910634931:web:49aa4b9a0659d9115045c6"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Handle Google Sign-In
+        document.getElementById('googleSignIn').addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    
+                    // Prepare user data to send to App Inventor
+                    const userData = {
+                        uid: user.uid,
+                        name: user.displayName,
+                        email: user.email,
+                        photoUrl: user.photoURL,
+                        provider: 'google'
+                    };
+                    
+                    // Send data to App Inventor WebView
+                    if (window.AppInventor) {
+                        window.AppInventor.setWebViewString(JSON.stringify(userData));
+                    } else {
+                        console.log("App Inventor bridge not found, data:", userData);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Login error:", error);
+                    
+                    // Send error to App Inventor
+                    if (window.AppInventor) {
+                        window.AppInventor.setWebViewString(JSON.stringify({
+                            error: error.message,
+                            code: error.code
+                        }));
+                    }
+                });
+        });
+    </script>
 </body>
 </html>
