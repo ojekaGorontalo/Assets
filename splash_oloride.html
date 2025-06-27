@@ -1,97 +1,26 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OloRide</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #ffffff;
-      font-family: 'Segoe UI', sans-serif;
-      color: #026aa7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      flex-direction: column;
-      animation: fadeIn 1s ease-in-out;
-    }
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
-    img {
-      width: 100px;
-      height: 100px;
-      margin-bottom: 20px;
-      animation: bounce 2s infinite;
-    }
+  const firebaseConfig = {
+    apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
+    authDomain: "chatting-87e87.firebaseapp.com",
+    databaseURL: "https://chatting-87e87-default-rtdb.firebaseio.com",
+    projectId: "chatting-87e87",
+    storageBucket: "chatting-87e87.appspot.com",
+    messagingSenderId: "240910634931",
+    appId: "1:240910634931:web:49aa4b9a0659d9115045c6"
+  };
 
-    h1 {
-      font-size: 2.5em;
-      margin: 0;
-    }
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-    p {
-      margin-top: 10px;
-      font-size: 1em;
-      opacity: 0.85;
-    }
+  function kirimPesan() {
+    set(ref(db, 'notifikasi/terbaru'), {
+      waktu: Date.now(),
+      isi: "Transaksi baru berhasil!"
+    });
+  }
 
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-15px); }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-  </style>
-</head>
-<body>
-  <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="OloRide Icon" />
-  <h1>OloRide</h1>
-  <p>Bangga Deng Produk Sandiri</p>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC9PQ3eKgkPN9V-240yKd8sTkWe-kUCtGI",
-      authDomain: "telescancreator-9b50a.firebaseapp.com",
-      databaseURL: "https://telescancreator-9b50a-default-rtdb.firebaseio.com",
-      projectId: "telescancreator-9b50a",
-      storageBucket: "telescancreator-9b50a.appspot.com",
-      messagingSenderId: "1001228274341",
-      appId: "1:1001228274341:android:0acaf8599f1d54537b1b4c"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-
-    // Delay 2 detik sebelum redirect
-    setTimeout(() => {
-      firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-          const uid = user.uid;
-          const userRef = firebase.database().ref("users/" + uid);
-          userRef.once("value").then(snapshot => {
-            if (snapshot.exists() && snapshot.val().name !== "") {
-              // Sudah login & data lengkap
-              window.location.href = "beranda.html";
-            } else {
-              // Login tapi belum lengkapi profil
-              window.location.href = "lengkapi.html";
-            }
-          });
-        } else {
-          // Belum login
-          window.location.href = "login.html";
-        }
-      });
-    }, 2000);
-  </script>
-</body>
-</html>
+  setTimeout(kirimPesan, 5000); // Kirim setelah 5 detik
+</script>
