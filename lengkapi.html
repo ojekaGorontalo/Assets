@@ -2,269 +2,83 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lengkapi Data - OloRide</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #026aa7;
-      --secondary: #FF9F1C;
-      --dark: #1A2A3A;
-      --light: #F8F9FA;
-      --error: #e74c3c;
-    }
-    
     body {
-      margin: 0;
-      padding: 20px;
-      font-family: 'Poppins', sans-serif;
-      background: #f5f7fa;
-      color: var(--dark);
-      line-height: 1.6;
-    }
-    
-    .container {
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-      padding: 25px;
+      font-family: Arial, sans-serif;
       max-width: 500px;
       margin: 0 auto;
+      padding: 20px;
     }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 25px;
-    }
-    
-    .logo {
-      width: 70px;
-      height: 70px;
-      margin-bottom: 10px;
-    }
-    
-    h1 {
-      color: var(--primary);
-      font-size: 22px;
-      margin: 0 0 5px 0;
-    }
-    
-    .subtitle {
-      color: #666;
-      font-size: 14px;
-    }
-    
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
-    
     label {
       display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-      color: var(--dark);
-    }
-    
-    input[type="text"],
-    input[type="tel"] {
-      width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-family: 'Poppins', sans-serif;
-      font-size: 15px;
-      transition: border 0.3s;
-    }
-    
-    input[type="text"]:focus,
-    input[type="tel"]:focus {
-      border-color: var(--primary);
-      outline: none;
-    }
-    
-    .address-container {
-      position: relative;
-    }
-    
-    .detected-address {
-      background: #f0f7ff;
-      border: 1px solid #b3d7ff;
-      border-radius: 8px;
-      padding: 12px 15px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .detected-address:hover {
-      background: #e1f0ff;
-    }
-    
-    .detected-address p {
-      margin: 0;
-      font-size: 14px;
-    }
-    
-    .detected-address .label {
-      font-size: 12px;
-      color: var(--primary);
       margin-bottom: 5px;
-      display: block;
+      font-weight: bold;
     }
-    
-    .btn {
-      background-color: var(--primary);
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #026aa7;
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 14px;
-      font-size: 16px;
-      font-weight: 500;
+      padding: 12px;
       width: 100%;
+      border-radius: 5px;
+      font-size: 16px;
       cursor: pointer;
-      transition: background 0.3s;
-      margin-top: 10px;
     }
-    
-    .btn:hover {
+    button:hover {
       background-color: #035b8f;
-    }
-    
-    .error {
-      color: var(--error);
-      font-size: 13px;
-      margin-top: 5px;
-      display: none;
-    }
-    
-    .loading {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
-    }
-    
-    .loading-spinner {
-      border: 3px solid rgba(2, 106, 167, 0.2);
-      border-radius: 50%;
-      border-top: 3px solid var(--primary);
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      display: inline-block;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="OloRide Logo" class="logo">
-      <h1>Lengkapi Data Anda</h1>
-      <p class="subtitle">Isi data berikut untuk melanjutkan</p>
-    </div>
-    
-    <form id="dataForm">
-      <div class="form-group">
-        <label for="phone">Nomor HP (Aktif)</label>
-        <input type="tel" id="phone" placeholder="Contoh: 081234567890" required>
-        <div class="error" id="phoneError">Nomor HP harus diisi</div>
-      </div>
-      
-      <div class="form-group">
-        <label for="address">Alamat Lengkap</label>
-        <div class="address-container">
-          <div class="detected-address" id="detectedAddress" style="display: none;">
-            <span class="label">Alamat Terdeteksi:</span>
-            <p id="addressText"></p>
-          </div>
-          <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required>
-          <div class="error" id="addressError">Alamat harus diisi</div>
-        </div>
-      </div>
-      
-      <button type="submit" class="btn" id="submitBtn">Simpan Data</button>
-    </form>
-    
-    <div class="loading" id="loading">
-      <div class="loading-spinner"></div>
-      <p>Menyimpan data...</p>
-    </div>
+  <h2>Lengkapi Data</h2>
+  
+  <div class="form-group">
+    <label for="phone">Nomor HP (Aktif)</label>
+    <input type="tel" id="phone" placeholder="Contoh: 081234567890">
   </div>
+  
+  <div class="form-group">
+    <label for="address">Alamat Lengkap</label>
+    <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123">
+  </div>
+  
+  <button id="submitBtn">Simpan Data</button>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Try to detect address (simulated for example)
-      setTimeout(function() {
-        // This is just a simulation - in real app you would use geolocation API
-        const simulatedAddress = "Jl. Jendral Sudirman No. 45, Kota Gorontalo";
-        const addressDetected = Math.random() > 0.5; // 50% chance to show detected address
-        
-        if (addressDetected) {
-          document.getElementById('detectedAddress').style.display = 'block';
-          document.getElementById('addressText').textContent = simulatedAddress;
-          
-          // When clicked on detected address, fill the input
-          document.getElementById('detectedAddress').addEventListener('click', function() {
-            document.getElementById('address').value = simulatedAddress;
-          });
-        }
-      }, 1500);
+    document.getElementById('submitBtn').addEventListener('click', function() {
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
       
-      // Form submission
-      document.getElementById('dataForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const phone = document.getElementById('phone').value.trim();
-        const address = document.getElementById('address').value.trim();
-        let valid = true;
-        
-        // Validate phone
-        if (!phone) {
-          document.getElementById('phoneError').style.display = 'block';
-          valid = false;
-        } else {
-          document.getElementById('phoneError').style.display = 'none';
-        }
-        
-        // Validate address
-        if (!address) {
-          document.getElementById('addressError').style.display = 'block';
-          valid = false;
-        } else {
-          document.getElementById('addressError').style.display = 'none';
-        }
-        
-        if (valid) {
-          // Show loading
-          document.getElementById('loading').style.display = 'block';
-          document.getElementById('submitBtn').style.display = 'none';
-          
-          // Prepare data to send
-          const userData = {
-            phone: phone,
-            address: address,
-            completed: true,
-            timestamp: new Date().getTime()
-          };
-          
-          // Simulate API call delay
-          setTimeout(function() {
-            // Send to App Inventor
-            if (window.AppInventor) {
-              window.AppInventor.setWebViewString(JSON.stringify(userData));
-            } else {
-              console.log("Data would be sent:", userData);
-              alert("Data berhasil disimpan!\n" + JSON.stringify(userData, null, 2));
-              document.getElementById('loading').style.display = 'none';
-              document.getElementById('submitBtn').style.display = 'block';
-            }
-          }, 1500);
-        }
-      });
+      if (!phone || !address) {
+        alert('Harap isi semua data');
+        return;
+      }
+      
+      const data = {
+        phone: phone,
+        address: address,
+        timestamp: new Date().getTime()
+      };
+      
+      // Kirim ke App Inventor
+      if (window.AppInventor) {
+        window.AppInventor.setWebViewString(JSON.stringify(data));
+      } else {
+        console.log("Data yang dikirim:", data);
+        alert("Data berhasil disimpan!\n" + JSON.stringify(data, null, 2));
+      }
     });
   </script>
 </body>
