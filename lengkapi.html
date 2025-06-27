@@ -6,126 +6,390 @@
   <title>Lengkapi Data - OloRide</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    /* CSS tetap sama seperti sebelumnya */
+    :root {
+      --primary: #026aa7;
+      --secondary: #FF9F1C;
+      --dark: #1A2A3A;
+      --light: #F8F9FA;
+      --error: #e74c3c;
+    }
+    
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Poppins', sans-serif;
+      background: #f5f7fa;
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      padding: 25px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    
+    .logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 10px;
+    }
+    
+    h1 {
+      color: var(--primary);
+      font-size: 22px;
+      margin: 0 0 5px 0;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    
+    input[type="text"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 15px;
+      transition: border 0.3s;
+    }
+    
+    input[type="text"]:focus,
+    input[type="tel"]:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+    
+    .address-options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .address-option-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+    
+    .address-option-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .address-option-btn.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .detected-address {
+      background: #f0f7ff;
+      border: 1px solid #b3d7ff;
+      border-radius: 8px;
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: none;
+    }
+    
+    .detected-address:hover {
+      background: #e1f0ff;
+    }
+    
+    .detected-address p {
+      margin: 0;
+      font-size: 14px;
+    }
+    
+    .detected-address .label {
+      font-size: 12px;
+      color: var(--primary);
+      margin-bottom: 5px;
+      display: block;
+    }
+    
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 500;
+      width: 100%;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 10px;
+    }
+    
+    .btn:hover {
+      background-color: #035b8f;
+    }
+    
+    .error {
+      color: var(--error);
+      font-size: 13px;
+      margin-top: 5px;
+      display: none;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(2, 106, 167, 0.2);
+      border-radius: 50%;
+      border-top: 3px solid var(--primary);
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
-  <!-- HTML struktur tetap sama -->
-  
+  <div class="container">
+    <div class="header">
+      <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="OloRide Logo" class="logo">
+      <h1>Lengkapi Data Anda</h1>
+      <p class="subtitle">Isi data berikut untuk melanjutkan</p>
+    </div>
+    
+    <form id="dataForm">
+      <div class="form-group">
+        <label for="phone">Nomor HP (Aktif)</label>
+        <input type="tel" id="phone" placeholder="Contoh: 081234567890" required>
+        <div class="error" id="phoneError">Nomor HP harus diisi</div>
+      </div>
+      
+      <div class="form-group">
+        <label>Alamat Lengkap</label>
+        <div class="address-options">
+          <button type="button" class="address-option-btn" id="currentLocationBtn">Gunakan Lokasi Sekarang</button>
+          <button type="button" class="address-option-btn active" id="manualAddressBtn">Masukkan Manual</button>
+        </div>
+        
+        <div class="detected-address" id="detectedAddress">
+          <span class="label">Alamat Terdeteksi:</span>
+          <p id="addressText"></p>
+        </div>
+        
+        <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required>
+        <div class="error" id="addressError">Alamat harus diisi</div>
+      </div>
+      
+      <button type="submit" class="btn" id="submitBtn">Simpan Data</button>
+    </form>
+    
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>Menyimpan data...</p>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Variabel untuk menyimpan koordinat
+      const currentLocationBtn = document.getElementById('currentLocationBtn');
+      const manualAddressBtn = document.getElementById('manualAddressBtn');
+      const detectedAddress = document.getElementById('detectedAddress');
+      const addressInput = document.getElementById('address');
+      const addressText = document.getElementById('addressText');
       let userCoordinates = null;
       
-      // Current location button handler
+      // Current location button click handler
       currentLocationBtn.addEventListener('click', function() {
-        // ... kode UI sebelumnya ...
+        currentLocationBtn.classList.add('active');
+        manualAddressBtn.classList.remove('active');
+        detectedAddress.style.display = 'block';
+        addressInput.style.display = 'none';
+        addressText.innerHTML = '<i>Mendeteksi lokasi...</i>';
         
-        // Request lokasi tanpa alert
-        requestLocationSilently();
+        // Try to get location silently
+        getLocationSilently();
       });
-
-      // Fungsi untuk request lokasi tanpa alert
-      function requestLocationSilently() {
-        if (!navigator.permissions) {
-          // Fallback untuk browser yang tidak support Permissions API
-          getLocationWithOptions();
-          return;
-        }
-
-        // Cek status permission pertama kali
-        navigator.permissions.query({name: 'geolocation'})
-          .then(permissionStatus => {
-            if (permissionStatus.state === 'granted') {
-              getLocationWithOptions();
-            } else if (permissionStatus.state === 'prompt') {
-              // Jika belum ada keputusan, gunakan timeout untuk menghindari prompt
-              setTimeout(() => {
-                getLocationWithOptions({timeout: 100});
-              }, 10);
-            } else {
-              showManualEntry("Izin lokasi ditolak sebelumnya");
-            }
-
-            // Monitor perubahan permission
-            permissionStatus.onchange = () => {
-              if (permissionStatus.state === 'granted') {
-                getLocationWithOptions();
-              }
-            };
-          })
-          .catch(() => {
-            getLocationWithOptions();
-          });
+      
+      // Manual address button click handler
+      manualAddressBtn.addEventListener('click', function() {
+        manualAddressBtn.classList.add('active');
+        currentLocationBtn.classList.remove('active');
+        detectedAddress.style.display = 'none';
+        addressInput.style.display = 'block';
+        addressInput.focus();
+      });
+      
+      // When clicked on detected address, copy to input field
+      detectedAddress.addEventListener('click', function() {
+        addressInput.value = addressText.textContent;
+      });
+      
+      // Function to get location without showing permission prompt
+      function getLocationSilently() {
+        // First try with very short timeout to avoid prompt
+        getLocation({timeout: 100}, function() {
+          // If failed, try normal method (may show prompt)
+          getLocation({timeout: 5000});
+        });
       }
-
-      // Fungsi untuk mendapatkan lokasi dengan opsi khusus
-      function getLocationWithOptions(options = {}) {
+      
+      // Generic location getter
+      function getLocation(options, onError) {
         const defaultOptions = {
           enableHighAccuracy: true,
           maximumAge: 30000,
-          timeout: 10000
+          timeout: options.timeout || 10000
         };
         
         navigator.geolocation.getCurrentPosition(
-          position => {
+          function(position) {
             userCoordinates = {
               lat: position.coords.latitude,
               lng: position.coords.longitude,
               accuracy: position.coords.accuracy
             };
-            reverseGeocode(userCoordinates.lat, userCoordinates.lng);
+            
+            // Simulate reverse geocoding (in real app, use a geocoding service)
+            setTimeout(function() {
+              const addresses = [
+                "Jl. Jendral Sudirman No. 45, Kota Gorontalo (Lat: " + userCoordinates.lat + ", Lng: " + userCoordinates.lng + ")",
+                "Jl. 23 Januari No. 12, Limboto (Lat: " + userCoordinates.lat + ", Lng: " + userCoordinates.lng + ")",
+                "Jl. Ahmad Yani No. 78, Gorontalo Utara (Lat: " + userCoordinates.lat + ", Lng: " + userCoordinates.lng + ")"
+              ];
+              const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+              addressText.textContent = randomAddress;
+              addressInput.value = randomAddress;
+            }, 500);
           },
-          error => {
-            showManualEntry(getErrorMessage(error));
+          function(error) {
+            if (onError) onError();
+            else handleLocationError(error);
           },
-          {...defaultOptions, ...options}
+          defaultOptions
         );
       }
-
-      // Fungsi untuk menampilkan pesan error
-      function getErrorMessage(error) {
+      
+      function handleLocationError(error) {
+        let message = "Gagal mendapatkan lokasi";
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            return "Izin lokasi tidak diberikan";
+            message = "Izin lokasi tidak diberikan";
+            break;
           case error.POSITION_UNAVAILABLE:
-            return "Informasi lokasi tidak tersedia";
+            message = "Informasi lokasi tidak tersedia";
+            break;
           case error.TIMEOUT:
-            return "Waktu permintaan habis";
-          default:
-            return "Gagal mendapatkan lokasi";
+            message = "Waktu permintaan habis";
+            break;
         }
-      }
-
-      // Fungsi untuk beralih ke input manual
-      function showManualEntry(message) {
         addressText.textContent = message;
         manualAddressBtn.click();
       }
-
-      // Form submission handler
+      
+      // Form submission
       document.getElementById('dataForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // ... validasi sebelumnya ...
-
+        const phone = document.getElementById('phone').value.trim();
+        let address = '';
+        
+        // Get address based on selected method
+        if (currentLocationBtn.classList.contains('active')) {
+          address = addressText.textContent;
+          if (address.includes('<i>') || address.includes('Gagal')) {
+            document.getElementById('addressError').textContent = "Harap deteksi alamat lagi atau gunakan input manual";
+            document.getElementById('addressError').style.display = 'block';
+            return;
+          }
+        } else {
+          address = addressInput.value.trim();
+        }
+        
+        let valid = true;
+        
+        // Validate phone
+        if (!phone) {
+          document.getElementById('phoneError').style.display = 'block';
+          valid = false;
+        } else {
+          document.getElementById('phoneError').style.display = 'none';
+        }
+        
+        // Validate address
+        if (!address) {
+          document.getElementById('addressError').textContent = "Alamat harus diisi";
+          document.getElementById('addressError').style.display = 'block';
+          valid = false;
+        } else {
+          document.getElementById('addressError').style.display = 'none';
+        }
+        
         if (valid) {
-          // Siapkan data lengkap dengan koordinat
+          // Show loading
+          document.getElementById('loading').style.display = 'block';
+          document.getElementById('submitBtn').style.display = 'none';
+          
+          // Prepare data to send
           const userData = {
             phone: phone,
             address: address,
             method: currentLocationBtn.classList.contains('active') ? 'auto' : 'manual',
-            coordinates: userCoordinates, // Sertakan koordinat jika ada
+            coordinates: userCoordinates,
             accuracy: userCoordinates ? userCoordinates.accuracy : null,
             completed: true,
             timestamp: new Date().getTime()
           };
-
-          // ... pengiriman data ke App Inventor ...
+          
+          // Send to App Inventor
+          if (window.AppInventor) {
+            window.AppInventor.setWebViewString(JSON.stringify(userData));
+          } else {
+            console.log("Data would be sent:", userData);
+            alert("Data berhasil disimpan!\n" + JSON.stringify(userData, null, 2));
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'block';
+          }
         }
       });
-
-      // Default ke input manual
+      
+      // Default to manual entry
       manualAddressBtn.click();
     });
   </script>
