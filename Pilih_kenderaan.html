@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pilih Kendaraan - OloRide</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #026aa7;
+      font-size: 24px;
+    }
+    
+    .vehicle-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    
+    .vehicle-card {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    
+    .vehicle-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .vehicle-card.selected {
+      border-color: #026aa7;
+      background: #f0f7ff;
+    }
+    
+    .vehicle-icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 10px;
+    }
+    
+    .vehicle-name {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .confirm-btn {
+      background: #026aa7;
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .confirm-btn:hover {
+      background: #035b8f;
+    }
+    
+    .confirm-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Pilih Jenis Kendaraan</h1>
+    <p>Pilih kendaraan yang sesuai dengan kebutuhan Anda</p>
+  </div>
+  
+  <div class="vehicle-grid" id="vehicleGrid">
+    <!-- Vehicles will be added by JavaScript -->
+  </div>
+  
+  <button class="confirm-btn" id="confirmBtn" disabled>Konfirmasi Pilihan</button>
+
+  <script>
+    const iconUrls = {
+      motor: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+      mobil: 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+      kurir: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+      bentor: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+      pickup: 'https://cdn-icons-png.flaticon.com/512/9017/9017605.png',
+      pickup_scooter: 'https://cdn-icons-png.flaticon.com/128/3177/3177363.png'
+    };
+
+    const vehicles = [
+      { id: 'motor', name: 'Motor' },
+      { id: 'mobil', name: 'Mobil' },
+      { id: 'kurir', name: 'Kurir' },
+      { id: 'bentor', name: 'Bentor' },
+      { id: 'pickup', name: 'Pickup' },
+      { id: 'pickup_scooter', name: 'Pickup Scooter' }
+    ];
+
+    let selectedVehicle = null;
+    const vehicleGrid = document.getElementById('vehicleGrid');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    // Create vehicle cards
+    vehicles.forEach(vehicle => {
+      const card = document.createElement('div');
+      card.className = 'vehicle-card';
+      card.dataset.id = vehicle.id;
+      
+      card.innerHTML = `
+        <img src="${iconUrls[vehicle.id]}" class="vehicle-icon" alt="${vehicle.name}">
+        <div class="vehicle-name">${vehicle.name}</div>
+      `;
+      
+      card.addEventListener('click', () => selectVehicle(vehicle.id));
+      vehicleGrid.appendChild(card);
+    });
+
+    // Select vehicle function
+    function selectVehicle(vehicleId) {
+      selectedVehicle = vehicleId;
+      
+      // Update UI
+      document.querySelectorAll('.vehicle-card').forEach(card => {
+        card.classList.remove('selected');
+        if (card.dataset.id === vehicleId) {
+          card.classList.add('selected');
+        }
+      });
+      
+      confirmBtn.disabled = false;
+    }
+
+    // Confirm selection
+    confirmBtn.addEventListener('click', () => {
+      if (!selectedVehicle) return;
+      
+      const response = {
+        action: 'vehicle_selected',
+        vehicle: selectedVehicle,
+        vehicle_name: vehicles.find(v => v.id === selectedVehicle).name,
+        timestamp: new Date().getTime()
+      };
+      
+      // Send to App Inventor
+      if (window.AppInventor) {
+        window.AppInventor.setWebViewString(JSON.stringify(response));
+      } else {
+        console.log("Vehicle selected:", response);
+        alert(`Anda memilih: ${response.vehicle_name}`);
+      }
+    });
+  </script>
+</body>
+</html>
