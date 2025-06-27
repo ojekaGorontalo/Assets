@@ -82,8 +82,34 @@
       outline: none;
     }
     
-    .address-container {
-      position: relative;
+    .address-options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .address-option-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+    
+    .address-option-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .address-option-btn.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
     }
     
     .detected-address {
@@ -94,6 +120,7 @@
       margin-bottom: 10px;
       cursor: pointer;
       transition: all 0.3s;
+      display: none;
     }
     
     .detected-address:hover {
@@ -128,6 +155,12 @@
     
     .btn:hover {
       background-color: #035b8f;
+    }
+    
+    .btn-secondary {
+      background-color: white;
+      color: var(--primary);
+      border: 1px solid var(--primary);
     }
     
     .error {
@@ -175,15 +208,19 @@
       </div>
       
       <div class="form-group">
-        <label for="address">Alamat Lengkap</label>
-        <div class="address-container">
-          <div class="detected-address" id="detectedAddress" style="display: none;">
-            <span class="label">Alamat Terdeteksi:</span>
-            <p id="addressText"></p>
-          </div>
-          <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required>
-          <div class="error" id="addressError">Alamat harus diisi</div>
+        <label>Alamat Lengkap</label>
+        <div class="address-options">
+          <button type="button" class="address-option-btn" id="currentLocationBtn">Gunakan Lokasi Sekarang</button>
+          <button type="button" class="address-option-btn" id="manualAddressBtn">Masukkan Manual</button>
         </div>
+        
+        <div class="detected-address" id="detectedAddress">
+          <span class="label">Alamat Terdeteksi:</span>
+          <p id="addressText"></p>
+        </div>
+        
+        <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required style="display: none;">
+        <div class="error" id="addressError">Alamat harus diisi</div>
       </div>
       
       <button type="submit" class="btn" id="submitBtn">Simpan Data</button>
@@ -197,29 +234,62 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Try to detect address (simulated for example)
-      setTimeout(function() {
-        // This is just a simulation - in real app you would use geolocation API
-        const simulatedAddress = "Jl. Jendral Sudirman No. 45, Kota Gorontalo";
-        const addressDetected = Math.random() > 0.5; // 50% chance to show detected address
+      const currentLocationBtn = document.getElementById('currentLocationBtn');
+      const manualAddressBtn = document.getElementById('manualAddressBtn');
+      const detectedAddress = document.getElementById('detectedAddress');
+      const addressInput = document.getElementById('address');
+      const addressText = document.getElementById('addressText');
+      
+      // Current location button click handler
+      currentLocationBtn.addEventListener('click', function() {
+        currentLocationBtn.classList.add('active');
+        manualAddressBtn.classList.remove('active');
+        detectedAddress.style.display = 'block';
+        addressInput.style.display = 'none';
         
-        if (addressDetected) {
-          document.getElementById('detectedAddress').style.display = 'block';
-          document.getElementById('addressText').textContent = simulatedAddress;
-          
-          // When clicked on detected address, fill the input
-          document.getElementById('detectedAddress').addEventListener('click', function() {
-            document.getElementById('address').value = simulatedAddress;
-          });
-        }
-      }, 1500);
+        // Show loading in address box
+        addressText.innerHTML = '<i>Mendeteksi lokasi...</i>';
+        
+        // Simulate geolocation detection (in real app, use navigator.geolocation)
+        setTimeout(function() {
+          const addresses = [
+            "Jl. Jendral Sudirman No. 45, Kota Gorontalo",
+            "Jl. 23 Januari No. 12, Limboto",
+            "Jl. Ahmad Yani No. 78, Gorontalo Utara"
+          ];
+          const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+          addressText.textContent = randomAddress;
+        }, 1500);
+      });
+      
+      // Manual address button click handler
+      manualAddressBtn.addEventListener('click', function() {
+        manualAddressBtn.classList.add('active');
+        currentLocationBtn.classList.remove('active');
+        detectedAddress.style.display = 'none';
+        addressInput.style.display = 'block';
+        addressInput.focus();
+      });
+      
+      // When clicked on detected address, copy to input field (hidden)
+      detectedAddress.addEventListener('click', function() {
+        addressInput.value = addressText.textContent;
+      });
       
       // Form submission
       document.getElementById('dataForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         const phone = document.getElementById('phone').value.trim();
-        const address = document.getElementById('address').value.trim();
+        let address = '';
+        
+        // Get address based on selected method
+        if (currentLocationBtn.classList.contains('active')) {
+          address = addressText.textContent;
+        } else {
+          address = addressInput.value.trim();
+        }
+        
         let valid = true;
         
         // Validate phone
@@ -231,7 +301,7 @@
         }
         
         // Validate address
-        if (!address) {
+        if (!address || address.includes('<i>')) {
           document.getElementById('addressError').style.display = 'block';
           valid = false;
         } else {
@@ -247,6 +317,7 @@
           const userData = {
             phone: phone,
             address: address,
+            method: currentLocationBtn.classList.contains('active') ? 'auto' : 'manual',
             completed: true,
             timestamp: new Date().getTime()
           };
@@ -265,7 +336,32 @@
           }, 1500);
         }
       });
+      
+      // Default to manual entry
+      manualAddressBtn.click();
     });
+    
+    // Real implementation would use this:
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            // Use a geocoding service to get address from coordinates
+            // Example with Google Maps Geocoding API:
+            // fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.coords.latitude},${position.coords.longitude}&key=YOUR_API_KEY`)
+            //   .then(response => response.json())
+            //   .then(data => {
+            //     addressText.textContent = data.results[0].formatted_address;
+            //   });
+          },
+          function(error) {
+            addressText.textContent = "Gagal mendapatkan lokasi: " + error.message;
+          }
+        );
+      } else {
+        addressText.textContent = "Geolocation tidak didukung di browser ini";
+      }
+    }
   </script>
 </body>
 </html>
