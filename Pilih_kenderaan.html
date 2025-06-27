@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pilih Kendaraan - OloRide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -60,6 +61,13 @@
     .vehicle-name {
       font-weight: 500;
       color: #333;
+      margin-bottom: 5px;
+    }
+    
+    .vehicle-desc {
+      font-size: 12px;
+      color: #666;
+      min-height: 36px;
     }
     
     .confirm-btn {
@@ -108,12 +116,36 @@
     };
 
     const vehicles = [
-      { id: 'motor', name: 'Motor' },
-      { id: 'mobil', name: 'Mobil' },
-      { id: 'kurir', name: 'Kurir' },
-      { id: 'bentor', name: 'Bentor' },
-      { id: 'pickup', name: 'Pickup' },
-      { id: 'pickup_scooter', name: 'Pickup Scooter' }
+      { 
+        id: 'motor', 
+        name: 'Motor', 
+        desc: 'Kapasitas 1 orang, tarif ekonomis' 
+      },
+      { 
+        id: 'mobil', 
+        name: 'Mobil', 
+        desc: 'Kapasitas 4 orang, nyaman dan aman' 
+      },
+      { 
+        id: 'bentor', 
+        name: 'Bentor', 
+        desc: 'Kapasitas 3 orang, harga terjangkau' 
+      },
+      { 
+        id: 'kurir', 
+        name: 'Kurir', 
+        desc: 'Untuk mengantar barang (max 20kg)' 
+      },
+      { 
+        id: 'pickup', 
+        name: 'Pickup', 
+        desc: 'Untuk barang berat (diatas 20kg)' 
+      },
+      { 
+        id: 'pickup_scooter', 
+        name: 'Pickup Scooter', 
+        desc: 'Beli barang & bayar ditempat (max 20kg)' 
+      }
     ];
 
     let selectedVehicle = null;
@@ -129,6 +161,7 @@
       card.innerHTML = `
         <img src="${iconUrls[vehicle.id]}" class="vehicle-icon" alt="${vehicle.name}">
         <div class="vehicle-name">${vehicle.name}</div>
+        <div class="vehicle-desc">${vehicle.desc}</div>
       `;
       
       card.addEventListener('click', () => selectVehicle(vehicle.id));
@@ -154,10 +187,13 @@
     confirmBtn.addEventListener('click', () => {
       if (!selectedVehicle) return;
       
+      const selectedVehicleData = vehicles.find(v => v.id === selectedVehicle);
+      
       const response = {
         action: 'vehicle_selected',
         vehicle: selectedVehicle,
-        vehicle_name: vehicles.find(v => v.id === selectedVehicle).name,
+        vehicle_name: selectedVehicleData.name,
+        description: selectedVehicleData.desc,
         timestamp: new Date().getTime()
       };
       
@@ -166,7 +202,7 @@
         window.AppInventor.setWebViewString(JSON.stringify(response));
       } else {
         console.log("Vehicle selected:", response);
-        alert(`Anda memilih: ${response.vehicle_name}`);
+        alert(`Anda memilih: ${response.vehicle_name}\n${response.description}`);
       }
     });
   </script>
