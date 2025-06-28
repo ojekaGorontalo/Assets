@@ -12,10 +12,10 @@
     const firebaseURL = params.get("firebase_url");
     const firebaseKey = params.get("firebase_key");
     const bucket = params.get("firebase_bucket");
-    const userID = params.get("userID");
+    const orderID = params.get("orderId"); // Ganti dari userID
 
     const allowedKeys = [
-      "userID",
+      "orderId",
       "name",
       "alamat_a",
       "alamat_b",
@@ -38,12 +38,13 @@
     for (const key of allowedKeys) {
       const val = params.get(key);
       if (val !== null) {
-        data[key] = isNaN(val) ? val : Number(val);
+        // Simpan orderId sebagai teks juga untuk referensi
+        data[key] = key === "harga_total" ? Number(val) : val;
       }
     }
 
-    if (firebaseURL && firebaseKey && bucket && userID) {
-      const url = `${firebaseURL.replace(/\/$/, "")}/${bucket}/${userID}.json?auth=${firebaseKey}`;
+    if (firebaseURL && firebaseKey && bucket && orderID) {
+      const url = `${firebaseURL.replace(/\/$/, "")}/${bucket}/${orderID}.json?auth=${firebaseKey}`;
       fetch(url, {
         method: "PUT",
         headers: {
@@ -53,13 +54,13 @@
       })
       .then(res => res.json())
       .then(result => {
-        document.body.innerHTML += `<p>✅ Data berhasil dikirim untuk userID: ${userID}</p>`;
+        document.body.innerHTML += `<p>✅ Data berhasil dikirim untuk orderId: ${orderID}</p>`;
       })
       .catch(err => {
         document.body.innerHTML += `<p style="color:red">❌ Gagal mengirim: ${err.message}</p>`;
       });
     } else {
-      document.body.innerHTML += `<p style="color:red">❌ Parameter Firebase atau userID tidak lengkap.</p>`;
+      document.body.innerHTML += `<p style="color:red">❌ Parameter Firebase atau orderId tidak lengkap.</p>`;
     }
   </script>
 </body>
