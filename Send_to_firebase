@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Kirim ke Firebase</title>
+</head>
+<body>
+  <h3>Mengirim data ke Firebase...</h3>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+
+    const firebaseURL = params.get("firebase_url");
+    const firebaseKey = params.get("firebase_key");
+    const bucket = params.get("firebase_bucket");
+    const userID = params.get("userID");
+
+    const allowedKeys = [
+      "userID",
+      "name",
+      "alamat_a",
+      "alamat_b",
+      "harga_total",
+      "jarak",
+      "durasi",
+      "status",
+      "vehicle",
+      "from_lat",
+      "from_lng",
+      "to_lat",
+      "to_lng",
+      "harga",
+      "latlong_pengorder",
+      "PhoneNumber",
+      "waktu_order"
+    ];
+
+    const data = {};
+    for (const key of allowedKeys) {
+      const val = params.get(key);
+      if (val !== null) {
+        data[key] = isNaN(val) ? val : Number(val);
+      }
+    }
+
+    if (firebaseURL && firebaseKey && bucket && userID) {
+      const url = `${firebaseURL.replace(/\/$/, "")}/${bucket}/${userID}.json?auth=${firebaseKey}`;
+      fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(result => {
+        document.body.innerHTML += `<p>✅ Data berhasil dikirim untuk userID: ${userID}</p>`;
+      })
+      .catch(err => {
+        document.body.innerHTML += `<p style="color:red">❌ Gagal mengirim: ${err.message}</p>`;
+      });
+    } else {
+      document.body.innerHTML += `<p style="color:red">❌ Parameter Firebase atau userID tidak lengkap.</p>`;
+    }
+  </script>
+</body>
+</html>
