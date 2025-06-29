@@ -432,23 +432,12 @@
                 };
                 
                 if (uploadedPhotoUrl) {
-                    // TAMBAHKAN BACKSLASH DI AWAL DAN AKHIR URL
-                    formData.profilePhoto = `\\${uploadedPhotoUrl}\\`;
-                    console.log("URL Foto dengan Backslash:", formData.profilePhoto);
+                    formData.profilePhoto = uploadedPhotoUrl;
                 }
                 
                 if (db && userId) {
                     await set(ref(db, `Users/${userId}`), formData);
                     showSuccess("Profil berhasil disimpan!");
-                    
-                    // Kirim data ke App Inventor jika ada
-                    if (window.AppInventor && window.AppInventor.setWebViewString) {
-                        window.AppInventor.setWebViewString(JSON.stringify({
-                            status: "success",
-                            userId: userId,
-                            profile: formData
-                        }));
-                    }
                 } else {
                     console.log("Data simulasi:", formData);
                     showSuccess("Profil disimpan (simulasi)");
@@ -456,13 +445,6 @@
             } catch (error) {
                 console.error("Error saving profile:", error);
                 showError(error.message || "Gagal menyimpan profil");
-                
-                if (window.AppInventor && window.AppInventor.setWebViewString) {
-                    window.AppInventor.setWebViewString(JSON.stringify({
-                        status: "error",
-                        message: error.message
-                    }));
-                }
             } finally {
                 hideLoading();
             }
