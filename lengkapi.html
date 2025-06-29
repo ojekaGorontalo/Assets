@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lengkapi Data - OloRide</title>
+  <title>Lengkapi Data Penumpang - OloRide</title>
+  <!-- Sertakan Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -19,7 +23,7 @@
       margin-bottom: 5px;
       font-weight: bold;
     }
-    input {
+    input, select {
       width: 100%;
       padding: 10px;
       border: 1px solid #ddd;
@@ -35,79 +39,275 @@
       border-radius: 5px;
       font-size: 16px;
       cursor: pointer;
+      margin-top: 10px;
     }
     button:hover {
       background-color: #035b8f;
     }
+    .photo-preview {
+      width: 100px;
+      height: 100px;
+      border: 1px dashed #ddd;
+      margin: 10px 0;
+      display: none;
+      object-fit: cover;
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #f3f3f3;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: none;
+    }
+    .progress {
+      width: 0%;
+      height: 20px;
+      background-color: #4CAF50;
+      border-radius: 5px;
+      text-align: center;
+      line-height: 20px;
+      color: white;
+    }
+    #statusMessage {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background-color: #cce5ff;
+      color: #004085;
+      border: 1px solid #b8daff;
+    }
   </style>
 </head>
 <body>
-  <h2>Lengkapi Data Driver</h2>
+  <h2>Lengkapi Data Penumpang</h2>
+
+  <div class="form-group">
+    <label for="nama">Nama Lengkap</label>
+    <input type="text" id="nama" placeholder="Masukkan nama lengkap" required>
+  </div>
 
   <div class="form-group">
     <label for="phone">Nomor HP</label>
-    <input type="tel" id="phone" placeholder="Contoh: 081234567890">
+    <input type="tel" id="phone" placeholder="Contoh: 081234567890" required>
+  </div>
+
+  <div class="form-group">
+    <label for="email">Email (opsional)</label>
+    <input type="email" id="email" placeholder="Contoh: email@example.com">
   </div>
 
   <div class="form-group">
     <label for="address">Alamat Lengkap</label>
-    <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123">
+    <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required>
   </div>
 
-  <button id="submitBtn">Simpan & Upload Foto</button>
+  <div class="form-group">
+    <label for="gender">Jenis Kelamin</label>
+    <select id="gender" required>
+      <option value="">Pilih Jenis Kelamin</option>
+      <option value="Laki-laki">Laki-laki</option>
+      <option value="Perempuan">Perempuan</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="photo">Upload Foto Profil</label>
+    <input type="file" id="photo" accept="image/*" required>
+    <img id="photoPreview" class="photo-preview" src="#" alt="Preview Foto">
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress" id="progress">0%</div>
+  </div>
+
+  <button id="submitBtn">Simpan Data</button>
+
+  <div id="statusMessage"></div>
 
   <script>
-    let phone = "";
-    let address = "";
+    // Fungsi untuk mendapatkan parameter dari URL
+    function getUrlParameter(name) {
+      name = name.replace(/[\[\]]/g, '\\$&');
+      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+      const results = regex.exec(window.location.href);
+      if (!results) return null;
+      if (!results[2]) return '';
+      return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
 
-    document.getElementById("submitBtn").addEventListener("click", () => {
-      phone = document.getElementById("phone").value.trim();
-      address = document.getElementById("address").value.trim();
+    // Ambil userID dari URL
+    const userID = getUrlParameter('userID');
+    const apiKey = getUrlParameter('apiKey');
+    const authDomain = getUrlParameter('authDomain');
+    const databaseURL = getUrlParameter('databaseURL');
+    const projectId = getUrlParameter('projectId');
+    const storageBucket = getUrlParameter('storageBucket');
+    const messagingSenderId = getUrlParameter('messagingSenderId');
+    const appId = getUrlParameter('appId');
 
-      if (!phone || !address) {
-        alert("Harap isi semua data.");
-        return;
-      }
+    if (!userID) {
+      showStatus("Error: userID tidak ditemukan dalam URL", "error");
+      document.getElementById("submitBtn").disabled = true;
+    }
 
-      // Minta Kodular kirimkan base64 gambar
-      if (window.AppInventor) {
-        window.AppInventor.setWebViewString("REQUEST_IMAGE_BASE64");
-      } else {
-        alert("Gunakan aplikasi Kodular untuk lanjut.");
+    // Konfigurasi Firebase dari parameter URL
+    const firebaseConfig = {
+      apiKey: apiKey,
+      authDomain: authDomain,
+      databaseURL: databaseURL,
+      projectId: projectId,
+      storageBucket: storageBucket,
+      messagingSenderId: messagingSenderId,
+      appId: appId
+    };
+
+    // Inisialisasi Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      const storage = firebase.storage();
+    } catch (error) {
+      showStatus("Error inisialisasi Firebase: " + error.message, "error");
+      document.getElementById("submitBtn").disabled = true;
+    }
+
+    // Elemen DOM
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photoPreview');
+    const progressBar = document.getElementById('progressBar');
+    const progress = document.getElementById('progress');
+    const statusMessage = document.getElementById('statusMessage');
+
+    // Preview foto
+    photoInput.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          photoPreview.src = e.target.result;
+          photoPreview.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
       }
     });
 
-    // Fungsi yang akan dipanggil dari Kodular
-    function receiveBase64FromKodular(base64Image) {
-      const imgbbKey = "3f244d81c0cb33bbb3c2e489ff9c75dd";
+    // Submit data
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      // Ambil nilai dari form
+      const nama = document.getElementById("nama").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const address = document.getElementById("address").value.trim();
+      const gender = document.getElementById("gender").value.trim();
+      const photoFile = photoInput.files[0];
 
-      fetch("https://api.imgbb.com/1/upload?key=" + imgbbKey, {
-        method: "POST",
-        body: new URLSearchParams({ image: base64Image })
-      })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success) {
-          const foto_url = result.data.url;
-          const data = {
-            phone: phone,
-            address: address,
-            foto_url: foto_url,
-            timestamp: new Date().getTime()
-          };
-          // Kirim ke Kodular
-          if (window.AppInventor) {
-            window.AppInventor.setWebViewString(JSON.stringify(data));
-          } else {
-            alert("Data terkirim:\n" + JSON.stringify(data, null, 2));
-          }
-        } else {
-          alert("❌ Upload gagal: " + result.error.message);
-        }
-      })
-      .catch(err => {
-        alert("❌ Error upload: " + err.message);
-      });
+      // Validasi
+      if (!nama || !phone || !address || !gender) {
+        showStatus("Harap isi semua data yang wajib diisi.", "error");
+        return;
+      }
+
+      if (!photoFile) {
+        showStatus("Harap upload foto profil.", "error");
+        return;
+      }
+
+      // Tampilkan progress bar
+      progressBar.style.display = 'block';
+      showStatus("Mengupload data...", "info");
+      
+      try {
+        // 1. Upload foto ke Firebase Storage
+        const fotoUrl = await uploadPhoto(photoFile, userID);
+        
+        // 2. Simpan data ke Realtime Database
+        await saveUserData(userID, {
+          nama: nama,
+          phone: phone,
+          email: email || null,
+          address: address,
+          gender: gender,
+          fotoUrl: fotoUrl,
+          timestamp: firebase.database.ServerValue.TIMESTAMP,
+          status: "active"
+        });
+        
+        showStatus("Data berhasil disimpan!", "success");
+        
+        // Reset form setelah 3 detik
+        setTimeout(() => {
+          document.querySelector('form').reset();
+          photoPreview.style.display = 'none';
+          progressBar.style.display = 'none';
+        }, 3000);
+        
+      } catch (error) {
+        showStatus("Error: " + error.message, "error");
+        progressBar.style.display = 'none';
+      }
+    });
+
+    // Fungsi untuk upload foto ke Firebase Storage
+    async function uploadPhoto(file, userId) {
+      showStatus("Mengupload foto...", "info");
+      
+      try {
+        // Buat referensi storage dengan nama unik
+        const storageRef = firebase.storage().ref(`user_photos/${userId}/${file.name}`);
+        const uploadTask = storageRef.put(file);
+
+        // Tunggu sampai upload selesai
+        const snapshot = await new Promise((resolve, reject) => {
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              // Update progress bar
+              const progressValue = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              progress.style.width = progressValue + '%';
+              progress.textContent = Math.round(progressValue) + '%';
+            },
+            (error) => reject(error),
+            () => resolve(uploadTask.snapshot)
+          );
+        });
+
+        // Dapatkan URL download
+        const downloadURL = await snapshot.ref.getDownloadURL();
+        return downloadURL;
+        
+      } catch (error) {
+        throw new Error("Gagal upload foto: " + error.message);
+      }
+    }
+
+    // Fungsi untuk menyimpan data user ke Firebase Database
+    async function saveUserData(userId, data) {
+      showStatus("Menyimpan data...", "info");
+      
+      try {
+        await firebase.database().ref(`Users/${userId}`).set(data);
+      } catch (error) {
+        throw new Error("Gagal menyimpan data: " + error.message);
+      }
+    }
+
+    // Fungsi untuk menampilkan status
+    function showStatus(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.className = type;
+      statusMessage.style.display = 'block';
     }
   </script>
 </body>
