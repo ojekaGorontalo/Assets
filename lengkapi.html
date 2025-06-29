@@ -3,364 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Penumpang OloRide</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Lengkapi Profil Anda</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #FF5722;
-            --primary-dark: #E64A19;
-            --light: #f5f5f5;
-            --dark: #212121;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #dc2626;
+            --success: #10b981;
+            --error: #ef4444;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
         }
-        
+
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
         }
-        
+
         body {
-            background-color: var(--light);
+            font-family: 'Poppins', sans-serif;
+            background-color: #f1f5f9;
             color: var(--dark);
             line-height: 1.6;
             padding: 20px;
+            min-height: 100vh;
         }
-        
+
         .container {
             max-width: 600px;
+            width: 100%;
             margin: 0 auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 30px;
         }
-        
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
         h1 {
             color: var(--primary);
-            text-align: center;
-            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
         }
-        
+
+        .subtitle {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
+            font-size: 14px;
+            color: var(--dark);
         }
-        
-        input, select {
+
+        .required::after {
+            content: " *";
+            color: var(--secondary);
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="email"],
+        select,
+        textarea {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
+            padding: 12px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.3s;
         }
-        
-        .btn {
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .photo-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 25px 0;
+        }
+
+        .photo-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: var(--gray-light);
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            color: var(--gray);
+        }
+
+        .photo-upload-btn {
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            transition: background 0.3s;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        
-        .btn:hover {
+
+        .photo-upload-btn:hover {
             background-color: var(--primary-dark);
         }
-        
-        .btn:disabled {
-            background-color: #cccccc;
+
+        #fileInput {
+            display: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .submit-btn:disabled {
+            background-color: var(--gray-light);
             cursor: not-allowed;
         }
-        
-        .photo-upload {
-            border: 2px dashed #ddd;
-            padding: 20px;
-            text-align: center;
-            border-radius: 5px;
-            margin-top: 10px;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .photo-upload p {
-            margin: 0;
-            color: #666;
-        }
-        
-        .photo-preview {
-            max-width: 100%;
-            max-height: 200px;
-            margin-top: 10px;
+
+        .loading {
             display: none;
-            border-radius: 5px;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
         }
-        
-        .progress-bar {
-            height: 5px;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            margin-top: 10px;
-            overflow: hidden;
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
             display: none;
         }
-        
-        .progress {
-            height: 100%;
-            background-color: var(--primary);
-            width: 0%;
-            transition: width 0.3s;
-        }
-        
-        .status-message {
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            text-align: center;
-            display: none;
-        }
-        
+
         .success {
-            background-color: #4CAF50;
-            color: white;
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
-        
+
         .error {
-            background-color: #f44336;
-            color: white;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .radio-option input {
+            width: auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .photo-preview {
+                width: 100px;
+                height: 100px;
+            }
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>Pendaftaran Penumpang OloRide</h1>
-        
-        <form id="passengerForm">
+        <header>
+            <h1>Lengkapi Profil Anda</h1>
+            <p class="subtitle">Isi data diri Anda dengan benar</p>
+        </header>
+
+        <form id="profileForm">
             <div class="form-group">
-                <label for="fullName">Nama Lengkap</label>
-                <input type="text" id="fullName" required>
+                <label for="fullName" class="required">Nama Lengkap</label>
+                <input type="text" id="fullName" name="fullName" required>
             </div>
-            
+
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" required>
+                <label for="phoneNumber" class="required">Nomor HP</label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" required>
             </div>
-            
+
             <div class="form-group">
-                <label for="phone">Nomor HP</label>
-                <input type="tel" id="phone" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="gender">Jenis Kelamin</label>
-                <select id="gender" required>
-                    <option value="">Pilih Jenis Kelamin</option>
-                    <option value="Laki-laki">Laki-laki</option>
-                    <option value="Perempuan">Perempuan</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="dob">Tanggal Lahir</label>
-                <input type="date" id="dob" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="address">Alamat</label>
-                <input type="text" id="address" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Foto Profil (Opsional)</label>
-                <div class="photo-upload" id="photoUpload">
-                    <p>Klik untuk upload foto</p>
-                    <input type="file" id="photoFile" accept="image/*" style="display: none;">
-                    <img id="photoPreview" class="photo-preview">
-                    <div class="progress-bar" id="uploadProgressBar">
-                        <div class="progress" id="uploadProgress"></div>
-                    </div>
+                <label>Jenis Kelamin</label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="gender" value="Laki-laki" checked> Laki-laki
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="gender" value="Perempuan"> Perempuan
+                    </label>
                 </div>
             </div>
-            
-            <button type="submit" class="btn" id="submitBtn">Daftar Sekarang</button>
+
+            <div class="form-group">
+                <label for="address">Alamat</label>
+                <textarea id="address" name="address" rows="3"></textarea>
+            </div>
+
+            <div class="photo-upload">
+                <div class="photo-preview" id="photoPreview">
+                    <div class="photo-placeholder">
+                        <i class="fas fa-user" style="font-size: 40px;"></i>
+                    </div>
+                </div>
+                <button type="button" class="photo-upload-btn" id="uploadBtn">
+                    <i class="fas fa-camera"></i> Upload Foto Profil
+                </button>
+                <input type="file" id="fileInput" accept="image/*" capture="environment">
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p class="loading-text">Menyimpan data...</p>
+            </div>
+
+            <div class="message success" id="successMessage">
+                <i class="fas fa-check-circle"></i> Profil berhasil disimpan!
+            </div>
+
+            <div class="message error" id="errorMessage">
+                <i class="fas fa-exclamation-circle"></i> Terjadi kesalahan saat menyimpan profil.
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                Simpan Profil
+            </button>
         </form>
-        
-        <div id="statusMessage" class="status-message"></div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
-    <script>
-        // Fungsi untuk mendapatkan parameter URL
-        function getUrlParameter(name) {
-            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-            var results = regex.exec(location.search);
-            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    <!-- Firebase Modular SDK (v10) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+        // Mendapatkan parameter URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const firebaseConfigParam = urlParams.get('firebaseConfig');
+        const imgbbKey = urlParams.get('imgbbKey');
+        const userId = urlParams.get('userId');
+
+        // Inisialisasi Firebase jika config tersedia
+        let db;
+        if (firebaseConfigParam) {
+            try {
+                const firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showError("Konfigurasi Firebase tidak valid");
+            }
         }
+
+        // Elemen DOM
+        const form = document.getElementById('profileForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const photoPreview = document.getElementById('photoPreview');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        let photoUrl = null;
+
+        // Event listeners
+        uploadBtn.addEventListener('click', () => fileInput.click());
         
-        // Ambil konfigurasi dari URL
-        const firebaseConfigParam = getUrlParameter('firebaseConfig');
-        const imagebbApiKey = getUrlParameter('imagebbKey');
-        const userId = getUrlParameter('userId') || 'user_' + Math.random().toString(36).substr(2, 9);
-        
-        let firebaseConfig;
-        
-        try {
-            firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
-        } catch (e) {
-            showError('Konfigurasi Firebase tidak valid. Silakan gunakan link pendaftaran yang benar.');
-        }
-        
-        // Inisialisasi Firebase jika config valid
-        if (firebaseConfig && firebaseConfig.apiKey) {
-            firebase.initializeApp(firebaseConfig);
-            const database = firebase.database();
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validasi ukuran file (max 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    showError("Ukuran file maksimal 2MB");
+                    return;
+                }
+
+                // Tampilkan preview gambar
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    // Hapus placeholder
+                    photoPreview.innerHTML = '';
+                    
+                    // Buat elemen gambar
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.alt = "Preview Foto Profil";
+                    photoPreview.appendChild(img);
+                    
+                    // Aktifkan tombol submit
+                    submitBtn.disabled = false;
+                    
+                    // Simpan data gambar untuk upload nanti
+                    photoUrl = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Submit form
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-            // Fungsi untuk menampilkan pesan sukses
-            function showSuccess(message) {
-                const statusDiv = document.getElementById('statusMessage');
-                statusDiv.className = 'status-message success';
-                statusDiv.textContent = message;
-                statusDiv.style.display = 'block';
+            // Validasi form
+            const fullName = document.getElementById('fullName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            if (!fullName || !phoneNumber) {
+                showError("Harap isi semua field yang wajib diisi");
+                return;
             }
             
-            // Fungsi untuk menampilkan pesan error
-            function showError(message) {
-                const statusDiv = document.getElementById('statusMessage');
-                statusDiv.className = 'status-message error';
-                statusDiv.textContent = message;
-                statusDiv.style.display = 'block';
+            if (!photoUrl) {
+                showError("Harap upload foto profil");
+                return;
             }
             
-            // Upload foto ke ImageBB
-            async function uploadToImageBB(file) {
-                if (!imagebbApiKey) {
-                    throw new Error('ImageBB API key tidak tersedia');
+            showLoading();
+            hideMessages();
+            
+            try {
+                // Upload foto ke ImgBB jika ada API key
+                let uploadedPhotoUrl = null;
+                if (imgbbKey) {
+                    uploadedPhotoUrl = await uploadToImgBB(photoUrl, `profile_${userId}`);
                 }
                 
-                const formData = new FormData();
-                formData.append('image', file);
-                
-                try {
-                    // Tampilkan progress bar
-                    document.getElementById('uploadProgressBar').style.display = 'block';
-                    document.getElementById('uploadProgress').style.width = '30%';
-                    
-                    const response = await fetch(`https://api.imgbb.com/1/upload?key=${imagebbApiKey}`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    document.getElementById('uploadProgress').style.width = '70%';
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        document.getElementById('uploadProgress').style.width = '100%';
-                        return data.data.url;
-                    } else {
-                        throw new Error(data.error.message || 'Gagal upload gambar');
-                    }
-                } catch (error) {
-                    console.error('Error uploading image:', error);
-                    throw error;
-                } finally {
-                    setTimeout(() => {
-                        document.getElementById('uploadProgressBar').style.display = 'none';
-                        document.getElementById('uploadProgress').style.width = '0%';
-                    }, 1000);
-                }
-            }
-            
-            // Handle form submission
-            document.getElementById('passengerForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const submitBtn = document.getElementById('submitBtn');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Mengirim data...';
-                
-                // Kumpulkan data form
-                const passengerData = {
-                    fullName: document.getElementById('fullName').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    gender: document.getElementById('gender').value,
-                    dob: document.getElementById('dob').value,
-                    address: document.getElementById('address').value,
-                    registrationDate: new Date().toISOString(),
-                    userType: 'passenger',
-                    status: 'active'
+                // Simpan data ke Firebase
+                const formData = {
+                    fullName: fullName,
+                    phoneNumber: phoneNumber,
+                    gender: document.querySelector('input[name="gender"]:checked').value,
+                    address: document.getElementById('address').value.trim(),
+                    updatedAt: new Date().toISOString()
                 };
                 
-                try {
-                    // Upload foto jika ada
-                    const photoFile = document.getElementById('photoFile').files[0];
-                    if (photoFile) {
-                        // Validasi ukuran file (max 2MB)
-                        if (photoFile.size > 2 * 1024 * 1024) {
-                            throw new Error('Ukuran foto terlalu besar (maksimal 2MB)');
-                        }
-                        
-                        passengerData.photoUrl = await uploadToImageBB(photoFile);
-                    }
-                    
-                    // Simpan data ke Firebase Realtime Database
-                    await database.ref(`Users/${userId}`).set(passengerData);
-                    
-                    // Tampilkan pesan sukses
-                    showSuccess('Pendaftaran berhasil! Data Anda telah tersimpan.');
-                    
-                    // Reset form
-                    document.getElementById('passengerForm').reset();
-                    document.getElementById('photoPreview').style.display = 'none';
-                    
-                } catch (error) {
-                    console.error('Error:', error);
-                    showError('Terjadi kesalahan: ' + error.message);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Daftar Sekarang';
+                if (uploadedPhotoUrl) {
+                    formData.profilePhoto = uploadedPhotoUrl;
                 }
-            });
-            
-            // Preview foto
-            document.getElementById('photoUpload').addEventListener('click', function() {
-                document.getElementById('photoFile').click();
-            });
-            
-            document.getElementById('photoFile').addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    const file = e.target.files[0];
-                    
-                    // Validasi tipe file
-                    if (!file.type.match('image.*')) {
-                        showError('File harus berupa gambar');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        document.getElementById('photoPreview').src = event.target.result;
-                        document.getElementById('photoPreview').style.display = 'block';
-                        document.getElementById('photoUpload').querySelector('p').textContent = file.name;
-                    };
-                    reader.readAsDataURL(file);
+                
+                if (db && userId) {
+                    await set(ref(db, `Users/${userId}`), formData);
+                    showSuccess("Profil berhasil disimpan!");
+                } else {
+                    console.log("Data simulasi:", formData);
+                    showSuccess("Profil disimpan (simulasi)");
                 }
-            });
-        } else {
-            showError('Konfigurasi Firebase tidak ditemukan. Silakan gunakan link pendaftaran yang benar.');
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                showError(error.message || "Gagal menyimpan profil");
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Fungsi untuk upload ke ImgBB
+        async function uploadToImgBB(imageData, filename) {
+            try {
+                // Konversi data URL ke base64
+                const base64Data = imageData.split(',')[1];
+                
+                const formData = new FormData();
+                formData.append('image', base64Data);
+                formData.append('name', filename);
+                
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    return result.data.url;
+                } else {
+                    throw new Error(result.error?.message || "Gagal mengupload foto");
+                }
+            } catch (error) {
+                console.error("Upload error:", error);
+                throw new Error("Gagal mengupload foto profil");
+            }
+        }
+
+        // Fungsi bantuan untuk UI
+        function showLoading() {
+            loadingIndicator.style.display = 'flex';
+            submitBtn.disabled = true;
+        }
+
+        function hideLoading() {
+            loadingIndicator.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = `✓ ${message}`;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = `ⓘ ${message}`;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function hideMessages() {
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
         }
     </script>
 </body>
