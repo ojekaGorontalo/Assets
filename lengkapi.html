@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lengkapi Data Penumpang - OloRide</title>
-  <!-- Sertakan Firebase SDK -->
+  <title>Lengkapi Data - OloRide</title>
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -44,31 +43,7 @@
     button:hover {
       background-color: #035b8f;
     }
-    .photo-preview {
-      width: 100px;
-      height: 100px;
-      border: 1px dashed #ddd;
-      margin: 10px 0;
-      display: none;
-      object-fit: cover;
-    }
-    .progress-bar {
-      width: 100%;
-      background-color: #f3f3f3;
-      border-radius: 5px;
-      margin: 10px 0;
-      display: none;
-    }
-    .progress {
-      width: 0%;
-      height: 20px;
-      background-color: #4CAF50;
-      border-radius: 5px;
-      text-align: center;
-      line-height: 20px;
-      color: white;
-    }
-    #statusMessage {
+    #status {
       margin-top: 15px;
       padding: 10px;
       border-radius: 5px;
@@ -77,17 +52,10 @@
     .success {
       background-color: #d4edda;
       color: #155724;
-      border: 1px solid #c3e6cb;
     }
     .error {
       background-color: #f8d7da;
       color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    .info {
-      background-color: #cce5ff;
-      color: #004085;
-      border: 1px solid #b8daff;
     }
   </style>
 </head>
@@ -105,209 +73,133 @@
   </div>
 
   <div class="form-group">
-    <label for="email">Email (opsional)</label>
-    <input type="email" id="email" placeholder="Contoh: email@example.com">
-  </div>
-
-  <div class="form-group">
     <label for="address">Alamat Lengkap</label>
     <input type="text" id="address" placeholder="Contoh: Jl. Merdeka No. 123" required>
   </div>
 
   <div class="form-group">
-    <label for="gender">Jenis Kelamin</label>
-    <select id="gender" required>
-      <option value="">Pilih Jenis Kelamin</option>
-      <option value="Laki-laki">Laki-laki</option>
-      <option value="Perempuan">Perempuan</option>
-    </select>
-  </div>
-
-  <div class="form-group">
-    <label for="photo">Upload Foto Profil</label>
+    <label for="photo">Upload Foto Profil (Base64)</label>
     <input type="file" id="photo" accept="image/*" required>
-    <img id="photoPreview" class="photo-preview" src="#" alt="Preview Foto">
-  </div>
-
-  <div class="progress-bar" id="progressBar">
-    <div class="progress" id="progress">0%</div>
   </div>
 
   <button id="submitBtn">Simpan Data</button>
 
-  <div id="statusMessage"></div>
+  <div id="status"></div>
 
   <script>
-    // Fungsi untuk mendapatkan parameter dari URL
-    function getUrlParameter(name) {
-      name = name.replace(/[\[\]]/g, '\\$&');
-      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
-      const results = regex.exec(window.location.href);
-      if (!results) return null;
-      if (!results[2]) return '';
-      return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    // Fungsi untuk parse URL parameters
+    function getUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        userID: params.get('userID'),
+        imgbbKey: params.get('imgbbKey'),
+        apiKey: params.get('apiKey'),
+        authDomain: params.get('authDomain'),
+        databaseURL: params.get('databaseURL'),
+        projectId: params.get('projectId'),
+        storageBucket: params.get('storageBucket'),
+        messagingSenderId: params.get('messagingSenderId'),
+        appId: params.get('appId')
+      };
     }
 
-    // Ambil userID dari URL
-    const userID = getUrlParameter('userID');
-    const apiKey = getUrlParameter('apiKey');
-    const authDomain = getUrlParameter('authDomain');
-    const databaseURL = getUrlParameter('databaseURL');
-    const projectId = getUrlParameter('projectId');
-    const storageBucket = getUrlParameter('storageBucket');
-    const messagingSenderId = getUrlParameter('messagingSenderId');
-    const appId = getUrlParameter('appId');
+    // Ambil parameter dari URL
+    const urlParams = getUrlParams();
 
-    if (!userID) {
-      showStatus("Error: userID tidak ditemukan dalam URL", "error");
+    // Validasi parameter wajib
+    if (!urlParams.userID || !urlParams.imgbbKey) {
+      showStatus("Parameter URL tidak lengkap (userID dan imgbbKey wajib)", "error");
       document.getElementById("submitBtn").disabled = true;
     }
 
-    // Konfigurasi Firebase dari parameter URL
-    const firebaseConfig = {
-      apiKey: apiKey,
-      authDomain: authDomain,
-      databaseURL: databaseURL,
-      projectId: projectId,
-      storageBucket: storageBucket,
-      messagingSenderId: messagingSenderId,
-      appId: appId
-    };
-
-    // Inisialisasi Firebase
-    try {
-      firebase.initializeApp(firebaseConfig);
-      const database = firebase.database();
-      const storage = firebase.storage();
-    } catch (error) {
-      showStatus("Error inisialisasi Firebase: " + error.message, "error");
-      document.getElementById("submitBtn").disabled = true;
-    }
-
-    // Elemen DOM
-    const photoInput = document.getElementById('photo');
-    const photoPreview = document.getElementById('photoPreview');
-    const progressBar = document.getElementById('progressBar');
-    const progress = document.getElementById('progress');
-    const statusMessage = document.getElementById('statusMessage');
-
-    // Preview foto
-    photoInput.addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          photoPreview.src = e.target.result;
-          photoPreview.style.display = 'block';
-        }
-        reader.readAsDataURL(file);
+    // Inisialisasi Firebase jika parameter tersedia
+    if (urlParams.apiKey) {
+      try {
+        firebase.initializeApp({
+          apiKey: urlParams.apiKey,
+          authDomain: urlParams.authDomain,
+          databaseURL: urlParams.databaseURL,
+          projectId: urlParams.projectId,
+          storageBucket: urlParams.storageBucket,
+          messagingSenderId: urlParams.messagingSenderId,
+          appId: urlParams.appId
+        });
+      } catch (error) {
+        showStatus("Error inisialisasi Firebase: " + error.message, "error");
       }
-    });
+    }
 
-    // Submit data
+    // Event listener untuk tombol submit
     document.getElementById("submitBtn").addEventListener("click", async () => {
-      // Ambil nilai dari form
       const nama = document.getElementById("nama").value.trim();
       const phone = document.getElementById("phone").value.trim();
-      const email = document.getElementById("email").value.trim();
       const address = document.getElementById("address").value.trim();
-      const gender = document.getElementById("gender").value.trim();
-      const photoFile = photoInput.files[0];
+      const photoFile = document.getElementById("photo").files[0];
 
-      // Validasi
-      if (!nama || !phone || !address || !gender) {
-        showStatus("Harap isi semua data yang wajib diisi.", "error");
+      // Validasi form
+      if (!nama || !phone || !address || !photoFile) {
+        showStatus("Harap isi semua field yang wajib diisi", "error");
         return;
       }
 
-      if (!photoFile) {
-        showStatus("Harap upload foto profil.", "error");
-        return;
-      }
-
-      // Tampilkan progress bar
-      progressBar.style.display = 'block';
-      showStatus("Mengupload data...", "info");
-      
       try {
-        // 1. Upload foto ke Firebase Storage
-        const fotoUrl = await uploadPhoto(photoFile, userID);
-        
-        // 2. Simpan data ke Realtime Database
-        await saveUserData(userID, {
+        // 1. Upload foto ke ImgBB
+        showStatus("Mengupload foto...", "");
+        const fotoUrl = await uploadFotoToImgBB(photoFile, urlParams.imgbbKey);
+
+        // 2. Simpan data ke Firebase
+        const userData = {
           nama: nama,
           phone: phone,
-          email: email || null,
           address: address,
-          gender: gender,
           fotoUrl: fotoUrl,
-          timestamp: firebase.database.ServerValue.TIMESTAMP,
-          status: "active"
-        });
-        
-        showStatus("Data berhasil disimpan!", "success");
-        
-        // Reset form setelah 3 detik
-        setTimeout(() => {
-          document.querySelector('form').reset();
-          photoPreview.style.display = 'none';
-          progressBar.style.display = 'none';
-        }, 3000);
-        
+          timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if (firebase.apps.length > 0) {
+          await firebase.database().ref(`Users/${urlParams.userID}`).set(userData);
+          showStatus("Data berhasil disimpan!", "success");
+        } else {
+          // Fallback jika Firebase tidak terinisialisasi
+          console.log("Data akan disimpan ke Firebase:", userData);
+          showStatus("Data siap disimpan (Firebase tidak terinisialisasi)", "success");
+        }
       } catch (error) {
         showStatus("Error: " + error.message, "error");
-        progressBar.style.display = 'none';
       }
     });
 
-    // Fungsi untuk upload foto ke Firebase Storage
-    async function uploadPhoto(file, userId) {
-      showStatus("Mengupload foto...", "info");
-      
-      try {
-        // Buat referensi storage dengan nama unik
-        const storageRef = firebase.storage().ref(`user_photos/${userId}/${file.name}`);
-        const uploadTask = storageRef.put(file);
-
-        // Tunggu sampai upload selesai
-        const snapshot = await new Promise((resolve, reject) => {
-          uploadTask.on('state_changed',
-            (snapshot) => {
-              // Update progress bar
-              const progressValue = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              progress.style.width = progressValue + '%';
-              progress.textContent = Math.round(progressValue) + '%';
-            },
-            (error) => reject(error),
-            () => resolve(uploadTask.snapshot)
-          );
-        });
-
-        // Dapatkan URL download
-        const downloadURL = await snapshot.ref.getDownloadURL();
-        return downloadURL;
-        
-      } catch (error) {
-        throw new Error("Gagal upload foto: " + error.message);
-      }
-    }
-
-    // Fungsi untuk menyimpan data user ke Firebase Database
-    async function saveUserData(userId, data) {
-      showStatus("Menyimpan data...", "info");
-      
-      try {
-        await firebase.database().ref(`Users/${userId}`).set(data);
-      } catch (error) {
-        throw new Error("Gagal menyimpan data: " + error.message);
-      }
+    // Fungsi untuk upload foto ke ImgBB
+    async function uploadFotoToImgBB(file, imgbbKey) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target.result.split(',')[1];
+          
+          fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+            method: "POST",
+            body: new URLSearchParams({ image: base64 })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              resolve(data.data.url);
+            } else {
+              reject(new Error(data.error.message));
+            }
+          })
+          .catch(error => reject(error));
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     // Fungsi untuk menampilkan status
     function showStatus(message, type) {
-      statusMessage.textContent = message;
-      statusMessage.className = type;
-      statusMessage.style.display = 'block';
+      const statusEl = document.getElementById("status");
+      statusEl.textContent = message;
+      statusEl.className = type;
+      statusEl.style.display = 'block';
     }
   </script>
 </body>
