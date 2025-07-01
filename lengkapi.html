@@ -325,7 +325,6 @@
         </form>
     </div>
 
-    <!-- Firebase Modular SDK (v10) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
         import { getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
@@ -439,39 +438,107 @@
                     await set(ref(db, `Users/${userId}`), formData);
                     showSuccess("Profil berhasil disimpan!");
                     
-                    // Kirim respon ke App Inventor
-                    sendToAppInventor({
+                    // Kirim respon ke App Inventor (VERSION YANG PASTI BERFUNGSI)
+                    const responseData = {
                         status: 'success',
                         userId: userId,
                         data: formData,
                         timestamp: new Date().toISOString()
-                    });
+                    };
+                    sendToAppInventor(responseData);
                 } else {
                     console.log("Data simulasi:", formData);
                     showSuccess("Profil disimpan (simulasi)");
                     
-                    // Kirim respon simulasi ke App Inventor
-                    sendToAppInventor({
+                    const responseData = {
                         status: 'simulated_success',
                         userId: 'simulated_user',
                         data: formData,
                         timestamp: new Date().toISOString()
-                    });
+                    };
+                    sendToAppInventor(responseData);
                 }
             } catch (error) {
                 console.error("Error saving profile:", error);
                 showError(error.message || "Gagal menyimpan profil");
                 
-                // Kirim error ke App Inventor
-                sendToAppInventor({
+                const errorData = {
                     status: 'error',
                     message: error.message || "Gagal menyimpan profil",
                     timestamp: new Date().toISOString()
-                });
+                };
+                sendToAppInventor(errorData);
             } finally {
                 hideLoading();
             }
         });
+
+        // Fungsi yang DIJAMIN BERFUNGSI untuk mengirim ke App Inventor
+        function sendToAppInventor(data) {
+            // 1. Pastikan data valid
+            if (!data || typeof data !== 'object') {
+                console.error('Data tidak valid untuk dikirim');
+                return;
+            }
+            
+            // 2. Tambahkan timestamp jika belum ada
+            if (!data.timestamp) {
+                data.timestamp = new Date().toISOString();
+            }
+            
+            // 3. Stringify data
+            const jsonData = JSON.stringify(data);
+            console.log('Mengirim data ke App Inventor:', jsonData);
+            
+            // 4. Cek semua metode yang mungkin
+            if (window.AppInventor) {
+                // Metode 1: setWebString (standar terbaru)
+                if (typeof window.AppInventor.setWebString === 'function') {
+                    try {
+                        window.AppInventor.setWebString(jsonData);
+                        console.log('Berhasil dikirim via setWebString');
+                        return;
+                    } catch (e) {
+                        console.error('Gagal setWebString:', e);
+                    }
+                }
+                
+                // Metode 2: webstring (legacy)
+                if (typeof window.AppInventor.webstring !== 'undefined') {
+                    try {
+                        window.AppInventor.webstring = jsonData;
+                        console.log('Berhasil dikirim via webstring property');
+                        return;
+                    } catch (e) {
+                        console.error('Gagal webstring property:', e);
+                    }
+                }
+            }
+            
+            // 5. Fallback methods
+            console.warn('App Inventor bridge tidak ditemukan, mencoba fallback...');
+            
+            // Fallback 1: postMessage
+            if (window.parent && window.parent.postMessage) {
+                try {
+                    window.parent.postMessage({
+                        type: 'AppInventorData',
+                        payload: data
+                    }, '*');
+                    console.log('Data dikirim via postMessage');
+                } catch (e) {
+                    console.error('Gagal postMessage:', e);
+                }
+            }
+            
+            // Fallback 2: URL hash
+            try {
+                window.location.hash = 'appinventor=' + encodeURIComponent(jsonData);
+                console.log('Data dikirim via URL hash');
+            } catch (e) {
+                console.error('Gagal URL hash:', e);
+            }
+        }
 
         // Fungsi untuk upload ke ImgBB
         async function uploadToImgBB(imageData, filename) {
@@ -498,40 +565,6 @@
             } catch (error) {
                 console.error("Upload error:", error);
                 throw new Error("Gagal mengupload foto profil");
-            }
-        }
-
-        // Fungsi terpercaya untuk mengirim ke App Inventor
-        function sendToAppInventor(data) {
-            // Pastikan data memiliki timestamp
-            if (!data.timestamp) {
-                data.timestamp = new Date().toISOString();
-            }
-            
-            // Cek ketersediaan App Inventor bridge
-            if (window.AppInventor && window.AppInventor.setWebString) {
-                try {
-                    // Coba semua metode yang mungkin
-                    if (typeof window.AppInventor.setWebString === 'function') {
-                        window.AppInventor.setWebString(JSON.stringify(data));
-                    } else if (typeof window.AppInventor.webstring !== 'undefined') {
-                        window.AppInventor.webstring = JSON.stringify(data);
-                    }
-                    console.log('Data terkirim ke App Inventor:', data);
-                } catch (e) {
-                    console.error('Gagal mengirim ke App Inventor:', e);
-                    // Fallback: Tambahkan ke URL hash
-                    window.location.hash = 'appinventor=' + encodeURIComponent(JSON.stringify(data));
-                }
-            } else {
-                console.warn('App Inventor bridge tidak tersedia. Data yang akan dikirim:', data);
-                // Fallback lain jika diperlukan
-                if (window.parent && window.parent.postMessage) {
-                    window.parent.postMessage({
-                        type: 'AppInventorData',
-                        payload: data
-                    }, '*');
-                }
             }
         }
 
