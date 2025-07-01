@@ -439,47 +439,35 @@
                     await set(ref(db, `Users/${userId}`), formData);
                     showSuccess("Profil berhasil disimpan!");
                     
-                    // Kirim respon ke App Inventor jika tersedia
-                    if (typeof window.AppInventor !== 'undefined') {
-                        const response = {
-                            status: 'success',
-                            userId: userId,
-                            data: formData,
-                            timestamp: new Date().toISOString()
-                        };
-                        window.AppInventor.webstring = JSON.stringify(response);
-                        console.log('Data dikirim ke App Inventor:', response);
-                    }
+                    // Kirim respon ke App Inventor
+                    sendToAppInventor({
+                        status: 'success',
+                        userId: userId,
+                        data: formData,
+                        timestamp: new Date().toISOString()
+                    });
                 } else {
                     console.log("Data simulasi:", formData);
                     showSuccess("Profil disimpan (simulasi)");
                     
-                    // Kirim respon simulasi ke App Inventor jika tersedia
-                    if (typeof window.AppInventor !== 'undefined') {
-                        const response = {
-                            status: 'simulated_success',
-                            userId: 'simulated_user',
-                            data: formData,
-                            timestamp: new Date().toISOString()
-                        };
-                        window.AppInventor.webstring = JSON.stringify(response);
-                        console.log('Data simulasi dikirim ke App Inventor:', response);
-                    }
+                    // Kirim respon simulasi ke App Inventor
+                    sendToAppInventor({
+                        status: 'simulated_success',
+                        userId: 'simulated_user',
+                        data: formData,
+                        timestamp: new Date().toISOString()
+                    });
                 }
             } catch (error) {
                 console.error("Error saving profile:", error);
                 showError(error.message || "Gagal menyimpan profil");
                 
-                // Kirim error ke App Inventor jika tersedia
-                if (typeof window.AppInventor !== 'undefined') {
-                    const errorResponse = {
-                        status: 'error',
-                        message: error.message || "Gagal menyimpan profil",
-                        timestamp: new Date().toISOString()
-                    };
-                    window.AppInventor.webstring = JSON.stringify(errorResponse);
-                    console.log('Error dikirim ke App Inventor:', errorResponse);
-                }
+                // Kirim error ke App Inventor
+                sendToAppInventor({
+                    status: 'error',
+                    message: error.message || "Gagal menyimpan profil",
+                    timestamp: new Date().toISOString()
+                });
             } finally {
                 hideLoading();
             }
@@ -510,6 +498,40 @@
             } catch (error) {
                 console.error("Upload error:", error);
                 throw new Error("Gagal mengupload foto profil");
+            }
+        }
+
+        // Fungsi terpercaya untuk mengirim ke App Inventor
+        function sendToAppInventor(data) {
+            // Pastikan data memiliki timestamp
+            if (!data.timestamp) {
+                data.timestamp = new Date().toISOString();
+            }
+            
+            // Cek ketersediaan App Inventor bridge
+            if (window.AppInventor && window.AppInventor.setWebString) {
+                try {
+                    // Coba semua metode yang mungkin
+                    if (typeof window.AppInventor.setWebString === 'function') {
+                        window.AppInventor.setWebString(JSON.stringify(data));
+                    } else if (typeof window.AppInventor.webstring !== 'undefined') {
+                        window.AppInventor.webstring = JSON.stringify(data);
+                    }
+                    console.log('Data terkirim ke App Inventor:', data);
+                } catch (e) {
+                    console.error('Gagal mengirim ke App Inventor:', e);
+                    // Fallback: Tambahkan ke URL hash
+                    window.location.hash = 'appinventor=' + encodeURIComponent(JSON.stringify(data));
+                }
+            } else {
+                console.warn('App Inventor bridge tidak tersedia. Data yang akan dikirim:', data);
+                // Fallback lain jika diperlukan
+                if (window.parent && window.parent.postMessage) {
+                    window.parent.postMessage({
+                        type: 'AppInventorData',
+                        payload: data
+                    }, '*');
+                }
             }
         }
 
