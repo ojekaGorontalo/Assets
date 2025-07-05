@@ -101,13 +101,6 @@
             background-color: #c62828;
         }
         
-        .vehicle-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        
         .price {
             font-size: 24px;
             font-weight: 700;
@@ -126,43 +119,57 @@
             
             <div class="detail-item">
                 <span class="detail-label">Dari:</span>
-                <span class="detail-value" id="alamat-a"></span>
+                <span class="detail-value" id="alamat-a">-</span>
             </div>
             
             <div class="detail-item">
                 <span class="detail-label">Ke:</span>
-                <span class="detail-value" id="alamat-b"></span>
+                <span class="detail-value" id="alamat-b">-</span>
             </div>
             
             <div class="detail-item">
                 <span class="detail-label">Durasi:</span>
-                <span class="detail-value" id="durasi-traffic"></span>
+                <span class="detail-value" id="durasi-traffic">-</span>
             </div>
             
             <div class="detail-item">
                 <span class="detail-label">Kendaraan:</span>
-                <span class="detail-value" id="vehicle"></span>
+                <span class="detail-value" id="vehicle">-</span>
             </div>
             
-            <div class="price" id="harga-total"></div>
+            <div class="price" id="harga-total">Rp0</div>
         </div>
         
         <button id="action-button" class="button button-primary">Cari Orderan</button>
     </div>
 
     <script>
+        // Fungsi untuk mendapatkan parameter URL
+        function getUrlParams() {
+            const params = {};
+            const queryString = window.location.search.substring(1);
+            const pairs = queryString.split('&');
+            
+            pairs.forEach(pair => {
+                const [key, value] = pair.split('=');
+                params[key] = decodeURIComponent(value || '');
+            });
+            
+            return params;
+        }
+
+        // Fungsi utama saat dokumen siap
         document.addEventListener('DOMContentLoaded', function() {
-            // Ambil parameter dari URL
-            const urlParams = new URLSearchParams(window.location.search);
+            const params = getUrlParams();
             
-            // Dekode parameter URL
-            const durasiTraffic = decodeURIComponent(urlParams.get('durasi_traffic') || '');
-            const alamatA = decodeURIComponent(urlParams.get('alamat_a') || '';
-            const alamatB = decodeURIComponent(urlParams.get('alamat_b') || '';
-            let hargaTotal = parseInt(urlParams.get('harga_total') || '0');
-            const vehicle = decodeURIComponent(urlParams.get('vehicle') || '');
+            // Data dari URL
+            const durasiTraffic = params.durasi_traffic || '-';
+            const alamatA = params.alamat_a || '-';
+            const alamatB = params.alamat_b || '-';
+            let hargaTotal = parseInt(params.harga_total) || 0;
+            const vehicle = params.vehicle || '-';
             
-            // Tentukan harga minimal berdasarkan kendaraan
+            // Harga minimal berdasarkan kendaraan
             const minPrices = {
                 'motor': 10000,
                 'bentor': 13000,
@@ -172,21 +179,20 @@
                 'pickup_scooter': 12000
             };
             
+            // Gunakan harga minimal jika harga total lebih kecil
             const minPrice = minPrices[vehicle] || 0;
-            
-            // Jika harga total lebih kecil dari harga minimal, gunakan harga minimal
             if (hargaTotal < minPrice) {
                 hargaTotal = minPrice;
             }
             
-            // Tampilkan data di UI
+            // Tampilkan data
             document.getElementById('durasi-traffic').textContent = durasiTraffic;
             document.getElementById('alamat-a').textContent = alamatA;
             document.getElementById('alamat-b').textContent = alamatB;
             document.getElementById('vehicle').textContent = getVehicleName(vehicle);
             document.getElementById('harga-total').textContent = `Rp${hargaTotal.toLocaleString('id-ID')}`;
             
-            // Setel tombol aksi
+            // Tombol aksi
             const actionButton = document.getElementById('action-button');
             actionButton.textContent = `Cari Orderan | Rp${hargaTotal.toLocaleString('id-ID')}`;
             
@@ -208,7 +214,7 @@
                 }
             });
             
-            // Fungsi untuk mendapatkan nama kendaraan yang lebih baik
+            // Fungsi untuk mendapatkan nama kendaraan
             function getVehicleName(vehicleType) {
                 const vehicleNames = {
                     'motor': 'Motor',
@@ -218,7 +224,6 @@
                     'pickup': 'Pickup',
                     'pickup_scooter': 'Pickup Scooter'
                 };
-                
                 return vehicleNames[vehicleType] || vehicleType;
             }
         });
