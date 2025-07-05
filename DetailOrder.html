@@ -136,6 +136,15 @@
     </div>
 
     <script>
+        // Fungsi untuk mengirim data ke App Inventor
+        function sendToAppInventor(action) {
+            if (window.AppInventor && window.AppInventor.setWebViewString) {
+                window.AppInventor.setWebViewString(action);
+            } else {
+                console.log("Aksi:", action);
+            }
+        }
+
         // Fungsi untuk mendapatkan parameter URL
         function getUrlParams() {
             const params = {};
@@ -197,12 +206,12 @@
                     actionButton.textContent = 'Batalkan';
                     actionButton.classList.remove('button-primary');
                     actionButton.classList.add('button-danger');
-                    console.log("tombol_diklik");
+                    sendToAppInventor("tombol_diklik");
                 } else {
                     actionButton.textContent = `Cari Orderan | Rp${hargaTotal.toLocaleString('id-ID')}`;
                     actionButton.classList.remove('button-danger');
                     actionButton.classList.add('button-primary');
-                    console.log("tombol_dibatalkan");
+                    sendToAppInventor("tombol_dibatalkan");
                 }
             });
             
