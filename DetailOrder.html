@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Order</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            color: #1a73e8;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+            max-width: 60%;
+        }
+        
+        .button {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button-primary {
+            background-color: #1a73e8;
+        }
+        
+        .button-primary:hover {
+            background-color: #0d5bba;
+        }
+        
+        .button-danger {
+            background-color: #e53935;
+        }
+        
+        .button-danger:hover {
+            background-color: #c62828;
+        }
+        
+        .vehicle-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .price {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a73e8;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Detail Order</h1>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Dari:</span>
+                <span class="detail-value" id="alamat-a"></span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Ke:</span>
+                <span class="detail-value" id="alamat-b"></span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Durasi:</span>
+                <span class="detail-value" id="durasi-traffic"></span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Kendaraan:</span>
+                <span class="detail-value" id="vehicle"></span>
+            </div>
+            
+            <div class="price" id="harga-total"></div>
+        </div>
+        
+        <button id="action-button" class="button button-primary">Cari Orderan</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ambil parameter dari URL
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Dekode parameter URL
+            const durasiTraffic = decodeURIComponent(urlParams.get('durasi_traffic') || '');
+            const alamatA = decodeURIComponent(urlParams.get('alamat_a') || '';
+            const alamatB = decodeURIComponent(urlParams.get('alamat_b') || '';
+            let hargaTotal = parseInt(urlParams.get('harga_total') || '0');
+            const vehicle = decodeURIComponent(urlParams.get('vehicle') || '');
+            
+            // Tentukan harga minimal berdasarkan kendaraan
+            const minPrices = {
+                'motor': 10000,
+                'bentor': 13000,
+                'kurir': 10000,
+                'mobil': 15000,
+                'pickup': 80000,
+                'pickup_scooter': 12000
+            };
+            
+            const minPrice = minPrices[vehicle] || 0;
+            
+            // Jika harga total lebih kecil dari harga minimal, gunakan harga minimal
+            if (hargaTotal < minPrice) {
+                hargaTotal = minPrice;
+            }
+            
+            // Tampilkan data di UI
+            document.getElementById('durasi-traffic').textContent = durasiTraffic;
+            document.getElementById('alamat-a').textContent = alamatA;
+            document.getElementById('alamat-b').textContent = alamatB;
+            document.getElementById('vehicle').textContent = getVehicleName(vehicle);
+            document.getElementById('harga-total').textContent = `Rp${hargaTotal.toLocaleString('id-ID')}`;
+            
+            // Setel tombol aksi
+            const actionButton = document.getElementById('action-button');
+            actionButton.textContent = `Cari Orderan | Rp${hargaTotal.toLocaleString('id-ID')}`;
+            
+            let isActive = false;
+            
+            actionButton.addEventListener('click', function() {
+                isActive = !isActive;
+                
+                if (isActive) {
+                    actionButton.textContent = 'Batalkan';
+                    actionButton.classList.remove('button-primary');
+                    actionButton.classList.add('button-danger');
+                    console.log("tombol_diklik");
+                } else {
+                    actionButton.textContent = `Cari Orderan | Rp${hargaTotal.toLocaleString('id-ID')}`;
+                    actionButton.classList.remove('button-danger');
+                    actionButton.classList.add('button-primary');
+                    console.log("tombol_dibatalkan");
+                }
+            });
+            
+            // Fungsi untuk mendapatkan nama kendaraan yang lebih baik
+            function getVehicleName(vehicleType) {
+                const vehicleNames = {
+                    'motor': 'Motor',
+                    'bentor': 'Bentor',
+                    'kurir': 'Kurir',
+                    'mobil': 'Mobil',
+                    'pickup': 'Pickup',
+                    'pickup_scooter': 'Pickup Scooter'
+                };
+                
+                return vehicleNames[vehicleType] || vehicleType;
+            }
+        });
+    </script>
+</body>
+</html>
