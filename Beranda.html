@@ -23,12 +23,51 @@
       max-width: 100%;
       box-sizing: border-box;
     }
+    .input-group {
+      position: relative;
+      margin-bottom: 8px;
+    }
     input {
       width: 100%;
-      margin-bottom: 8px;
-      padding: 10px;
+      padding: 10px 40px 10px 10px;
       font-size: 16px;
       box-sizing: border-box;
+    }
+    .clear-btn {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .location-btn {
+      position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #4285f4;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 5px;
+      margin-top: 5px;
+    }
+    .btn-group button {
+      flex: 1;
+      padding: 8px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
     .radar {
@@ -72,8 +111,20 @@
 </head>
 <body>
   <div class="panel">
-    <input id="fromInput" type="text" placeholder="Titik Awal" />
-    <input id="toInput" type="text" placeholder="Titik Tujuan" />
+    <div class="input-group">
+      <input id="fromInput" type="text" placeholder="Titik Awal" />
+      <button class="clear-btn" onclick="clearInput('fromInput')">×</button>
+      <button class="location-btn" onclick="detectLocation('fromInput')">⌖</button>
+    </div>
+    <div class="input-group">
+      <input id="toInput" type="text" placeholder="Titik Tujuan" />
+      <button class="clear-btn" onclick="clearInput('toInput')">×</button>
+      <button class="location-btn" onclick="detectLocation('toInput')">⌖</button>
+    </div>
+    <div class="btn-group">
+      <button onclick="useLocation('alamat_a')">Gunakan Lokasi Alamat A</button>
+      <button onclick="useLocation('alamat_b')">Gunakan Lokasi Alamat B</button>
+    </div>
   </div>
   <div id="map"></div>
   <div class="radar" id="radar" style="display:none;">
@@ -85,6 +136,7 @@
     let map, directionsService, directionsRenderer;
     let markerA, markerB, circleB;
     let radarInterval;
+    let currentPosition = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const vehicle = urlParams.get("vehicle") || "motor";
@@ -100,6 +152,102 @@
       pickup: 'https://cdn-icons-png.flaticon.com/512/9017/9017605.png',
       pickup_scooter: 'https://cdn-icons-png.flaticon.com/128/3177/3177363.png'
     };
+
+    function clearInput(inputId) {
+      document.getElementById(inputId).value = '';
+      if (inputId === 'fromInput' && markerA) {
+        markerA.setMap(null);
+        markerA = null;
+      }
+      if (inputId === 'toInput' && markerB) {
+        markerB.setMap(null);
+        markerB = null;
+      }
+    }
+
+    function detectLocation(inputId) {
+      if (navigator.geolocation) {
+        document.getElementById('radar').style.display = 'flex';
+        document.getElementById('radar').querySelector('span').textContent = 'Mendeteksi lokasi...';
+        
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentPosition = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            
+            reverseGeocode(currentPosition, (alamat) => {
+              document.getElementById(inputId).value = alamat || "Lokasi saat ini";
+              document.getElementById('radar').style.display = 'none';
+              
+              // Update marker based on inputId
+              const marker = inputId === 'fromInput' ? markerA : markerB;
+              const icon = inputId === 'fromInput' ? 
+                { url: iconUrls[vehicle], scaledSize: new google.maps.Size(40, 40) } :
+                { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) };
+              
+              if (marker) marker.setMap(null);
+              
+              const newMarker = new google.maps.Marker({
+                position: currentPosition,
+                map: map,
+                icon: icon
+              });
+              
+              if (inputId === 'fromInput') {
+                markerA = newMarker;
+              } else {
+                markerB = newMarker;
+              }
+              
+              map.panTo(currentPosition);
+              if (markerA && markerB) tryDirection();
+            });
+          },
+          (error) => {
+            document.getElementById('radar').querySelector('span').textContent = 'Gagal mendapatkan lokasi';
+            setTimeout(() => {
+              document.getElementById('radar').style.display = 'none';
+            }, 2000);
+          }
+        );
+      } else {
+        alert("Browser tidak mendukung geolokasi");
+      }
+    }
+
+    function useLocation(target) {
+      if (!currentPosition) {
+        alert("Lokasi belum terdeteksi");
+        return;
+      }
+      
+      const inputId = target === 'alamat_a' ? 'fromInput' : 'toInput';
+      document.getElementById(inputId).value = "Lokasi saat ini";
+      
+      const marker = target === 'alamat_a' ? markerA : markerB;
+      const icon = target === 'alamat_a' ? 
+        { url: iconUrls[vehicle], scaledSize: new google.maps.Size(40, 40) } :
+        { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) };
+      
+      if (marker) marker.setMap(null);
+      
+      const newMarker = new google.maps.Marker({
+        position: currentPosition,
+        map: map,
+        icon: icon
+      });
+      
+      if (target === 'alamat_a') {
+        markerA = newMarker;
+      } else {
+        markerB = newMarker;
+      }
+      
+      map.panTo(currentPosition);
+      if (markerA && markerB) tryDirection();
+    }
 
     const getLatLng = (val) => {
       if (!val) return null;
@@ -221,24 +369,24 @@
       const lokasiB = getLatLng(toParam);
 
       const styledMapType = new google.maps.StyledMapType(
-  [
-    { elementType: "geometry", stylers: [{ color: "#212121" }] },
-    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-    { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-    { featureType: "poi", elementType: "geometry", stylers: [{ color: "#2e2e2e" }] },
-    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-    { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
-    { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
-    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
-    { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
-    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f2f2f" }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
-  ],
-  { name: "Mode Malam" }
-);
+        [
+          { elementType: "geometry", stylers: [{ color: "#212121" }] },
+          { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+          { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+          { featureType: "poi", elementType: "geometry", stylers: [{ color: "#2e2e2e" }] },
+          { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
+          { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
+          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
+          { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
+          { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f2f2f" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
+          { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
+        ],
+        { name: "Mode Malam" }
+      );
 
       map = new google.maps.Map(document.getElementById("map"), {
         zoom: 15,
@@ -346,8 +494,8 @@
       }
     }
     document.addEventListener("contextmenu", function(e) {
-  e.preventDefault();
-});
+      e.preventDefault();
+    });
   </script>
 </body>
 </html>
