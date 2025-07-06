@@ -69,21 +69,6 @@
       align-items: center;
       justify-content: center;
     }
-    .action-buttons {
-      display: flex;
-      gap: 5px;
-      margin-top: 5px;
-    }
-    .action-buttons button {
-      flex: 1;
-      padding: 8px;
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
 
     .radar {
       position: absolute;
@@ -136,10 +121,6 @@
       <button class="clear-btn" onclick="clearInput('toInput')">×</button>
       <button class="location-btn" onclick="detectLocation('toInput')">⌖</button>
     </div>
-    <div class="action-buttons">
-      <button onclick="useLocation('alamat_a')">Gunakan Lokasi A</button>
-      <button onclick="useLocation('alamat_b')">Gunakan Lokasi B</button>
-    </div>
   </div>
   <div id="map"></div>
   <div class="radar" id="radar" style="display:none;">
@@ -157,6 +138,7 @@
     const fromParam = urlParams.get("from");
     const toParam = urlParams.get("to");
     const hargaPerKm = parseFloat(urlParams.get("harga")) || 0;
+    const coordParam = urlParams.get("coord");
 
     const iconUrls = {
       motor: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
@@ -237,21 +219,6 @@
       } else {
         markerB = newMarker;
       }
-    }
-
-    // Fungsi untuk menggunakan lokasi
-    function useLocation(target) {
-      if (!currentPosition) {
-        alert("Silakan deteksi lokasi terlebih dahulu");
-        return;
-      }
-      
-      const inputId = target === 'alamat_a' ? 'fromInput' : 'toInput';
-      document.getElementById(inputId).value = "Lokasi saat ini";
-      
-      updateMarker(inputId, currentPosition);
-      map.panTo(currentPosition);
-      if (markerA && markerB) tryDirection();
     }
 
     const getLatLng = (val) => {
@@ -432,6 +399,20 @@
       }
 
       if (lokasiA && lokasiB) tryDirection();
+      
+      // Cek jika ada parameter coord di URL
+      if (coordParam) {
+        const coords = coordParam.split(',');
+        if (coords.length === 2) {
+          const lat = parseFloat(coords[0]);
+          const lng = parseFloat(coords[1]);
+          
+          if (!isNaN(lat) && !isNaN(lng)) {
+            currentPosition = { lat, lng };
+            map.panTo(currentPosition);
+          }
+        }
+      }
     }
 
     function initAutocomplete() {
