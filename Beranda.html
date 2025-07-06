@@ -162,7 +162,7 @@
       }
     }
 
-    // Fungsi untuk mendeteksi lokasi
+    // Fungsi untuk mendeteksi lokasi dengan menampilkan alamat lengkap
     function detectLocation(inputId) {
       if (navigator.geolocation) {
         document.getElementById('radar').style.display = 'flex';
@@ -175,7 +175,8 @@
               lng: position.coords.longitude
             };
             
-            reverseGeocode(currentPosition, (alamat) => {
+            // Dapatkan alamat lengkap dari koordinat
+            getFullAddress(currentPosition, (alamat) => {
               document.getElementById(inputId).value = alamat || "Lokasi saat ini";
               document.getElementById('radar').style.display = 'none';
               
@@ -196,6 +197,44 @@
       } else {
         alert("Browser tidak mendukung geolokasi");
       }
+    }
+
+    // Fungsi untuk mendapatkan alamat lengkap dari koordinat
+    function getFullAddress(latlng, callback) {
+      const geocoder = new google.maps.Geocoder();
+      
+      geocoder.geocode({ location: latlng }, (results, status) => {
+        if (status === 'OK') {
+          if (results[0]) {
+            // Format alamat lengkap
+            let alamat = results[0].formatted_address;
+            
+            // Jika ingin lebih spesifik, bisa diambil komponen alamatnya:
+            /*
+            let addressComponents = results[0].address_components;
+            let street = '';
+            let city = '';
+            
+            for (let component of addressComponents) {
+              if (component.types.includes('route')) {
+                street = component.long_name;
+              }
+              if (component.types.includes('locality')) {
+                city = component.long_name;
+              }
+            }
+            
+            alamat = street + ', ' + city;
+            */
+            
+            callback(alamat);
+          } else {
+            callback(null);
+          }
+        } else {
+          callback(null);
+        }
+      });
     }
 
     // Fungsi untuk mengupdate marker
@@ -409,7 +448,11 @@
           
           if (!isNaN(lat) && !isNaN(lng)) {
             currentPosition = { lat, lng };
-            map.panTo(currentPosition);
+            getFullAddress(currentPosition, (alamat) => {
+              document.getElementById("fromInput").value = alamat || "Lokasi saat ini";
+              updateMarker("fromInput", currentPosition);
+              map.panTo(currentPosition);
+            });
           }
         }
       }
