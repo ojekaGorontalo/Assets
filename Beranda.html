@@ -128,6 +128,12 @@
     a[href^="http://maps.google.com/maps"] {
       display: none !important;
     }
+    .gm-style a[href^="https://maps.google.com/maps"] {
+      display: none !important;
+    }
+    .gm-bundled-control {
+      bottom: 10px !important;
+    }
   </style>
 </head>
 <body>
@@ -173,7 +179,6 @@
       pickup_scooter: 'https://cdn-icons-png.flaticon.com/128/3177/3177363.png'
     };
 
-    // Fungsi untuk menghapus input dan direction
     function clearInput(inputId) {
       document.getElementById(inputId).value = '';
       if (inputId === 'fromInput' && markerA) {
@@ -185,7 +190,6 @@
         markerB = null;
       }
       
-      // Hapus direction
       if (directionsRenderer) {
         directionsRenderer.setMap(null);
       }
@@ -195,7 +199,6 @@
       }
     }
 
-    // Fungsi untuk mendeteksi lokasi dengan menampilkan alamat lengkap
     function detectLocation(inputId) {
       if (navigator.geolocation) {
         document.getElementById('radar').style.display = 'flex';
@@ -208,14 +211,10 @@
               lng: position.coords.longitude
             };
             
-            // Dapatkan alamat lengkap dari koordinat
             getFullAddress(currentPosition, (alamat) => {
               document.getElementById(inputId).value = alamat || "Lokasi saat ini";
               document.getElementById('radar').style.display = 'none';
-              
-              // Update marker
               updateMarker(inputId, currentPosition);
-              
               map.panTo(currentPosition);
               if (markerA && markerB) tryDirection();
             });
@@ -232,24 +231,17 @@
       }
     }
 
-    // Fungsi untuk mendapatkan alamat lengkap dari koordinat
     function getFullAddress(latlng, callback) {
       const geocoder = new google.maps.Geocoder();
-      
       geocoder.geocode({ location: latlng }, (results, status) => {
-        if (status === 'OK') {
-          if (results[0]) {
-            callback(results[0].formatted_address);
-          } else {
-            callback(null);
-          }
+        if (status === 'OK' && results[0]) {
+          callback(results[0].formatted_address);
         } else {
           callback(null);
         }
       });
     }
 
-    // Fungsi untuk mengupdate marker
     function updateMarker(inputId, position) {
       const isFromInput = inputId === 'fromInput';
       const marker = isFromInput ? markerA : markerB;
@@ -272,19 +264,12 @@
       }
     }
 
-    // Fungsi untuk toggle mode peta
     function toggleMapMode() {
       isNightMode = !isNightMode;
       document.getElementById('mapModeBtn').textContent = isNightMode ? 'Mode Siang' : 'Mode Malam';
-      
-      if (isNightMode) {
-        map.setMapTypeId('styled_map');
-      } else {
-        map.setMapTypeId('roadmap');
-      }
+      map.setMapTypeId(isNightMode ? 'styled_map' : 'roadmap');
     }
 
-    // Fungsi modesiang dan modemalam
     function modesiang() {
       isNightMode = false;
       document.getElementById('mapModeBtn').textContent = 'Mode Malam';
@@ -392,7 +377,6 @@
       const lokasiA = getLatLng(fromParam);
       const lokasiB = getLatLng(toParam);
 
-      // Style untuk mode malam
       styledMapType = new google.maps.StyledMapType(
         [
           { elementType: "geometry", stylers: [{ color: "#212121" }] },
@@ -423,7 +407,6 @@
         }
       });
 
-      // Tambahkan style map ke peta
       map.mapTypes.set('styled_map', styledMapType);
       
       directionsService = new google.maps.DirectionsService();
@@ -460,7 +443,6 @@
 
       if (lokasiA && lokasiB) tryDirection();
       
-      // Cek jika ada parameter coord di URL
       if (coordParam) {
         const coords = coordParam.split(',');
         if (coords.length === 2) {
