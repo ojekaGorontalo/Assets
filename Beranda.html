@@ -23,15 +23,17 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-    .input-group {
+    .input-container {
       position: relative;
       margin-bottom: 8px;
     }
     input {
       width: 100%;
-      padding: 10px 40px 10px 10px;
+      padding: 10px 30px 10px 10px;
       font-size: 16px;
       box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
     }
     .clear-btn {
       position: absolute;
@@ -43,6 +45,12 @@
       color: #999;
       cursor: pointer;
       font-size: 18px;
+      padding: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .location-btn {
       position: absolute;
@@ -54,13 +62,19 @@
       color: #4285f4;
       cursor: pointer;
       font-size: 18px;
+      padding: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .btn-group {
+    .action-buttons {
       display: flex;
       gap: 5px;
       margin-top: 5px;
     }
-    .btn-group button {
+    .action-buttons button {
       flex: 1;
       padding: 8px;
       background-color: #4285f4;
@@ -68,6 +82,7 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      font-size: 14px;
     }
 
     .radar {
@@ -111,19 +126,19 @@
 </head>
 <body>
   <div class="panel">
-    <div class="input-group">
+    <div class="input-container">
       <input id="fromInput" type="text" placeholder="Titik Awal" />
       <button class="clear-btn" onclick="clearInput('fromInput')">×</button>
       <button class="location-btn" onclick="detectLocation('fromInput')">⌖</button>
     </div>
-    <div class="input-group">
+    <div class="input-container">
       <input id="toInput" type="text" placeholder="Titik Tujuan" />
       <button class="clear-btn" onclick="clearInput('toInput')">×</button>
       <button class="location-btn" onclick="detectLocation('toInput')">⌖</button>
     </div>
-    <div class="btn-group">
-      <button onclick="useLocation('alamat_a')">Gunakan Lokasi Alamat A</button>
-      <button onclick="useLocation('alamat_b')">Gunakan Lokasi Alamat B</button>
+    <div class="action-buttons">
+      <button onclick="useLocation('alamat_a')">Gunakan Lokasi A</button>
+      <button onclick="useLocation('alamat_b')">Gunakan Lokasi B</button>
     </div>
   </div>
   <div id="map"></div>
@@ -131,7 +146,6 @@
     <span>......</span>
   </div>
 
-  <!-- JS & Maps -->
   <script>
     let map, directionsService, directionsRenderer;
     let markerA, markerB, circleB;
@@ -153,6 +167,7 @@
       pickup_scooter: 'https://cdn-icons-png.flaticon.com/128/3177/3177363.png'
     };
 
+    // Fungsi untuk menghapus input
     function clearInput(inputId) {
       document.getElementById(inputId).value = '';
       if (inputId === 'fromInput' && markerA) {
@@ -165,6 +180,7 @@
       }
     }
 
+    // Fungsi untuk mendeteksi lokasi
     function detectLocation(inputId) {
       if (navigator.geolocation) {
         document.getElementById('radar').style.display = 'flex';
@@ -181,25 +197,8 @@
               document.getElementById(inputId).value = alamat || "Lokasi saat ini";
               document.getElementById('radar').style.display = 'none';
               
-              // Update marker based on inputId
-              const marker = inputId === 'fromInput' ? markerA : markerB;
-              const icon = inputId === 'fromInput' ? 
-                { url: iconUrls[vehicle], scaledSize: new google.maps.Size(40, 40) } :
-                { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) };
-              
-              if (marker) marker.setMap(null);
-              
-              const newMarker = new google.maps.Marker({
-                position: currentPosition,
-                map: map,
-                icon: icon
-              });
-              
-              if (inputId === 'fromInput') {
-                markerA = newMarker;
-              } else {
-                markerB = newMarker;
-              }
+              // Update marker
+              updateMarker(inputId, currentPosition);
               
               map.panTo(currentPosition);
               if (markerA && markerB) tryDirection();
@@ -217,34 +216,40 @@
       }
     }
 
-    function useLocation(target) {
-      if (!currentPosition) {
-        alert("Lokasi belum terdeteksi");
-        return;
-      }
-      
-      const inputId = target === 'alamat_a' ? 'fromInput' : 'toInput';
-      document.getElementById(inputId).value = "Lokasi saat ini";
-      
-      const marker = target === 'alamat_a' ? markerA : markerB;
-      const icon = target === 'alamat_a' ? 
+    // Fungsi untuk mengupdate marker
+    function updateMarker(inputId, position) {
+      const isFromInput = inputId === 'fromInput';
+      const marker = isFromInput ? markerA : markerB;
+      const icon = isFromInput ? 
         { url: iconUrls[vehicle], scaledSize: new google.maps.Size(40, 40) } :
         { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) };
       
       if (marker) marker.setMap(null);
       
       const newMarker = new google.maps.Marker({
-        position: currentPosition,
+        position: position,
         map: map,
         icon: icon
       });
       
-      if (target === 'alamat_a') {
+      if (isFromInput) {
         markerA = newMarker;
       } else {
         markerB = newMarker;
       }
+    }
+
+    // Fungsi untuk menggunakan lokasi
+    function useLocation(target) {
+      if (!currentPosition) {
+        alert("Silakan deteksi lokasi terlebih dahulu");
+        return;
+      }
       
+      const inputId = target === 'alamat_a' ? 'fromInput' : 'toInput';
+      document.getElementById(inputId).value = "Lokasi saat ini";
+      
+      updateMarker(inputId, currentPosition);
       map.panTo(currentPosition);
       if (markerA && markerB) tryDirection();
     }
