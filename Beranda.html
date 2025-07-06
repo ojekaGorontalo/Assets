@@ -69,6 +69,19 @@
       align-items: center;
       justify-content: center;
     }
+    .map-mode-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
 
     .radar {
       position: absolute;
@@ -107,6 +120,14 @@
       0% { transform: scale(0.4); opacity: 1; }
       100% { transform: scale(1.5); opacity: 0; }
     }
+
+    /* Menghilangkan watermark */
+    .gm-style-cc, [title="Report errors in the road map or imagery to Google"] {
+      display: none !important;
+    }
+    a[href^="http://maps.google.com/maps"] {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -123,6 +144,7 @@
     </div>
   </div>
   <div id="map"></div>
+  <button id="mapModeBtn" class="map-mode-btn" onclick="toggleMapMode()">Mode Malam</button>
   <div class="radar" id="radar" style="display:none;">
     <span>......</span>
   </div>
@@ -132,6 +154,8 @@
     let markerA, markerB, circleB;
     let radarInterval;
     let currentPosition = null;
+    let isNightMode = false;
+    let styledMapType;
 
     const urlParams = new URLSearchParams(window.location.search);
     const vehicle = urlParams.get("vehicle") || "motor";
@@ -149,7 +173,7 @@
       pickup_scooter: 'https://cdn-icons-png.flaticon.com/128/3177/3177363.png'
     };
 
-    // Fungsi untuk menghapus input
+    // Fungsi untuk menghapus input dan direction
     function clearInput(inputId) {
       document.getElementById(inputId).value = '';
       if (inputId === 'fromInput' && markerA) {
@@ -159,6 +183,15 @@
       if (inputId === 'toInput' && markerB) {
         markerB.setMap(null);
         markerB = null;
+      }
+      
+      // Hapus direction
+      if (directionsRenderer) {
+        directionsRenderer.setMap(null);
+      }
+      if (circleB) {
+        circleB.setMap(null);
+        circleB = null;
       }
     }
 
@@ -206,28 +239,7 @@
       geocoder.geocode({ location: latlng }, (results, status) => {
         if (status === 'OK') {
           if (results[0]) {
-            // Format alamat lengkap
-            let alamat = results[0].formatted_address;
-            
-            // Jika ingin lebih spesifik, bisa diambil komponen alamatnya:
-            /*
-            let addressComponents = results[0].address_components;
-            let street = '';
-            let city = '';
-            
-            for (let component of addressComponents) {
-              if (component.types.includes('route')) {
-                street = component.long_name;
-              }
-              if (component.types.includes('locality')) {
-                city = component.long_name;
-              }
-            }
-            
-            alamat = street + ', ' + city;
-            */
-            
-            callback(alamat);
+            callback(results[0].formatted_address);
           } else {
             callback(null);
           }
@@ -260,6 +272,31 @@
       }
     }
 
+    // Fungsi untuk toggle mode peta
+    function toggleMapMode() {
+      isNightMode = !isNightMode;
+      document.getElementById('mapModeBtn').textContent = isNightMode ? 'Mode Siang' : 'Mode Malam';
+      
+      if (isNightMode) {
+        map.setMapTypeId('styled_map');
+      } else {
+        map.setMapTypeId('roadmap');
+      }
+    }
+
+    // Fungsi modesiang dan modemalam
+    function modesiang() {
+      isNightMode = false;
+      document.getElementById('mapModeBtn').textContent = 'Mode Malam';
+      map.setMapTypeId('roadmap');
+    }
+
+    function modemalam() {
+      isNightMode = true;
+      document.getElementById('mapModeBtn').textContent = 'Mode Siang';
+      map.setMapTypeId('styled_map');
+    }
+
     const getLatLng = (val) => {
       if (!val) return null;
       const parts = val.split(',').map(Number);
@@ -286,30 +323,6 @@
           map.setZoom(zoomLevel);
         }
       }, 150);
-    }
-
-    function reverseGeocode(latlng, callback) {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: latlng }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-          callback(results[0].formatted_address);
-        } else {
-          callback(null);
-        }
-      });
-    }
-
-    function sendToAppInventor(data) {
-      const jsonData = JSON.stringify(data);
-      if (window.AppInventor && window.AppInventor.setWebViewString) {
-        window.AppInventor.setWebViewString(jsonData);
-      }
-      else if (window.AndroidInterface) {
-        window.AndroidInterface.receiveData(jsonData);
-      }
-      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosHandler) {
-        window.webkit.messageHandlers.iosHandler.postMessage(jsonData);
-      }
     }
 
     function tryDirection() {
@@ -379,7 +392,8 @@
       const lokasiA = getLatLng(fromParam);
       const lokasiB = getLatLng(toParam);
 
-      const styledMapType = new google.maps.StyledMapType(
+      // Style untuk mode malam
+      styledMapType = new google.maps.StyledMapType(
         [
           { elementType: "geometry", stylers: [{ color: "#212121" }] },
           { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
@@ -403,14 +417,21 @@
         zoom: 15,
         center: lokasiA || { lat: -6.2, lng: 106.8 },
         clickableIcons: false,
-        gestureHandling: "greedy"
+        gestureHandling: "greedy",
+        mapTypeControlOptions: {
+          mapTypeIds: ['roadmap', 'styled_map']
+        }
       });
 
-      map.mapTypes.set("styled_map", styledMapType);
-      map.setMapTypeId("styled_map");
-
+      // Tambahkan style map ke peta
+      map.mapTypes.set('styled_map', styledMapType);
+      
       directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: true });
+      directionsRenderer = new google.maps.DirectionsRenderer({ 
+        map: map, 
+        suppressMarkers: true,
+        suppressInfoWindows: true
+      });
 
       if (lokasiA) {
         markerA = new google.maps.Marker({
@@ -418,7 +439,7 @@
           map: map,
           icon: { url: iconUrls[vehicle], scaledSize: new google.maps.Size(40, 40) }
         });
-        reverseGeocode(lokasiA, (alamat) => {
+        getFullAddress(lokasiA, (alamat) => {
           document.getElementById("fromInput").value = alamat || "";
         });
       }
@@ -432,7 +453,7 @@
             scaledSize: new google.maps.Size(40, 40)
           }
         });
-        reverseGeocode(lokasiB, (alamat) => {
+        getFullAddress(lokasiB, (alamat) => {
           document.getElementById("toInput").value = alamat || "";
         });
       }
@@ -491,6 +512,19 @@
         });
         if (markerA) tryDirection();
       });
+    }
+
+    function sendToAppInventor(data) {
+      const jsonData = JSON.stringify(data);
+      if (window.AppInventor && window.AppInventor.setWebViewString) {
+        window.AppInventor.setWebViewString(jsonData);
+      }
+      else if (window.AndroidInterface) {
+        window.AndroidInterface.receiveData(jsonData);
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosHandler) {
+        window.webkit.messageHandlers.iosHandler.postMessage(jsonData);
+      }
     }
 
     function onLoad() {
