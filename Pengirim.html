@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pengirim Lokasi</title>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h3>Kirim Lokasi ke Firebase</h3>
+  <p id="status">Mengambil lokasi...</p>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
+      authDomain: "chatting-87e87.firebaseapp.com",
+      databaseURL: "https://chatting-87e87-default-rtdb.firebaseio.com",
+      projectId: "chatting-87e87",
+      storageBucket: "chatting-87e87.appspot.com",
+      messagingSenderId: "240910634931",
+      appId: "1:240910634931:web:3f338f0cc99739815045c6"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function kirimLokasi(pos) {
+      const data = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        waktu: new Date().toISOString()
+      };
+      db.ref("lokasi_kakak").set(data);
+      document.getElementById("status").innerText = "Lokasi berhasil dikirim:\n" + JSON.stringify(data, null, 2);
+    }
+
+    function gagal(error) {
+      document.getElementById("status").innerText = "Gagal ambil lokasi: " + error.message;
+    }
+
+    navigator.geolocation.watchPosition(kirimLokasi, gagal, {
+      enableHighAccuracy: true
+    });
+  </script>
+</body>
+</html>
