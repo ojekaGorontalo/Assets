@@ -40,21 +40,29 @@
     };
     
     // Inisialisasi Firebase
+    let db;
     try {
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      document.getElementById('status').innerText = 'Firebase berhasil diinisialisasi. Mengambil lokasi...';
     } catch (error) {
       document.getElementById('status').innerText = 'Error inisialisasi Firebase: ' + error.message;
     }
 
     // Fungsi untuk mengirim lokasi ke Firebase
     function kirimLokasi(pos) {
+      if (!db) {
+        document.getElementById("status").innerText = "Error: Database Firebase tidak terinisialisasi";
+        return;
+      }
+
       const timestamp = new Date();
       const data = {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         waktu: timestamp.toISOString(),
-        waktu_baca: timestamp.toLocaleString('id-ID')
+        waktu_baca: timestamp.toLocaleString('id-ID'),
+        akurasi: pos.coords.accuracy
       };
       
       try {
@@ -92,15 +100,19 @@
 
     // Memulai pelacakan lokasi
     if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        kirimLokasi, 
-        gagal, 
-        {
-          enableHighAccuracy: true,
-          maximumAge: 30000,
-          timeout: 27000
-        }
-      );
+      if (db) {
+        navigator.geolocation.watchPosition(
+          kirimLokasi, 
+          gagal, 
+          {
+            enableHighAccuracy: true,
+            maximumAge: 30000,
+            timeout: 27000
+          }
+        );
+      } else {
+        document.getElementById("status").innerText = "Menunggu inisialisasi Firebase...";
+      }
     } else {
       document.getElementById("status").innerText = "Geolokasi tidak didukung oleh browser ini.";
     }
