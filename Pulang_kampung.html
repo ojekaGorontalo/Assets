@@ -1,85 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Tracking Kakak</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lihat Tracking Kakak</title>
   <style>
-    html, body { height: 100%; margin: 0; font-family: sans-serif; }
-    #map { height: 60%; }
-    #info { padding: 10px; }
-    .card { background: #f3f3f3; padding: 10px; margin: 10px 0; border-radius: 10px; }
+    #map { height: 90vh; width: 100%; }
   </style>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI"></script>
 </head>
 <body>
-
   <div id="map"></div>
-  <div id="info">
-    <div class="card" id="alamat">Alamat: Memuat...</div>
-    <div class="card" id="koordinat">Koordinat: -</div>
-    <div class="card" id="jarak">Jarak ke rumah: -</div>
-  </div>
 
   <script>
-    const tujuan = { lat: 0.5442, lng: 123.0595 }; // Titik rumah di Gorontalo
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
+      authDomain: "chatting-87e87.firebaseapp.com",
+      databaseURL: "https://chatting-87e87-default-rtdb.firebaseio.com",
+      projectId: "chatting-87e87",
+      storageBucket: "chatting-87e87.appspot.com",
+      messagingSenderId: "240910634931",
+      appId: "1:240910634931:web:3f338f0cc99739815045c6"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    let map, marker, geocoder;
+    const rumah = { lat: 0.5442, lng: 123.0595 }; // Titik rumah di Gorontalo
+    let map, marker;
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 14,
-        center: tujuan,
+        center: rumah,
+        zoom: 10
       });
+
       marker = new google.maps.Marker({ map });
-      geocoder = new google.maps.Geocoder();
 
-      if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(updatePosisi, handleError, {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 5000
-        });
-      } else {
-        alert("Geolocation tidak didukung oleh browser Anda");
-      }
-    }
-
-    function updatePosisi(pos) {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const lokasi = { lat, lng };
-
-      map.setCenter(lokasi);
-      marker.setPosition(lokasi);
-
-      document.getElementById("koordinat").innerText = `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-
-      geocoder.geocode({ location: lokasi }, (results, status) => {
-        if (status === "OK" && results[0]) {
-          document.getElementById("alamat").innerText = "Alamat: " + results[0].formatted_address;
-        } else {
-          document.getElementById("alamat").innerText = "Alamat: Tidak ditemukan";
+      db.ref("lokasi_kakak").on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const posisi = { lat: data.lat, lng: data.lng };
+          marker.setPosition(posisi);
+          map.setCenter(posisi);
         }
       });
-
-      const jarak = hitungJarak(lat, lng, tujuan.lat, tujuan.lng);
-      document.getElementById("jarak").innerText = `Jarak ke rumah: ${jarak.toFixed(2)} km`;
-    }
-
-    function handleError(err) {
-      alert("Gagal mengakses lokasi: " + err.message);
-    }
-
-    function hitungJarak(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a =
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
     }
 
     window.onload = initMap;
