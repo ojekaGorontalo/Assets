@@ -1,18 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lihat Tracking Kakak</title>
   <style>
-    #map { height: 90vh; width: 100%; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    #map { 
+      height: 100vh; 
+      width: 100%; 
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 100;
+    }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI&callback=initMap" async defer></script>
 </head>
 <body>
+  <div id="info">Memuat data lokasi...</div>
   <div id="map"></div>
 
   <script>
+    // Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
       authDomain: "chatting-87e87.firebaseapp.com",
@@ -22,31 +44,100 @@
       messagingSenderId: "240910634931",
       appId: "1:240910634931:web:3f338f0cc99739815045c6"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    
+    // Inisialisasi Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+    } catch (error) {
+      document.getElementById('info').innerText = 'Error inisialisasi Firebase: ' + error.message;
+    }
 
+    // Variabel global
     const rumah = { lat: 0.5442, lng: 123.0595 }; // Titik rumah di Gorontalo
-    let map, marker;
+    let map, marker, infoWindow;
+    let polylinePath = [];
+    let polyline;
 
+    // Fungsi inisialisasi peta
     function initMap() {
+      // Buat peta
       map = new google.maps.Map(document.getElementById("map"), {
         center: rumah,
-        zoom: 10
+        zoom: 15,
+        mapTypeId: 'roadmap'
       });
-
-      marker = new google.maps.Marker({ map });
-
+      
+      // Buat marker
+      marker = new google.maps.Marker({
+        map: map,
+        title: "Lokasi Kakak",
+        icon: {
+          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+        }
+      });
+      
+      // Buat info window
+      infoWindow = new google.maps.InfoWindow({
+        content: "Memuat lokasi..."
+      });
+      
+      // Buat polyline untuk jejak perjalanan
+      polyline = new google.maps.Polyline({
+        path: polylinePath,
+        geodesic: true,
+        strokeColor: "#FF0000",
+        strokeOpacity: 1.0,
+        strokeWeight: 2,
+        map: map
+      });
+      
+      // Marker untuk rumah
+      new google.maps.Marker({
+        position: rumah,
+        map: map,
+        title: "Rumah",
+        icon: {
+          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        }
+      });
+      
+      // Dengarkan perubahan lokasi dari Firebase
       db.ref("lokasi_kakak").on("value", (snapshot) => {
         const data = snapshot.val();
         if (data) {
           const posisi = { lat: data.lat, lng: data.lng };
+          
+          // Update marker
           marker.setPosition(posisi);
           map.setCenter(posisi);
+          
+          // Update info window
+          const content = `
+            <strong>Lokasi Kakak</strong><br>
+            Latitude: ${data.lat.toFixed(6)}<br>
+            Longitude: ${data.lng.toFixed(6)}<br>
+            Waktu: ${data.waktu_baca || data.waktu}
+          `;
+          infoWindow.setContent(content);
+          infoWindow.open(map, marker);
+          
+          // Update info box
+          document.getElementById("info").innerHTML = content;
+          
+          // Tambahkan ke path polyline
+          polylinePath.push(posisi);
+          polyline.setPath(polylinePath);
         }
+      }, (error) => {
+        document.getElementById("info").innerText = "Error membaca data: " + error.message;
       });
     }
-
-    window.onload = initMap;
+    
+    // Penanganan error loading Google Maps
+    window.gm_authFailure = function() {
+      document.getElementById("info").innerText = "Error: Gagal memuat Google Maps. Pastikan API key valid.";
+    };
   </script>
 </body>
 </html>
