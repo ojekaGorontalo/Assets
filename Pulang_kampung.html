@@ -3,116 +3,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Tracking Perjalanan Manado-Gorontalo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <title>Penerima Lokasi & Chat</title>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places,geometry&callback=initMap" async defer></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&callback=initMap" async defer></script>
   <style>
-    :root {
-      --aurora-1: #6a11cb;
-      --aurora-2: #2575fc;
-      --aurora-3: #00d2ff;
-      --text-light: #ffffff;
-      --text-dark: #333333;
-    }
-    
     body {
+      font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, var(--aurora-1), var(--aurora-2));
-      color: var(--text-light);
-      overflow: hidden;
-    }
-    
-    #map {
-      height: 70vh;
-      width: 100%;
-      border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    
-    .dashboard {
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 20px;
-      margin: 20px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    
-    .info-panel {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
+      grid-template-columns: 1fr 300px;
+      height: 100vh;
     }
-    
-    .info-card {
-      background: rgba(255,255,255,0.1);
-      border-radius: 10px;
-      padding: 15px;
-      border-left: 4px solid var(--aurora-3);
-    }
-    
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      font-weight: 600;
-      background: linear-gradient(to right, var(--aurora-3), var(--text-light));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .progress-container {
-      width: 100%;
-      height: 10px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 5px;
-      margin: 20px 0;
-    }
-    
-    .progress-bar {
+    #map {
       height: 100%;
-      background: linear-gradient(to right, var(--aurora-3), var(--aurora-2));
-      border-radius: 5px;
-      transition: width 0.5s ease;
     }
-    
-    @media (max-width: 768px) {
-      #map {
-        height: 50vh;
-      }
+    #chat-sidebar {
+      border-left: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+    }
+    #messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+    .message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 18px;
+      max-width: 90%;
+    }
+    .received {
+      background: #e3f2fd;
+    }
+    .sent {
+      background: #dcf8c6;
+      margin-left: auto;
+    }
+    #chat-form {
+      display: flex;
+      gap: 10px;
+    }
+    #name {
+      width: 80px;
+    }
+    #message {
+      flex-grow: 1;
+    }
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+      animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    #location-info {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
-  <div class="dashboard">
-    <h1>Live Tracking Perjalanan Manado - Gorontalo</h1>
-    
-    <div class="progress-container">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    
-    <div class="info-panel">
-      <div class="info-card">
-        <h3>Lokasi Saat Ini</h3>
-        <p id="currentLocation">Memuat lokasi...</p>
-      </div>
-      
-      <div class="info-card">
-        <h3>Rute & Estimasi</h3>
-        <p id="routeInfo">Menghitung rute...</p>
-      </div>
-      
-      <div class="info-card">
-        <h3>Informasi Perjalanan</h3>
-        <p id="tripInfo">Menganalisis perjalanan...</p>
-      </div>
-    </div>
-  </div>
-  
   <div id="map"></div>
+  
+  <div id="chat-sidebar">
+    <div id="location-info">Menunggu update lokasi...</div>
+    <div id="messages"></div>
+    <form id="chat-form">
+      <input type="text" id="name" placeholder="Nama Anda" required>
+      <input type="text" id="message" placeholder="Pesan..." required>
+      <button type="submit">Kirim</button>
+    </form>
+  </div>
 
   <script>
     // Konfigurasi Firebase
@@ -129,116 +110,93 @@
     // Inisialisasi Firebase
     let db;
     try {
-      firebase.initializeApp(firebaseConfig);
+      const app = firebase.initializeApp(firebaseConfig);
       db = firebase.database();
     } catch (error) {
       console.error('Error inisialisasi Firebase:', error);
     }
 
     // Variabel global
-    const tujuan = { lat: 0.5641705, lng: 123.1204738 }; // Koordinat rumah di Gorontalo
-    let map, marker, directionsService, directionsRenderer;
-    let speechSynthesis = window.speechSynthesis;
-    let lastAnnouncementTime = 0;
-    let routePath = [];
-    let progressInterval;
+    let map, marker;
+    const rumah = { lat: 0.5641705, lng: 123.1204738 };
+
+    // Fungsi untuk menampilkan notifikasi
+    function showNotification(message) {
+      const notification = document.createElement('div');
+      notification.className = 'notification';
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    // Fungsi untuk menampilkan pesan chat
+    function displayMessage(name, message, isReceived) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isReceived ? 'received' : 'sent'}`;
+      messageDiv.innerHTML = `<strong>${name}:</strong> ${message}`;
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      
+      if (isReceived) {
+        showNotification(`Pesan baru dari ${name}`);
+      }
+    }
+
+    // Mengirim pesan chat
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('name').value;
+      const message = document.getElementById('message').value;
+      
+      if (!name || !message) return;
+      
+      // Kirim ke Firebase
+      db.ref("chat").push().set({
+        name: name,
+        message: message,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      })
+      .then(() => {
+        document.getElementById('message').value = '';
+      })
+      .catch(error => {
+        console.error("Gagal mengirim pesan:", error);
+      });
+    });
+
+    // Mendengarkan pesan chat baru
+    if (db) {
+      db.ref("chat").limitToLast(20).on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const isReceived = data.name !== document.getElementById('name').value;
+          displayMessage(data.name, data.message, isReceived);
+        }
+      });
+    }
 
     // Fungsi inisialisasi peta
     function initMap() {
-      // Buat peta dengan tema Aurora
       map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 0.5, lng: 123 }, // Posisi tengah antara Manado-Gorontalo
-        zoom: 8,
-        styles: [
-          { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-          { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-          { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-          {
-            featureType: "administrative.locality",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#d59563" }]
-          },
-          {
-            featureType: "poi",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#d59563" }]
-          },
-          {
-            featureType: "road",
-            elementType: "geometry",
-            stylers: [{ color: "#38414e" }]
-          },
-          {
-            featureType: "road",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#212a37" }]
-          },
-          {
-            featureType: "road",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#9ca5b3" }]
-          },
-          {
-            featureType: "road.highway",
-            elementType: "geometry",
-            stylers: [{ color: "#746855" }]
-          },
-          {
-            featureType: "road.highway",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#1f2835" }]
-          },
-          {
-            featureType: "transit",
-            elementType: "geometry",
-            stylers: [{ color: "#2f3948" }]
-          },
-          {
-            featureType: "water",
-            elementType: "geometry",
-            stylers: [{ color: "#17263c" }]
-          },
-          {
-            featureType: "water",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#515c6d" }]
-          },
-          {
-            featureType: "water",
-            elementType: "labels.text.stroke",
-            stylers: [{ color: "#17263c" }]
-          }
-        ]
+        center: rumah,
+        zoom: 15
       });
 
-      // Inisialisasi layanan directions
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: "#00d2ff",
-          strokeOpacity: 0.7,
-          strokeWeight: 5
-        }
-      });
-
-      // Buat marker khusus untuk posisi saat ini
       marker = new google.maps.Marker({
         map: map,
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#2575fc",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 2
+          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
         }
       });
 
-      // Marker untuk tujuan (rumah)
+      // Marker untuk rumah
       new google.maps.Marker({
-        position: tujuan,
+        position: rumah,
         map: map,
         title: "Rumah Gorontalo",
         icon: {
@@ -246,167 +204,25 @@
         }
       });
 
-      // Mulai memantau perubahan lokasi dari Firebase
-      if (db) {
-        db.ref("lokasi_kakak").on("value", (snapshot) => {
-          const data = snapshot.val();
-          if (data) {
-            updateUI(data);
-          }
-        });
-      }
-
-      // Update progress bar setiap detik
-      progressInterval = setInterval(updateProgress, 1000);
-    }
-
-    // Fungsi untuk memperbarui UI berdasarkan data lokasi terbaru
-    async function updateUI(data) {
-      const posisiSekarang = { lat: data.lat, lng: data.lng };
-      
-      // Update marker posisi
-      marker.setPosition(posisiSekarang);
-      
-      // Hitung rute dari posisi sekarang ke tujuan
-      calculateRoute(posisiSekarang, tujuan);
-      
-      // Dapatkan alamat dari koordinat
-      getAddress(posisiSekarang);
-      
-      // Berikan informasi suara (announcement)
-      provideVoiceAnnouncement(data, posisiSekarang);
-    }
-
-    // Fungsi untuk menghitung rute
-    function calculateRoute(origin, destination) {
-      directionsService.route({
-        origin: origin,
-        destination: destination,
-        travelMode: 'DRIVING',
-        provideRouteAlternatives: false,
-        drivingOptions: {
-          departureTime: new Date(),
-          trafficModel: 'bestguess'
-        }
-      }, (response, status) => {
-        if (status === 'OK') {
-          directionsRenderer.setDirections(response);
-          updateRouteInfo(response);
-        } else {
-          document.getElementById('routeInfo').innerHTML = 
-            `<span style="color:#ff6b6b">Gagal menghitung rute: ${status}</span>`;
+      // Mendengarkan perubahan lokasi dari Firebase
+      db.ref("lokasi_kakak").on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const posisi = { lat: data.lat, lng: data.lng };
+          marker.setPosition(posisi);
+          map.setCenter(posisi);
+          
+          // Update info lokasi
+          document.getElementById('location-info').innerHTML = `
+            <strong>Lokasi Terakhir:</strong><br>
+            ${data.waktu_baca}<br>
+            Akurasi: ${data.akurasi.toFixed(0)} meter
+          `;
+          
+          showNotification(`Update lokasi terbaru diterima`);
         }
       });
     }
-
-    // Fungsi untuk memperbarui informasi rute
-    function updateRouteInfo(response) {
-      const route = response.routes[0];
-      const leg = route.legs[0];
-      
-      // Info durasi dengan traffic
-      const duration = leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text;
-      const distance = leg.distance.text;
-      const arrivalTime = formatTime(new Date(Date.now() + leg.duration_in_traffic.value * 1000));
-      
-      // Simpan path untuk progress calculation
-      routePath = [];
-      leg.steps.forEach(step => {
-        routePath = routePath.concat(step.path);
-      });
-      
-      document.getElementById('routeInfo').innerHTML = `
-        <strong>${distance}</strong> - ${duration}<br>
-        Estimasi Tiba: ${arrivalTime}<br>
-        ${leg.start_address} ke ${leg.end_address}
-      `;
-    }
-
-    // Fungsi untuk mendapatkan alamat dari koordinat
-    function getAddress(latLng) {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: latLng }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-          document.getElementById('currentLocation').textContent = results[0].formatted_address;
-        }
-      });
-    }
-
-    // Fungsi untuk memberikan informasi suara
-    function provideVoiceAnnouncement(data, currentPosition) {
-      const now = Date.now();
-      // Batasan announcement setiap 2 menit
-      if (now - lastAnnouncementTime > 120000) {
-        lastAnnouncementTime = now;
-        
-        // Hitung jarak ke tujuan
-        const distance = google.maps.geometry.spherical.computeDistanceBetween(
-          currentPosition, 
-          new google.maps.LatLng(tujuan)
-        );
-        
-        const distanceKm = (distance / 1000).toFixed(1);
-        const waktu = new Date(data.waktu).toLocaleTimeString('id-ID');
-        
-        const announcement = new SpeechSynthesisUtterance();
-        announcement.text = `Posisi terbaru pukul ${waktu}. Anda berada pada jarak ${distanceKm} kilometer dari tujuan.`;
-        announcement.lang = 'id-ID';
-        announcement.rate = 0.9;
-        
-        speechSynthesis.speak(announcement);
-      }
-    }
-
-    // Fungsi untuk update progress bar
-    function updateProgress() {
-      if (!marker.getPosition() || routePath.length === 0) return;
-      
-      const currentPos = marker.getPosition();
-      let closestPoint = routePath[0];
-      let minDistance = Infinity;
-      
-      // Cari titik terdekat di rute dengan posisi saat ini
-      routePath.forEach(point => {
-        const distance = google.maps.geometry.spherical.computeDistanceBetween(currentPos, point);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestPoint = point;
-        }
-      });
-      
-      // Hitung progress perjalanan
-      const totalDistance = google.maps.geometry.spherical.computeLength(routePath);
-      const traveledDistance = google.maps.geometry.spherical.computeLength(
-        routePath.slice(0, routePath.indexOf(closestPoint))
-      );
-      
-      const progress = (traveledDistance / totalDistance) * 100;
-      document.getElementById('progressBar').style.width = `${Math.min(100, Math.max(0, progress))}%`;
-      
-      // Update trip info
-      document.getElementById('tripInfo').innerHTML = `
-        <strong>Progress Perjalanan:</strong> ${progress.toFixed(1)}%<br>
-        <strong>Kecepatan:</strong> ${(Math.random() * 20 + 60).toFixed(0)} km/jam<br>
-        <strong>Kondisi Jalan:</strong> ${getRoadCondition()}
-      `;
-    }
-
-    // Helper functions
-    function formatTime(date) {
-      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function getRoadCondition() {
-      const conditions = ["Lancar", "Sedikit Padat", "Padat", "Macet"];
-      const trafficLevels = ["🟢", "🟡", "🟠", "🔴"];
-      const random = Math.floor(Math.random() * conditions.length);
-      return `${trafficLevels[random]} ${conditions[random]}`;
-    }
-
-    // Penanganan error
-    window.gm_authFailure = function() {
-      alert('Error: Gagal memuat Google Maps. Pastikan API key valid.');
-    };
   </script>
 </body>
 </html>
