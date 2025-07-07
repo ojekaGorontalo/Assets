@@ -1,15 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pengirim Lokasi</title>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    #status {
+      white-space: pre-wrap;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      text-align: left;
+    }
+  </style>
 </head>
 <body>
   <h3>Kirim Lokasi ke Firebase</h3>
   <p id="status">Mengambil lokasi...</p>
 
   <script>
+    // Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
       authDomain: "chatting-87e87.firebaseapp.com",
@@ -19,26 +38,72 @@
       messagingSenderId: "240910634931",
       appId: "1:240910634931:web:3f338f0cc99739815045c6"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    
+    // Inisialisasi Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+    } catch (error) {
+      document.getElementById('status').innerText = 'Error inisialisasi Firebase: ' + error.message;
+    }
 
+    // Fungsi untuk mengirim lokasi ke Firebase
     function kirimLokasi(pos) {
+      const timestamp = new Date();
       const data = {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
-        waktu: new Date().toISOString()
+        waktu: timestamp.toISOString(),
+        waktu_baca: timestamp.toLocaleString('id-ID')
       };
-      db.ref("lokasi_kakak").set(data);
-      document.getElementById("status").innerText = "Lokasi berhasil dikirim:\n" + JSON.stringify(data, null, 2);
+      
+      try {
+        db.ref("lokasi_kakak").set(data)
+          .then(() => {
+            document.getElementById("status").innerText = `Lokasi terakhir dikirim:\n${JSON.stringify(data, null, 2)}`;
+          })
+          .catch(error => {
+            document.getElementById("status").innerText = "Gagal mengirim ke Firebase: " + error.message;
+          });
+      } catch (error) {
+        document.getElementById("status").innerText = "Error: " + error.message;
+      }
     }
 
+    // Fungsi penanganan error geolokasi
     function gagal(error) {
-      document.getElementById("status").innerText = "Gagal ambil lokasi: " + error.message;
+      let pesanError = "Gagal mengambil lokasi: ";
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          pesanError += "Izin lokasi ditolak. Mohon aktifkan izin lokasi.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          pesanError += "Informasi lokasi tidak tersedia.";
+          break;
+        case error.TIMEOUT:
+          pesanError += "Permintaan lokasi timeout.";
+          break;
+        case error.UNKNOWN_ERROR:
+          pesanError += "Error tidak diketahui.";
+          break;
+      }
+      document.getElementById("status").innerText = pesanError;
     }
 
-    navigator.geolocation.watchPosition(kirimLokasi, gagal, {
-      enableHighAccuracy: true
-    });
+    // Memulai pelacakan lokasi
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        kirimLokasi, 
+        gagal, 
+        {
+          enableHighAccuracy: true,
+          maximumAge: 30000,
+          timeout: 27000
+        }
+      );
+    } else {
+      document.getElementById("status").innerText = "Geolokasi tidak didukung oleh browser ini.";
+    }
   </script>
 </body>
 </html>
