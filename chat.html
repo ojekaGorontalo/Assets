@@ -14,20 +14,20 @@
             margin: 0;
             padding: 0;
             font-family: Arial;
-            background: #f0f2f5;
+            background: #ECE5DD;
             height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        /* HEADER seperti WhatsApp */
+        /* HEADER WA */
         #header {
             display: flex;
             align-items: center;
             padding: 12px;
             background: #075E54;
             color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
         }
 
         #header img {
@@ -35,11 +35,10 @@
             height: 42px;
             border-radius: 50%;
             margin-right: 12px;
-            background: #ddd;
         }
 
         #header .name {
-            font-size: 17px;
+            font-size: 18px;
             font-weight: bold;
         }
 
@@ -52,29 +51,36 @@
         .bubble {
             max-width: 75%;
             padding: 10px 14px;
-            margin-bottom: 10px;
-            border-radius: 14px;
+            margin-bottom: 12px;
+            border-radius: 10px;
             font-size: 15px;
-            line-height: 1.4em;
+            position: relative;
             word-wrap: break-word;
         }
 
         .left {
             background: #ffffff;
-            border: 1px solid #ddd;
             align-self: flex-start;
+            border-radius: 10px 10px 10px 0;
         }
 
         .right {
             background: #DCF8C6;
             align-self: flex-end;
+            border-radius: 10px 10px 0 10px;
+        }
+
+        .time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+            text-align: right;
         }
 
         #inputArea {
             display: flex;
             padding: 10px;
-            background: white;
-            border-top: 1px solid #ddd;
+            background: #fff;
         }
 
         #messageInput {
@@ -83,24 +89,24 @@
             border-radius: 20px;
             border: 1px solid #ccc;
             font-size: 15px;
-            outline: none;
         }
 
         #sendBtn {
             margin-left: 10px;
-            padding: 12px 18px;
+            padding: 12px 20px;
             background: #25D366;
             color: white;
             border: none;
             border-radius: 50px;
-            font-size: 15px;
             cursor: pointer;
         }
+
+        #sendBtn:active { opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <!-- HEADER CHAT -->
+    <!-- HEADER -->
     <div id="header">
         <img id="profilePic" src="">
         <div class="name" id="chatName">Loading...</div>
@@ -114,6 +120,7 @@
     </div>
 
 <script>
+/* Firebase Config */
 const firebaseConfig = {
     apiKey: "AIzaSyDYju4Mi2uJYO0W3oR9ZcX91vgklqFszyY",
     authDomain: "ojeka-ba255.firebaseapp.com",
@@ -132,64 +139,62 @@ function getQuery(name) {
     return url.searchParams.get(name);
 }
 
-const orderId   = getQuery("order_id");
-const role      = getQuery("role");     // driver / customer
-const senderId  = getQuery("sender_id");
+const orderId = getQuery("order_id");
+const role = getQuery("role");
+const senderId = getQuery("sender_id");
 
 const chatRef = db.ref("chat/" + orderId);
 const orderRef = db.ref("orders/" + orderId);
 
-const chatBox = document.getElementById("chatBox");
-
-// ===================================================
-// SET HEADER NAMA & FOTO
-// ===================================================
+/* Header Nama & Foto */
 orderRef.once("value", (snap) => {
     const order = snap.val();
-    
     if (!order) return;
 
     let displayName = "";
     let displayPhoto = "";
 
     if (role === "driver") {
-        // Driver chat → tampilkan nama customer
-        displayName = order.user_data.nama || "Customer";
+        displayName = order.user_data.nama;
         displayPhoto = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
     } else {
-        // Customer chat → tampilkan nama driver
-        displayName = order.selected_driver.name || "Driver";
-
-        displayPhoto = order.selected_driver.profile_photo_url 
-                       || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        displayName = order.selected_driver.name;
+        displayPhoto = order.selected_driver.profile_photo_url;
     }
 
     document.getElementById("chatName").textContent = displayName;
     document.getElementById("profilePic").src = displayPhoto;
 });
 
-// ===================================================
-// LISTEN PESAN REALTIME
-// ===================================================
-chatRef.on("child_added", (snapshot) => {
-    displayMessage(snapshot.val());
+/* Listen Chat */
+chatRef.on("child_added", (snap) => {
+    showMessage(snap.val());
 });
 
-// ===================================================
-// TAMPILKAN PESAN
-// ===================================================
-function displayMessage(data) {
-    const bubble = document.createElement("div");
-    bubble.className = "bubble " + (data.sender === role ? "right" : "left");
-    bubble.textContent = data.message;
-
-    chatBox.appendChild(bubble);
-    chatBox.scrollTop = chatBox.scrollHeight;
+/* Format Jam */
+function formatTime(ts) {
+    const d = new Date(ts);
+    return d.getHours().toString().padStart(2, "0") + ":" +
+           d.getMinutes().toString().padStart(2, "0");
 }
 
-// ===================================================
-// KIRIM PESAN
-// ===================================================
+/* Tampilkan Pesan */
+function showMessage(data) {
+    const bubble = document.createElement("div");
+    const isMine = (data.sender === role);
+
+    bubble.className = "bubble " + (isMine ? "right" : "left");
+
+    bubble.innerHTML = `
+        ${data.message}
+        <div class="time">${formatTime(data.timestamp)}</div>
+    `;
+
+    document.getElementById("chatBox").appendChild(bubble);
+    document.getElementById("chatBox").scrollTop = chatBox.scrollHeight;
+}
+
+/* Kirim Pesan */
 document.getElementById("sendBtn").onclick = sendMessage;
 document.getElementById("messageInput").addEventListener("keypress", e => {
     if (e.key === "Enter") sendMessage();
