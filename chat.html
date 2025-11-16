@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat JeGo</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chatBox {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            border-radius: 14px;
+            font-size: 15px;
+            line-height: 1.4em;
+            word-wrap: break-word;
+        }
+
+        .left {
+            background: #ffffff;
+            border: 1px solid #ddd;
+            align-self: flex-start;
+        }
+
+        .right {
+            background: #DCF8C6;
+            align-self: flex-end;
+        }
+
+        #inputArea {
+            display: flex;
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            outline: none;
+        }
+
+        #sendBtn {
+            margin-left: 10px;
+            padding: 12px 18px;
+            background: #25D366;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        #sendBtn:active {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chatBox"></div>
+
+    <div id="inputArea">
+        <input type="text" id="messageInput" placeholder="Tulis pesan...">
+        <button id="sendBtn">Kirim</button>
+    </div>
+
+<script>
+    // ===================================================
+    // KONFIGURASI FIREBASE JEGO
+    // ===================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDYju4Mi2uJYO0W3oR9ZcX91vgklqFszyY",
+        authDomain: "ojeka-ba255.firebaseapp.com",
+        databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+        projectId: "ojeka-ba255",
+        storageBucket: "ojeka-ba255.appspot.com",
+        messagingSenderId: "443112627363",
+        appId: "1:443112627363:web:62c39856d2c3f12ac44665"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ===================================================
+    // PARAMETER DARI KODULAR
+    // ===================================================
+    function getQuery(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+
+    const orderId   = getQuery("order_id");
+    const role      = getQuery("role"); // driver / customer
+    const senderId  = getQuery("sender_id");
+
+    const chatRef = db.ref("chat/" + orderId);
+
+    const chatBox = document.getElementById("chatBox");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    // ===================================================
+    // LISTEN PESAN REALTIME
+    // ===================================================
+    chatRef.on("child_added", (snapshot) => {
+        const data = snapshot.val();
+        displayMessage(data);
+    });
+
+    // ===================================================
+    // TAMPILKAN PESAN
+    // ===================================================
+    function displayMessage(data) {
+        const bubble = document.createElement("div");
+
+        const isMine = data.sender === role;
+
+        bubble.className = "bubble " + (isMine ? "right" : "left");
+        bubble.textContent = data.message;
+
+        chatBox.appendChild(bubble);
+
+        setTimeout(() => {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }, 50);
+    }
+
+    // ===================================================
+    // KIRIM PESAN
+    // ===================================================
+    function sendMessage() {
+        const msg = messageInput.value.trim();
+        if (msg === "") return;
+
+        const newMsgRef = chatRef.push();
+        newMsgRef.set({
+            sender: role,
+            sender_id: senderId,
+            message: msg,
+            timestamp: Date.now()
+        });
+
+        messageInput.value = "";
+    }
+
+    sendBtn.onclick = sendMessage;
+
+    messageInput.addEventListener("keypress", function(e) {
+        if (e.key === "Enter") sendMessage();
+    });
+
+</script>
+
+</body>
+</html>
