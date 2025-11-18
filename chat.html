@@ -139,6 +139,10 @@ const orderRef = db.ref("orders/" + orderId);
 const inputArea = document.getElementById("inputArea");
 const closedBox = document.getElementById("orderClosed");
 
+// Variabel untuk melacak pesan yang sudah diproses
+let processedMessages = new Set();
+let chatOpenedTime = Date.now();
+
 /* HEADER */
 orderRef.once("value", snap => {
     const order = snap.val();
@@ -164,8 +168,6 @@ document.getElementById('backButton').addEventListener('click', function() {
 
 /* Simulasi status online */
 function updateOnlineStatus() {
-    // Untuk demo, selalu tampilkan online
-    // Dalam implementasi nyata, Anda perlu mengecek status online dari database
     document.getElementById('onlineStatus').style.display = 'block';
     document.getElementById('statusText').textContent = 'Online';
 }
@@ -173,7 +175,7 @@ function updateOnlineStatus() {
 // Update status online saat halaman dimuat
 updateOnlineStatus();
 
-/* LISTEN STATUS ORDER — Fitur Baru */
+/* LISTEN STATUS ORDER */
 orderRef.child("status").on("value", snap => {
     const status = snap.val();
 
@@ -207,20 +209,28 @@ orderRef.child("status").on("value", snap => {
     }
 });
 
-/* Listen Chat */
+/* Listen Chat - HANYA untuk pesan baru */
 chatRef.on("child_added", snap => {
     const message = snap.val();
+    const messageKey = snap.key;
+    
+    // Tandai pesan ini sudah diproses
+    processedMessages.add(messageKey);
+    
+    // Tampilkan pesan di chat
     showMessage(message);
     
-    // Kirim notifikasi ke Kodular untuk pesan baru
-    if (message.sender !== role) {
+    // Hanya kirim notifikasi untuk pesan baru yang dikirim SETELAH chat dibuka
+    // DAN hanya dari lawan bicara
+    if (message.sender !== role && message.timestamp > chatOpenedTime) {
         sendToKodular({
             chat_action: "new_message",
             order_id: orderId,
             sender: message.sender,
             sender_id: message.sender_id,
             message: message.message,
-            timestamp: message.timestamp
+            timestamp: message.timestamp,
+            message_id: messageKey
         });
     }
 });
@@ -259,8 +269,6 @@ function showMessage(data){
     // Status pesan (untuk pesan yang dikirim oleh user saat ini)
     let statusHTML = '';
     if (isMine) {
-        // Simulasi status pesan: ✓ untuk terkirim, ✓✓ untuk dibaca
-        // Dalam implementasi nyata, Anda perlu mengecek status dari database
         const isRead = checkIfMessageRead(data);
         statusHTML = `
             <div class="message-meta">
@@ -288,16 +296,12 @@ function showMessage(data){
 
 /* Fungsi untuk mengecek apakah pesan sudah dibaca */
 function checkIfMessageRead(message) {
-    // Dalam implementasi nyata, Anda perlu menyimpan status di Firebase
-    // Untuk demo, kita asumsikan pesan sudah dibaca setelah 2 detik
     const messageAge = Date.now() - message.timestamp;
-    return messageAge > 2000; // Asumsi: pesan yang berumur > 2 detik dianggap sudah dibaca
+    return messageAge > 2000;
 }
 
 /* Fungsi untuk menandai pesan sebagai sudah dibaca */
 function markMessageAsRead(message) {
-    // Dalam implementasi nyata, Anda perlu update status di Firebase
-    // Untuk saat ini, kita hanya refresh tampilan
     setTimeout(() => {
         const checkmarks = document.querySelectorAll('.checkmark');
         checkmarks.forEach(checkmark => {
@@ -327,14 +331,6 @@ function sendMessage(){
     };
 
     chatRef.push().set(messageData);
-
-    // Kirim notifikasi ke Kodular tentang pesan yang dikirim
-    sendToKodular({
-        chat_action: "message_sent",
-        order_id: orderId,
-        message: msg,
-        timestamp: messageData.timestamp
-    });
 
     messageInput.value = "";
 }
