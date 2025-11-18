@@ -11,29 +11,65 @@
     <style>
         body { margin: 0; padding: 0; font-family: Arial; background: #ECE5DD; height: 100vh; display: flex; flex-direction: column; }
 
-        #header { display: flex; align-items: center; padding: 12px; background: #075E54; color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+        #header { display: flex; align-items: center; padding: 12px; background: #075E54; color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.25); position: relative; }
         #header img { width: 42px; height: 42px; border-radius: 50%; margin-right: 12px; }
         .name { font-size: 18px; font-weight: bold; }
+        .online-status { 
+            position: absolute; 
+            left: 46px; 
+            bottom: 10px; 
+            width: 12px; 
+            height: 12px; 
+            background: #4CAF50; 
+            border: 2px solid #075E54; 
+            border-radius: 50%; 
+        }
+        .status-text { 
+            font-size: 12px; 
+            opacity: 0.8; 
+            margin-top: 2px; 
+        }
 
         #chatBox { flex: 1; overflow-y: auto; padding: 15px; }
 
-        .bubble { max-width: 75%; padding: 10px 14px; margin-bottom: 12px; border-radius: 10px; font-size: 15px; position: relative; }
+        .bubble { 
+            max-width: 75%; 
+            padding: 8px 12px; 
+            margin-bottom: 8px; 
+            border-radius: 10px; 
+            font-size: 13.5px; 
+            position: relative; 
+            line-height: 1.4;
+        }
         .left { background: #fff; align-self: flex-start; border-radius: 10px 10px 10px 0; }
         .right { background: #DCF8C6; align-self: flex-end; border-radius: 10px 10px 0 10px; }
-        .time { font-size: 11px; opacity: 0.6; margin-top: 4px; text-align: right; }
+        .message-meta { 
+            display: flex; 
+            justify-content: flex-end; 
+            align-items: center; 
+            margin-top: 2px; 
+            gap: 3px;
+        }
+        .time { font-size: 10.5px; opacity: 0.6; }
+        .checkmark { font-size: 10.5px; }
+        .checkmark.read { color: #4FC3F7; }
 
         #inputArea { display: flex; padding: 10px; background: white; border-top: 1px solid #ccc; }
-        #messageInput { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; }
-        #sendBtn { margin-left: 10px; padding: 12px 20px; background: #25D366; color: white; border-radius: 50px; border: none; cursor: pointer; }
+        #messageInput { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; font-size: 14px; }
+        #sendBtn { margin-left: 8px; padding: 10px 16px; background: #25D366; color: white; border-radius: 50px; border: none; cursor: pointer; font-size: 14px; }
 
-        #orderClosed { display:none; text-align:center; padding:15px; color:#444; background:#ffe1e1; border-top:1px solid #dd0000; }
+        #orderClosed { display:none; text-align:center; padding:12px; color:#444; background:#ffe1e1; border-top:1px solid #dd0000; font-size: 13px; }
     </style>
 </head>
 <body>
 
     <div id="header">
         <img id="profilePic" src="">
-        <div class="name" id="chatName">Loading...</div>
+        <div>
+            <div class="name" id="chatName">Loading...</div>
+            <div class="status-text" id="statusText">Online</div>
+        </div>
+        <div class="online-status" id="onlineStatus"></div>
     </div>
 
     <div id="chatBox"></div>
@@ -90,6 +126,17 @@ orderRef.once("value", snap => {
     }
 });
 
+/* Simulasi status online */
+function updateOnlineStatus() {
+    // Untuk demo, selalu tampilkan online
+    // Dalam implementasi nyata, Anda perlu mengecek status online dari database
+    document.getElementById('onlineStatus').style.display = 'block';
+    document.getElementById('statusText').textContent = 'Online';
+}
+
+// Update status online saat halaman dimuat
+updateOnlineStatus();
+
 /* LISTEN STATUS ORDER — Fitur Baru */
 orderRef.child("status").on("value", snap => {
     const status = snap.val();
@@ -97,27 +144,40 @@ orderRef.child("status").on("value", snap => {
     console.log("STATUS:", status);
 
     if (status === "cancelled" || status === "completed") {
-
         // Tutup input
         inputArea.style.display = "none";
         closedBox.style.display = "block";
 
         // Kirim info ke Kodular
-        try {
-            AppInventor.setWebViewString(JSON.stringify({
-                chat_action: "closed",
-                order_id: orderId,
-                reason: status
-            }));
-        } catch(e){}
+        sendToKodular({
+            chat_action: "closed",
+            order_id: orderId,
+            reason: status
+        });
 
-        // OPSIONAL: Hapus chat dari Firebase
-        // chatRef.remove();
+        // Update status menjadi offline
+        document.getElementById('onlineStatus').style.display = 'none';
+        document.getElementById('statusText').textContent = 'Offline';
     }
 });
 
 /* Listen Chat */
-chatRef.on("child_added", snap => showMessage(snap.val()));
+chatRef.on("child_added", snap => {
+    const message = snap.val();
+    showMessage(message);
+    
+    // Kirim notifikasi ke Kodular untuk pesan baru
+    if (message.sender !== role) {
+        sendToKodular({
+            chat_action: "new_message",
+            order_id: orderId,
+            sender: message.sender,
+            sender_id: message.sender_id,
+            message: message.message,
+            timestamp: message.timestamp
+        });
+    }
+});
 
 /* Format Jam */
 function formatTime(ts){
@@ -126,19 +186,78 @@ function formatTime(ts){
            d.getMinutes().toString().padStart(2,"0");
 }
 
+/* Fungsi untuk mengirim data ke Kodular */
+function sendToKodular(data) {
+    try {
+        if (typeof AppInventor !== 'undefined' && AppInventor.setWebViewString) {
+            AppInventor.setWebViewString(JSON.stringify(data));
+        } else if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage(data);
+        }
+        console.log("Data sent to Kodular:", data);
+    } catch(e) {
+        console.error("Error sending to Kodular:", e);
+    }
+}
+
 /* Show Bubble */
 function showMessage(data){
     const bubble = document.createElement("div");
     const isMine = (data.sender === role);
 
     bubble.className = "bubble " + (isMine ? "right" : "left");
+    
+    // Status pesan (untuk pesan yang dikirim oleh user saat ini)
+    let statusHTML = '';
+    if (isMine) {
+        // Simulasi status pesan: ✓ untuk terkirim, ✓✓ untuk dibaca
+        // Dalam implementasi nyata, Anda perlu mengecek status dari database
+        const isRead = checkIfMessageRead(data);
+        statusHTML = `
+            <div class="message-meta">
+                <span class="time">${formatTime(data.timestamp)}</span>
+                <span class="checkmark ${isRead ? 'read' : ''}">${isRead ? '✓✓' : '✓'}</span>
+            </div>
+        `;
+    } else {
+        statusHTML = `<div class="time">${formatTime(data.timestamp)}</div>`;
+    }
+
     bubble.innerHTML = `
         ${data.message}
-        <div class="time">${formatTime(data.timestamp)}</div>
+        ${statusHTML}
     `;
 
     chatBox.appendChild(bubble);
     chatBox.scrollTop = chatBox.scrollHeight;
+    
+    // Update status pesan menjadi "dibaca" jika pesan dari lawan bicara
+    if (!isMine) {
+        markMessageAsRead(data);
+    }
+}
+
+/* Fungsi untuk mengecek apakah pesan sudah dibaca */
+function checkIfMessageRead(message) {
+    // Dalam implementasi nyata, Anda perlu menyimpan status di Firebase
+    // Untuk demo, kita asumsikan pesan sudah dibaca setelah 2 detik
+    const messageAge = Date.now() - message.timestamp;
+    return messageAge > 2000; // Asumsi: pesan yang berumur > 2 detik dianggap sudah dibaca
+}
+
+/* Fungsi untuk menandai pesan sebagai sudah dibaca */
+function markMessageAsRead(message) {
+    // Dalam implementasi nyata, Anda perlu update status di Firebase
+    // Untuk saat ini, kita hanya refresh tampilan
+    setTimeout(() => {
+        const checkmarks = document.querySelectorAll('.checkmark');
+        checkmarks.forEach(checkmark => {
+            if (!checkmark.classList.contains('read')) {
+                checkmark.classList.add('read');
+                checkmark.textContent = '✓✓';
+            }
+        });
+    }, 2000);
 }
 
 /* Send Message */
@@ -151,11 +270,21 @@ function sendMessage(){
     const msg = messageInput.value.trim();
     if (!msg) return;
 
-    chatRef.push().set({
+    const messageData = {
         sender: role,
         sender_id: senderId,
         message: msg,
         timestamp: Date.now()
+    };
+
+    chatRef.push().set(messageData);
+
+    // Kirim notifikasi ke Kodular tentang pesan yang dikirim
+    sendToKodular({
+        chat_action: "message_sent",
+        order_id: orderId,
+        message: msg,
+        timestamp: messageData.timestamp
     });
 
     messageInput.value = "";
