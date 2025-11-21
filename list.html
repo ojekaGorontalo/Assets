@@ -871,28 +871,21 @@
       color: #51cf66;
     }
 
+    /* SEMBUNYIKAN INFO POTONGAN KOMISI */
     .fee-info {
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
-      border-radius: 6px;
-      padding: 8px;
-      margin: 8px 0;
-      font-size: 0.75rem;
+      display: none !important;
     }
 
     .fee-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
+      display: none !important;
     }
 
     .fee-label {
-      color: #856404;
+      display: none !important;
     }
 
     .fee-value {
-      font-weight: 600;
-      color: #856404;
+      display: none !important;
     }
 
     @media (max-width: 768px) {
@@ -1125,8 +1118,8 @@
             </div>
           </div>
           
-          <!-- INFO BIAYA POTONGAN -->
-          <div class="fee-info" id="feeInfo" style="display: none;">
+          <!-- INFO BIAYA POTONGAN - DISEMBUNYIKAN -->
+          <div class="fee-info" id="feeInfo" style="display: none !important;">
             <div class="fee-item">
               <span class="fee-label">Potongan komisi:</span>
               <span class="fee-value" id="feeAmount">Rp 0</span>
@@ -1189,8 +1182,8 @@
             
             <div class="autobid-price" id="autobidPrice">-</div>
 
-            <!-- INFO BIAYA POTONGAN AUTOBID -->
-            <div class="fee-info" id="autobidFeeInfo" style="display: none;">
+            <!-- INFO BIAYA POTONGAN AUTOBID - DISEMBUNYIKAN -->
+            <div class="fee-info" id="autobidFeeInfo" style="display: none !important;">
               <div class="fee-item">
                 <span class="fee-label">Potongan komisi:</span>
                 <span class="fee-value" id="autobidFeeAmount">Rp 0</span>
@@ -1454,12 +1447,10 @@
         startLocationTracking();
         showInfoPopup('Location tracking diaktifkan.');
         
-        // Jika Autobid OFF, tampilkan popup manual untuk order dalam radius
-        if (!autobidEnabled) {
-          setTimeout(() => {
-            checkOrdersForManualPopup();
-          }, 2000);
-        }
+        // PERBAIKAN: Langsung cek order untuk popup manual setelah tracking aktif
+        setTimeout(() => {
+          checkOrdersForManualPopup();
+        }, 2000);
       } else {
         stopLocationTracking();
         showInfoPopup('Location tracking dinonaktifkan.');
@@ -1574,7 +1565,7 @@
         stopAutobid();
         showInfoPopup('Autobid dinonaktifkan.');
         
-        // Jika location tracking masih aktif, tampilkan popup manual
+        // PERBAIKAN: Langsung cek order untuk popup manual setelah autobid dimatikan
         if (locationTrackingEnabled) {
           setTimeout(() => {
             checkOrdersForManualPopup();
@@ -1596,7 +1587,7 @@
       }
     }
 
-    // ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL ====================
+    // ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL YANG DIPERBAIKI ====================
     function checkOrdersForManualPopup() {
       if (!locationTrackingEnabled || autobidEnabled || 
           !currentDriverData || isAutobidProcessing || 
@@ -1607,8 +1598,11 @@
       console.log('🔍 Manual Popup: Mencari order dalam radius 1KM...');
       
       const ordersList = document.querySelectorAll('.order-item');
+      let foundOrder = false;
       
       for (const orderItem of ordersList) {
+        if (foundOrder) break; // Hanya tampilkan satu popup sekaligus
+        
         const orderId = orderItem.dataset.orderId;
         
         if (processedOrders.has(orderId)) {
@@ -1627,9 +1621,10 @@
             if (isInRadius) {
               console.log(`🎯 Manual Popup: Order ${orderId} dalam radius, menampilkan modal manual...`);
               processedOrders.add(orderId);
+              foundOrder = true;
               
-              // Tampilkan modal manual
-              showOrderDetail(order);
+              // Tampilkan modal manual DENGAN PARAMETER fromTracking = true
+              showOrderDetail(order, true);
               return;
             }
           }
@@ -1773,6 +1768,13 @@
       
       if (autobidEnabled && !isAutobidProcessing) {
         checkOrdersForAutobid();
+      }
+      
+      // PERBAIKAN: Cek order untuk popup manual setiap kali lokasi diperbarui
+      if (locationTrackingEnabled && !autobidEnabled && !isAutobidProcessing) {
+        setTimeout(() => {
+          checkOrdersForManualPopup();
+        }, 1000);
       }
     }
 
@@ -1928,8 +1930,9 @@
         document.getElementById('autobidDistance').textContent = currentOrder.jarak || '-';
         document.getElementById('autobidPrice').textContent = currentOrder.harga_total ? `Rp ${currentOrder.harga_total.toLocaleString('id-ID')}` : '-';
         
-        // Update info biaya potongan di modal Autobid
+        // UPDATE info biaya potongan di modal Autobid - TAPI SEMBUNYIKAN
         const hasSufficientBalance = updateFeeInfoInAutobidModal(currentOrder.harga_total);
+        document.getElementById('autobidFeeInfo').style.display = 'none'; // SEMBUNYIKAN
         
         if (!hasSufficientBalance) {
           console.log(`❌ Autobid: Saldo tidak cukup untuk order ${orderKey}`);
@@ -2434,6 +2437,14 @@
 
         renderOrdersList(sortedOrders, ordersList);
         
+        // ========== PERBAIKAN: CEK ORDER UNTUK POPUP MANUAL SETIAP KALI DATA ORDER DIPERBARUI ==========
+        if (locationTrackingEnabled && !autobidEnabled && !isAutobidProcessing) {
+          console.log('🔄 Trigger otomatis: Cek order untuk popup manual');
+          setTimeout(() => {
+            checkOrdersForManualPopup();
+          }, 2000);
+        }
+        
       } catch (error) {
         console.error('❌ Error processing orders data:', error);
         showConnectionError();
@@ -2520,7 +2531,7 @@
         `;
         
         orderItem.addEventListener('click', () => {
-          showOrderDetail(order);
+          showOrderDetail(order, false); // Parameter false karena klik manual
         });
         
         ordersList.appendChild(orderItem);
@@ -2550,9 +2561,9 @@
       });
     }
 
-    // ==================== FUNGSI MODAL DETAIL ORDER MANUAL ====================
+    // ==================== FUNGSI MODAL DETAIL ORDER MANUAL YANG DIPERBAIKI ====================
 
-    function showOrderDetail(order) {
+    function showOrderDetail(order, fromTracking = false) {
       if (!checkDriverData()) return;
 
       const orderKey = order.order_id || order.id;
@@ -2576,8 +2587,8 @@
         document.getElementById('modalDistance').textContent = currentOrder.jarak || '-';
         document.getElementById('modalPrice').textContent = currentOrder.harga_total ? `Rp ${currentOrder.harga_total.toLocaleString('id-ID')}` : '-';
         
-        // UPDATE INFO BIAYA POTONGAN DI MODAL
-        updateFeeInfoInModal(currentOrder.harga_total);
+        // SEMBUNYIKAN INFO BIAYA POTONGAN
+        document.getElementById('feeInfo').style.display = 'none';
         
         // Tambahkan info pengiriman di modal
         const modalDeliveryInfo = document.getElementById('modalDeliveryInfo');
@@ -2606,7 +2617,21 @@
           document.getElementById('driverDistanceContainer').style.display = 'none';
         }
         
-        document.getElementById('countdownContainer').style.display = 'none';
+        // ========== COUNTDOWN 20 DETIK UNTUK POPUP DARI TRACKING ==========
+        if (fromTracking) {
+          startManualPopupCountdown();
+          
+          // KIRIM NOTIFIKASI KE KODULAR UNTUK MEMBUNYIKAN ALARM
+          sendToKodular({
+            action: 'manual_popup_notification',
+            order_id: orderKey,
+            message: 'Order dalam radius ditemukan. Silakan lihat penawaran.',
+            sound: 'alarm'
+          });
+        } else {
+          document.getElementById('countdownContainer').style.display = 'none';
+        }
+        
         document.getElementById('ambilBtn').disabled = false;
         document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
         
@@ -2622,6 +2647,33 @@
         console.error('Error checking order status:', error);
         showInfoPopup('Gagal memuat detail order. Silakan coba lagi.');
       });
+    }
+
+    // ========== FUNGSI BARU: COUNTDOWN UNTUK POPUP MANUAL ==========
+    function startManualPopupCountdown() {
+      let timeLeft = 20;
+      document.getElementById('countdownTimer').textContent = timeLeft;
+      document.getElementById('countdownContainer').style.display = 'block';
+      document.getElementById('countdownContainer').style.background = '#fff3cd';
+      document.getElementById('countdownContainer').style.borderColor = '#ffeaa7';
+      document.getElementById('countdownText').textContent = 'Popup akan tertutup dalam:';
+      document.getElementById('countdownTimer').style.color = '#856404';
+      
+      const countdownInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('countdownTimer').textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          closeModal();
+          showInfoPopup('Waktu untuk melihat order telah habis.');
+        }
+        
+        // Beri warna merah ketika waktu hampir habis
+        if (timeLeft <= 5) {
+          document.getElementById('countdownTimer').style.color = '#dc3545';
+        }
+      }, 1000);
     }
 
     // ==================== FUNGSI UTAMA YANG SUDAH ADA ====================
@@ -3242,22 +3294,16 @@
       const ambilBtn = document.getElementById('ambilBtn');
 
       if (feeInfo && feeAmount && currentBalanceInfo && remainingBalance) {
-        feeInfo.style.display = 'block';
-        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
-        currentBalanceInfo.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
-        remainingBalance.textContent = `Rp ${balanceCheck.remainingBalance.toLocaleString('id-ID')}`;
+        // SELALU SEMBUNYIKAN INFO FEE
+        feeInfo.style.display = 'none';
 
         // Update tombol berdasarkan ketersediaan saldo
         if (balanceCheck.hasSufficientBalance) {
           ambilBtn.disabled = false;
           ambilBtn.textContent = 'Kirim Penawaran';
-          feeInfo.style.background = '#d4edda';
-          feeInfo.style.borderColor = '#c3e6cb';
         } else {
           ambilBtn.disabled = true;
           ambilBtn.textContent = 'Saldo Tidak Cukup';
-          feeInfo.style.background = '#f8d7da';
-          feeInfo.style.borderColor = '#f5c6cb';
         }
       }
     }
@@ -3265,23 +3311,13 @@
     function updateFeeInfoInAutobidModal(orderAmount) {
       const balanceCheck = checkBalanceForOrder(orderAmount);
       const feeInfo = document.getElementById('autobidFeeInfo');
-      const feeAmount = document.getElementById('autobidFeeAmount');
-      const currentBalance = document.getElementById('autobidCurrentBalance');
-
-      if (feeInfo && feeAmount && currentBalance) {
-        feeInfo.style.display = 'block';
-        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
-        currentBalance.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
-
-        if (balanceCheck.hasSufficientBalance) {
-          feeInfo.style.background = '#d4edda';
-          feeInfo.style.borderColor = '#c3e6cb';
-        } else {
-          feeInfo.style.background = '#f8d7da';
-          feeInfo.style.borderColor = '#f5c6cb';
-        }
+      
+      // Selalu sembunyikan info fee
+      if (feeInfo) {
+        feeInfo.style.display = 'none';
       }
 
+      // Tetap return status balance check untuk logika internal
       return balanceCheck.hasSufficientBalance;
     }
 
