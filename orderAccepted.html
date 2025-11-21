@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Detail Order - Driver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    /* CSS yang sama seperti sebelumnya */
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--dark);
+      height: 100vh;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      margin-top: 0;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 20px);
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px;
+      text-align: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .header h1 {
+      display: none;
+    }
+
+    .content-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-section {
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .status-accepted {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-on_the_way {
+      background: #cce7ff;
+      color: #004085;
+    }
+
+    .status-arrived {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-on_trip {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-completed {
+      background: #e2e3e5;
+      color: #383d41;
+    }
+
+    .status-cancelled {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .customer-section {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .customer-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f0f0f0;
+      flex-shrink: 0;
+    }
+
+    .customer-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .customer-avatar.default-male {
+      background-color: #cce7ff;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23006699"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 60%;
+    }
+
+    .customer-avatar.default-female {
+      background-color: #f8d7da;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23943c57"><path d="M12 6c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0-2c-3.04 0-5.5 2.46-5.5 5.5S8.96 15 12 15s5.5-2.46 5.5-5.5S15.04 4 12 4zm0 16c-4.42 0-8 1.79-8 4v2h16v-2c0-2.21-3.58-4-8-4z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 60%;
+    }
+
+    .customer-avatar.default-unknown {
+      background-color: #e2e3e5;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23555"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 60%;
+    }
+
+    .customer-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+    }
+
+    .customer-name {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+
+    .customer-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .stars {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .trip-count {
+      font-size: 0.7rem;
+      color: #888;
+    }
+
+    .route-section {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .route-details {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .route-point {
+      display: flex;
+      gap: 10px;
+    }
+
+    .route-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .pickup-icon {
+      background: var(--success);
+    }
+
+    .destination-icon {
+      background: var(--primary);
+    }
+
+    .route-text {
+      flex: 1;
+    }
+
+    .route-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .route-address {
+      font-weight: 500;
+      color: var(--dark);
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+
+    .info-section {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .info-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.75rem;
+    }
+
+    .price-highlight {
+      color: var(--success);
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .delivery-section {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      display: none;
+    }
+
+    .delivery-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .delivery-item {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .delivery-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .delivery-value {
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.75rem;
+      word-break: break-word;
+    }
+
+    .delivery-item-full {
+      grid-column: 1 / span 2;
+    }
+
+    .actions-section {
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .on_the_way-btn {
+      background: linear-gradient(to right, var(--success), #20c997);
+      color: white;
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .arrived-btn {
+      background: linear-gradient(to right, #ffc107, #fd7e14);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+    }
+
+    .antar-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: 0 4px 15px rgba(40, 150, 114, 0.3);
+    }
+
+    .complete-btn {
+      background: linear-gradient(to right, #28a745, #20c997);
+      color: white;
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .contact-btn {
+      background: linear-gradient(to right, #25D366, #128C7E);
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+    }
+
+    .cancel-btn {
+      background: linear-gradient(to right, var(--danger), #e74c3c);
+      color: white;
+      box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px;
+      text-align: center;
+      flex: 1;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(40, 150, 114, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--secondary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    .error-message {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px;
+      text-align: center;
+      color: var(--danger);
+      flex: 1;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .retry-btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 5px;
+      }
+      
+      .container {
+        border-radius: 15px;
+        height: calc(100vh - 10px);
+      }
+      
+      .status-section, .customer-section, .route-section, .info-section, .delivery-section, .actions-section {
+        padding: 10px 12px;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .delivery-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .header {
+        padding: 12px;
+      }
+      
+      .customer-avatar {
+        width: 45px;
+        height: 45px;
+      }
+      
+      .info-label, .delivery-label {
+        font-size: 0.65rem;
+      }
+      
+      .info-value, .delivery-value {
+        font-size: 0.7rem;
+      }
+      
+      .route-address {
+        font-size: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Detail Order</h1>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Memuat data order...</p>
+    </div>
+
+    <div id="error" class="error-message" style="display: none;">
+      <div class="error-icon">⚠️</div>
+      <h3>Data Tidak Tersedia</h3>
+      <p id="errorMessage">Data order tidak ditemukan. Silakan coba lagi.</p>
+      <button class="retry-btn" onclick="goBack()">Kembali</button>
+    </div>
+
+    <div id="content" style="display: none;">
+      <div class="content-wrapper">
+        <div class="status-section">
+          <div class="status-badge" id="statusBadge">-</div>
+        </div>
+
+        <div class="customer-section">
+          <div class="customer-avatar" id="customerAvatar">
+            <!-- Avatar akan diisi oleh JavaScript -->
+          </div>
+          <div class="customer-info">
+            <div class="customer-name" id="customerName">-</div>
+            <div class="customer-rating">
+              <div class="stars">🌟 4.8</div>
+              <div class="trip-count" id="tripCount">(8)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="route-section">
+          <div class="section-title">Rute Perjalanan</div>
+          <div class="route-details">
+            <div class="route-point">
+              <div class="route-icon pickup-icon">A</div>
+              <div class="route-text">
+                <div class="route-label">Penjemputan</div>
+                <div class="route-address" id="pickupAddress">-</div>
+              </div>
+            </div>
+            <div class="route-point">
+              <div class="route-icon destination-icon">B</div>
+              <div class="route-text">
+                <div class="route-label">Tujuan</div>
+                <div class="route-address" id="destinationAddress">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="section-title">Detail Order</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Layanan</div>
+              <div class="info-value" id="serviceType">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Kapasitas</div>
+              <div class="info-value" id="serviceCapacity">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Durasi</div>
+              <div class="info-value" id="tripDuration">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Jarak</div>
+              <div class="info-value" id="tripDistance">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Biaya</div>
+              <div class="info-value"><span class="price-highlight" id="tripPrice">-</span></div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Waktu</div>
+              <div class="info-value" id="orderTime">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="delivery-section" id="deliverySection">
+          <div class="section-title">Informasi Pengiriman</div>
+          <div class="delivery-grid">
+            <div class="delivery-item">
+              <div class="delivery-label">Telp Pengirim</div>
+              <div class="delivery-value" id="senderPhone">-</div>
+            </div>
+            <div class="delivery-item">
+              <div class="delivery-label">Telp Penerima</div>
+              <div class="delivery-value" id="receiverPhone">-</div>
+            </div>
+            <div class="delivery-item">
+              <div class="delivery-label">Jenis Barang</div>
+              <div class="delivery-value" id="itemCategory">-</div>
+            </div>
+            <div class="delivery-item delivery-item-full">
+              <div class="delivery-label">Deskripsi</div>
+              <div class="delivery-value" id="itemDescription">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-section">
+        <!-- Tombol Menuju Lokasi - muncul saat status accepted -->
+        <button class="action-btn on_the_way-btn" onclick="startToPickup()" id="onTheWayBtn" style="display: none;">
+          <span>🚗</span> Menuju Lokasi
+        </button>
+
+        <!-- Tombol Saya Sudah Tiba - muncul saat status on_the_way -->
+        <button class="action-btn arrived-btn" onclick="arrivedAtPickup()" id="arrivedBtn" style="display: none;">
+          <span>📍</span> Saya Sudah Tiba
+        </button>
+
+        <!-- Tombol Mulai Perjalanan - muncul saat status arrived -->
+        <button class="action-btn antar-btn" onclick="startTrip()" id="startTripBtn" style="display: none;">
+          <span>📦</span> Mulai Perjalanan
+        </button>
+
+        <!-- Tombol Selesaikan Perjalanan - muncul saat status on_trip -->
+        <button class="action-btn complete-btn" onclick="completeOrder()" id="completeBtn" style="display: none;">
+          <span>✅</span> Selesaikan Perjalanan
+        </button>
+
+        <!-- Tombol Hubungi Customer - selalu muncul kecuali order selesai/dibatalkan -->
+        <button class="action-btn contact-btn" onclick="contactCustomer()" id="contactBtn" style="display: none;">
+          <span>📞</span> Hubungi Customer
+        </button>
+
+        <!-- Tombol Batalkan Order - muncul kecuali order selesai/dibatalkan -->
+        <button class="action-btn cancel-btn" onclick="cancelOrder()" id="cancelBtn" style="display: none;">
+          <span>✖</span> Batalkan Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
+      authDomain: "ojeka-ba255.firebaseapp.com",
+      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+      projectId: "ojeka-ba255",
+      storageBucket: "ojeka-ba255.firebasestorage.app",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef123456"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let currentOrderId = null;
+    let orderRef = null;
+    let orderListener = null;
+    let currentOrderData = null;
+
+    // ==================== VARIABEL SISTEM SALDO ====================
+    let currentDriverData = null;
+    let currentDriverBalance = 0;
+    let potonganPercentage = 5.1; // Default potongan
+    let balanceListener = null;
+
+    // ==================== SISTEM SALDO DRIVER ====================
+
+    function initializeBalanceSystem() {
+      // Ambil data driver dari localStorage
+      const driverDataStr = localStorage.getItem('jego_driver_data');
+      if (!driverDataStr) {
+        console.log('❌ Tidak ada data driver di localStorage');
+        return;
+      }
+
+      try {
+        currentDriverData = JSON.parse(driverDataStr);
+        console.log('✅ Data driver ditemukan:', currentDriverData);
+
+        if (!currentDriverData.driverId) {
+          console.log('❌ Driver ID tidak ditemukan');
+          return;
+        }
+
+        const driverId = currentDriverData.driverId;
+        const balanceRef = database.ref('drivers/' + driverId + '/Balance');
+
+        // Setup real-time listener untuk saldo
+        balanceListener = balanceRef.on('value', (snapshot) => {
+          const newBalance = snapshot.val() || 0;
+          currentDriverBalance = newBalance;
+          
+          console.log(`💰 Saldo diperbarui: Rp ${newBalance.toLocaleString('id-ID')}`);
+          
+          // Update di localStorage
+          if (currentDriverData) {
+            currentDriverData.balance = newBalance;
+            localStorage.setItem('jego_driver_data', JSON.stringify(currentDriverData));
+          }
+        }, (error) => {
+          console.error('❌ Error listening to balance:', error);
+        });
+
+        // Ambil nilai potongan dari Firebase
+        const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
+        potonganRef.once('value').then((snapshot) => {
+          const potonganValue = snapshot.val();
+          if (potonganValue !== null && potonganValue !== undefined) {
+            potonganPercentage = potonganValue;
+            console.log(`💰 Potongan dari Firebase: ${potonganPercentage}%`);
+          } else {
+            console.log(`💰 Potongan default: ${potonganPercentage}%`);
+          }
+        }).catch((error) => {
+          console.error('❌ Error mengambil data potongan:', error);
+        });
+
+      } catch (error) {
+        console.error('❌ Error parsing driver data:', error);
+      }
+    }
+
+    // ==================== FUNGSI PERHITUNGAN POTONGAN ====================
+
+    function calculateFee(orderAmount) {
+      return Math.round(orderAmount * (potonganPercentage / 100));
+    }
+
+    function checkBalanceForOrder(orderAmount) {
+      const requiredFee = calculateFee(orderAmount);
+      const hasSufficientBalance = currentDriverBalance >= requiredFee;
+      
+      console.log(`💰 Cek saldo: ${currentDriverBalance} >= ${requiredFee} = ${hasSufficientBalance}`);
+      
+      return {
+        hasSufficientBalance: hasSufficientBalance,
+        requiredFee: requiredFee,
+        currentBalance: currentDriverBalance,
+        remainingBalance: currentDriverBalance - requiredFee
+      };
+    }
+
+    function deductOrderFee(orderId, orderAmount, driverId) {
+      const feeAmount = calculateFee(orderAmount);
+      
+      const driverRef = database.ref('drivers/' + driverId);
+      
+      // Gunakan transaction untuk menghindari race condition
+      driverRef.transaction((currentData) => {
+        if (currentData) {
+          if (currentData.Balance < feeAmount) {
+            console.error('❌ Saldo tidak cukup untuk potongan');
+            return; // Batalkan transaction
+          }
+          
+          currentData.Balance -= feeAmount;
+          
+          // Catat di riwayat transaksi jika ada field history
+          const transactionId = 'tx_' + Date.now();
+          if (!currentData.balance_history) {
+            currentData.balance_history = {};
+          }
+          currentData.balance_history[transactionId] = {
+            type: 'order_fee',
+            order_id: orderId,
+            amount: -feeAmount,
+            order_amount: orderAmount,
+            fee_percentage: potonganPercentage,
+            description: `Biaya layanan order #${orderId}`,
+            timestamp: new Date().toISOString()
+          };
+        }
+        return currentData;
+      }).then((result) => {
+        if (result.committed) {
+          console.log(`✅ Berhasil memotong saldo: Rp ${feeAmount.toLocaleString('id-ID')}`);
+          
+          sendToKodular({
+            action: 'balance_deducted',
+            order_id: orderId,
+            fee_amount: feeAmount,
+            order_amount: orderAmount,
+            new_balance: result.snapshot.val().Balance,
+            message: `Potongan biaya layanan ${potonganPercentage}% untuk order #${orderId}`
+          });
+        } else {
+          console.error('❌ Transaksi pemotongan saldo dibatalkan');
+        }
+      }).catch((error) => {
+        console.error('❌ Gagal memotong saldo:', error);
+      });
+    }
+
+    // ==================== FUNGSI LOCALSTORAGE ====================
+
+    function getAcceptedOrderFromLocalStorage() {
+        try {
+            const acceptedOrder = localStorage.getItem('jego_driver_accepted_order');
+            return acceptedOrder ? JSON.parse(acceptedOrder) : null;
+        } catch (error) {
+            console.error('❌ Gagal mengambil order yang diterima dari localStorage:', error);
+            return null;
+        }
+    }
+
+    // ==================== FUNGSI UPDATE STATISTIK DRIVER ====================
+
+    function getDriverDataFromStorage() {
+        try {
+            return JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
+        } catch (error) {
+            console.error('❌ Error parsing driver data from storage:', error);
+            return {};
+        }
+    }
+
+    function updateDriverStatistics(orderData) {
+        console.log('🔄 Memulai update statistik driver...');
+        
+        const driverData = getDriverDataFromStorage();
+        const driverId = driverData.driverId;
+        
+        if (!driverId) {
+            console.error('❌ Driver ID tidak ditemukan di localStorage');
+            return;
+        }
+
+        console.log('📊 Update statistik untuk driver:', driverId);
+
+        const driverRef = database.ref('drivers/' + driverId);
+        
+        driverRef.once('value').then((snapshot) => {
+            const currentDriverData = snapshot.val();
+            
+            if (!currentDriverData) {
+                console.error('❌ Data driver tidak ditemukan di Firebase');
+                return;
+            }
+
+            const currentStats = {
+                totalOrders: currentDriverData.totalOrders || 0,
+                completedOrders: currentDriverData.completedOrders || 0,
+                totalEarnings: currentDriverData.totalEarnings || 0,
+                avgRating: currentDriverData.avgRating || 0,
+                ratingCount: currentDriverData.ratingCount || 0,
+                completionRate: currentDriverData.completionRate || '0%'
+            };
+
+            console.log('📈 Statistik saat ini:', currentStats);
+
+            const orderPrice = orderData.harga_total ? parseInt(orderData.harga_total) : 0;
+            
+            const newStats = {
+                totalOrders: currentStats.totalOrders + 1,
+                completedOrders: currentStats.completedOrders + 1,
+                totalEarnings: currentStats.totalEarnings + orderPrice,
+                avgRating: currentStats.avgRating,
+                ratingCount: currentStats.ratingCount,
+                updated_at: new Date().toISOString()
+            };
+
+            const completionRateValue = (newStats.completedOrders / newStats.totalOrders) * 100;
+            newStats.completionRate = completionRateValue.toFixed(1) + '%';
+
+            console.log('📊 Statistik baru:', newStats);
+
+            return driverRef.update({
+                totalOrders: newStats.totalOrders,
+                completedOrders: newStats.completedOrders,
+                totalEarnings: newStats.totalEarnings,
+                avgRating: newStats.avgRating,
+                ratingCount: newStats.ratingCount,
+                completionRate: newStats.completionRate,
+                last_updated: new Date().toISOString()
+            });
+
+        }).then(() => {
+            console.log('✅ Statistik driver berhasil diupdate di Firebase');
+            
+            updateDriverStatsInLocalStorage();
+            
+        }).catch((error) => {
+            console.error('❌ Gagal update statistik driver:', error);
+        });
+    }
+
+    function updateDriverStatsInLocalStorage() {
+        try {
+            const driverData = getDriverDataFromStorage();
+            const driverId = driverData.driverId;
+            
+            if (!driverId) return;
+
+            const driverRef = database.ref('drivers/' + driverId);
+            
+            driverRef.once('value').then((snapshot) => {
+                const updatedDriverData = snapshot.val();
+                
+                if (updatedDriverData) {
+                    const currentLocalData = getDriverDataFromStorage();
+                    const mergedData = {
+                        ...currentLocalData,
+                        ...updatedDriverData
+                    };
+                    
+                    localStorage.setItem('jego_driver_data', JSON.stringify(mergedData));
+                    console.log('✅ Statistik driver diupdate di localStorage');
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ Error updating driver stats in localStorage:', error);
+        }
+    }
+
+    // ==================== FUNGSI UTAMA ====================
+
+    function receiveDataFromKodular(dataString) {
+      try {
+        const data = JSON.parse(dataString);
+        console.log("Data diterima dari Kodular:", data);
+        
+        if (data.action === 'open_order_details_driver') {
+          currentOrderId = data.order_id;
+          
+          sendToKodular({
+            action: 'order_details_driver_ready',
+            order_id: currentOrderId,
+            message: 'Halaman detail order driver siap'
+          });
+          
+          startOrderListener(currentOrderId);
+        }
+      } catch (error) {
+        console.error("Error parsing data dari Kodular:", error);
+        showError("Format data tidak valid");
+      }
+    }
+
+    function startOrderListener(orderId) {
+      if (orderRef && orderListener) {
+        orderRef.off('value', orderListener);
+      }
+      
+      orderRef = database.ref('orders/' + orderId);
+      orderListener = orderRef.on('value', (snapshot) => {
+        const orderData = snapshot.val();
+        
+        if (orderData) {
+          console.log('Data order diterima:', orderData);
+          currentOrderData = orderData;
+          displayOrderData(orderData);
+        } else {
+          showError('Order tidak ditemukan di database');
+        }
+      }, (error) => {
+        console.error('Error listening to order:', error);
+        showError('Gagal memuat data order');
+      });
+    }
+
+    function displayOrderData(order) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      
+      document.getElementById('pickupAddress').textContent = order.alamat_a || '-';
+      document.getElementById('destinationAddress').textContent = order.alamat_b || '-';
+      document.getElementById('serviceType').textContent = order.vehicle_name || '-';
+      document.getElementById('serviceCapacity').textContent = order.vehicle_capacity || '-';
+      document.getElementById('tripDuration').textContent = order.durasi || '-';
+      document.getElementById('tripDistance').textContent = order.jarak || '-';
+      
+      if (order.harga_total) {
+        const harga = typeof order.harga_total === 'number' ? order.harga_total : parseInt(order.harga_total);
+        document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
+      } else {
+        document.getElementById('tripPrice').textContent = '-';
+      }
+      
+      if (order.created_at) {
+        const orderTime = new Date(order.created_at);
+        document.getElementById('orderTime').textContent = orderTime.toLocaleTimeString('id-ID', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      } else {
+        document.getElementById('orderTime').textContent = '-';
+      }
+      
+      updateCustomerInfo(order);
+      updateOrderStatus(order.status);
+      updateDeliveryInfo(order);
+    }
+
+    function updateCustomerInfo(order) {
+      const customerAvatar = document.getElementById('customerAvatar');
+      const customerName = document.getElementById('customerName');
+      
+      if (order.user_data) {
+        const user = order.user_data;
+        customerName.textContent = user.nama || '-';
+        
+        let gender = null;
+        if (user.jenisKelamin) {
+          gender = user.jenisKelamin.toLowerCase();
+        }
+        
+        if (user.foto) {
+          customerAvatar.innerHTML = `<img src="${user.foto}" alt="${user.nama}">`;
+        } else {
+          customerAvatar.innerHTML = '';
+          customerAvatar.className = 'customer-avatar';
+          if (gender === 'laki-laki' || gender === 'pria' || gender === 'male') {
+            customerAvatar.classList.add('default-male');
+          } else if (gender === 'perempuan' || gender === 'wanita' || gender === 'female') {
+            customerAvatar.classList.add('default-female');
+          } else {
+            customerAvatar.classList.add('default-unknown');
+          }
+        }
+        
+        const tripCount = Math.floor(Math.random() * 15) + 1;
+        document.getElementById('tripCount').textContent = `(${tripCount})`;
+      } else {
+        customerName.textContent = 'Tidak diketahui';
+        customerAvatar.className = 'customer-avatar default-unknown';
+        customerAvatar.innerHTML = '';
+        document.getElementById('tripCount').textContent = '(0)';
+      }
+    }
+
+    function updateDeliveryInfo(order) {
+      const deliverySection = document.getElementById('deliverySection');
+      
+      const isKurirOrder = order.vehicle && order.vehicle.includes('kurir');
+      const hasDeliveryData = order.delivery_data && 
+        (order.delivery_data.senderPhone || 
+         order.delivery_data.receiverPhone || 
+         order.delivery_data.itemCategory || 
+         order.delivery_data.description);
+      
+      if (isKurirOrder && hasDeliveryData) {
+        deliverySection.style.display = 'block';
+        
+        const deliveryData = order.delivery_data;
+        
+        document.getElementById('senderPhone').textContent = deliveryData.senderPhone || '-';
+        document.getElementById('receiverPhone').textContent = deliveryData.receiverPhone || '-';
+        document.getElementById('itemCategory').textContent = deliveryData.itemCategory || '-';
+        document.getElementById('itemDescription').textContent = deliveryData.description || '-';
+      } else {
+        deliverySection.style.display = 'none';
+      }
+    }
+
+    function updateOrderStatus(status) {
+      const statusBadge = document.getElementById('statusBadge');
+      const onTheWayBtn = document.getElementById('onTheWayBtn');
+      const arrivedBtn = document.getElementById('arrivedBtn');
+      const startTripBtn = document.getElementById('startTripBtn');
+      const completeBtn = document.getElementById('completeBtn');
+      const contactBtn = document.getElementById('contactBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+      
+      onTheWayBtn.style.display = 'none';
+      arrivedBtn.style.display = 'none';
+      startTripBtn.style.display = 'none';
+      completeBtn.style.display = 'none';
+      contactBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      
+      statusBadge.className = 'status-badge';
+      
+      switch(status) {
+        case 'accepted':
+          statusBadge.textContent = 'Diterima';
+          statusBadge.classList.add('status-accepted');
+          onTheWayBtn.style.display = 'flex';
+          contactBtn.style.display = 'flex';
+          cancelBtn.style.display = 'flex';
+          break;
+          
+        case 'on_the_way':
+          statusBadge.textContent = 'Menuju';
+          statusBadge.classList.add('status-on_the_way');
+          arrivedBtn.style.display = 'flex';
+          contactBtn.style.display = 'flex';
+          cancelBtn.style.display = 'flex';
+          break;
+          
+        case 'arrived':
+          statusBadge.textContent = 'Tiba';
+          statusBadge.classList.add('status-arrived');
+          startTripBtn.style.display = 'flex';
+          contactBtn.style.display = 'flex';
+          cancelBtn.style.display = 'flex';
+          break;
+          
+        case 'on_trip':
+          statusBadge.textContent = 'Perjalanan';
+          statusBadge.classList.add('status-on_trip');
+          completeBtn.style.display = 'flex';
+          contactBtn.style.display = 'flex';
+          cancelBtn.style.display = 'flex';
+          break;
+          
+        case 'completed':
+          statusBadge.textContent = 'Selesai';
+          statusBadge.classList.add('status-completed');
+          break;
+          
+        case 'cancelled':
+          statusBadge.textContent = 'Batal';
+          statusBadge.classList.add('status-cancelled');
+          break;
+          
+        default:
+          statusBadge.textContent = 'Tidak Diketahui';
+          statusBadge.classList.add('status-accepted');
+      }
+      
+      sendToKodular({
+        action: 'order_status',
+        order_id: currentOrderId,
+        status: status
+      });
+    }
+
+    function showError(message) {
+      console.error('Error:', message);
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('error').style.display = 'flex';
+      document.getElementById('errorMessage').textContent = message;
+      
+      sendToKodular({
+        action: 'error',
+        message: message,
+        order_id: currentOrderId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // ==================== FUNGSI TOMBOL AKSI ====================
+
+    function startToPickup() {
+      if (!currentOrderData) return;
+      
+      const orderRef = database.ref('orders/' + currentOrderId);
+      orderRef.update({
+        status: 'on_the_way',
+        trip_started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).then(() => {
+        console.log('Status updated to on_the_way');
+        
+        sendToKodular({
+          action: 'start_to_pickup',
+          order_id: currentOrderId,
+          order_data: currentOrderData
+        });
+      }).catch((error) => {
+        console.error('Gagal update status:', error);
+      });
+    }
+
+    function arrivedAtPickup() {
+      if (!currentOrderData) return;
+      
+      const orderRef = database.ref('orders/' + currentOrderId);
+      orderRef.update({
+        status: 'arrived',
+        arrived_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).then(() => {
+        console.log('Status updated to arrived');
+        
+        sendToKodular({
+          action: 'arrived_at_pickup',
+          order_id: currentOrderId,
+          order_data: currentOrderData
+        });
+      }).catch((error) => {
+        console.error('Gagal update status:', error);
+      });
+    }
+
+    function startTrip() {
+      if (!currentOrderData) return;
+      
+      console.log('🔄 Memulai perjalanan dan memotong saldo...');
+      
+      // CEK SALDO SEBELUM MEMULAI PERJALANAN
+      const balanceCheck = checkBalanceForOrder(currentOrderData.harga_total);
+      if (!balanceCheck.hasSufficientBalance) {
+        alert(`Saldo tidak cukup untuk memulai perjalanan. Dibutuhkan: Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`);
+        return;
+      }
+      
+      const orderRef = database.ref('orders/' + currentOrderId);
+      orderRef.update({
+        status: 'on_trip',
+        trip_started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).then(() => {
+        console.log('Status updated to on_trip');
+        
+        // ⭐⭐ POTONG SALDO SETELAH PERJALANAN DIMULAI ⭐⭐
+        if (currentDriverData && currentDriverData.driverId) {
+          deductOrderFee(currentOrderId, currentOrderData.harga_total, currentDriverData.driverId);
+        }
+        
+        sendToKodular({
+          action: 'start_trip',
+          order_id: currentOrderId,
+          order_data: currentOrderData,
+          message: 'Perjalanan dimulai dan saldo dipotong'
+        });
+      }).catch((error) => {
+        console.error('Gagal update status:', error);
+      });
+    }
+
+    function completeOrder() {
+      if (!currentOrderData) return;
+      
+      console.log('🔄 Menyelesaikan order dan update statistik...');
+      
+      const orderRef = database.ref('orders/' + currentOrderId);
+      orderRef.update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).then(() => {
+        console.log('✅ Order completed di Firebase');
+        
+        localStorage.removeItem('jego_driver_accepted_order');
+        
+        // UPDATE STATISTIK DRIVER
+        updateDriverStatistics(currentOrderData);
+        
+        sendToKodular({
+          action: 'complete_order',
+          order_id: currentOrderId,
+          order_data: currentOrderData,
+          message: 'Order selesai dan statistik driver akan diupdate'
+        });
+
+        alert('Order berhasil diselesaikan! Statistik driver akan diupdate.');
+
+      }).catch((error) => {
+        console.error('❌ Gagal menyelesaikan order:', error);
+        alert('Gagal menyelesaikan order. Silakan coba lagi.');
+      });
+    }
+
+    function contactCustomer() {
+      if (!currentOrderData || !currentOrderData.user_data) return;
+      
+      const customer = currentOrderData.user_data;
+      sendToKodular({
+        action: 'contact_customer',
+        order_id: currentOrderId,
+        customer_phone: customer.telepon,
+        customer_name: customer.nama
+      });
+    }
+
+    function cancelOrder() {
+      if (currentOrderData && (currentOrderData.status === 'completed' || currentOrderData.status === 'cancelled')) {
+        return;
+      }
+      
+      const orderRef = database.ref('orders/' + currentOrderId);
+      orderRef.update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        cancelled_by: 'driver'
+      }).then(() => {
+        console.log('Order cancelled by driver');
+        
+        localStorage.removeItem('jego_driver_accepted_order');
+        
+        sendToKodular({
+          action: 'cancel_order',
+          order_id: currentOrderId,
+          order_data: currentOrderData
+        });
+        
+        setTimeout(() => {
+          goBack();
+        }, 1500);
+      }).catch((error) => {
+        console.error('Gagal membatalkan order:', error);
+      });
+    }
+
+    function goBack() {
+      if (orderRef && orderListener) {
+        orderRef.off('value', orderListener);
+      }
+      
+      sendToKodular({
+        action: 'go_back_from_order_details_driver'
+      });
+    }
+
+    function sendToKodular(data) {
+      const kodularData = {
+        ...data,
+        timestamp: new Date().toISOString(),
+        page: 'order_details_driver'
+      };
+      
+      console.log('Mengirim data ke Kodular:', kodularData);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(kodularData));
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(kodularData));
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      } else {
+        console.warn('Metode pengiriman data ke Kodular tidak tersedia');
+      }
+    }
+
+    // ==================== INISIALISASI ====================
+
+    window.onload = function() {
+      // Inisialisasi sistem saldo
+      initializeBalanceSystem();
+      
+      // Cek URL parameters untuk order_id
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlOrderId = urlParams.get('order_id');
+      
+      if (urlOrderId) {
+        currentOrderId = urlOrderId;
+        startOrderListener(urlOrderId);
+        
+        sendToKodular({
+          action: 'order_details_driver_ready',
+          order_id: currentOrderId,
+          message: 'Halaman detail order driver dibuka via URL'
+        });
+      } else {
+        const acceptedOrder = getAcceptedOrderFromLocalStorage();
+        if (acceptedOrder && acceptedOrder.order_id) {
+          currentOrderId = acceptedOrder.order_id;
+          startOrderListener(currentOrderId);
+          
+          sendToKodular({
+            action: 'order_details_driver_ready',
+            order_id: currentOrderId,
+            message: 'Halaman detail order driver dibuka via localStorage'
+          });
+        } else {
+          console.log('Menunggu data dari Kodular...');
+          
+          setTimeout(() => {
+            if (!currentOrderId) {
+              showError('Tidak ada data order yang diterima');
+            }
+          }, 5000);
+        }
+      }
+    };
+
+    // Ekspos fungsi receiveDataFromKodular ke global scope
+    window.receiveDataFromKodular = receiveDataFromKodular;
+  </script>
+</body>
+</html>
