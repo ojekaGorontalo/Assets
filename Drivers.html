@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Driver List</title>
+<style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding: 8px; width: 300px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f2f2f2; }
+    img { width: 50px; height: 50px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<h3>Daftar Driver</h3>
+<input id="searchInput" placeholder="Cari nama, driverId, nomor HP, plat nomor...">
+
+<table>
+    <thead>
+        <tr>
+            <th>Foto</th>
+            <th>Nama</th>
+            <th>Driver ID</th>
+            <th>HP</th>
+            <th>Plat</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody id="driverTable"></tbody>
+</table>
+
+<script>
+// URL Firebase
+const url = "https://ojeka-ba255-default-rtdb.firebaseio.com/drivers.json";
+
+// Ambil data dari Firebase
+fetch(url)
+  .then(res => res.json())
+  .then(data => {
+      const tbody = document.getElementById("driverTable");
+
+      Object.values(data).forEach(driver => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+              <td><img src="${driver.profilePhotoUrl || ''}"></td>
+              <td>${driver.fullName || '-'}</td>
+              <td>${driver.driverId}</td>
+              <td>${driver.phoneNumber}</td>
+              <td>${driver.plateNumber}</td>
+              <td>${driver.online ? "Online" : "Offline"}</td>
+          `;
+          tbody.appendChild(row);
+      });
+
+      // Fitur pencarian
+      document.getElementById("searchInput").addEventListener("keyup", function () {
+          const value = this.value.toLowerCase();
+          const rows = tbody.getElementsByTagName("tr");
+
+          for (let i = 0; i < rows.length; i++) {
+              let rowText = rows[i].innerText.toLowerCase();
+              rows[i].style.display = rowText.includes(value) ? "" : "none";
+          }
+      });
+  });
+</script>
+
+</body>
+</html>
