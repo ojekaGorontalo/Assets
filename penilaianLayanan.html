@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Penilaian Layanan - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+      padding-bottom: 70px;
+    }
+
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+      text-align: center;
+      white-space: nowrap; /* Biar tidak turun baris */
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    /* Rating Summary Styles */
+    .rating-summary {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .overall-rating {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .rating-stars {
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+      margin-bottom: 10px;
+    }
+
+    .star {
+      color: #ddd;
+      font-size: 1.5rem;
+    }
+
+    .star.filled {
+      color: #ffc107;
+    }
+
+    .rating-count {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    .policy-btn {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    .policy-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Rating List Styles */
+    .rating-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .date-section {
+      margin-bottom: 5px;
+    }
+
+    .date-header {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .rating-card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .rating-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .passenger-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .passenger-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .passenger-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .rating-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .satisfaction-emoji {
+      font-size: 1.2rem;
+    }
+
+    .small-rating-stars {
+      display: flex;
+      gap: 1px;
+    }
+
+    .small-star {
+      color: #ddd;
+      font-size: 0.9rem;
+    }
+
+    .small-star.filled {
+      color: #ffc107;
+    }
+
+    .rating-comment {
+      color: #333;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .rating-date {
+      color: #666;
+      font-size: 0.75rem;
+      text-align: right;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    /* Loading spinner */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body {
+        font-size: 0.8rem;
+      }
+      
+      .rating-summary {
+        padding: 15px;
+      }
+      
+      .overall-rating {
+        font-size: 2.5rem;
+      }
+      
+      .rating-card {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="back-btn" id="backBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+    </div>
+    <div class="header-title">Penilaian Layanan</div>
+    <div style="width: 80px;"></div>
+  </div>
+
+  <!-- Container -->
+  <div class="container" id="mainContainer">
+    <!-- Loading state akan ditampilkan di sini -->
+  </div>
+
+  <script>
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
+    authDomain: "ojeka-ba255.firebaseapp.com",
+    databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+    projectId: "ojeka-ba255",
+    storageBucket: "ojeka-ba255.firebasestorage.app",
+    messagingSenderId: "639980533353",
+    appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+    measurementId: "G-PBP64Z8VQ8"
+  };
+
+  // Initialize Firebase
+  let database;
+  let isFirebaseInitialized = false;
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    isFirebaseInitialized = true;
+    console.log(' Firebase berhasil diinisialisasi');
+  } catch (error) {
+    console.error(' Error inisialisasi Firebase:', error);
+    isFirebaseInitialized = false;
+  }
+
+  // Variabel global
+  let driverRatings = [];
+  let driverId = null;
+
+  // ==================== FUNGSI UTAMA ====================
+
+  // Fungsi untuk memuat data rating dari Firebase
+  function loadRatingsData() {
+    // Cek apakah driver sudah login
+    const driverData = getDriverDataFromStorage();
+    
+    if (!driverData || !driverData.driverId) {
+      console.error(' Driver belum login atau data tidak valid');
+      showErrorState('Anda belum login. Silakan login terlebih dahulu.');
+      return;
+    }
+
+    driverId = driverData.driverId;
+    console.log(' Memuat data rating untuk driver:', driverId);
+
+    // Tampilkan loading state
+    showLoadingState();
+
+    // Ambil data rating dari path drivers/{driverId}/ratings
+    const ratingsRef = database.ref('drivers/' + driverId + '/ratings');
+    
+    ratingsRef.once('value')
+      .then((snapshot) => {
+        const ratingsData = snapshot.val();
+        driverRatings = [];
+        
+        if (ratingsData) {
+          // Konversi object menjadi array dan tambahkan key sebagai id
+          Object.keys(ratingsData).forEach(key => {
+            const rating = ratingsData[key];
+            driverRatings.push({
+              id: key,
+              ...rating
+            });
+          });
+          
+          console.log(` ${driverRatings.length} rating berhasil dimuat`);
+          
+          // Urutkan rating berdasarkan timestamp terbaru pertama (descending)
+          driverRatings.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          
+          // Tampilkan data di UI
+          displayRatingsData();
+        } else {
+          console.log(' Tidak ada data rating ditemukan');
+          displayRatingsData();
+        }
+      })
+      .catch((error) => {
+        console.error(' Error memuat data rating:', error);
+        showErrorState('Gagal memuat data rating. Periksa koneksi internet Anda.');
+      });
+  }
+
+  // Fungsi untuk menampilkan data rating di UI
+  function displayRatingsData() {
+    const container = document.getElementById('mainContainer');
+    
+    if (!driverRatings || driverRatings.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div style="font-size: 3rem;">🌟</div>
+          <h3>Belum Ada Penilaian</h3>
+          <p>Anda belum memiliki penilaian dari penumpang.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Hitung statistik rating
+    const totalRatings = driverRatings.length;
+    const averageRating = driverRatings.reduce((sum, item) => sum + item.rating, 0) / totalRatings;
+    
+    // Kelompokkan rating berdasarkan tanggal (dengan H+1 untuk grup)
+    const ratingsByDate = groupRatingsByDate(driverRatings);
+    
+    // Generate HTML untuk rating summary
+    let html = `
+      <div class="rating-summary">
+        <div class="overall-rating">${averageRating.toFixed(1)}</div>
+        <div class="rating-stars">${generateStarRating(averageRating)}</div>
+        <div class="rating-count">${totalRatings} ulasan</div>
+        <button class="policy-btn" id="policyBtn">Kebijakan Ulasan</button>
+      </div>
+      
+      <div class="rating-list">
+    `;
+    
+    // Generate HTML untuk setiap grup tanggal (urut dari terbaru)
+    Object.keys(ratingsByDate).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+      html += `
+        <div class="date-section">
+          <div class="date-header">${formatDisplayDate(date)} • ${ratingsByDate[date].length} ulasan</div>
+      `;
+      
+      // Tambahkan setiap rating dalam grup tanggal ini
+      ratingsByDate[date].forEach(rating => {
+        html += generateRatingCard(rating);
+      });
+      
+      html += `</div>`;
+    });
+    
+    html += `</div>`;
+    
+    container.innerHTML = html;
+    
+    // Inisialisasi tombol setelah UI ditampilkan
+    initButtons();
+  }
+
+  // Fungsi untuk mengelompokkan rating berdasarkan tanggal DENGAN H+1 untuk grup
+  function groupRatingsByDate(ratings) {
+    const groups = {};
+    const nowWITA = convertToWITA(new Date());
+    
+    ratings.forEach(rating => {
+      const originalDate = new Date(rating.rated_at);
+      let witaDate = convertToWITA(originalDate);
+
+      // Waktu ulasan boleh tampil = H+1
+      let visibleDate = new Date(witaDate);
+      visibleDate.setDate(visibleDate.getDate() + 1);
+
+      // Jika belum waktunya tampil, sembunyikan
+      if (nowWITA < visibleDate) {
+        return;
+      }
+
+      // Grup tanggal menggunakan visibleDate (H+1)
+      const dateKey = formatDateKey(visibleDate);
+      
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      
+      groups[dateKey].push(rating);
+    });
+    
+    return groups;
+  }
+
+  // Fungsi untuk menghasilkan kartu rating
+  function generateRatingCard(ratingData) {
+    const satisfactionEmoji = getSatisfactionEmoji(ratingData.rating);
+    
+    // Konversi waktu ke WITA (TANPA H+1 untuk tampilan kartu)
+    const originalDate = new Date(ratingData.rated_at);
+    const witaDate = convertToWITA(originalDate);
+    
+    return `
+      <div class="rating-card">
+        <div class="rating-header">
+          <div class="passenger-info">
+            <div class="passenger-avatar">P</div>
+            <div class="passenger-name">Passenger</div>
+          </div>
+          <div class="rating-meta">
+            <div class="satisfaction-emoji">${satisfactionEmoji}</div>
+            <div class="small-rating-stars">${generateStarRating(ratingData.rating, 'small-star')}</div>
+          </div>
+        </div>
+        <div class="rating-comment">${ratingData.comment || 'Tidak ada komentar'}</div>
+        <div class="rating-date">${formatTime(witaDate)}</div>
+      </div>
+    `;
+  }
+
+  // ==================== FUNGSI BANTUAN ====================
+
+  // Fungsi untuk mengonversi waktu ke WITA (UTC+8)
+  function convertToWITA(date) {
+    const offset = 8 * 60; // WITA adalah UTC+8 (dalam menit)
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    return new Date(utc + (3600000 * offset / 60));
+  }
+
+  // Fungsi untuk mendapatkan data driver dari localStorage
+  function getDriverDataFromStorage() {
+    try {
+      return JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
+    } catch (error) {
+      console.error('🌟 Error parsing driver data from storage:', error);
+      return {};
+    }
+  }
+
+  // Fungsi untuk menghasilkan bintang rating
+  function generateStarRating(rating, starClass = 'star') {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    
+    let starsHTML = '';
+    
+    // Bintang penuh
+    for (let i = 0; i < fullStars; i++) {
+      starsHTML += `<span class="${starClass} filled">★</span>`;
+    }
+    
+    // Bintang setengah (jika ada)
+    if (hasHalfStar) {
+      starsHTML += `<span class="${starClass} filled"></span>`;
+    }
+    
+    // Bintang kosong
+    for (let i = 0; i < emptyStars; i++) {
+      starsHTML += `<span class="${starClass}">☆</span>`;
+    }
+    
+    return starsHTML;
+  }
+
+  // Fungsi untuk mendapatkan emoji kepuasan berdasarkan rating
+  function getSatisfactionEmoji(rating) {
+    if (rating >= 4.5) return '😍';
+    if (rating >= 4) return '☺️';
+    if (rating >= 3) return '😌';
+    if (rating >= 2) return '😔';
+    return '🥴';
+  }
+
+  // Fungsi untuk memformat kunci tanggal (YYYY-MM-DD)
+  function formatDateKey(date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  // Fungsi untuk memformat tanggal tampilan
+  function formatDisplayDate(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Konversi ke WITA untuk perbandingan
+    const witaToday = convertToWITA(today);
+    const witaYesterday = convertToWITA(yesterday);
+    const witaDate = convertToWITA(date);
+    
+    if (formatDateKey(witaDate) === formatDateKey(witaToday)) {
+      return 'Hari Ini';
+    } else if (formatDateKey(witaDate) === formatDateKey(witaYesterday)) {
+      return 'Kemarin';
+    } else {
+      return witaDate.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Asia/Makassar'
+      });
+    }
+  }
+
+  // Fungsi untuk memformat waktu
+  function formatTime(date) {
+    return date.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Makassar'
+    });
+  }
+
+  // ==================== FUNGSI UI STATES ====================
+
+  // Fungsi untuk menampilkan state loading
+  function showLoadingState() {
+    const container = document.getElementById('mainContainer');
+    container.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <div style="margin-left: 15px;">Memuat data penilaian...</div>
+      </div>
+    `;
+  }
+
+  // Fungsi untuk menampilkan state error
+  function showErrorState(message) {
+    const container = document.getElementById('mainContainer');
+    container.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size: 3rem;"></div>
+        <div style="color: var(--danger); margin: 10px 0;">${message}</div>
+        <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
+        <button class="policy-btn" id="retryBtn" style="margin-top: 15px;">
+          Coba Lagi
+        </button>
+      </div>
+    `;
+    
+    const retryBtn = document.getElementById('retryBtn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function () {
+        loadRatingsData();
+      });
+    }
+  }
+
+  // ==================== FUNGSI INISIALISASI TOMBOL ====================
+
+  // Fungsi untuk menginisialisasi semua event listener tombol
+  function initButtons() {
+    console.log(' Menginisialisasi tombol...');
+    
+    // Event listeners untuk tombol utama
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', goBack);
+    }
+
+    const policyBtn = document.getElementById('policyBtn');
+    if (policyBtn) {
+      policyBtn.addEventListener('click', openRatingPolicy);
+    }
+    
+    console.log(' Semua tombol berhasil diinisialisasi');
+  }
+
+  // ==================== NAVIGATION FUNCTIONS ====================
+
+  // Fungsi untuk kembali ke halaman sebelumnya
+  function goBack() {
+    sendToKodular({
+      action: 'back_pressed',
+      screen: 'ratings',
+      message: 'Kembali dari halaman penilaian'
+    });
+  }
+
+  // Fungsi untuk membuka kebijakan ulasan
+  function openRatingPolicy() {
+    sendToKodular({
+      action: 'open_rating_policy',
+      message: 'Membuka halaman kebijakan ulasan'
+    });
+  }
+
+  // Fungsi untuk mengirim navigasi ke Kodular
+  function navigateToScreen(screen) {
+    console.log(` Navigasi ke screen: ${screen}`);
+    
+    sendToKodular({
+      action: 'navigate',
+      screen: screen
+    });
+  }
+
+  // Fungsi untuk mengirim data ke Kodular
+  function sendToKodular(data) {
+    console.log('Mengirim data ke Kodular:', data);
+    
+    if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+      try {
+        window.AppInventor.setWebViewString(JSON.stringify(data));
+        console.log(' Data berhasil dikirim ke Kodular via AppInventor');
+      } catch (error) {
+        console.error('Error mengirim data via AppInventor:', error);
+      }
+    }
+    else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+      try {
+        window.android.receiveData(JSON.stringify(data));
+        console.log(' Data berhasil dikirim ke Kodular via window.android');
+      } catch (error) {
+        console.error('Error mengirim data via window.android:', error);
+      }
+    }
+    else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+      try {
+        window.webkit.messageHandlers.observe.postMessage(data);
+        console.log(' Data berhasil dikirim ke Kodular via webkit.messageHandlers');
+      } catch (error) {
+        console.error('Error mengirim data via webkit.messageHandlers:', error);
+      }
+    }
+    else {
+      console.warn(' Tidak ada metode yang berhasil mengirim data ke Kodular');
+      // Fallback untuk testing
+      alert('Aksi: ' + JSON.stringify(data));
+    }
+  }
+
+  // ==================== INISIALISASI APLIKASI ====================
+
+  // Inisialisasi saat halaman dimuat
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log(' Halaman Penilaian Layanan dimuat');
+    
+    // Muat data rating
+    loadRatingsData();
+  });
+
+  // Handle visibility change (tab menjadi aktif kembali)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      console.log(' Halaman menjadi aktif, memuat ulang data...');
+      loadRatingsData();
+    }
+  });
+  </script>
+</body>
+</html>
