@@ -1255,11 +1255,20 @@
           message: 'Order selesai dan statistik driver akan diupdate'
         });
 
-        alert('Order berhasil diselesaikan! Statistik driver akan diupdate.');
+        sendToKodular({
+    action: 'order_completed_popup',
+    order_id: currentOrderId,
+    message: 'Order berhasil diselesaikan'
+});
 
       }).catch((error) => {
         console.error('❌ Gagal menyelesaikan order:', error);
-        alert('Gagal menyelesaikan order. Silakan coba lagi.');
+        sendToKodular({
+    action: 'order_complete_failed',
+    order_id: currentOrderId,
+    error: error.message,
+    message: 'Gagal menyelesaikan order'
+});
       });
     }
 
