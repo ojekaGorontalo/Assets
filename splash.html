@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>JeGo - Driver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .splash-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      max-width: 90%;
+    }
+
+    .logo-container {
+      width: 150px;
+      height: 150px;
+      margin-bottom: 30px;
+      animation: pulse 2s infinite;
+    }
+
+    .logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+    }
+
+    .app-title {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .app-subtitle {
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+      opacity: 0.9;
+      max-width: 300px;
+    }
+
+    .loading-container {
+      margin-top: 30px;
+      width: 200px;
+    }
+
+    .loading-bar {
+      height: 6px;
+      background-color: rgba(255,255,255,0.3);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .loading-progress {
+      height: 100%;
+      background-color: var(--accent);
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .loading-text {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .driver-badge {
+      background-color: rgba(255,255,255,0.1);
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-top: 20px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 1s ease forwards;
+    }
+
+    .delay-1 {
+      animation-delay: 0.2s;
+      opacity: 0;
+    }
+
+    .delay-2 {
+      animation-delay: 0.4s;
+      opacity: 0;
+    }
+
+    .delay-3 {
+      animation-delay: 0.6s;
+      opacity: 0;
+    }
+
+    @media (max-width: 768px) {
+      .logo-container {
+        width: 120px;
+        height: 120px;
+      }
+      
+      .app-title {
+        font-size: 1.8rem;
+      }
+      
+      .app-subtitle {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .logo-container {
+        width: 100px;
+        height: 100px;
+      }
+      
+      .app-title {
+        font-size: 1.5rem;
+      }
+      
+      .app-subtitle {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-container">
+    <div class="logo-container fade-in">
+      <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="JeGo Logo" class="logo">
+    </div>
+    
+    <h1 class="app-title fade-in delay-1">JeGo Driver</h1>
+    
+    <p class="app-subtitle fade-in delay-2">Membangun koneksi driver dan penumpang dengan teknologi terdepan</p>
+    
+    <div class="loading-container fade-in delay-3">
+      <div class="loading-bar">
+        <div class="loading-progress" id="loadingProgress"></div>
+      </div>
+      <div class="loading-text" id="loadingText">Memuat aplikasi...</div>
+    </div>
+    
+    <div class="driver-badge fade-in delay-3">
+      <span>🚗</span>
+      <span>Driver Mode</span>
+    </div>
+  </div>
+
+  <script>
+    // Simulasi proses loading
+    let progress = 0;
+    const progressBar = document.getElementById('loadingProgress');
+    const loadingText = document.getElementById('loadingText');
+    
+    const loadingInterval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress > 100) progress = 100;
+      
+      progressBar.style.width = `${progress}%`;
+      
+      // Update teks berdasarkan progress
+      if (progress < 30) {
+        loadingText.textContent = "Memuat aplikasi...";
+      } else if (progress < 60) {
+        loadingText.textContent = "Menyiapkan data driver...";
+      } else if (progress < 90) {
+        loadingText.textContent = "Menyambungkan ke server...";
+      } else {
+        loadingText.textContent = "Hampir selesai...";
+      }
+      
+      // Redirect ke list.html setelah loading selesai
+      if (progress >= 100) {
+        clearInterval(loadingInterval);
+        setTimeout(() => {
+          window.location.href = 'list.html';
+        }, 500);
+      }
+    }, 300);
+    
+    // Fallback: redirect otomatis setelah 5 detik
+    setTimeout(() => {
+      window.location.href = 'list.html';
+    }, 5000);
+  </script>
+</body>
+</html>
