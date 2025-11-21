@@ -21,7 +21,7 @@
       --standard: #17a2b8;
       --regular: #28a745;
       --essential: #ffc107;
-      --info: #17a2b8;
+      }
     }
 
     * {
@@ -175,34 +175,6 @@
       color: #666;
       font-size: 0.9rem;
       margin-bottom: 8px;
-    }
-
-    /* Balance Styles */
-    .balance-container {
-      background: linear-gradient(135deg, var(--info), #138496);
-      color: white;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .balance-label {
-      font-size: 0.85rem;
-      margin-bottom: 5px;
-      opacity: 0.9;
-    }
-
-    .balance-amount {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-
-    .commission-info {
-      font-size: 0.75rem;
-      opacity: 0.9;
-      margin-top: 5px;
     }
 
     /* Rating Styles */
@@ -391,11 +363,6 @@
       color: white;
     }
 
-    .btn-info {
-      background: var(--info);
-      color: white;
-    }
-
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
@@ -517,10 +484,6 @@
         padding: 12px;
         font-size: 0.85rem;
       }
-      
-      .balance-amount {
-        font-size: 1.3rem;
-      }
     }
 
     @media (max-width: 576px) {
@@ -537,11 +500,8 @@
         text-align: left;
         max-width: 100%;
       }
-      
-      .profile-stats {
-        flex-direction: column;
-        gap: 10px;
-      }
+      #withdrawBtn {
+  display: none !important;
     }
   </style>
 </head>
@@ -570,13 +530,6 @@
       </div>
       <div class="profile-name" id="profileName">-</div>
       <div class="profile-vehicle" id="profileVehicle">-</div>
-      
-      <!-- Balance Display -->
-      <div class="balance-container">
-        <div class="balance-label">Saldo Deposit</div>
-        <div class="balance-amount" id="balanceAmount">Rp 0</div>
-        <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
-      </div>
       
       <!-- Rating Display - Clickable -->
       <div class="profile-rating" id="ratingClickable">
@@ -711,12 +664,6 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons">
-      <button class="btn btn-info" id="withdrawBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-        </svg>
-        Tarik Saldo
-      </button>
       <button class="btn btn-danger" id="logoutBtn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -777,13 +724,6 @@
         </div>
         <div class="profile-name" id="profileName">-</div>
         <div class="profile-vehicle" id="profileVehicle">-</div>
-        
-        <!-- Balance Display -->
-        <div class="balance-container">
-          <div class="balance-label">Saldo Deposit</div>
-          <div class="balance-amount" id="balanceAmount">Rp 0</div>
-          <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
-        </div>
         
         <!-- Rating Display - Clickable -->
         <div class="profile-rating" id="ratingClickable">
@@ -918,12 +858,6 @@
 
       <!-- Action Buttons -->
       <div class="action-buttons">
-        <button class="btn btn-info" id="withdrawBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-          Tarik Saldo
-        </button>
         <button class="btn btn-danger" id="logoutBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -993,9 +927,6 @@
           // Tampilkan data di UI
           displayDriverData(driverData);
           
-          // Muat data balance deposit dan potongan komisi
-          loadBalanceAndCommission(driverId);
-          
           // Muat data ratings untuk perhitungan yang akurat
           loadDriverRatings(driverId);
           
@@ -1019,56 +950,6 @@
           showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
         }
       });
-  }
-
-  // PERUBAHAN: Fungsi untuk memuat data balance deposit dan potongan komisi dari Firebase
-  function loadBalanceAndCommission(driverId) {
-    if (!isFirebaseInitialized || !database) {
-      console.error('❌ Firebase tidak terinisialisasi');
-      return;
-    }
-
-    console.log('🔄 Memuat data balance deposit dan potongan komisi untuk driver:', driverId);
-
-    // Ambil data balance deposit dan potongan komisi dari Firebase
-    const balanceRef = database.ref('drivers/' + driverId + '/Balance');
-    const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
-    
-    Promise.all([
-      balanceRef.once('value'),
-      potonganRef.once('value')
-    ])
-    .then(([balanceSnapshot, potonganSnapshot]) => {
-      const balance = balanceSnapshot.val() || 0;
-      const potonganRate = potonganSnapshot.val() || 0;
-      
-      console.log('✅ Data balance deposit dan potongan komisi berhasil dimuat:', {
-        balance: balance,
-        potonganRate: potonganRate
-      });
-      
-      // Update UI dengan data balance dan potongan komisi
-      updateBalanceDisplay(balance, potonganRate);
-    })
-    .catch((error) => {
-      console.error('❌ Error memuat data balance dan potongan komisi:', error);
-      // Tetap update UI dengan nilai default
-      updateBalanceDisplay(0, 0);
-    });
-  }
-
-  // Fungsi untuk update tampilan balance dan potongan komisi
-  function updateBalanceDisplay(balance, potonganRate) {
-    const balanceAmount = document.getElementById('balanceAmount');
-    const commissionRateElement = document.getElementById('commissionRate');
-    
-    if (balanceAmount) {
-      balanceAmount.textContent = formatCurrency(balance);
-    }
-    
-    if (commissionRateElement) {
-      commissionRateElement.textContent = potonganRate + '%';
-    }
   }
 
   // Fungsi untuk memuat data ratings driver
@@ -1529,29 +1410,17 @@
       console.log('✅ Tombol logout diinisialisasi');
     }
     
-    // Tombol tarik saldo
-    const withdrawBtn = document.getElementById('withdrawBtn');
-    if (withdrawBtn) {
-      withdrawBtn.addEventListener('click', withdrawBalance);
-      console.log('✅ Tombol tarik saldo diinisialisasi');
-    }
-    
-    // PERUBAHAN: Event listener untuk rating - redirect ke penilaianLayanan.html
+    // Event listener untuk rating yang dapat diklik
     const ratingClickable = document.getElementById('ratingClickable');
     if (ratingClickable) {
-      ratingClickable.addEventListener('click', function() {
-        window.location.href = 'penilaianLayanan.html';
-      });
-      console.log('✅ Area rating diinisialisasi (redirect ke penilaianLayanan.html)');
+      ratingClickable.addEventListener('click', openRatingsPage);
+      console.log('✅ Area rating diinisialisasi (clickable)');
     }
 
-    // PERUBAHAN: Event listener untuk pendapatan hari ini - redirect ke pendapatan.html
+    // Event listener untuk statistik pendapatan yang dapat diklik
     const todayEarningsStat = document.getElementById('todayEarningsStat');
     if (todayEarningsStat) {
-      todayEarningsStat.addEventListener('click', function() {
-        window.location.href = 'pendapatan.html';
-      });
-      console.log('✅ Area pendapatan hari ini diinisialisasi (redirect ke pendapatan.html)');
+      todayEarningsStat.addEventListener('click', () => openStatisticsPage('earnings'));
     }
     
     // Event listeners untuk toggle buttons
@@ -1575,41 +1444,27 @@
     console.log('✅ Semua tombol berhasil diinisialisasi');
   }
 
-  // Fungsi untuk menarik saldo
-  function withdrawBalance() {
+  // Fungsi untuk membuka halaman rating
+  function openRatingsPage() {
     if (!currentDriverData) {
       alert('Data driver belum dimuat. Silakan tunggu sebentar.');
       return;
     }
     
-    // Ambil data balance terbaru
-    const driverId = currentDriverData.driverId;
-    const balanceRef = database.ref('drivers/' + driverId + '/Balance');
-    
-    balanceRef.once('value')
-      .then((snapshot) => {
-        const balance = snapshot.val() || 0;
-        
-        if (balance <= 0) {
-          alert('Saldo Anda tidak cukup untuk ditarik.');
-          return;
-        }
-        
-        // Konfirmasi penarikan
-        if (confirm(`Anda akan menarik saldo sebesar ${formatCurrency(balance)}. Lanjutkan?`)) {
-          // Kirim perintah penarikan ke Kodular
-          sendToKodular({
-            action: 'withdraw_balance',
-            driver_id: driverId,
-            amount: balance,
-            message: `Penarikan saldo sebesar ${formatCurrency(balance)}`
-          });
-        }
-      })
-      .catch((error) => {
-        console.error('Error mengambil data balance:', error);
-        alert('Gagal memeriksa saldo. Silakan coba lagi.');
-      });
+    sendToKodular({
+      action: 'open_ratings',
+      driver_id: currentDriverData.driverId,
+      message: 'Membuka halaman rating dan komentar'
+    });
+  }
+
+  // Fungsi untuk membuka halaman statistik detail
+  function openStatisticsPage(type) {
+    sendToKodular({
+      action: 'open_statistics',
+      type: type,
+      message: `Membuka halaman statistik ${type}`
+    });
   }
 
   // Fungsi untuk mengirim data ke Kodular
@@ -1649,12 +1504,12 @@
 
   // Fungsi untuk kembali ke halaman sebelumnya
   function goBack() {
+    // Kirim perintah kembali ke Kodular
     sendToKodular({
-        action: 'navigate_back'
+      action: 'navigate',
+      screen: 'home'
     });
-
-    window.location.href = "list.html";
-}
+  }
 
   // Fungsi untuk logout
   function logout() {
