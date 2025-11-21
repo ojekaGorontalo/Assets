@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Orders</title>
+<style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding: 8px; width: 320px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 10px; font-size: 14px; }
+    th { background: #f2f2f2; }
+</style>
+</head>
+<body>
+
+<h3>Daftar Order</h3>
+<input id="searchInput" placeholder="Cari order ID, nama customer, driver, alamat...">
+
+<table>
+<thead>
+<tr>
+    <th>Order ID</th>
+    <th>Customer</th>
+    <th>Alamat Jemput</th>
+    <th>Alamat Tujuan</th>
+    <th>Driver</th>
+    <th>Harga</th>
+    <th>Status</th>
+</tr>
+</thead>
+<tbody id="orderTable"></tbody>
+</table>
+
+<script>
+const url = "https://ojeka-ba255-default-rtdb.firebaseio.com/orders.json";
+
+fetch(url)
+  .then(res => res.json())
+  .then(data => {
+      const tbody = document.getElementById("orderTable");
+
+      Object.values(data).forEach(order => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+              <td>${order.order_id}</td>
+              <td>${order.user_data?.nama || "-"}</td>
+              <td>${order.alamat_a}</td>
+              <td>${order.alamat_b}</td>
+              <td>${order.selected_driver?.name || "-"}</td>
+              <td>${order.harga_total}</td>
+              <td>${order.status}</td>
+          `;
+          tbody.appendChild(row);
+      });
+
+      // fitur pencarian
+      document.getElementById("searchInput").addEventListener("keyup", function () {
+          const value = this.value.toLowerCase();
+          const rows = tbody.getElementsByTagName("tr");
+
+          for (let i = 0; i < rows.length; i++) {
+              let rowText = rows[i].innerText.toLowerCase();
+              rows[i].style.display = rowText.includes(value) ? "" : "none";
+          }
+      });
+  });
+</script>
+
+</body>
+</html>
