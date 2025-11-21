@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>JeGo - Driver</title>
+  <title>JeGo - Driver Gorontalo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root {
@@ -11,6 +11,8 @@
       --accent: #e6dd3b;
       --light: #f8f9fa;
       --dark: #343a40;
+      --gorontalo-blue: #1e4f6f;
+      --gorontalo-yellow: #e6b93b;
     }
 
     * {
@@ -21,7 +23,7 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background: linear-gradient(135deg, var(--gorontalo-blue), var(--primary));
       color: white;
       height: 100vh;
       display: flex;
@@ -30,6 +32,22 @@
       align-items: center;
       text-align: center;
       overflow: hidden;
+      position: relative;
+    }
+
+    /* Background pattern dengan motif khas Gorontalo */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(230, 221, 59, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 80% 70%, rgba(30, 111, 92, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 40% 80%, rgba(230, 185, 59, 0.05) 0%, transparent 20%);
+      z-index: -1;
     }
 
     .splash-container {
@@ -39,38 +57,59 @@
       justify-content: center;
       padding: 20px;
       max-width: 90%;
+      position: relative;
+      z-index: 1;
     }
 
     .logo-container {
       width: 150px;
       height: 150px;
-      margin-bottom: 30px;
-      animation: pulse 2s infinite;
+      margin-bottom: 25px;
+      animation: pulse 2s infinite, float 3s ease-in-out infinite;
+      position: relative;
     }
 
     .logo {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
     }
 
     .app-title {
       font-size: 2.2rem;
       font-weight: 700;
       margin-bottom: 10px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      background: linear-gradient(to right, #fff, var(--gorontalo-yellow));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
     .app-subtitle {
       font-size: 1.2rem;
-      margin-bottom: 40px;
+      margin-bottom: 30px;
       opacity: 0.9;
       max-width: 300px;
+      line-height: 1.4;
+    }
+
+    .location-badge {
+      background-color: rgba(255,255,255,0.15);
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-bottom: 25px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.2);
     }
 
     .loading-container {
-      margin-top: 30px;
+      margin-top: 20px;
       width: 200px;
     }
 
@@ -80,30 +119,67 @@
       border-radius: 3px;
       overflow: hidden;
       margin-bottom: 10px;
+      position: relative;
     }
 
     .loading-progress {
       height: 100%;
-      background-color: var(--accent);
+      background: linear-gradient(to right, var(--gorontalo-yellow), var(--accent));
       width: 0%;
       border-radius: 3px;
-      transition: width 0.3s ease;
+      transition: width 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loading-progress::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 20px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+      animation: shimmer 1.5s infinite;
     }
 
     .loading-text {
       font-size: 0.9rem;
       opacity: 0.8;
+      min-height: 20px;
     }
 
     .driver-badge {
       background-color: rgba(255,255,255,0.1);
-      padding: 8px 16px;
+      padding: 10px 20px;
       border-radius: 20px;
-      margin-top: 20px;
+      margin-top: 25px;
       font-size: 0.9rem;
       display: flex;
       align-items: center;
       gap: 8px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .gorontalo-motif {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      opacity: 0.1;
+      z-index: 0;
+    }
+
+    .motif-1 {
+      top: 10%;
+      left: 10%;
+      background: radial-gradient(circle, var(--gorontalo-yellow) 0%, transparent 70%);
+    }
+
+    .motif-2 {
+      bottom: 10%;
+      right: 10%;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
     }
 
     @keyframes pulse {
@@ -118,6 +194,18 @@
       }
     }
 
+    @keyframes float {
+      0% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+      100% {
+        transform: translateY(0);
+      }
+    }
+
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -126,6 +214,15 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(400%);
       }
     }
 
@@ -148,6 +245,21 @@
       opacity: 0;
     }
 
+    .delay-4 {
+      animation-delay: 0.8s;
+      opacity: 0;
+    }
+
+    /* Footer dengan informasi copyright */
+    .splash-footer {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
     @media (max-width: 768px) {
       .logo-container {
         width: 120px;
@@ -160,6 +272,12 @@
       
       .app-subtitle {
         font-size: 1rem;
+        margin-bottom: 25px;
+      }
+      
+      .gorontalo-motif {
+        width: 60px;
+        height: 60px;
       }
     }
 
@@ -175,19 +293,39 @@
       
       .app-subtitle {
         font-size: 0.9rem;
+        margin-bottom: 20px;
+      }
+      
+      .location-badge, .driver-badge {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+      }
+      
+      .gorontalo-motif {
+        width: 50px;
+        height: 50px;
       }
     }
   </style>
 </head>
 <body>
+  <!-- Motif dekoratif khas Gorontalo -->
+  <div class="gorontalo-motif motif-1"></div>
+  <div class="gorontalo-motif motif-2"></div>
+
   <div class="splash-container">
     <div class="logo-container fade-in">
       <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="JeGo Logo" class="logo">
     </div>
     
-    <h1 class="app-title fade-in delay-1">JeGo Driver</h1>
+    <h1 class="app-title fade-in delay-1">JeGo Gorontalo</h1>
     
-    <p class="app-subtitle fade-in delay-2">Membangun koneksi driver dan penumpang dengan teknologi terdepan</p>
+    <p class="app-subtitle fade-in delay-2">Transportasi online terdepan untuk masyarakat Gorontalo</p>
+    
+    <div class="location-badge fade-in delay-2">
+      <span>📍</span>
+      <span>Kota Gorontalo & Sekitarnya</span>
+    </div>
     
     <div class="loading-container fade-in delay-3">
       <div class="loading-bar">
@@ -196,48 +334,124 @@
       <div class="loading-text" id="loadingText">Memuat aplikasi...</div>
     </div>
     
-    <div class="driver-badge fade-in delay-3">
+    <div class="driver-badge fade-in delay-4">
       <span>🚗</span>
-      <span>Driver Mode</span>
+      <span>Driver Mode - Siap Melayani</span>
     </div>
   </div>
 
+  <div class="splash-footer fade-in delay-4">
+    &copy; 2024 JeGo Gorontalo - Transportasi Digital
+  </div>
+
   <script>
-    // Simulasi proses loading
+    // Simulasi proses loading yang lebih realistis
     let progress = 0;
     const progressBar = document.getElementById('loadingProgress');
     const loadingText = document.getElementById('loadingText');
     
+    // Daftar pesan loading yang relevan dengan Gorontalo
+    const loadingMessages = [
+      "Memuat aplikasi...",
+      "Menyiapkan peta Gorontalo...",
+      "Menghubungkan dengan driver...",
+      "Mengambil data lokasi...",
+      "Hampir selesai..."
+    ];
+    
+    let messageIndex = 0;
+    
     const loadingInterval = setInterval(() => {
-      progress += Math.random() * 15;
+      // Increment progress dengan pola yang lebih realistis
+      if (progress < 30) {
+        progress += Math.random() * 10;
+      } else if (progress < 70) {
+        progress += Math.random() * 8;
+      } else {
+        progress += Math.random() * 5;
+      }
+      
       if (progress > 100) progress = 100;
       
       progressBar.style.width = `${progress}%`;
       
-      // Update teks berdasarkan progress
-      if (progress < 30) {
-        loadingText.textContent = "Memuat aplikasi...";
-      } else if (progress < 60) {
-        loadingText.textContent = "Menyiapkan data driver...";
-      } else if (progress < 90) {
-        loadingText.textContent = "Menyambungkan ke server...";
-      } else {
-        loadingText.textContent = "Hampir selesai...";
+      // Update pesan loading berdasarkan progress
+      if (progress >= 20 && messageIndex < 1) {
+        loadingText.textContent = loadingMessages[1];
+        messageIndex = 1;
+      } else if (progress >= 40 && messageIndex < 2) {
+        loadingText.textContent = loadingMessages[2];
+        messageIndex = 2;
+      } else if (progress >= 70 && messageIndex < 3) {
+        loadingText.textContent = loadingMessages[3];
+        messageIndex = 3;
+      } else if (progress >= 90 && messageIndex < 4) {
+        loadingText.textContent = loadingMessages[4];
+        messageIndex = 4;
       }
       
       // Redirect ke list.html setelah loading selesai
       if (progress >= 100) {
         clearInterval(loadingInterval);
         setTimeout(() => {
-          window.location.href = 'list.html';
-        }, 500);
+          // Cek apakah user sudah login sebelumnya
+          const driverData = localStorage.getItem('jego_driver_data');
+          if (driverData && driverData !== '{}') {
+            // Jika sudah login, langsung ke halaman list
+            window.location.href = 'list.html';
+          } else {
+            // Jika belum login, ke halaman login driver
+            window.location.href = 'loginDriver.html';
+          }
+        }, 800);
       }
     }, 300);
     
-    // Fallback: redirect otomatis setelah 5 detik
+    // Fallback: redirect otomatis setelah 6 detik
     setTimeout(() => {
-      window.location.href = 'list.html';
-    }, 5000);
+      const driverData = localStorage.getItem('jego_driver_data');
+      if (driverData && driverData !== '{}') {
+        window.location.href = 'list.html';
+      } else {
+        window.location.href = 'loginDriver.html';
+      }
+    }, 6000);
+    
+    // Fungsi untuk mengirim data ke Kodular (jika diperlukan)
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      }
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      }
+    }
+    
+    // Kirim notifikasi saat splash screen dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+      sendToKodular({
+        action: 'splash_loaded',
+        message: 'Splash screen JeGo Gorontalo berhasil dimuat',
+        timestamp: new Date().toISOString()
+      });
+    });
   </script>
 </body>
 </html>
