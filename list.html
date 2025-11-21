@@ -1026,6 +1026,11 @@
         display: none;
       }
     }
+
+    /* Update untuk sembunyikan teks GPS */
+    .gps-status span#gpsText {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -1035,9 +1040,8 @@
       <img id="driverPhoto" class="driver-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Driver Photo">
       <div class="gps-status" id="gpsStatus">
         <span class="gps-dot gps-inactive" id="gpsDot"></span>
-        <span id="gpsText">Mendapatkan lokasi...</span>
+        <span id="gpsText" style="display: none;">Mendapatkan lokasi...</span>
       </div>
-      <!-- HAPUS BALANCE INFO -->
     </div>
     <div class="header-controls">
       <button class="location-toggle-btn" id="locationToggleBtn">
@@ -1203,10 +1207,8 @@
           <div class="progress-container">
             <div class="progress-bar" id="autobidProgressBar"></div>
           </div>
-          <!-- HILANGKAN COUNTDOWN TEKS -->
         </div>
       </div>
-      <!-- Tidak ada footer untuk modal Autobid -->
     </div>
   </div>
 
@@ -1329,9 +1331,7 @@
       console.log('✅ Firebase berhasil diinisialisasi');
     } catch (error) {
       console.error('❌ Error inisialisasi Firebase:', error);
-      setTimeout(() => {
-        showDummyData();
-      }, 2000);
+      showConnectionError();
     }
 
     let ordersRef = null;
@@ -1382,317 +1382,31 @@
     let balanceListener = null;
     let potonganPercentage = 5.1; // Default potongan
 
-    // ==================== SISTEM PRIORITAS DRIVER ====================
-    
-    const PRIORITY_WEIGHTS = {
-      'basic': 1,
-      'standard': 2,
-      'regular': 3,
-      'essential': 4
-    };
-    
-    function getPriorityWeight(priorityLevel) {
-      return PRIORITY_WEIGHTS[priorityLevel] || 1;
-    }
-    
-    function calculatePriorityScore(priorityLevel, rating, distanceToPickup) {
-      const levelWeight = getPriorityWeight(priorityLevel);
-      const ratingValue = rating || 0;
-      const distance = distanceToPickup || 0;
-      
-      const priorityScore = (levelWeight * 1000) + (ratingValue * 100) - (distance * 100);
-      
-      console.log(`📊 Priority Score Calculation:`, {
-        level: priorityLevel,
-        weight: levelWeight,
-        rating: ratingValue,
-        distance: distance,
-        priorityScore: priorityScore
-      });
-      
-      return priorityScore;
-    }
-    
-    function getPriorityBadgeClass(priorityLevel) {
-      const classMap = {
-        'basic': 'priority-basic',
-        'standard': 'priority-standard',
-        'regular': 'priority-regular',
-        'essential': 'priority-essential'
-      };
-      return classMap[priorityLevel] || 'priority-basic';
-    }
-    
-    function getPriorityLabel(priorityLevel) {
-      const labelMap = {
-        'basic': 'Basic',
-        'standard': 'Standard',
-        'regular': 'Regular',
-        'essential': 'Essential'
-      };
-      return labelMap[priorityLevel] || 'Basic';
-    }
-    
-    function getDriverPriorityData() {
-      if (!currentDriverData) {
-        return {
-          priorityLevel: 'basic',
-          rating: 0,
-          priorityScore: 0
-        };
-      }
-      
-      const priorityLevel = currentDriverData.priority_level || 'basic';
-      const rating = currentDriverData.avgRating || 0;
-      
-      return {
-        priorityLevel: priorityLevel,
-        rating: rating,
-        priorityLabel: getPriorityLabel(priorityLevel),
-        badgeClass: getPriorityBadgeClass(priorityLevel)
-      };
-    }
-    
-    function updatePriorityBadgeInHeader() {
-      const priorityData = getDriverPriorityData();
-      
-      const existingBadge = document.getElementById('priorityHeaderBadge');
-      if (existingBadge) {
-        existingBadge.remove();
-      }
-      
-      console.log(`📊 Priority Level: ${priorityData.priorityLevel}, Rating: ${priorityData.rating}`);
-    }
-
-    // ==================== SISTEM SALDO DRIVER ====================
-
-    function initializeBalanceSystem() {
-      if (!currentDriverData || !currentDriverData.driverId) {
-        console.log('❌ Tidak ada data driver untuk inisialisasi sistem saldo');
-        return;
-      }
-
-      const driverId = currentDriverData.driverId;
-      const balanceRef = database.ref('drivers/' + driverId + '/Balance');
-
-      // Setup real-time listener untuk saldo
-      balanceListener = balanceRef.on('value', (snapshot) => {
-        const newBalance = snapshot.val() || 0;
-        currentDriverBalance = newBalance;
-        
-        console.log(`💰 Saldo diperbarui: Rp ${newBalance.toLocaleString('id-ID')}`);
-        
-        // Update di localStorage
-        if (currentDriverData) {
-          currentDriverData.balance = newBalance;
-          localStorage.setItem('jego_driver_data', JSON.stringify(currentDriverData));
-        }
-      }, (error) => {
-        console.error('❌ Error listening to balance:', error);
-      });
-
-      // Ambil nilai potongan dari Firebase
-      const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
-      potonganRef.once('value').then((snapshot) => {
-        const potonganValue = snapshot.val();
-        if (potonganValue !== null && potonganValue !== undefined) {
-          potonganPercentage = potonganValue;
-          console.log(`💰 Potongan dari Firebase: ${potonganPercentage}%`);
-        } else {
-          console.log(`💰 Potongan default: ${potonganPercentage}%`);
-        }
-      }).catch((error) => {
-        console.error('❌ Error mengambil data potongan:', error);
-      });
-    }
-
-    // ==================== FUNGSI PERHITUNGAN POTONGAN BARU ====================
-
-    function calculateFee(orderAmount) {
-      // Gunakan potongan dari Firebase, atau default 5.1% jika tidak ada
-      return Math.round(orderAmount * (potonganPercentage / 100));
-    }
-
-    function checkBalanceForOrder(orderAmount) {
-      const requiredFee = calculateFee(orderAmount);
-      const hasSufficientBalance = currentDriverBalance >= requiredFee;
-      
-      console.log(`💰 Cek saldo: ${currentDriverBalance} >= ${requiredFee} = ${hasSufficientBalance}`);
-      
-      return {
-        hasSufficientBalance: hasSufficientBalance,
-        requiredFee: requiredFee,
-        currentBalance: currentDriverBalance,
-        remainingBalance: currentDriverBalance - requiredFee
-      };
-    }
-
-    function updateFeeInfoInModal(orderAmount) {
-      const balanceCheck = checkBalanceForOrder(orderAmount);
-      const feeInfo = document.getElementById('feeInfo');
-      const feeAmount = document.getElementById('feeAmount');
-      const currentBalanceInfo = document.getElementById('currentBalanceInfo');
-      const remainingBalance = document.getElementById('remainingBalance');
-      const ambilBtn = document.getElementById('ambilBtn');
-
-      if (feeInfo && feeAmount && currentBalanceInfo && remainingBalance) {
-        feeInfo.style.display = 'block';
-        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
-        currentBalanceInfo.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
-        remainingBalance.textContent = `Rp ${balanceCheck.remainingBalance.toLocaleString('id-ID')}`;
-
-        // Update tombol berdasarkan ketersediaan saldo
-        if (balanceCheck.hasSufficientBalance) {
-          ambilBtn.disabled = false;
-          ambilBtn.textContent = 'Kirim Penawaran';
-          feeInfo.style.background = '#d4edda';
-          feeInfo.style.borderColor = '#c3e6cb';
-        } else {
-          ambilBtn.disabled = true;
-          ambilBtn.textContent = 'Saldo Tidak Cukup';
-          feeInfo.style.background = '#f8d7da';
-          feeInfo.style.borderColor = '#f5c6cb';
-        }
-      }
-    }
-
-    function updateFeeInfoInAutobidModal(orderAmount) {
-      const balanceCheck = checkBalanceForOrder(orderAmount);
-      const feeInfo = document.getElementById('autobidFeeInfo');
-      const feeAmount = document.getElementById('autobidFeeAmount');
-      const currentBalance = document.getElementById('autobidCurrentBalance');
-
-      if (feeInfo && feeAmount && currentBalance) {
-        feeInfo.style.display = 'block';
-        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
-        currentBalance.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
-
-        if (balanceCheck.hasSufficientBalance) {
-          feeInfo.style.background = '#d4edda';
-          feeInfo.style.borderColor = '#c3e6cb';
-        } else {
-          feeInfo.style.background = '#f8d7da';
-          feeInfo.style.borderColor = '#f5c6cb';
-        }
-      }
-
-      return balanceCheck.hasSufficientBalance;
-    }
-
-    function deductOrderFee(orderId, orderAmount, driverId) {
-      const feeAmount = calculateFee(orderAmount);
-      
-      const driverRef = database.ref('drivers/' + driverId);
-      
-      // Gunakan transaction untuk menghindari race condition
-      driverRef.transaction((currentData) => {
-        if (currentData) {
-          if (currentData.Balance < feeAmount) {
-            console.error('❌ Saldo tidak cukup untuk potongan');
-            return; // Batalkan transaction
-          }
-          
-          currentData.Balance -= feeAmount;
-          
-          // Catat di riwayat transaksi jika ada field history
-          const transactionId = 'tx_' + Date.now();
-          if (!currentData.balance_history) {
-            currentData.balance_history = {};
-          }
-          currentData.balance_history[transactionId] = {
-            type: 'order_fee',
-            order_id: orderId,
-            amount: -feeAmount,
-            order_amount: orderAmount,
-            fee_percentage: potonganPercentage,
-            description: `Biaya layanan order #${orderId}`,
-            timestamp: new Date().toISOString()
-          };
-        }
-        return currentData;
-      }).then((result) => {
-        if (result.committed) {
-          console.log(`✅ Berhasil memotong saldo: Rp ${feeAmount.toLocaleString('id-ID')}`);
-          
-          sendToKodular({
-            action: 'balance_deducted',
-            order_id: orderId,
-            fee_amount: feeAmount,
-            order_amount: orderAmount,
-            new_balance: result.snapshot.val().Balance,
-            message: `Potongan biaya layanan ${potonganPercentage}% untuk order #${orderId}`
-          });
-        } else {
-          console.error('❌ Transaksi pemotongan saldo dibatalkan');
-        }
-      }).catch((error) => {
-        console.error('❌ Gagal memotong saldo:', error);
-      });
-    }
-
-    // ==================== FUNGSI REFUND UNTUK PEMBATALAN ORDER ====================
-
-    function refundOrderFee(orderId, orderAmount, driverId, cancellationReason) {
-      const feeAmount = calculateFee(orderAmount);
-      
-      const driverRef = database.ref('drivers/' + driverId);
-      
-      // Gunakan transaction untuk menghindari race condition
-      driverRef.transaction((currentData) => {
-        if (currentData) {
-          currentData.Balance += feeAmount;
-          
-          // Catat di riwayat transaksi jika ada field history
-          const transactionId = 'refund_' + Date.now();
-          if (!currentData.balance_history) {
-            currentData.balance_history = {};
-          }
-          currentData.balance_history[transactionId] = {
-            type: 'order_fee_refund',
-            order_id: orderId,
-            amount: feeAmount,
-            order_amount: orderAmount,
-            fee_percentage: potonganPercentage,
-            cancellation_reason: cancellationReason,
-            description: `Pengembalian biaya layanan order #${orderId} karena ${cancellationReason}`,
-            timestamp: new Date().toISOString()
-          };
-        }
-        return currentData;
-      }).then((result) => {
-        if (result.committed) {
-          console.log(`✅ Berhasil refund saldo: Rp ${feeAmount.toLocaleString('id-ID')} (${cancellationReason})`);
-          
-          sendToKodular({
-            action: 'balance_refunded',
-            order_id: orderId,
-            refund_amount: feeAmount,
-            order_amount: orderAmount,
-            cancellation_reason: cancellationReason,
-            new_balance: result.snapshot.val().Balance,
-            message: `Pengembalian biaya layanan ${potonganPercentage}% untuk order #${orderId} karena ${cancellationReason}`
-          });
-        } else {
-          console.error('❌ Transaksi refund saldo dibatalkan');
-        }
-      }).catch((error) => {
-        console.error('❌ Gagal refund saldo:', error);
-      });
-    }
-
-    // ==================== BOTTOM NAVIGATION FUNCTIONS ====================
-    
+    // ==================== FUNGSI NAVIGASI BOTTOM NAV ====================
     function navigateToScreen(screen) {
       console.log(`🔄 Navigasi ke screen: ${screen}`);
       
-      sendToKodular({
-        action: 'navigate',
-        screen: screen
-      });
+      // Redirect ke halaman yang sesuai
+      switch(screen) {
+        case 'home':
+          window.location.href = 'list.html';
+          break;
+        case 'history':
+          window.location.href = 'riwayat.html';
+          break;
+        case 'active_order':
+          window.location.href = 'berjalan.html';
+          break;
+        case 'account':
+          window.location.href = 'akun.html';
+          break;
+        default:
+          console.log('Screen tidak dikenali:', screen);
+      }
       
       updateActiveNavItem(screen);
     }
-    
+
     function updateActiveNavItem(screen) {
       const navItems = document.querySelectorAll('.nav-item');
       
@@ -1712,15 +1426,35 @@
       }
     }
 
-    // ==================== FUNGSI LOCATION TRACKING ====================
-
+    // ==================== FUNGSI TOGGLE LOCATION TRACKING YANG DIPERBARUI ====================
     function toggleLocationTracking() {
+      // Cek koneksi Firebase
+      if (!database) {
+        showInfoPopup('Tidak terhubung ke server. Periksa koneksi internet Anda.');
+        return;
+      }
+
       locationTrackingEnabled = !locationTrackingEnabled;
       updateLocationToggleButton();
       
       if (locationTrackingEnabled) {
+        // Cek apakah GPS aktif
+        if (!driverLocation.latitude || !driverLocation.longitude) {
+          showInfoPopup('GPS diperlukan untuk mengaktifkan tracking. Pastikan lokasi Anda aktif.');
+          locationTrackingEnabled = false;
+          updateLocationToggleButton();
+          return;
+        }
+        
         startLocationTracking();
         showInfoPopup('Location tracking diaktifkan.');
+        
+        // Jika Autobid OFF, tampilkan popup manual untuk order dalam radius
+        if (!autobidEnabled) {
+          setTimeout(() => {
+            checkOrdersForManualPopup();
+          }, 2000);
+        }
       } else {
         stopLocationTracking();
         showInfoPopup('Location tracking dinonaktifkan.');
@@ -1803,6 +1537,173 @@
         .catch(error => {
           console.error('❌ Gagal mengirim lokasi ke Firebase:', error);
         });
+    }
+
+    // ==================== FUNGSI TOGGLE AUTOBID YANG DIPERBARUI ====================
+    function toggleAutobid() {
+      // Cek koneksi Firebase
+      if (!database) {
+        showInfoPopup('Tidak terhubung ke server. Periksa koneksi internet Anda.');
+        return;
+      }
+
+      // Cek apakah location tracking aktif
+      if (!locationTrackingEnabled) {
+        showInfoPopup('Aktifkan tracking terlebih dahulu');
+        return;
+      }
+
+      if (!driverLocation.latitude || !driverLocation.longitude) {
+        showInfoPopup('GPS diperlukan untuk mengaktifkan Autobid. Pastikan lokasi Anda aktif.');
+        updateGPSStatus(false, 'GPS diperlukan untuk Autobid');
+        return;
+      }
+
+      autobidEnabled = !autobidEnabled;
+      updateAutobidButton();
+      
+      if (autobidEnabled) {
+        startAutobid();
+        showInfoPopup('Autobid diaktifkan. Sistem akan otomatis mengirim penawaran untuk order terdekat (kecuali kurir).');
+      } else {
+        stopAutobid();
+        showInfoPopup('Autobid dinonaktifkan.');
+        
+        // Jika location tracking masih aktif, tampilkan popup manual
+        if (locationTrackingEnabled) {
+          setTimeout(() => {
+            checkOrdersForManualPopup();
+          }, 2000);
+        }
+      }
+      
+      localStorage.setItem('jego_autobid_enabled', autobidEnabled);
+    }
+
+    function updateAutobidButton() {
+      const autobidBtn = document.getElementById('autobidBtn');
+      if (autobidEnabled) {
+        autobidBtn.innerHTML = 'Autobid: ON';
+        autobidBtn.classList.add('active');
+      } else {
+        autobidBtn.innerHTML = 'Autobid: OFF';
+        autobidBtn.classList.remove('active');
+      }
+    }
+
+    // ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL ====================
+    function checkOrdersForManualPopup() {
+      if (!locationTrackingEnabled || autobidEnabled || 
+          !currentDriverData || isAutobidProcessing || 
+          !driverLocation.latitude || !driverLocation.longitude) {
+        return;
+      }
+      
+      console.log('🔍 Manual Popup: Mencari order dalam radius 1KM...');
+      
+      const ordersList = document.querySelectorAll('.order-item');
+      
+      for (const orderItem of ordersList) {
+        const orderId = orderItem.dataset.orderId;
+        
+        if (processedOrders.has(orderId)) {
+          console.log(`⏭️ Manual Popup: Skip order ${orderId} (sudah diproses)`);
+          continue;
+        }
+        
+        const orderRef = database.ref('orders/' + orderId);
+        orderRef.once('value').then(snapshot => {
+          const order = snapshot.val();
+          if (order && order.status === 'searching') {
+            
+            // Untuk manual popup, tampilkan SEMUA order dalam radius (baik penumpang maupun kurir)
+            const isInRadius = checkOrderInRadius(order);
+            
+            if (isInRadius) {
+              console.log(`🎯 Manual Popup: Order ${orderId} dalam radius, menampilkan modal manual...`);
+              processedOrders.add(orderId);
+              
+              // Tampilkan modal manual
+              showOrderDetail(order);
+              return;
+            }
+          }
+        });
+      }
+    }
+
+    // ==================== FUNGSI AUTOBID YANG DIPERBARUI ====================
+    function checkOrdersForAutobid() {
+      if (!autobidEnabled || !currentDriverData || isAutobidProcessing || 
+          !driverLocation.latitude || !driverLocation.longitude) {
+        return;
+      }
+      
+      console.log('🔍 Autobid: Mencari order dalam radius 1KM (kecuali kurir)...');
+      
+      const ordersList = document.querySelectorAll('.order-item');
+      
+      for (const orderItem of ordersList) {
+        const orderId = orderItem.dataset.orderId;
+        
+        if (processedOrders.has(orderId)) {
+          console.log(`⏭️ Autobid: Skip order ${orderId} (sudah diproses)`);
+          continue;
+        }
+        
+        const orderRef = database.ref('orders/' + orderId);
+        orderRef.once('value').then(snapshot => {
+          const order = snapshot.val();
+          if (order && order.status === 'searching') {
+            
+            // AUTOBID: Skip order kurir (hanya tampilkan untuk penumpang)
+            if (order.vehicle && (order.vehicle.includes('kurir_motor') || order.vehicle.includes('kurir_bentor'))) {
+              console.log(`⏭️ Autobid: Skip order ${orderId} (order kurir - tidak autobid)`);
+              return;
+            }
+            
+            // CEK SALDO SEBELUM PROSES AUTOBID
+            const balanceCheck = checkBalanceForOrder(order.harga_total);
+            if (!balanceCheck.hasSufficientBalance) {
+              console.log(`⏭️ Autobid: Skip order ${orderId} (saldo tidak cukup)`);
+              return;
+            }
+            
+            const isInRadius = checkOrderInRadius(order);
+            
+            if (isInRadius) {
+              console.log(`🎯 Autobid: Order ${orderId} dalam radius, menampilkan modal Autobid...`);
+              isAutobidProcessing = true;
+              
+              processedOrders.add(orderId);
+              
+              showAutobidOrderModal(order);
+              return;
+            }
+          }
+        });
+      }
+    }
+
+    function startAutobid() {
+      console.log('🚀 Autobid diaktifkan dengan GPS real dan sistem prioritas');
+      
+      autobidInterval = setInterval(() => {
+        if (!isAutobidProcessing && driverLocation.latitude && driverLocation.longitude) {
+          checkOrdersForAutobid();
+        }
+      }, 5000);
+      
+      checkOrdersForAutobid();
+    }
+
+    function stopAutobid() {
+      console.log('🛑 Autobid dinonaktifkan');
+      if (autobidInterval) {
+        clearInterval(autobidInterval);
+        autobidInterval = null;
+      }
+      isAutobidProcessing = false;
     }
 
     // ==================== FUNGSI GPS DAN LOKASI ====================
@@ -1939,8 +1840,10 @@
       } else {
         gpsDot.className = 'gps-dot gps-inactive';
         gpsText.textContent = message || 'Lokasi tidak aktif';
-        showInfoPopup('GPS tidak aktif. Pastikan GPS di perangkat Anda telah diaktifkan untuk menggunakan fitur ini.');
       }
+      
+      // Teks tetap disembunyikan, hanya dot yang ditampilkan
+      gpsText.style.display = 'none';
     }
 
     // ==================== FUNGSI PERHITUNGAN JARAK REAL ====================
@@ -1992,118 +1895,6 @@
         order.from_lat,
         order.from_lng
       );
-    }
-
-    // ==================== FUNGSI AUTOBID DENGAN GPS REAL DAN SISTEM PRIORITAS ====================
-
-    function toggleAutobid() {
-      // Cek apakah location tracking aktif
-      if (!locationTrackingEnabled) {
-        showInfoPopup('Aktifkan tracking terlebih dahulu');
-        return;
-      }
-
-      if (!driverLocation.latitude || !driverLocation.longitude) {
-        showInfoPopup('GPS diperlukan untuk mengaktifkan Autobid. Pastikan lokasi Anda aktif.');
-        updateGPSStatus(false, 'GPS diperlukan untuk Autobid');
-        return;
-      }
-
-      autobidEnabled = !autobidEnabled;
-      updateAutobidButton();
-      
-      if (autobidEnabled) {
-        startAutobid();
-        showInfoPopup('Autobid diaktifkan. Sistem akan otomatis mengirim penawaran untuk order terdekat dari lokasi Anda.');
-      } else {
-        stopAutobid();
-        showInfoPopup('Autobid dinonaktifkan.');
-      }
-      
-      localStorage.setItem('jego_autobid_enabled', autobidEnabled);
-    }
-
-    function updateAutobidButton() {
-      const autobidBtn = document.getElementById('autobidBtn');
-      if (autobidEnabled) {
-        autobidBtn.innerHTML = 'Autobid: ON';
-        autobidBtn.classList.add('active');
-      } else {
-        autobidBtn.innerHTML = 'Autobid: OFF';
-        autobidBtn.classList.remove('active');
-      }
-    }
-
-    function startAutobid() {
-      console.log('🚀 Autobid diaktifkan dengan GPS real dan sistem prioritas');
-      
-      autobidInterval = setInterval(() => {
-        if (!isAutobidProcessing && driverLocation.latitude && driverLocation.longitude) {
-          checkOrdersForAutobid();
-        }
-      }, 5000);
-      
-      checkOrdersForAutobid();
-    }
-
-    function stopAutobid() {
-      console.log('🛑 Autobid dinonaktifkan');
-      if (autobidInterval) {
-        clearInterval(autobidInterval);
-        autobidInterval = null;
-      }
-      isAutobidProcessing = false;
-    }
-
-    function checkOrdersForAutobid() {
-      if (!autobidEnabled || !currentDriverData || isAutobidProcessing || 
-          !driverLocation.latitude || !driverLocation.longitude) {
-        return;
-      }
-      
-      console.log('🔍 Autobid: Mencari order dalam radius 1KM...');
-      
-      const ordersList = document.querySelectorAll('.order-item');
-      
-      for (const orderItem of ordersList) {
-        const orderId = orderItem.dataset.orderId;
-        
-        if (processedOrders.has(orderId)) {
-          console.log(`⏭️ Autobid: Skip order ${orderId} (sudah diproses)`);
-          continue;
-        }
-        
-        const orderRef = database.ref('orders/' + orderId);
-        orderRef.once('value').then(snapshot => {
-          const order = snapshot.val();
-          if (order && order.status === 'searching') {
-            
-            if (order.vehicle && (order.vehicle.includes('kurir_motor') || order.vehicle.includes('kurir_bentor'))) {
-              console.log(`⏭️ Autobid: Skip order ${orderId} (order kurir)`);
-              return;
-            }
-            
-            // CEK SALDO SEBELUM PROSES AUTOBID
-            const balanceCheck = checkBalanceForOrder(order.harga_total);
-            if (!balanceCheck.hasSufficientBalance) {
-              console.log(`⏭️ Autobid: Skip order ${orderId} (saldo tidak cukup)`);
-              return;
-            }
-            
-            const isInRadius = checkOrderInRadius(order);
-            
-            if (isInRadius) {
-              console.log(`🎯 Autobid: Order ${orderId} dalam radius, menampilkan modal Autobid...`);
-              isAutobidProcessing = true;
-              
-              processedOrders.add(orderId);
-              
-              showAutobidOrderModal(order);
-              return;
-            }
-          }
-        });
-      }
     }
 
     // ==================== FUNGSI MODAL AUTOBID BARU DENGAN PROGRESS BAR ====================
@@ -2544,16 +2335,24 @@
 
       ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
+      // Hapus timeout untuk demo mode
       const loadingTimeout = setTimeout(() => {
         if (ordersList.querySelector('.loading')) {
-          console.log('⚠️ Timeout loading orders, fallback ke mode demo');
-          showDummyData();
+          console.log('⚠️ Timeout loading orders');
+          showConnectionError();
         }
-      }, 8000);
+      }, 10000);
 
       if (!checkDriverData()) {
         console.log('❌ Driver tidak terdaftar, berhenti load orders');
         clearTimeout(loadingTimeout);
+        return;
+      }
+
+      // Cek koneksi Firebase
+      if (!database) {
+        clearTimeout(loadingTimeout);
+        showConnectionError();
         return;
       }
 
@@ -2593,13 +2392,13 @@
         }, (error) => {
           console.error('❌ Error loading orders dari Firebase:', error);
           clearTimeout(loadingTimeout);
-          showDummyData();
+          showConnectionError();
         });
         
       } catch (error) {
         console.error('❌ Error accessing Firebase:', error);
         clearTimeout(loadingTimeout);
-        showDummyData();
+        showConnectionError();
       }
     }
 
@@ -2632,7 +2431,7 @@
         
       } catch (error) {
         console.error('❌ Error processing orders data:', error);
-        showDummyData();
+        showConnectionError();
       }
     }
 
@@ -2723,122 +2522,26 @@
       });
     }
 
-    function showDummyData() {
+    // ==================== FUNGSI BARU: TAMPILAN ERROR KONEKSI ====================
+    function showConnectionError() {
       const ordersList = document.getElementById('ordersList');
       
-      ordersList.innerHTML = '';
-      
-      const warningMsg = document.createElement('div');
-      warningMsg.className = 'empty-state';
-      warningMsg.innerHTML = `
-        <div>⚠️</div>
-        <p>Periksa Internet Anda - Tidak terhubung dengan database</p>
-        <p style="font-size: 0.8rem; margin-top: 10px;">Pastikan Anda memiliki internet</p>
-        <button onclick="enableDemoMode()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
-          Aktifkan Mode Demo
-        </button>
+      ordersList.innerHTML = `
+        <div class="empty-state">
+          <div>⚠️</div>
+          <p>Gagal terhubung ke server</p>
+          <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
+            Periksa koneksi internet Anda dan coba refresh.
+          </p>
+          <button onclick="refreshData()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Refresh
+          </button>
+        </div>
       `;
-      ordersList.appendChild(warningMsg);
-      
-      const dummyOrders = [
-        {
-          id: 'demo_1',
-          user_data: { nama: 'Budi Santoso' },
-          alamat_a: 'Jl. Nani Wartabone Bone-Bolango - Gorontalo',
-          alamat_b: 'Danau perintis Suwawa - Kab. Bonebolango - Gorontalo',
-          durasi: '15 menit',
-          jarak: '3.2 km',
-          harga_total: 10000,
-          status: 'searching',
-          vehicle: 'motor',
-          from_lat: -6.2088,
-          from_lng: 106.8456
-        },
-        {
-          id: 'demo_2', 
-          user_data: { nama: 'Sari Dewi' },
-          alamat_a: 'BTN Pulubala - Gorontalo',
-          alamat_b: 'Grand Indonesia, Gorontalo',
-          durasi: '20 menit',
-          jarak: '4.5 km', 
-          harga_total: 32000,
-          status: 'searching',
-          vehicle: 'motor',
-          from_lat: -6.1924,
-          from_lng: 106.7954
-        }
-      ];
-      
-      dummyOrders.forEach(order => {
-        const orderItem = document.createElement('div');
-        orderItem.className = 'order-item';
-        orderItem.dataset.orderId = order.id;
-        
-        const customerName = order.user_data.nama;
-        const alamatA = order.alamat_a;
-        const alamatB = order.alamat_b;
-        const durasi = order.durasi;
-        const jarak = order.jarak;
-        const harga = order.harga_total ? `Rp ${order.harga_total.toLocaleString('id-ID')}` : '-';
-        const isKurir = order.vehicle && order.vehicle.includes('kurir');
-        const statusText = 'Mencari Driver';
-        const statusClass = 'status-searching';
-        
-        let distanceBadge = '';
-        if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
-          const distance = getDriverToPickupDistance(order);
-          if (distance !== null) {
-            distanceBadge = `<span class="distance-badge">${distance.toFixed(1)} km</span>`;
-          }
-        }
-        
-        const priorityData = getDriverPriorityData();
-
-        orderItem.innerHTML = `
-          <div class="order-header">
-            <div class="customer-name">
-              ${customerName}
-              ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
-              ${distanceBadge}
-            </div>
-            <span class="status-badge ${statusClass}">${statusText}</span>
-          </div>
-          <div class="route-info">
-            <div class="route-point">
-              <div class="point-marker point-marker-a">A</div>
-              <div class="point-address point-address-a">${alamatA}</div>
-            </div>
-            <div class="route-point">
-              <div class="point-marker point-marker-b">B</div>
-              <div class="point-address">${alamatB}</div>
-            </div>
-          </div>
-          <div class="order-details">
-            <div class="detail-item">
-              <span class="detail-value">${durasi}</span>
-              <span class="detail-label">Durasi</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-value">${jarak}</span>
-              <span class="detail-label">Jarak</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-value price-highlight">${harga}</span>
-              <span class="detail-label">Harga</span>
-            </div>
-          </div>
-        `;
-        
-        orderItem.addEventListener('click', () => {
-          showOrderDetail(order);
-        });
-        
-        ordersList.appendChild(orderItem);
-      });
       
       sendToKodular({
-        action: 'demo_mode_activated',
-        message: 'Firebase tidak terhubung, menggunakan data demo'
+        action: 'connection_error',
+        message: 'Tidak terhubung ke server. Periksa koneksi internet.'
       });
     }
 
@@ -2984,9 +2687,6 @@
                 Daftar sebagai Driver
               </a>
             </p>
-            <button onclick="enableDemoMode()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
-              Mode Demo
-            </button>
           </div>
         `;
       }
@@ -3002,33 +2702,9 @@
             <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
               Silakan tunggu verifikasi dari tim JeGo
             </p>
-            <button onclick="enableDemoMode()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
-              Mode Demo Sementara
-            </button>
           </div>
         `;
       }
-    }
-
-    function enableDemoMode() {
-      console.log('🚀 Mengaktifkan mode demo...');
-      
-      const demoDriverData = {
-        driverId: 'demo_driver_123',
-        fullName: 'Driver Demo',
-        plateNumber: 'B 1234 ABC',
-        vehicleType: 'motor',
-        vehicleBrand: 'Honda',
-        status: 'accepted',
-        profilePhotoUrl: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-        balance: 50000 // Saldo demo
-      };
-      
-      localStorage.setItem('jego_driver_data', JSON.stringify(demoDriverData));
-      currentDriverData = demoDriverData;
-      currentDriverBalance = 50000;
-      
-      location.reload();
     }
 
     function loadLocationTrackingSetting() {
@@ -3406,6 +3082,304 @@
       }, 1000);
     }
 
+    // ==================== SISTEM PRIORITAS DRIVER ====================
+    
+    const PRIORITY_WEIGHTS = {
+      'basic': 1,
+      'standard': 2,
+      'regular': 3,
+      'essential': 4
+    };
+    
+    function getPriorityWeight(priorityLevel) {
+      return PRIORITY_WEIGHTS[priorityLevel] || 1;
+    }
+    
+    function calculatePriorityScore(priorityLevel, rating, distanceToPickup) {
+      const levelWeight = getPriorityWeight(priorityLevel);
+      const ratingValue = rating || 0;
+      const distance = distanceToPickup || 0;
+      
+      const priorityScore = (levelWeight * 1000) + (ratingValue * 100) - (distance * 100);
+      
+      console.log(`📊 Priority Score Calculation:`, {
+        level: priorityLevel,
+        weight: levelWeight,
+        rating: ratingValue,
+        distance: distance,
+        priorityScore: priorityScore
+      });
+      
+      return priorityScore;
+    }
+    
+    function getPriorityBadgeClass(priorityLevel) {
+      const classMap = {
+        'basic': 'priority-basic',
+        'standard': 'priority-standard',
+        'regular': 'priority-regular',
+        'essential': 'priority-essential'
+      };
+      return classMap[priorityLevel] || 'priority-basic';
+    }
+    
+    function getPriorityLabel(priorityLevel) {
+      const labelMap = {
+        'basic': 'Basic',
+        'standard': 'Standard',
+        'regular': 'Regular',
+        'essential': 'Essential'
+      };
+      return labelMap[priorityLevel] || 'Basic';
+    }
+    
+    function getDriverPriorityData() {
+      if (!currentDriverData) {
+        return {
+          priorityLevel: 'basic',
+          rating: 0,
+          priorityScore: 0
+        };
+      }
+      
+      const priorityLevel = currentDriverData.priority_level || 'basic';
+      const rating = currentDriverData.avgRating || 0;
+      
+      return {
+        priorityLevel: priorityLevel,
+        rating: rating,
+        priorityLabel: getPriorityLabel(priorityLevel),
+        badgeClass: getPriorityBadgeClass(priorityLevel)
+      };
+    }
+    
+    function updatePriorityBadgeInHeader() {
+      const priorityData = getDriverPriorityData();
+      
+      const existingBadge = document.getElementById('priorityHeaderBadge');
+      if (existingBadge) {
+        existingBadge.remove();
+      }
+      
+      console.log(`📊 Priority Level: ${priorityData.priorityLevel}, Rating: ${priorityData.rating}`);
+    }
+
+    // ==================== SISTEM SALDO DRIVER ====================
+
+    function initializeBalanceSystem() {
+      if (!currentDriverData || !currentDriverData.driverId) {
+        console.log('❌ Tidak ada data driver untuk inisialisasi sistem saldo');
+        return;
+      }
+
+      const driverId = currentDriverData.driverId;
+      const balanceRef = database.ref('drivers/' + driverId + '/Balance');
+
+      // Setup real-time listener untuk saldo
+      balanceListener = balanceRef.on('value', (snapshot) => {
+        const newBalance = snapshot.val() || 0;
+        currentDriverBalance = newBalance;
+        
+        console.log(`💰 Saldo diperbarui: Rp ${newBalance.toLocaleString('id-ID')}`);
+        
+        // Update di localStorage
+        if (currentDriverData) {
+          currentDriverData.balance = newBalance;
+          localStorage.setItem('jego_driver_data', JSON.stringify(currentDriverData));
+        }
+      }, (error) => {
+        console.error('❌ Error listening to balance:', error);
+      });
+
+      // Ambil nilai potongan dari Firebase
+      const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
+      potonganRef.once('value').then((snapshot) => {
+        const potonganValue = snapshot.val();
+        if (potonganValue !== null && potonganValue !== undefined) {
+          potonganPercentage = potonganValue;
+          console.log(`💰 Potongan dari Firebase: ${potonganPercentage}%`);
+        } else {
+          console.log(`💰 Potongan default: ${potonganPercentage}%`);
+        }
+      }).catch((error) => {
+        console.error('❌ Error mengambil data potongan:', error);
+      });
+    }
+
+    // ==================== FUNGSI PERHITUNGAN POTONGAN BARU ====================
+
+    function calculateFee(orderAmount) {
+      // Gunakan potongan dari Firebase, atau default 5.1% jika tidak ada
+      return Math.round(orderAmount * (potonganPercentage / 100));
+    }
+
+    function checkBalanceForOrder(orderAmount) {
+      const requiredFee = calculateFee(orderAmount);
+      const hasSufficientBalance = currentDriverBalance >= requiredFee;
+      
+      console.log(`💰 Cek saldo: ${currentDriverBalance} >= ${requiredFee} = ${hasSufficientBalance}`);
+      
+      return {
+        hasSufficientBalance: hasSufficientBalance,
+        requiredFee: requiredFee,
+        currentBalance: currentDriverBalance,
+        remainingBalance: currentDriverBalance - requiredFee
+      };
+    }
+
+    function updateFeeInfoInModal(orderAmount) {
+      const balanceCheck = checkBalanceForOrder(orderAmount);
+      const feeInfo = document.getElementById('feeInfo');
+      const feeAmount = document.getElementById('feeAmount');
+      const currentBalanceInfo = document.getElementById('currentBalanceInfo');
+      const remainingBalance = document.getElementById('remainingBalance');
+      const ambilBtn = document.getElementById('ambilBtn');
+
+      if (feeInfo && feeAmount && currentBalanceInfo && remainingBalance) {
+        feeInfo.style.display = 'block';
+        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
+        currentBalanceInfo.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
+        remainingBalance.textContent = `Rp ${balanceCheck.remainingBalance.toLocaleString('id-ID')}`;
+
+        // Update tombol berdasarkan ketersediaan saldo
+        if (balanceCheck.hasSufficientBalance) {
+          ambilBtn.disabled = false;
+          ambilBtn.textContent = 'Kirim Penawaran';
+          feeInfo.style.background = '#d4edda';
+          feeInfo.style.borderColor = '#c3e6cb';
+        } else {
+          ambilBtn.disabled = true;
+          ambilBtn.textContent = 'Saldo Tidak Cukup';
+          feeInfo.style.background = '#f8d7da';
+          feeInfo.style.borderColor = '#f5c6cb';
+        }
+      }
+    }
+
+    function updateFeeInfoInAutobidModal(orderAmount) {
+      const balanceCheck = checkBalanceForOrder(orderAmount);
+      const feeInfo = document.getElementById('autobidFeeInfo');
+      const feeAmount = document.getElementById('autobidFeeAmount');
+      const currentBalance = document.getElementById('autobidCurrentBalance');
+
+      if (feeInfo && feeAmount && currentBalance) {
+        feeInfo.style.display = 'block';
+        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
+        currentBalance.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
+
+        if (balanceCheck.hasSufficientBalance) {
+          feeInfo.style.background = '#d4edda';
+          feeInfo.style.borderColor = '#c3e6cb';
+        } else {
+          feeInfo.style.background = '#f8d7da';
+          feeInfo.style.borderColor = '#f5c6cb';
+        }
+      }
+
+      return balanceCheck.hasSufficientBalance;
+    }
+
+    function deductOrderFee(orderId, orderAmount, driverId) {
+      const feeAmount = calculateFee(orderAmount);
+      
+      const driverRef = database.ref('drivers/' + driverId);
+      
+      // Gunakan transaction untuk menghindari race condition
+      driverRef.transaction((currentData) => {
+        if (currentData) {
+          if (currentData.Balance < feeAmount) {
+            console.error('❌ Saldo tidak cukup untuk potongan');
+            return; // Batalkan transaction
+          }
+          
+          currentData.Balance -= feeAmount;
+          
+          // Catat di riwayat transaksi jika ada field history
+          const transactionId = 'tx_' + Date.now();
+          if (!currentData.balance_history) {
+            currentData.balance_history = {};
+          }
+          currentData.balance_history[transactionId] = {
+            type: 'order_fee',
+            order_id: orderId,
+            amount: -feeAmount,
+            order_amount: orderAmount,
+            fee_percentage: potonganPercentage,
+            description: `Biaya layanan order #${orderId}`,
+            timestamp: new Date().toISOString()
+          };
+        }
+        return currentData;
+      }).then((result) => {
+        if (result.committed) {
+          console.log(`✅ Berhasil memotong saldo: Rp ${feeAmount.toLocaleString('id-ID')}`);
+          
+          sendToKodular({
+            action: 'balance_deducted',
+            order_id: orderId,
+            fee_amount: feeAmount,
+            order_amount: orderAmount,
+            new_balance: result.snapshot.val().Balance,
+            message: `Potongan biaya layanan ${potonganPercentage}% untuk order #${orderId}`
+          });
+        } else {
+          console.error('❌ Transaksi pemotongan saldo dibatalkan');
+        }
+      }).catch((error) => {
+        console.error('❌ Gagal memotong saldo:', error);
+      });
+    }
+
+    // ==================== FUNGSI REFUND UNTUK PEMBATALAN ORDER ====================
+
+    function refundOrderFee(orderId, orderAmount, driverId, cancellationReason) {
+      const feeAmount = calculateFee(orderAmount);
+      
+      const driverRef = database.ref('drivers/' + driverId);
+      
+      // Gunakan transaction untuk menghindari race condition
+      driverRef.transaction((currentData) => {
+        if (currentData) {
+          currentData.Balance += feeAmount;
+          
+          // Catat di riwayat transaksi jika ada field history
+          const transactionId = 'refund_' + Date.now();
+          if (!currentData.balance_history) {
+            currentData.balance_history = {};
+          }
+          currentData.balance_history[transactionId] = {
+            type: 'order_fee_refund',
+            order_id: orderId,
+            amount: feeAmount,
+            order_amount: orderAmount,
+            fee_percentage: potonganPercentage,
+            cancellation_reason: cancellationReason,
+            description: `Pengembalian biaya layanan order #${orderId} karena ${cancellationReason}`,
+            timestamp: new Date().toISOString()
+          };
+        }
+        return currentData;
+      }).then((result) => {
+        if (result.committed) {
+          console.log(`✅ Berhasil refund saldo: Rp ${feeAmount.toLocaleString('id-ID')} (${cancellationReason})`);
+          
+          sendToKodular({
+            action: 'balance_refunded',
+            order_id: orderId,
+            refund_amount: feeAmount,
+            order_amount: orderAmount,
+            cancellation_reason: cancellationReason,
+            new_balance: result.snapshot.val().Balance,
+            message: `Pengembalian biaya layanan ${potonganPercentage}% untuk order #${orderId} karena ${cancellationReason}`
+          });
+        } else {
+          console.error('❌ Transaksi refund saldo dibatalkan');
+        }
+      }).catch((error) => {
+        console.error('❌ Gagal refund saldo:', error);
+      });
+    }
+
     // ==================== FUNGSI LOCALSTORAGE ORDER DITERIMA ====================
 
     function saveAcceptedOrderToLocalStorage(orderData, driverData) {
@@ -3659,56 +3633,6 @@
       document.getElementById('infoModal').style.display = 'none';
     }
 
-    // ==================== FUNGSI DEBUG ====================
-
-    function showDebugInfo() {
-      const debugInfo = document.createElement('div');
-      debugInfo.className = 'debug-info';
-      debugInfo.innerHTML = `
-        <h3>🔧 Debug Information</h3>
-        <p>Firebase: ${database ? '✅' : '❌'}</p>
-        <p>Driver Data: ${currentDriverData ? '✅' : '❌'}</p>
-        <p>GPS: ${driverLocation.latitude ? '✅' : '❌'}</p>
-        <p>Saldo: Rp ${currentDriverBalance.toLocaleString('id-ID')}</p>
-        <p>Potongan: ${potonganPercentage}%</p>
-        <button onclick="enableDemoMode()">Aktifkan Mode Demo</button>
-        <button onclick="clearLocalStorage()">Clear Data</button>
-        <button onclick="location.reload()">Refresh Halaman</button>
-        <button onclick="this.parentElement.remove()">Tutup</button>
-      `;
-      document.body.appendChild(debugInfo);
-    }
-
-    function clearLocalStorage() {
-      localStorage.removeItem('jego_driver_data');
-      localStorage.removeItem('jego_autobid_enabled');
-      localStorage.removeItem('jego_location_tracking_enabled');
-      localStorage.removeItem('jego_driver_location');
-      localStorage.removeItem('jego_driver_accepted_order');
-      localStorage.removeItem('jego_delivery_data');
-      location.reload();
-    }
-
-    // ==================== FUNGSI NOTIFIKASI ORDER BARU ====================
-
-    let lastOrderCount = 0;
-    let orderSoundPlayed = false;
-
-    function checkForNewOrders(orders) {
-      if (!orders) return;
-      
-      const currentOrderCount = Object.keys(orders).length;
-      
-      // Jika jumlah order bertambah dan belum memainkan suara untuk sesi ini
-      if (currentOrderCount > lastOrderCount && !orderSoundPlayed) {
-        console.log('🎵 Order baru terdeteksi, memutar notifikasi suara');
-        playNewOrderSound();
-        orderSoundPlayed = true;
-      }
-      
-      lastOrderCount = currentOrderCount;
-    }
-
     // ==================== INISIALISASI ====================
 
     // Inisialisasi saat halaman dimuat
@@ -3730,6 +3654,7 @@
         loadOrders();
       }, 500);
       
+      // Event listeners
       document.getElementById('locationToggleBtn').addEventListener('click', toggleLocationTracking);
       document.getElementById('refreshBtn').addEventListener('click', refreshData);
       document.getElementById('closeModal').addEventListener('click', closeModal);
@@ -3755,6 +3680,7 @@
         if (e.target === document.getElementById('orderModal')) closeModal();
       });
 
+      // Event listener untuk bottom navigation
       const navItems = document.querySelectorAll('.nav-item');
       navItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -3772,14 +3698,8 @@
       console.log('- Firebase:', database ? '✅ Terhubung' : '❌ Gagal');
       console.log('- Driver Data:', currentDriverData ? '✅ Ada' : '❌ Tidak Ada');
       console.log('- GPS:', driverLocation.latitude ? '✅ Aktif' : '❌ Tidak Aktif');
-      console.log('- Saldo:', currentDriverBalance);
-      console.log('- Potongan:', potonganPercentage + '%');
-
-      setTimeout(() => {
-        if (document.querySelector('.loading')) {
-          showDebugInfo();
-        }
-      }, 5000);
+      console.log('- Location Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
+      console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
     });
 
     window.addEventListener('beforeunload', () => {
@@ -3802,7 +3722,6 @@
         }
       }
     });
-
   </script>
 </body>
 </html>
