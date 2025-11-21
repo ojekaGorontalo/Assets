@@ -21,7 +21,7 @@
       --standard: #17a2b8;
       --regular: #28a745;
       --essential: #ffc107;
-      }
+      --info: #17a2b8;
     }
 
     * {
@@ -175,6 +175,34 @@
       color: #666;
       font-size: 0.9rem;
       margin-bottom: 8px;
+    }
+
+    /* Balance Styles */
+    .balance-container {
+      background: linear-gradient(135deg, var(--info), #138496);
+      color: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .balance-label {
+      font-size: 0.85rem;
+      margin-bottom: 5px;
+      opacity: 0.9;
+    }
+
+    .balance-amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .commission-info {
+      font-size: 0.75rem;
+      opacity: 0.9;
+      margin-top: 5px;
     }
 
     /* Rating Styles */
@@ -363,6 +391,11 @@
       color: white;
     }
 
+    .btn-info {
+      background: var(--info);
+      color: white;
+    }
+
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
@@ -461,6 +494,92 @@
       margin: 10px 0;
     }
 
+    /* Popup Styles */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .popup-content {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      animation: popup-appear 0.3s ease-out;
+    }
+
+    @keyframes popup-appear {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .popup-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .popup-message {
+      color: #555;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .popup-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .popup-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      min-width: 80px;
+    }
+
+    .popup-btn-cancel {
+      background: #f8f9fa;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .popup-btn-confirm {
+      background: var(--danger);
+      color: white;
+    }
+
+    .popup-btn-info {
+      background: var(--info);
+      color: white;
+    }
+
+    .popup-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       body {
@@ -484,6 +603,14 @@
         padding: 12px;
         font-size: 0.85rem;
       }
+      
+      .balance-amount {
+        font-size: 1.3rem;
+      }
+      
+      .popup-content {
+        padding: 20px;
+      }
     }
 
     @media (max-width: 576px) {
@@ -500,8 +627,19 @@
         text-align: left;
         max-width: 100%;
       }
-      #withdrawBtn {
-  display: none !important;
+      
+      .profile-stats {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .popup-buttons {
+        flex-direction: column;
+      }
+      
+      .popup-btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -530,6 +668,13 @@
       </div>
       <div class="profile-name" id="profileName">-</div>
       <div class="profile-vehicle" id="profileVehicle">-</div>
+      
+      <!-- Balance Display -->
+      <div class="balance-container">
+        <div class="balance-label">Saldo Deposit</div>
+        <div class="balance-amount" id="balanceAmount">Rp 0</div>
+        <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
+      </div>
       
       <!-- Rating Display - Clickable -->
       <div class="profile-rating" id="ratingClickable">
@@ -675,6 +820,29 @@
     </div>
   </div>
 
+  <!-- Popup Konfirmasi Logout -->
+  <div class="popup-overlay" id="logoutPopup" style="display: none;">
+    <div class="popup-content">
+      <div class="popup-title">Konfirmasi Keluar</div>
+      <div class="popup-message">Apakah Anda yakin ingin keluar dari akun driver JeGo?</div>
+      <div class="popup-buttons">
+        <button class="popup-btn popup-btn-cancel" id="cancelLogoutBtn">Batal</button>
+        <button class="popup-btn popup-btn-confirm" id="confirmLogoutBtn">Ya, Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Informasi -->
+  <div class="popup-overlay" id="infoPopup" style="display: none;">
+    <div class="popup-content">
+      <div class="popup-title" id="infoPopupTitle">Informasi</div>
+      <div class="popup-message" id="infoPopupMessage"></div>
+      <div class="popup-buttons">
+        <button class="popup-btn popup-btn-info" id="closeInfoPopupBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   // Firebase Configuration
   const firebaseConfig = {
@@ -709,6 +877,45 @@
   let driverOrders = [];
   let driverRatings = [];
 
+  // ==================== FUNGSI POPUP ====================
+  
+  // Fungsi untuk menampilkan popup konfirmasi logout
+  function showLogoutPopup() {
+    const logoutPopup = document.getElementById('logoutPopup');
+    if (logoutPopup) {
+      logoutPopup.style.display = 'flex';
+    }
+  }
+
+  // Fungsi untuk menyembunyikan popup konfirmasi logout
+  function hideLogoutPopup() {
+    const logoutPopup = document.getElementById('logoutPopup');
+    if (logoutPopup) {
+      logoutPopup.style.display = 'none';
+    }
+  }
+
+  // Fungsi untuk menampilkan popup informasi
+  function showInfoPopup(title, message) {
+    const infoPopup = document.getElementById('infoPopup');
+    const infoPopupTitle = document.getElementById('infoPopupTitle');
+    const infoPopupMessage = document.getElementById('infoPopupMessage');
+    
+    if (infoPopup && infoPopupTitle && infoPopupMessage) {
+      infoPopupTitle.textContent = title;
+      infoPopupMessage.textContent = message;
+      infoPopup.style.display = 'flex';
+    }
+  }
+
+  // Fungsi untuk menyembunyikan popup informasi
+  function hideInfoPopup() {
+    const infoPopup = document.getElementById('infoPopup');
+    if (infoPopup) {
+      infoPopup.style.display = 'none';
+    }
+  }
+
   // ==================== FUNGSI RESTORE UI ====================
   function restoreMainUI() {
     const container = document.getElementById('mainContainer');
@@ -724,6 +931,13 @@
         </div>
         <div class="profile-name" id="profileName">-</div>
         <div class="profile-vehicle" id="profileVehicle">-</div>
+        
+        <!-- Balance Display -->
+        <div class="balance-container">
+          <div class="balance-label">Saldo Deposit</div>
+          <div class="balance-amount" id="balanceAmount">Rp 0</div>
+          <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
+        </div>
         
         <!-- Rating Display - Clickable -->
         <div class="profile-rating" id="ratingClickable">
@@ -927,6 +1141,9 @@
           // Tampilkan data di UI
           displayDriverData(driverData);
           
+          // Muat data balance deposit dan potongan komisi
+          loadBalanceAndCommission(driverId);
+          
           // Muat data ratings untuk perhitungan yang akurat
           loadDriverRatings(driverId);
           
@@ -950,6 +1167,56 @@
           showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
         }
       });
+  }
+
+  // PERUBAHAN: Fungsi untuk memuat data balance deposit dan potongan komisi dari Firebase
+  function loadBalanceAndCommission(driverId) {
+    if (!isFirebaseInitialized || !database) {
+      console.error('❌ Firebase tidak terinisialisasi');
+      return;
+    }
+
+    console.log('🔄 Memuat data balance deposit dan potongan komisi untuk driver:', driverId);
+
+    // Ambil data balance deposit dan potongan komisi dari Firebase
+    const balanceRef = database.ref('drivers/' + driverId + '/Balance');
+    const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
+    
+    Promise.all([
+      balanceRef.once('value'),
+      potonganRef.once('value')
+    ])
+    .then(([balanceSnapshot, potonganSnapshot]) => {
+      const balance = balanceSnapshot.val() || 0;
+      const potonganRate = potonganSnapshot.val() || 0;
+      
+      console.log('✅ Data balance deposit dan potongan komisi berhasil dimuat:', {
+        balance: balance,
+        potonganRate: potonganRate
+      });
+      
+      // Update UI dengan data balance dan potongan komisi
+      updateBalanceDisplay(balance, potonganRate);
+    })
+    .catch((error) => {
+      console.error('❌ Error memuat data balance dan potongan komisi:', error);
+      // Tetap update UI dengan nilai default
+      updateBalanceDisplay(0, 0);
+    });
+  }
+
+  // Fungsi untuk update tampilan balance dan potongan komisi
+  function updateBalanceDisplay(balance, potonganRate) {
+    const balanceAmount = document.getElementById('balanceAmount');
+    const commissionRateElement = document.getElementById('commissionRate');
+    
+    if (balanceAmount) {
+      balanceAmount.textContent = formatCurrency(balance);
+    }
+    
+    if (commissionRateElement) {
+      commissionRateElement.textContent = potonganRate + '%';
+    }
   }
 
   // Fungsi untuk memuat data ratings driver
@@ -1406,21 +1673,26 @@
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', logout);
+      logoutBtn.addEventListener('click', showLogoutPopup);
       console.log('✅ Tombol logout diinisialisasi');
     }
     
-    // Event listener untuk rating yang dapat diklik
+    // PERUBAHAN: Event listener untuk rating - redirect ke penilaianLayanan.html
     const ratingClickable = document.getElementById('ratingClickable');
     if (ratingClickable) {
-      ratingClickable.addEventListener('click', openRatingsPage);
-      console.log('✅ Area rating diinisialisasi (clickable)');
+      ratingClickable.addEventListener('click', function() {
+        window.location.href = 'penilaianLayanan.html';
+      });
+      console.log('✅ Area rating diinisialisasi (redirect ke penilaianLayanan.html)');
     }
 
-    // Event listener untuk statistik pendapatan yang dapat diklik
+    // PERUBAHAN: Event listener untuk pendapatan hari ini - redirect ke pendapatan.html
     const todayEarningsStat = document.getElementById('todayEarningsStat');
     if (todayEarningsStat) {
-      todayEarningsStat.addEventListener('click', () => openStatisticsPage('earnings'));
+      todayEarningsStat.addEventListener('click', function() {
+        window.location.href = 'pendapatan.html';
+      });
+      console.log('✅ Area pendapatan hari ini diinisialisasi (redirect ke pendapatan.html)');
     }
     
     // Event listeners untuk toggle buttons
@@ -1441,30 +1713,25 @@
       });
     });
     
-    console.log('✅ Semua tombol berhasil diinisialisasi');
-  }
-
-  // Fungsi untuk membuka halaman rating
-  function openRatingsPage() {
-    if (!currentDriverData) {
-      alert('Data driver belum dimuat. Silakan tunggu sebentar.');
-      return;
+    // Event listeners untuk popup logout
+    const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+    
+    if (cancelLogoutBtn) {
+      cancelLogoutBtn.addEventListener('click', hideLogoutPopup);
     }
     
-    sendToKodular({
-      action: 'open_ratings',
-      driver_id: currentDriverData.driverId,
-      message: 'Membuka halaman rating dan komentar'
-    });
-  }
-
-  // Fungsi untuk membuka halaman statistik detail
-  function openStatisticsPage(type) {
-    sendToKodular({
-      action: 'open_statistics',
-      type: type,
-      message: `Membuka halaman statistik ${type}`
-    });
+    if (confirmLogoutBtn) {
+      confirmLogoutBtn.addEventListener('click', logout);
+    }
+    
+    // Event listener untuk popup informasi
+    const closeInfoPopupBtn = document.getElementById('closeInfoPopupBtn');
+    if (closeInfoPopupBtn) {
+      closeInfoPopupBtn.addEventListener('click', hideInfoPopup);
+    }
+    
+    console.log('✅ Semua tombol berhasil diinisialisasi');
   }
 
   // Fungsi untuk mengirim data ke Kodular
@@ -1504,29 +1771,32 @@
 
   // Fungsi untuk kembali ke halaman sebelumnya
   function goBack() {
-    // Kirim perintah kembali ke Kodular
     sendToKodular({
-      action: 'navigate',
-      screen: 'home'
+        action: 'navigate_back'
     });
+
+    window.location.href = "list.html";
   }
 
   // Fungsi untuk logout
   function logout() {
-    // Konfirmasi logout
-    if (confirm('Apakah Anda yakin ingin keluar?')) {
-      // Hapus data dari localStorage
-      localStorage.removeItem('jego_driver_data');
-      localStorage.removeItem('jego_driver_location');
-      localStorage.removeItem('jego_autobid_enabled');
-      localStorage.removeItem('jego_driver_accepted_order');
-      
-      // Kirim perintah logout ke Kodular
-      sendToKodular({
-        action: 'logout',
-        message: 'Driver berhasil logout'
-      });
-    }
+    // Sembunyikan popup logout
+    hideLogoutPopup();
+    
+    // Hapus data dari localStorage
+    localStorage.removeItem('jego_driver_data');
+    localStorage.removeItem('jego_driver_location');
+    localStorage.removeItem('jego_autobid_enabled');
+    localStorage.removeItem('jego_driver_accepted_order');
+    
+    // Kirim perintah logout ke Kodular
+    sendToKodular({
+      action: 'logout',
+      message: 'Driver berhasil logout'
+    });
+    
+    // Tampilkan pesan konfirmasi
+    showInfoPopup('Berhasil Logout', 'Anda telah berhasil keluar dari akun driver JeGo.');
   }
 
   // ==================== INISIALISASI APLIKASI ====================
