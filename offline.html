@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Tidak Ada Koneksi - JeGo Driver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --danger: #dc3545;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+      color: #333;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    .offline-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      max-width: 500px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .offline-icon {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 25px;
+      opacity: 0.8;
+    }
+
+    .offline-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--danger);
+    }
+
+    .offline-subtitle {
+      font-size: 1.1rem;
+      margin-bottom: 25px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 25px;
+      padding: 10px 15px;
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #856404;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--danger);
+      animation: blink 1.5s infinite;
+    }
+
+    .offline-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .retry-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      width: 100%;
+    }
+
+    .retry-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .retry-btn:active {
+      transform: translateY(0);
+    }
+
+    .offline-tips {
+      margin-top: 25px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      text-align: left;
+      width: 100%;
+    }
+
+    .offline-tips h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+
+    .offline-tips ul {
+      padding-left: 20px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .offline-tips li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .app-logo-img {
+      width: 40px;
+      height: 40px;
+    }
+
+    .app-logo-text {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+
+    @keyframes blink {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.3;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% {
+        transform: translateX(0);
+      }
+      10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+      }
+      20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+      }
+    }
+
+    .shake {
+      animation: shake 0.8s ease;
+    }
+
+    @media (max-width: 768px) {
+      .offline-container {
+        padding: 20px;
+      }
+      
+      .offline-icon {
+        width: 100px;
+        height: 100px;
+      }
+      
+      .offline-title {
+        font-size: 1.5rem;
+      }
+      
+      .offline-subtitle {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      body {
+        padding: 15px;
+      }
+      
+      .offline-container {
+        padding: 20px 15px;
+      }
+      
+      .offline-icon {
+        width: 80px;
+        height: 80px;
+      }
+      
+      .offline-title {
+        font-size: 1.3rem;
+      }
+      
+      .offline-subtitle {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="app-logo">
+      <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="JeGo Logo" class="app-logo-img">
+      <div class="app-logo-text">JeGo Driver</div>
+    </div>
+    
+    <svg class="offline-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 1L23 23M16.72 11.94C17.28 10.49 18 9.1 18.87 7.79C19.34 7.06 18.87 6 18 6H17.96C17.41 6 16.89 6.26 16.55 6.7L12 12.68V12.68C11.61 13.19 10.89 13.19 10.5 12.68L9 10.86M8.26 6.24C7.72 5.68 6.93 5.33 6.05 5.33C4.25 5.33 2.78 6.8 2.78 8.6C2.78 9.08 2.88 9.53 3.06 9.94M8 12.68V12.68C7.61 13.19 6.89 13.19 6.5 12.68L3.55 8.95C3.21 8.51 2.69 8.25 2.14 8.25H2.04C1.17 8.25 0.7 9.31 1.17 10.04C2.91 12.71 5.41 14.9 8.34 16.26M12 20H12.01" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    
+    <h1 class="offline-title">Tidak Ada Koneksi Internet</h1>
+    
+    <p class="offline-subtitle">
+      Perangkat Anda tidak terhubung ke internet. 
+      Silakan periksa koneksi jaringan Anda dan coba lagi.
+    </p>
+    
+    <div class="connection-status">
+      <div class="status-indicator"></div>
+      <span>Status: Tidak Terhubung</span>
+    </div>
+    
+    <div class="offline-actions">
+      <button class="retry-btn" id="retryBtn">
+        Coba Lagi
+      </button>
+    </div>
+    
+    <div class="offline-tips">
+      <h3>Tips untuk mengatasi masalah koneksi:</h3>
+      <ul>
+        <li>Periksa apakah Wi-Fi atau data seluler Anda aktif</li>
+        <li>Restart router Wi-Fi Anda</li>
+        <li>Hidupkan mode pesawat, tunggu beberapa detik, lalu matikan</li>
+        <li>Pastikan sinyal Wi-Fi atau data seluler Anda kuat</li>
+        <li>Restart perangkat Anda</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Fungsi untuk memeriksa koneksi internet
+    function checkConnection() {
+      return navigator.onLine;
+    }
+
+    // Fungsi untuk memperbarui status koneksi
+    function updateConnectionStatus() {
+      const isOnline = checkConnection();
+      const connectionStatus = document.querySelector('.connection-status');
+      const statusIndicator = document.querySelector('.status-indicator');
+      const statusText = connectionStatus.querySelector('span');
+      const retryBtn = document.getElementById('retryBtn');
+      
+      if (isOnline) {
+        statusIndicator.style.backgroundColor = '#28a745';
+        statusText.textContent = 'Status: Terhubung';
+        connectionStatus.style.backgroundColor = '#d4edda';
+        connectionStatus.style.borderColor = '#c3e6cb';
+        connectionStatus.style.color = '#155724';
+        
+        // Tambahkan efek visual ketika koneksi kembali
+        document.querySelector('.offline-container').classList.add('shake');
+        setTimeout(() => {
+          document.querySelector('.offline-container').classList.remove('shake');
+        }, 800);
+        
+        // Ubah teks tombol
+        retryBtn.textContent = 'Koneksi Dipulihkan!';
+        retryBtn.style.background = 'linear-gradient(to right, #28a745, #20c997)';
+        
+        // Redirect ke halaman utama setelah 2 detik
+        setTimeout(() => {
+          // Cek apakah ada halaman sebelumnya di localStorage
+          const previousPage = localStorage.getItem('jego_previous_page') || 'list.html';
+          window.location.href = previousPage;
+        }, 2000);
+      } else {
+        statusIndicator.style.backgroundColor = '#dc3545';
+        statusText.textContent = 'Status: Tidak Terhubung';
+        connectionStatus.style.backgroundColor = '#fff3cd';
+        connectionStatus.style.borderColor = '#ffeaa7';
+        connectionStatus.style.color = '#856404';
+        
+        // Reset tombol
+        retryBtn.textContent = 'Coba Lagi';
+        retryBtn.style.background = 'linear-gradient(to right, var(--primary), var(--secondary))';
+      }
+    }
+
+    // Event listener untuk tombol coba lagi
+    document.getElementById('retryBtn').addEventListener('click', function() {
+      const retryBtn = this;
+      const originalText = retryBtn.textContent;
+      
+      // Tambahkan animasi loading
+      retryBtn.textContent = 'Memeriksa...';
+      retryBtn.disabled = true;
+      
+      // Cek koneksi setelah 1 detik (simulasi)
+      setTimeout(() => {
+        updateConnectionStatus();
+        retryBtn.disabled = false;
+        
+        // Jika masih offline, kembalikan teks asli
+        if (!checkConnection()) {
+          retryBtn.textContent = originalText;
+        }
+      }, 1000);
+    });
+
+    // Event listener untuk perubahan status koneksi
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Inisialisasi status koneksi saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+      // Simpan halaman sebelumnya untuk redirect nanti
+      if (!localStorage.getItem('jego_previous_page')) {
+        localStorage.setItem('jego_previous_page', 'list.html');
+      }
+      
+      updateConnectionStatus();
+      
+      // Periksa koneksi setiap 5 detik
+      setInterval(updateConnectionStatus, 5000);
+    });
+  </script>
+</body>
+</html>
