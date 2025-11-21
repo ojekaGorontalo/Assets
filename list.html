@@ -1395,7 +1395,7 @@
           window.location.href = 'riwayat.html';
           break;
         case 'active_order':
-          window.location.href = 'berjalan.html';
+          window.location.href = 'orderAccepted.html';
           break;
         case 'account':
           window.location.href = 'akun.html';
@@ -3489,6 +3489,14 @@
                 startActiveOrderListener(activeOrder.orderId);
                 
                 showActiveOrderNotification(activeOrder);
+                
+                // === REDIRECT OTOMATIS JIKA ADA ORDER BERJALAN ===
+const activeStatuses = ['accepted', 'on_the_way', 'arrived', 'picked_up', 'on_trip'];
+
+if (activeStatuses.includes(activeOrder.status)) {
+    console.log('➡️ Mengalihkan ke orderAccepted.html karena ada order berjalan');
+    window.location.href = 'orderAccepted.html?order=' + activeOrder.orderId;
+}
             } else {
                 console.log('❌ Tidak ada order berjalan untuk driver ini');
                 removeAcceptedOrderFromLocalStorage();
