@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Syarat Menerima Order - JeGo Driver</title>
+  <title>Kebijakan Ulasan - JeGo Driver</title>
   <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
@@ -139,44 +139,6 @@
       font-size: 1rem;
       color: #555;
       margin-bottom: 15px;
-    }
-
-    .priority-levels {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .priority-badge {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .priority-basic {
-      background: #6c757d;
-      color: white;
-    }
-
-    .priority-standard {
-      background: #17a2b8;
-      color: white;
-    }
-
-    .priority-regular {
-      background: #28a745;
-      color: white;
-    }
-
-    .priority-essential {
-      background: #ffc107;
-      color: #333;
     }
 
     /* Requirements Grid */
@@ -354,6 +316,111 @@
       font-style: italic;
     }
 
+    /* Modal Popup Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: white;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      opacity: 0.8;
+    }
+
+    .modal-body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-message {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .modal-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      font-size: 0.9rem;
+    }
+
+    .modal-btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .modal-btn-secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .modal-btn:hover {
+      opacity: 0.9;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       body {
@@ -381,11 +448,6 @@
         text-align: center;
         gap: 8px;
       }
-      
-      .priority-levels {
-        flex-direction: column;
-        align-items: center;
-      }
     }
 
     @media (max-width: 576px) {
@@ -395,6 +457,10 @@
       
       .tips-grid {
         grid-template-columns: 1fr;
+      }
+      
+      .modal-content {
+        width: 95%;
       }
     }
   </style>
@@ -408,11 +474,11 @@
     <div class="header-content">
       <div class="logo-container">
         <div class="driver-icon">
-          <span class="material-icons">two_wheeler</span>
+          <span class="material-icons">reviews</span>
         </div>
         <div>
-          <h1 class="header-title"> kebijakan Ulasan</h1>
-          <p class="header-subtitle">Tips untuk mendapatkan lebih banyak order di JeGo</p>
+          <h1 class="header-title">Kebijakan Ulasan</h1>
+          <p class="header-subtitle">Panduan sistem rating dan ulasan JeGo</p>
         </div>
       </div>
     </div>
@@ -423,183 +489,164 @@
     <!-- Intro Section -->
     <div class="intro-section">
       <div class="intro-icon">
-        <span class="material-icons">emoji_events</span>
+        <span class="material-icons">star_rate</span>
       </div>
-      <p class="intro-text">Tingkatkan peluang Anda menerima order lebih banyak dan lebih cepat dengan memenuhi syarat-syarat berikut:</p>
-      
-      <div class="priority-levels">
-        <div class="priority-badge priority-basic">
-          <span class="material-icons">circle</span>
-          Basic
-        </div>
-        <div class="priority-badge priority-standard">
-          <span class="material-icons">circle</span>
-          Standard
-        </div>
-        <div class="priority-badge priority-regular">
-          <span class="material-icons">circle</span>
-          Regular
-        </div>
-        <div class="priority-badge priority-essential">
-          <span class="material-icons">star</span>
-          Essential
-        </div>
-      </div>
+      <p class="intro-text">Sistem rating dan ulasan JeGo membantu meningkatkan kualitas layanan dan memberikan pengalaman terbaik bagi pelanggan dan driver.</p>
     </div>
 
     <!-- Requirements Grid -->
     <div class="requirements-grid">
-      <!-- Rating Card -->
+      <!-- Rating System Card -->
       <div class="requirement-card">
         <div class="card-header">
           <div class="card-icon" style="background: var(--warning);">
-            <span class="material-icons">star_rate</span>
+            <span class="material-icons">star</span>
           </div>
-          <h3 class="card-title">Rating dan Ulasan Tinggi</h3>
+          <h3 class="card-title">Sistem Rating</h3>
         </div>
         <div class="card-content">
           <ul class="requirement-list">
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Pertahankan rating minimal 4.5 untuk prioritas lebih tinggi</span>
+              <span>Pelanggan dapat memberikan rating 1-5 bintang setelah perjalanan selesai</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Dapatkan ulasan positif dari penumpang dengan memberikan pelayanan terbaik</span>
+              <span>Rating rata-rata akan ditampilkan di profil driver</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Responsif terhadap feedback dan perbaiki kualitas layanan secara berkelanjutan</span>
+              <span>Driver dengan rating tinggi akan mendapatkan prioritas lebih dalam menerima order</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <!-- Responsiveness Card -->
+      <!-- Review Policy Card -->
       <div class="requirement-card">
         <div class="card-header">
           <div class="card-icon" style="background: var(--info);">
-            <span class="material-icons">flash_on</span>
+            <span class="material-icons">description</span>
           </div>
-          <h3 class="card-title">Responsifitas Tinggi</h3>
+          <h3 class="card-title">Kebijakan Ulasan</h3>
         </div>
         <div class="card-content">
           <ul class="requirement-list">
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Aktifkan fitur Autobid untuk otomatis mengirim penawaran</span>
+              <span>Ulasan harus relevan dengan pengalaman layanan</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Respons order dalam waktu kurang dari 30 detik</span>
+              <span>Tidak mengandung konten SARA, ujaran kebencian, atau pelecehan</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Terima order yang sesuai dengan kendaraan Anda</span>
+              <span>Ulasan palsu atau tidak akurat dapat dilaporkan untuk ditinjau</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <!-- Location Card -->
+      <!-- Impact Card -->
       <div class="requirement-card">
         <div class="card-header">
           <div class="card-icon" style="background: var(--success);">
-            <span class="material-icons">location_on</span>
+            <span class="material-icons">trending_up</span>
           </div>
-          <h3 class="card-title">Akurasi Lokasi Real-Time</h3>
+          <h3 class="card-title">Dampak Rating</h3>
         </div>
         <div class="card-content">
           <ul class="requirement-list">
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Pastikan GPS selalu aktif selama online</span>
+              <span>Rating di bawah 3.5 akan mendapatkan peringatan dari sistem</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Perbarui lokasi secara real-time untuk perhitungan jarak yang akurat</span>
+              <span>Rating konsisten di bawah 3.0 dapat mengakibatkan penangguhan sementara</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Berada dalam radius 1KM dari lokasi penjemputan</span>
+              <span>Driver dengan rating tinggi mendapatkan akses ke fitur prioritas</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <!-- Vehicle Card -->
+      <!-- Improvement Card -->
       <div class="requirement-card">
         <div class="card-header">
           <div class="card-icon" style="background: var(--primary);">
-            <span class="material-icons">two_wheeler</span>
+            <span class="material-icons">thumb_up</span>
           </div>
-          <h3 class="card-title">Kondisi Kendaraan Prima</h3>
+          <h3 class="card-title">Tips Meningkatkan Rating</h3>
         </div>
         <div class="card-content">
           <ul class="requirement-list">
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Kendaraan dalam kondisi bersih dan terawat</span>
+              <span>Selalu bersikap sopan dan ramah kepada pelanggan</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Lengkapi perlengkapan keselamatan (helm, jaket, dll)</span>
+              <span>Pastikan kendaraan dalam kondisi bersih dan nyaman</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Pastikan kendaraan layak jalan dan nyaman</span>
+              <span>Tepati janji waktu dan ikuti rute yang disepakati</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <!-- Professionalism Card -->
+      <!-- Dispute Card -->
       <div class="requirement-card">
         <div class="card-header">
           <div class="card-icon" style="background: var(--secondary);">
-            <span class="material-icons">business_center</span>
+            <span class="material-icons">gavel</span>
           </div>
-          <h3 class="card-title">Profesionalisme Pelayanan</h3>
+          <h3 class="card-title">Sengkata Ulasan</h3>
         </div>
         <div class="card-content">
           <ul class="requirement-list">
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Berpenampilan rapi dan sopan</span>
+              <span>Driver dapat mengajukan banding untuk ulasan yang tidak adil</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Komunikasi yang baik dengan penumpang</span>
+              <span>Tim JeGo akan meninjau sengkata dalam waktu 3-5 hari kerja</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Patuhi rambu lalu lintas dan etika berkendara</span>
+              <span>Ulasan yang terbukti tidak akurat akan dihapus dari sistem</span>
             </li>
           </ul>
         </div>
       </div>
 
-      <!-- Profile Card -->
+      <!-- Privacy Card -->
       <div class="requirement-card">
         <div class="card-header">
           <div class="card-icon" style="background: var(--accent); color: #333;">
-            <span class="material-icons">account_circle</span>
+            <span class="material-icons">privacy_tip</span>
           </div>
-          <h3 class="card-title">Kelengkapan Profil</h3>
+          <h3 class="card-title">Privasi dan Anonimitas</h3>
         </div>
         <div class="card-content">
           <ul class="requirement-list">
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Lengkapi semua data pribadi dan kendaraan</span>
+              <span>Identitas pelanggan yang memberikan ulasan dirahasiakan</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Unggah foto profil yang jelas dan profesional</span>
+              <span>Driver tidak dapat melihat siapa yang memberikan ulasan tertentu</span>
             </li>
             <li class="requirement-item">
               <span class="bullet-icon material-icons">check_circle</span>
-              <span>Pastikan dokumen kendaraan masih berlaku</span>
+              <span>Data pribadi dilindungi sesuai kebijakan privasi JeGo</span>
             </li>
           </ul>
         </div>
@@ -610,31 +657,31 @@
     <div class="tips-section">
       <h2 class="section-title">
         <span class="section-title-icon material-icons">lightbulb</span>
-        Tips Tambahan
+        Tips Meningkatkan Ulasan Positif
       </h2>
       <div class="tips-grid">
         <div class="tip-item">
+          <span class="tip-icon material-icons">directions_car</span>
+          <span>Pastikan kendaraan bersih dan nyaman sebelum menjemput pelanggan</span>
+        </div>
+        <div class="tip-item">
           <span class="tip-icon material-icons">schedule</span>
-          <span>Online di jam sibuk (pagi 6-9, sore 4-7)</span>
+          <span>Tiba tepat waktu di lokasi penjemputan</span>
         </div>
         <div class="tip-item">
-          <span class="tip-icon material-icons">location_city</span>
-          <span>Fokus di area dengan permintaan tinggi</span>
+          <span class="tip-icon material-icons">chat</span>
+          <span>Komunikasikan dengan jelas mengenai rute dan estimasi waktu</span>
         </div>
         <div class="tip-item">
-          <span class="tip-icon material-icons">analytics</span>
-          <span>Manfaatkan fitur statistik untuk analisis performa</span>
-        </div>
-        <div class="tip-item">
-          <span class="tip-icon material-icons">trending_up</span>
-          <span>Terus tingkatkan kualitas layanan berdasarkan ulasan</span>
+          <span class="tip-icon material-icons">local_offer</span>
+          <span>Tawarkan bantuan dengan barang bawaan jika diperlukan</span>
         </div>
       </div>
     </div>
 
     <!-- Contact Section -->
     <div class="contact-section">
-      <h2 class="contact-title">Butuh Bantuan?</h2>
+      <h2 class="contact-title">Pertanyaan tentang Kebijakan Ulasan?</h2>
       <div class="contact-methods">
         <div class="contact-item">
           <span class="contact-icon material-icons">email</span>
@@ -653,25 +700,85 @@
     </div>
   </div>
 
+  <!-- Modal Popup -->
+  <div class="modal" id="infoModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Informasi</h3>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="modalMessage">Pesan akan ditampilkan di sini.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-primary" id="modalOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Fungsi untuk kembali ke halaman sebelumnya
+    // Fungsi untuk menampilkan popup informasi
+    function showInfoPopup(message) {
+      const modal = document.getElementById('infoModal');
+      const modalMessage = document.getElementById('modalMessage');
+      
+      modalMessage.textContent = message;
+      modal.style.display = 'flex';
+    }
+
+    // Fungsi untuk menutup popup
+    function closeInfoPopup() {
+      document.getElementById('infoModal').style.display = 'none';
+    }
+
+    // Fungsi untuk kembali ke halaman penilaianLayanan.html
+    function goBackToRating() {
+      // Cek apakah kita berada dalam aplikasi Kodular
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify({
+            action: 'navigate_to',
+            screen: 'penilaianLayanan',
+            message: 'Kembali ke halaman penilaian layanan'
+          }));
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+          // Fallback jika gagal
+          window.location.href = 'penilaianLayanan.html';
+        }
+      } else {
+        // Jika tidak dalam Kodular, redirect langsung
+        window.location.href = 'penilaianLayanan.html';
+      }
+    }
+
+    // Event listener untuk tombol back
     document.getElementById('backBtn').addEventListener('click', function() {
-      // Kirim perintah kembali ke Kodular
-      sendToKodular({
-        action: 'back_pressed',
-        screen: 'requirements_info',
-        message: 'Kembali dari halaman syarat menerima order'
-      });
+      
+      // Set timeout untuk kembali setelah popup ditutup
+      setTimeout(() => {
+        goBackToRating();
+      }, 1500);
     });
 
-    // Fungsi untuk mengirim data ke Kodular
+    // Event listener untuk modal
+    document.getElementById('closeModal').addEventListener('click', closeInfoPopup);
+    document.getElementById('modalOkBtn').addEventListener('click', closeInfoPopup);
+    
+    // Tutup modal jika klik di luar konten modal
+    document.getElementById('infoModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeInfoPopup();
+      }
+    });
+
+    // Fungsi untuk mengirim data ke Kodular (jika diperlukan)
     function sendToKodular(data) {
       console.log('Mengirim data ke Kodular:', data);
       
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
           window.AppInventor.setWebViewString(JSON.stringify(data));
-          console.log('Data berhasil dikirim ke Kodular via AppInventor');
         } catch (error) {
           console.error('Error mengirim data via AppInventor:', error);
         }
@@ -679,7 +786,6 @@
       else if (typeof window.android !== 'undefined' && window.android.receiveData) {
         try {
           window.android.receiveData(JSON.stringify(data));
-          console.log('Data berhasil dikirim ke Kodular via window.android');
         } catch (error) {
           console.error('Error mengirim data via window.android:', error);
         }
@@ -687,17 +793,23 @@
       else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
         try {
           window.webkit.messageHandlers.observe.postMessage(data);
-          console.log('Data berhasil dikirim ke Kodular via webkit.messageHandlers');
         } catch (error) {
           console.error('Error mengirim data via webkit.messageHandlers:', error);
         }
       }
-      else {
-        console.warn('Tidak ada metode yang berhasil mengirim data ke Kodular');
-        // Fallback untuk testing
-        history.back();
-      }
     }
+
+    // Inisialisasi saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Halaman Kebijakan Ulasan dimuat');
+      
+      // Kirim notifikasi ke Kodular bahwa halaman ini telah dimuat
+      sendToKodular({
+        action: 'page_loaded',
+        screen: 'kebijakan_ulasan',
+        message: 'Halaman kebijakan ulasan berhasil dimuat'
+      });
+    });
   </script>
 </body>
 </html>
