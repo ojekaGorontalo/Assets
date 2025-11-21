@@ -1299,12 +1299,14 @@
         audio.currentTime = 0;
         audio.play().catch(e => console.log('Gagal memutar suara order diterima:', e));
         
-        // Redirect ke halaman orderAccepted.html setelah 2 detik
+        // Redirect langsung ke halaman orderAccepted.html
         setTimeout(() => {
           window.location.href = 'orderAccepted.html';
         }, 2000);
       } catch (error) {
         console.error('Error memutar suara order diterima:', error);
+        // Fallback: redirect langsung jika ada error
+        window.location.href = 'orderAccepted.html';
       }
     }
 
@@ -1382,14 +1384,17 @@
     let balanceListener = null;
     let potonganPercentage = 5.1; // Default potongan
 
-    // ==================== FUNGSI NAVIGASI BOTTOM NAV ====================
+    // ==================== FUNGSI NAVIGASI BOTTOM NAV YANG DIPERBARUI ====================
     function navigateToScreen(screen) {
-      console.log(`🔄 Navigasi ke screen: ${screen}`);
+      console.log(`🔄 Navigasi langsung ke screen: ${screen}`);
       
-      // Redirect ke halaman yang sesuai
+      // Redirect langsung ke halaman HTML
       switch(screen) {
         case 'home':
-          window.location.href = 'list.html';
+          // Jika sudah di list.html, tidak perlu redirect
+          if (!window.location.href.includes('list.html')) {
+            window.location.href = 'list.html';
+          }
           break;
         case 'history':
           window.location.href = 'riwayat.html';
@@ -3011,31 +3016,32 @@
     }
 
     function sendToKodular(data) {
-      console.log('Mengirim data ke Kodular:', data);
+      console.log('🔊 Mengirim notifikasi ke Kodular:', data);
       
+      // Hanya untuk notifikasi suara dan informasi penting
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
           window.AppInventor.setWebViewString(JSON.stringify(data));
         } catch (error) {
-          console.error('Error mengirim data via AppInventor:', error);
+          console.error('Error mengirim notifikasi via AppInventor:', error);
         }
       }
       else if (typeof window.android !== 'undefined' && window.android.receiveData) {
         try {
           window.android.receiveData(JSON.stringify(data));
         } catch (error) {
-          console.error('Error mengirim data via window.android:', error);
+          console.error('Error mengirim notifikasi via window.android:', error);
         }
       }
       else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
         try {
           window.webkit.messageHandlers.observe.postMessage(data);
         } catch (error) {
-          console.error('Error mengirim data via webkit.messageHandlers:', error);
+          console.error('Error mengirim notifikasi via webkit.messageHandlers:', error);
         }
       }
       else {
-        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        console.log('🔕 Mode browser: Notifikasi Kodular tidak tersedia');
       }
     }
 
@@ -3455,6 +3461,7 @@
         ordersRef.once('value').then(snapshot => {
             const orders = snapshot.val();
             let activeOrder = null;
+            let activeOrderId = null;
 
             if (orders) {
                 Object.keys(orders).forEach(orderId => {
@@ -3466,43 +3473,40 @@
                         order.selected_driver.driver_id === currentDriverData.driverId && 
                         activeStatuses.includes(order.status)) {
                         activeOrder = order;
-                        activeOrder.orderId = orderId;
+                        activeOrderId = orderId;
                         console.log('✅ Order berjalan ditemukan:', orderId, 'Status:', order.status);
                     }
                 });
             }
 
             if (activeOrder) {
-                console.log('🎯 Driver memiliki order berjalan:', activeOrder.orderId, 'Status:', activeOrder.status);
+                console.log('🎯 Driver memiliki order berjalan:', activeOrderId, 'Status:', activeOrder.status);
                 
+                // Simpan data order yang aktif
+                activeOrder.orderId = activeOrderId;
                 saveAcceptedOrderToLocalStorage(activeOrder, activeOrder.selected_driver);
                 
+                // Kirim notifikasi ke Kodular (hanya untuk suara/info)
                 sendToKodular({
                     action: 'active_order_found',
-                    order_id: activeOrder.orderId,
-                    order_data: activeOrder,
-                    driver_data: activeOrder.selected_driver,
+                    order_id: activeOrderId,
                     order_status: activeOrder.status,
                     message: `Anda memiliki order yang sedang berjalan (Status: ${activeOrder.status}).`
                 });
 
-                startActiveOrderListener(activeOrder.orderId);
+                startActiveOrderListener(activeOrderId);
                 
+                // Tampilkan notifikasi di halaman
                 showActiveOrderNotification(activeOrder);
                 
-                // === REDIRECT OTOMATIS JIKA ADA ORDER BERJALAN ===
-const activeStatuses = ['accepted', 'on_the_way', 'arrived', 'picked_up', 'on_trip'];
-
-if (activeStatuses.includes(activeOrder.status)) {
-    console.log('➡️ Mengalihkan ke orderAccepted.html karena ada order berjalan');
-    window.location.href = 'orderAccepted.html?order=' + activeOrder.orderId;
-}
+                // REDIRECT LANGSUNG KE orderAccepted.html JIKA ADA ORDER BERJALAN
+                console.log('➡️ Mengalihkan ke orderAccepted.html karena ada order berjalan');
+                window.location.href = 'orderAccepted.html?order=' + activeOrderId;
+                
             } else {
                 console.log('❌ Tidak ada order berjalan untuk driver ini');
                 removeAcceptedOrderFromLocalStorage();
-                
                 hideActiveOrderNotification();
-                
                 stopActiveOrderListener();
             }
         }).catch(error => {
@@ -3616,13 +3620,7 @@ if (activeStatuses.includes(activeOrder.status)) {
         container.insertBefore(notification, container.firstChild);
         
         document.getElementById('viewActiveOrder').addEventListener('click', () => {
-            sendToKodular({
-                action: 'view_active_order',
-                order_id: order.orderId,
-                order_data: order,
-                driver_data: order.selected_driver,
-                order_status: order.status
-            });
+            window.location.href = 'orderAccepted.html?order=' + (order.orderId || order.id);
         });
         
         console.log('📢 Notifikasi order berjalan ditampilkan untuk status:', order.status);
