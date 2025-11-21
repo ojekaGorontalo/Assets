@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Ringkasan Pendapatan - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+      padding-bottom: 20px;
+    }
+
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    /* Date Navigation */
+    .date-navigation {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .nav-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: var(--secondary);
+    }
+
+    .current-date {
+      text-align: center;
+      flex: 1;
+    }
+
+    .date-display {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 2px;
+    }
+
+    .day-display {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Summary Cards - Diperkecil dan seragam */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      text-align: center;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .summary-card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .summary-icon {
+      font-size: 1.5rem;
+      margin-bottom: 5px;
+      color: var(--primary);
+    }
+
+    .summary-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .summary-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .summary-value.earnings {
+      color: var(--success);
+    }
+
+    .summary-value.distance {
+      color: var(--secondary);
+    }
+
+    /* Breakdown Section */
+    .breakdown-section {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .breakdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .breakdown-label {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .breakdown-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      color: #ccc;
+      margin-bottom: 15px;
+    }
+
+    /* Loading spinner */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body {
+        font-size: 0.8rem;
+      }
+      
+      .summary-grid {
+        gap: 8px;
+      }
+      
+      .summary-card {
+        padding: 10px;
+        min-height: 90px;
+      }
+      
+      .summary-value {
+        font-size: 1rem;
+      }
+      
+      .summary-icon {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="back-btn" id="backBtn">
+        <span class="material-icons">arrow_back</span>
+      </button>
+    </div>
+    <div class="header-title">Ringkasan Pendapatan</div>
+    <div style="width: 80px;"></div>
+  </div>
+
+  <!-- Container -->
+  <div class="container" id="mainContainer">
+    <!-- Loading state akan ditampilkan di sini -->
+  </div>
+
+  <script>
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
+    authDomain: "ojeka-ba255.firebaseapp.com",
+    databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+    projectId: "ojeka-ba255",
+    storageBucket: "ojeka-ba255.firebasestorage.app",
+    messagingSenderId: "639980533353",
+    appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+    measurementId: "G-PBP64Z8VQ8"
+  };
+
+  // Initialize Firebase
+  let database;
+  let isFirebaseInitialized = false;
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    isFirebaseInitialized = true;
+    console.log('Firebase berhasil diinisialisasi');
+  } catch (error) {
+    console.error('Error inisialisasi Firebase:', error);
+    isFirebaseInitialized = false;
+  }
+
+  // Variabel global
+  let currentDate = new Date();
+  let driverOrders = [];
+  let driverId = null;
+  let fareRates = {};
+
+  // ==================== FUNGSI UTAMA ====================
+
+  // Fungsi untuk memuat data dari Firebase
+  function loadEarningsData() {
+    // Cek apakah driver sudah login
+    const driverData = getDriverDataFromStorage();
+    
+    if (!driverData || !driverData.driverId) {
+      console.error('Driver belum login atau data tidak valid');
+      showErrorState('Anda belum login. Silakan login terlebih dahulu.');
+      return;
+    }
+
+    driverId = driverData.driverId;
+    console.log('Memuat data pendapatan untuk driver:', driverId);
+
+    // Tampilkan loading state
+    showLoadingState();
+
+    // Muat tarif dan data order secara paralel
+    Promise.all([
+      loadFareRates(),
+      loadDriverOrders()
+    ])
+    .then(() => {
+      console.log('Semua data berhasil dimuat');
+      displayEarningsData();
+    })
+    .catch((error) => {
+      console.error('Error memuat data:', error);
+      showErrorState('Gagal memuat data. Periksa koneksi internet Anda.');
+    });
+  }
+
+  // Fungsi untuk memuat tarif
+  function loadFareRates() {
+    return new Promise((resolve, reject) => {
+      const ratesRef = database.ref('Tarif');
+      ratesRef.once('value')
+        .then((snapshot) => {
+          fareRates = snapshot.val() || {};
+          console.log('Tarif berhasil dimuat:', fareRates);
+          resolve();
+        })
+        .catch(reject);
+    });
+  }
+
+  // Fungsi untuk memuat order driver
+  function loadDriverOrders() {
+    return new Promise((resolve, reject) => {
+      const ordersRef = database.ref('orders');
+      ordersRef.once('value')
+        .then((snapshot) => {
+          const ordersData = snapshot.val();
+          driverOrders = [];
+          
+          if (ordersData) {
+            // Konversi object menjadi array dan filter order driver ini saja
+            Object.keys(ordersData).forEach(key => {
+              const order = ordersData[key];
+              
+              // Cek apakah order ini milik driver yang sedang login
+              if (order.selected_driver && order.selected_driver.driver_id === driverId && order.status === 'completed') {
+                driverOrders.push({
+                  id: key,
+                  ...order
+                });
+              }
+            });
+            
+            console.log(`${driverOrders.length} order berhasil ditemukan`);
+            
+            // Urutkan order berdasarkan tanggal terbaru pertama (descending)
+            driverOrders.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+          } else {
+            console.log('Tidak ada data order ditemukan');
+          }
+          
+          resolve();
+        })
+        .catch(reject);
+    });
+  }
+
+  // Fungsi untuk menampilkan data di UI
+  function displayEarningsData() {
+    const container = document.getElementById('mainContainer');
+    
+    // Filter order berdasarkan tanggal yang dipilih (WITA)
+    const filteredOrders = filterOrdersByDateWITA(driverOrders, currentDate);
+    
+    if (filteredOrders.length === 0) {
+      container.innerHTML = `
+        <div class="date-navigation">
+          <button class="nav-btn" id="prevBtn">�</button>
+          <div class="current-date">
+            <div class="date-display">${formatDateDisplay(currentDate)}</div>
+            <div class="day-display">${getDayName(currentDate)}</div>
+          </div>
+          <button class="nav-btn" id="nextBtn">�</button>
+        </div>
+        
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <span class="material-icons">receipt_long</span>
+          </div>
+          <h3>Tidak Ada Data</h3>
+          <p>Tidak ada order yang diselesaikan pada tanggal ini.</p>
+        </div>
+      `;
+      
+      initButtons();
+      updateNavButtons();
+      return;
+    }
+
+    // Hitung statistik
+    const stats = calculateStats(filteredOrders);
+    
+    let html = `
+      <div class="date-navigation">
+        <button class="nav-btn" id="prevBtn">�</button>
+        <div class="current-date">
+          <div class="date-display">${formatDateDisplay(currentDate)}</div>
+          <div class="day-display">${getDayName(currentDate)}</div>
+        </div>
+        <button class="nav-btn" id="nextBtn">�</button>
+      </div>
+      
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-icon">
+            <span class="material-icons">local_shipping</span>
+          </div>
+          <div class="summary-label">Total Order</div>
+          <div class="summary-value">${stats.totalOrders}</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-icon">
+            <span class="material-icons">distance</span>
+          </div>
+          <div class="summary-label">Total Jarak</div>
+          <div class="summary-value distance">${stats.totalDistance} km</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-icon">
+            <span class="material-icons">speed</span>
+          </div>
+          <div class="summary-label">Rata-rata per KM</div>
+          <div class="summary-value">Rp ${stats.averagePerKm.toLocaleString('id-ID')}</div>
+        </div>
+        
+        <div class="summary-card">
+          <div class="summary-icon">
+            <span class="material-icons">payments</span>
+          </div>
+          <div class="summary-label">Pendapatan Kotor</div>
+          <div class="summary-value earnings">Rp ${stats.grossEarnings.toLocaleString('id-ID')}</div>
+        </div>
+      </div>
+      
+      <div class="breakdown-section">
+        <div class="section-title">Rincian Order</div>
+        <div class="breakdown-list">
+    `;
+    
+    // Tambahkan setiap order dalam breakdown
+    filteredOrders.forEach(order => {
+      const orderTime = formatTimeWITA(new Date(order.completed_at));
+      const distance = parseFloat(order.jarak_km.replace(',', '.')) || 0;
+      const earnings = order.harga_total || 0;
+      const perKm = distance > 0 ? Math.round(earnings / distance) : 0;
+      
+      html += `
+        <div class="breakdown-item">
+          <div class="breakdown-label">
+            <div>${orderTime} � ${order.vehicle_name || 'Kendaraan'}</div>
+            <div style="font-size: 0.75rem; color: #999;">${distance.toFixed(1)} km</div>
+          </div>
+          <div class="breakdown-value">Rp ${earnings.toLocaleString('id-ID')}</div>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Inisialisasi tombol setelah UI ditampilkan
+    initButtons();
+    updateNavButtons();
+  }
+
+  // ==================== FUNGSI BANTUAN ====================
+
+  // Fungsi untuk mendapatkan data driver dari localStorage
+  function getDriverDataFromStorage() {
+    try {
+      return JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
+    } catch (error) {
+      console.error('Error parsing driver data from storage:', error);
+      return {};
+    }
+  }
+
+  // Fungsi untuk memfilter order berdasarkan tanggal (WITA) - SAMA DENGAN AKUN.HTML
+  function filterOrdersByDateWITA(orders, date) {
+    // Dapatkan tanggal WITA dari date parameter
+    const dateWITA = new Date(date.getTime() + (8 * 60 * 60 * 1000)); // Convert ke WITA (UTC+8)
+    const dateStringWITA = dateWITA.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    console.log('Filtering orders for WITA date:', {
+        selectedDate: dateStringWITA,
+        totalOrders: orders.length
+    });
+
+    return orders.filter(order => {
+        if (!order.completed_at) {
+            return false;
+        }
+        
+        try {
+            // Convert order date ke WITA dan ambil tanggalnya
+            const orderDate = new Date(order.completed_at);
+            const orderDateWITA = new Date(orderDate.getTime() + (8 * 60 * 60 * 1000));
+            const orderDateStringWITA = orderDateWITA.toISOString().split('T')[0];
+            
+            const isSameDate = orderDateStringWITA === dateStringWITA;
+            
+            if (isSameDate) {
+                console.log('Order included:', {
+                    order_id: order.order_id,
+                    completed_at: order.completed_at,
+                    order_date_wita: orderDateStringWITA,
+                    harga_total: order.harga_total
+                });
+            }
+            
+            return isSameDate;
+        } catch (error) {
+            console.error('Error parsing order date:', error, order);
+            return false;
+        }
+    });
+  }
+
+  // Fungsi untuk menghitung statistik
+  function calculateStats(orders) {
+    let totalOrders = orders.length;
+    let totalDistance = 0;
+    let grossEarnings = 0;
+    
+    orders.forEach(order => {
+      // Parse jarak (handle format "2,2 km" atau "2.17")
+      const distanceStr = order.jarak_km || '0';
+      const distance = parseFloat(distanceStr.replace(',', '.')) || 0;
+      totalDistance += distance;
+      
+      // Pendapatan
+      const earnings = order.harga_total || 0;
+      grossEarnings += earnings;
+    });
+    
+    const averagePerKm = totalDistance > 0 ? Math.round(grossEarnings / totalDistance) : 0;
+    
+    return {
+      totalOrders,
+      totalDistance: totalDistance.toFixed(1),
+      grossEarnings,
+      averagePerKm
+    };
+  }
+
+  // Fungsi untuk memformat tanggal tampilan
+  function formatDateDisplay(date) {
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
+  // Fungsi untuk mendapatkan nama hari
+  function getDayName(date) {
+    return date.toLocaleDateString('id-ID', { weekday: 'long' });
+  }
+
+  // Fungsi untuk memformat waktu dalam WITA
+  function formatTimeWITA(date) {
+    // Convert ke WITA (UTC+8)
+    const dateWITA = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+    
+    return dateWITA.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC' // Karena sudah di-convert manual ke WITA
+    });
+  }
+
+  // ==================== FUNGSI NAVIGASI TANGGAL ====================
+
+  // Fungsi untuk pindah ke tanggal sebelumnya
+  function goToPreviousDay() {
+    currentDate.setDate(currentDate.getDate() - 1);
+    displayEarningsData();
+  }
+
+  // Fungsi untuk pindah ke tanggal berikutnya (WITA)
+  function goToNextDay() {
+    const tomorrow = new Date(currentDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Cek apakah tanggal berikutnya adalah hari ini atau masa depan (dalam WITA)
+    const todayWITA = new Date();
+    todayWITA.setHours(0, 0, 0, 0);
+    
+    // Convert ke WITA untuk perbandingan
+    const tomorrowWITA = new Date(tomorrow.getTime() + (8 * 60 * 60 * 1000));
+    const todayWITAForCompare = new Date(todayWITA.getTime() + (8 * 60 * 60 * 1000));
+    
+    if (tomorrowWITA <= todayWITAForCompare) {
+      currentDate = tomorrow;
+      displayEarningsData();
+    }
+  }
+
+  // Fungsi untuk memperbarui status tombol navigasi (WITA)
+  function updateNavButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    if (prevBtn && nextBtn) {
+      // Tombol sebelumnya selalu aktif
+      prevBtn.disabled = false;
+      
+      // Tombol berikutnya dinonaktifkan jika sudah mencapai hari ini (WITA)
+      const tomorrow = new Date(currentDate);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const todayWITA = new Date();
+      todayWITA.setHours(0, 0, 0, 0);
+      
+      // Convert ke WITA untuk perbandingan
+      const tomorrowWITA = new Date(tomorrow.getTime() + (8 * 60 * 60 * 1000));
+      const todayWITAForCompare = new Date(todayWITA.getTime() + (8 * 60 * 60 * 1000));
+      
+      nextBtn.disabled = tomorrowWITA > todayWITAForCompare;
+    }
+  }
+
+  // ==================== FUNGSI UI STATES ====================
+
+  // Fungsi untuk menampilkan state loading
+  function showLoadingState() {
+    const container = document.getElementById('mainContainer');
+    container.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <div style="margin-left: 15px;">Memuat data pendapatan...</div>
+      </div>
+    `;
+  }
+
+  // Fungsi untuk menampilkan state error
+  function showErrorState(message) {
+    const container = document.getElementById('mainContainer');
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <div style="color: var(--danger); margin: 10px 0;">${message}</div>
+        <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
+        <button class="nav-btn" id="retryBtn" style="margin-top: 15px; width: auto; padding: 0 20px;">
+          Coba Lagi
+        </button>
+      </div>
+    `;
+    
+    const retryBtn = document.getElementById('retryBtn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function () {
+        loadEarningsData();
+      });
+    }
+  }
+
+  // ==================== FUNGSI INISIALISASI TOMBOL ====================
+
+  // Fungsi untuk menginisialisasi semua event listener tombol
+  function initButtons() {
+    console.log('Menginisialisasi tombol...');
+    
+    // Event listeners untuk tombol utama
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', goBack);
+    }
+
+    // Event listeners untuk navigasi tanggal
+    const prevBtn = document.getElementById('prevBtn');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', goToPreviousDay);
+    }
+
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', goToNextDay);
+    }
+    
+    console.log('Semua tombol berhasil diinisialisasi');
+  }
+
+  // ==================== NAVIGATION FUNCTIONS ====================
+
+  // Fungsi untuk kembali ke halaman sebelumnya
+  function goBack() {
+    sendToKodular({
+      action: 'back_pressed',
+      screen: 'earnings',
+      message: 'Kembali dari halaman pendapatan'
+    });
+  }
+
+  // Fungsi untuk mengirim data ke Kodular
+  function sendToKodular(data) {
+    console.log('Mengirim data ke Kodular:', data);
+    
+    if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+      try {
+        window.AppInventor.setWebViewString(JSON.stringify(data));
+        console.log('Data berhasil dikirim ke Kodular via AppInventor');
+      } catch (error) {
+        console.error('Error mengirim data via AppInventor:', error);
+      }
+    }
+    else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+      try {
+        window.android.receiveData(JSON.stringify(data));
+        console.log('Data berhasil dikirim ke Kodular via window.android');
+      } catch (error) {
+        console.error('Error mengirim data via window.android:', error);
+      }
+    }
+    else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+      try {
+        window.webkit.messageHandlers.observe.postMessage(data);
+        console.log('Data berhasil dikirim ke Kodular via webkit.messageHandlers');
+      } catch (error) {
+        console.error('Error mengirim data via webkit.messageHandlers:', error);
+      }
+    }
+    else {
+      console.warn('Tidak ada metode yang berhasil mengirim data ke Kodular');
+      // Fallback untuk testing
+      alert('Aksi: ' + JSON.stringify(data));
+    }
+  }
+
+  // ==================== INISIALISASI APLIKASI ====================
+
+  // Inisialisasi saat halaman dimuat
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('Halaman Ringkasan Pendapatan dimuat');
+    
+    // Set tanggal awal ke hari ini (WITA)
+    currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    // Muat data pendapatan
+    loadEarningsData();
+  });
+
+  // Handle visibility change (tab menjadi aktif kembali)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      console.log('Halaman menjadi aktif, memuat ulang data...');
+      loadEarningsData();
+    }
+  });
+  </script>
+</body>
+</html>
