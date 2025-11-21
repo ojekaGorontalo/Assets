@@ -10,10 +10,6 @@
     th, td { border: 1px solid #ccc; padding: 10px; font-size: 14px; }
     th { background: #f2f2f2; }
 </style>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -41,134 +37,48 @@
 </table>
 
 <script>
-// Firebase configuration
-const firebaseConfig = {
-    databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com/"
-};
+const url = "https://ojeka-ba255-default-rtdb.firebaseio.com/orders.json";
 
-// Initialize Firebase
-try {
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    
-    console.log("Firebase initialized successfully");
-    
-    // Function untuk menampilkan data order
-    function displayOrders(orders) {
-        const tbody = document.getElementById("orderTable");
-        tbody.innerHTML = ''; // Clear existing data
+fetch(url)
+  .then(res => res.json())
+  .then(data => {
+      const tbody = document.getElementById("orderTable");
 
-        Object.values(orders).forEach(order => {
-            const row = document.createElement("tr");
+      Object.values(data).forEach(order => {
+          const row = document.createElement("tr");
 
-            // Format tanggal
-            const orderDate = new Date(order.created_at);
-            const formattedDate = orderDate.toLocaleString('id-ID');
+          // Format tanggal
+          const orderDate = new Date(order.created_at);
+          const formattedDate = orderDate.toLocaleString('id-ID');
 
-            row.innerHTML = `
-                <td>${order.order_id || "-"}</td>
-                <td>${order.user_data?.nama || "-"}</td>
-                <td>${order.user_data?.telepon || "-"}</td>
-                <td>${order.alamat_a || "-"}</td>
-                <td>${order.alamat_b || "-"}</td>
-                <td>${order.selected_driver?.name || "-"}</td>
-                <td>${order.vehicle_name || "-"}</td>
-                <td>${order.jarak || "-"}</td>
-                <td>${order.durasi || "-"}</td>
-                <td>${order.harga_total || "-"}</td>
-                <td>${order.status || "-"}</td>
-                <td>${formattedDate}</td>
-            `;
-            tbody.appendChild(row);
-        });
+          row.innerHTML = `
+              <td>${order.order_id}</td>
+              <td>${order.user_data?.nama || "-"}</td>
+              <td>${order.user_data?.telepon || "-"}</td>
+              <td>${order.alamat_a}</td>
+              <td>${order.alamat_b}</td>
+              <td>${order.selected_driver?.name || "-"}</td>
+              <td>${order.vehicle_name || "-"}</td>
+              <td>${order.jarak || "-"}</td>
+              <td>${order.durasi || "-"}</td>
+              <td>${order.harga_total}</td>
+              <td>${order.status}</td>
+              <td>${formattedDate}</td>
+          `;
+          tbody.appendChild(row);
+      });
 
-        // Setup search functionality
-        setupSearch();
-    }
+      // fitur pencarian
+      document.getElementById("searchInput").addEventListener("keyup", function () {
+          const value = this.value.toLowerCase();
+          const rows = tbody.getElementsByTagName("tr");
 
-    // Function untuk setup pencarian
-    function setupSearch() {
-        const tbody = document.getElementById("orderTable");
-        const searchInput = document.getElementById("searchInput");
-        
-        // Hapus event listener lama jika ada
-        searchInput.replaceWith(searchInput.cloneNode(true));
-        
-        document.getElementById("searchInput").addEventListener("keyup", function () {
-            const value = this.value.toLowerCase();
-            const rows = tbody.getElementsByTagName("tr");
-
-            for (let i = 0; i < rows.length; i++) {
-                let rowText = rows[i].innerText.toLowerCase();
-                rows[i].style.display = rowText.includes(value) ? "" : "none";
-            }
-        });
-    }
-
-    // Listen untuk perubahan data real-time
-    database.ref('orders').on('value', (snapshot) => {
-        const orders = snapshot.val();
-        if (orders) {
-            displayOrders(orders);
-            console.log('Data updated automatically!');
-        } else {
-            document.getElementById("orderTable").innerHTML = '<tr><td colspan="12" style="text-align: center;">Tidak ada data order</td></tr>';
-        }
-    });
-
-} catch (error) {
-    console.error("Firebase error:", error);
-    
-    // Fallback: menggunakan fetch biasa dengan polling
-    console.log('Using fetch with polling instead');
-    
-    function loadOrders() {
-        fetch("https://ojeka-ba255-default-rtdb.firebaseio.com/orders.json")
-            .then(res => res.json())
-            .then(data => {
-                if (data) {
-                    const tbody = document.getElementById("orderTable");
-                    tbody.innerHTML = '';
-
-                    Object.values(data).forEach(order => {
-                        const row = document.createElement("tr");
-                        const orderDate = new Date(order.created_at);
-                        const formattedDate = orderDate.toLocaleString('id-ID');
-
-                        row.innerHTML = `
-                            <td>${order.order_id || "-"}</td>
-                            <td>${order.user_data?.nama || "-"}</td>
-                            <td>${order.user_data?.telepon || "-"}</td>
-                            <td>${order.alamat_a || "-"}</td>
-                            <td>${order.alamat_b || "-"}</td>
-                            <td>${order.selected_driver?.name || "-"}</td>
-                            <td>${order.vehicle_name || "-"}</td>
-                            <td>${order.jarak || "-"}</td>
-                            <td>${order.durasi || "-"}</td>
-                            <td>${order.harga_total || "-"}</td>
-                            <td>${order.status || "-"}</td>
-                            <td>${formattedDate}</td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                    
-                    setupSearch();
-                } else {
-                    document.getElementById("orderTable").innerHTML = '<tr><td colspan="12" style="text-align: center;">Tidak ada data order</td></tr>';
-                }
-            })
-            .catch(err => {
-                console.error('Fetch error:', err);
-                document.getElementById("orderTable").innerHTML = '<tr><td colspan="12" style="text-align: center;">Error loading data</td></tr>';
-            });
-    }
-    
-    // Load data pertama kali
-    loadOrders();
-    
-    // Polling setiap 3 detik
-    setInterval(loadOrders, 3000);
-}
+          for (let i = 0; i < rows.length; i++) {
+              let rowText = rows[i].innerText.toLowerCase();
+              rows[i].style.display = rowText.includes(value) ? "" : "none";
+          }
+      });
+  });
 </script>
 
 </body>
