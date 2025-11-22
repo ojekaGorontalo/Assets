@@ -264,6 +264,12 @@
       box-shadow: 0 4px 12px rgba(40, 150, 114, 0.3);
     }
 
+    .contact-btn {
+      background: linear-gradient(to right, #25D366, #128C7E);
+      color: white;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    }
+
     .cancel-btn {
       background: linear-gradient(to right, var(--danger), #e74c3c);
       color: white;
@@ -572,6 +578,77 @@
       background: var(--secondary);
     }
 
+    /* Modal Status Update */
+    .status-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .status-modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      animation: modalAppear 0.3s ease-out;
+    }
+
+    .status-modal-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+    }
+
+    .status-modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--dark);
+    }
+
+    .status-modal-message {
+      font-size: 0.95rem;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .status-modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .status-modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+      min-width: 100px;
+    }
+
+    .btn-understood {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-understood:hover {
+      background: var(--secondary);
+    }
+
     @media (max-width: 480px) {
       body {
         padding: 8px;
@@ -603,12 +680,20 @@
         margin-bottom: 8px;
       }
       
-      .rating-modal-content, .confirmation-modal-content, .info-modal-content {
+      .rating-modal-content, .confirmation-modal-content, .info-modal-content, .status-modal-content {
         padding: 18px;
       }
       
       .rating-stars {
         font-size: 1.8rem;
+      }
+      
+      .status-modal-icon {
+        font-size: 2.5rem;
+      }
+      
+      .status-modal-title {
+        font-size: 1.1rem;
       }
     }
   </style>
@@ -710,12 +795,27 @@
       </div>
 
       <div class="actions-section" id="actionsSection">
+        <button class="action-btn contact-btn" onclick="contactDriver()">
+          <span>📞</span> Hubungi Driver
+        </button>
         <button class="action-btn chat-btn" onclick="chatDriver()">
           <span>💬</span> Chat Driver
         </button>
         <button class="action-btn cancel-btn" onclick="cancelTrip()">
           <span>✖</span> Batalkan Perjalanan
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Status Update -->
+  <div id="statusModal" class="status-modal">
+    <div class="status-modal-content">
+      <div class="status-modal-icon" id="statusModalIcon">🚗</div>
+      <div class="status-modal-title" id="statusModalTitle">Status Diperbarui</div>
+      <div class="status-modal-message" id="statusModalMessage">Status perjalanan Anda telah diperbarui.</div>
+      <div class="status-modal-buttons">
+        <button class="status-modal-btn btn-understood" onclick="closeStatusModal()">Mengerti</button>
       </div>
     </div>
   </div>
@@ -807,6 +907,32 @@
     let confirmCallback = null;
     let currentAction = '';
 
+    // Variabel untuk tracking status sebelumnya
+    let previousStatus = null;
+
+    // ==================== FUNGSI MODAL STATUS ====================
+
+    // Fungsi untuk menampilkan modal status update
+    function showStatusModal(title, message, icon = '🚗') {
+      document.getElementById('statusModalTitle').textContent = title;
+      document.getElementById('statusModalMessage').textContent = message;
+      document.getElementById('statusModalIcon').textContent = icon;
+      
+      const modal = document.getElementById('statusModal');
+      modal.style.display = 'flex';
+      
+      // Auto-close modal setelah 5 detik
+      setTimeout(() => {
+        closeStatusModal();
+      }, 5000);
+    }
+
+    // Fungsi untuk menutup modal status
+    function closeStatusModal() {
+      const modal = document.getElementById('statusModal');
+      modal.style.display = 'none';
+    }
+
     // ==================== FUNGSI MODAL BARU ====================
 
     // Fungsi untuk menampilkan modal konfirmasi
@@ -889,6 +1015,52 @@
         }
         
         return false;
+    }
+
+    // ==================== FUNGSI CHAT YANG DIPERBAIKI ====================
+
+    // Fungsi untuk membuka chat dengan driver
+    function chatDriver() {
+      if (!driverData) {
+        showInfoModal('Peringatan', 'Data driver tidak tersedia');
+        return;
+      }
+      
+      // Simpan data chat untuk reload yang lebih baik
+      localStorage.setItem('jego_chat_data', JSON.stringify({
+        order_id: orderId,
+        driver_data: driverData,
+        user_data: userData,
+        timestamp: Date.now()
+      }));
+      
+      const chatData = {
+        action: 'open_chat',
+        driver: driverData,
+        user: userData,
+        order_id: orderId,
+        role: 'customer',
+        sender_id: userData?.id || 'unknown',
+        force_reload: true // Flag untuk memaksa reload chat
+      };
+      
+      sendToKodular(chatData);
+    }
+
+    // Fungsi untuk menghubungi driver (telepon)
+    function contactDriver() {
+      if (!driverData) {
+        showInfoModal('Peringatan', 'Data driver tidak tersedia');
+        return;
+      }
+      
+      const contactData = {
+        action: 'contact_driver',
+        driver: driverData,
+        order_id: orderId
+      };
+      
+      sendToKodular(contactData);
     }
 
     // ==================== FUNGSI RATING YANG DIPERBAIKI ====================
@@ -1185,6 +1357,21 @@
       return statusMessages[status] || 'Status diperbarui';
     }
 
+    // Fungsi untuk mendapatkan icon status - FUNGSI BARU
+    function getStatusIcon(status) {
+      const statusIcons = {
+        'accepted': '✅',
+        'on_the_way': '🚗',
+        'arrived': '📍',
+        'on_trip': '📦',
+        'completed': '🏁',
+        'cancelled': '❌',
+        'waiting': '⏳'
+      };
+      
+      return statusIcons[status] || '🔄';
+    }
+
     // Fungsi untuk listen update order dari Firebase - DIMODIFIKASI
     function listenToOrderUpdates(orderId) {
       if (orderRef && orderUpdateHandler) {
@@ -1278,6 +1465,18 @@
         timestamp: new Date().toISOString()
       });
       
+      // ========== TAMPILKAN POPUP UNTUK PERUBAHAN STATUS ==========
+      if (previousStatus && previousStatus !== status) {
+        showStatusModal(
+          `Status Diperbarui: ${getStatusTitle(status)}`,
+          getStatusMessage(status),
+          getStatusIcon(status)
+        );
+      }
+      
+      // Simpan status saat ini untuk perbandingan selanjutnya
+      previousStatus = status;
+      
       switch(status) {
         case 'accepted':
           statusBadge.textContent = 'Order Diterima';
@@ -1344,6 +1543,11 @@
               showRatingModal();
             }, 1000);
           }
+          
+          // Kembali ke halaman rute setelah 3 detik
+          setTimeout(() => {
+            goToRoutePage();
+          }, 3000);
           break;
           
         case 'cancelled':
@@ -1363,6 +1567,11 @@
             message: 'Perjalanan telah dibatalkan',
             timestamp: new Date().toISOString()
           });
+          
+          // Kembali ke halaman rute setelah 3 detik
+          setTimeout(() => {
+            goToRoutePage();
+          }, 3000);
           break;
           
         default:
@@ -1385,6 +1594,46 @@
       }
       
       console.log(`🔄 Status diperbarui: ${status}`);
+    }
+
+    // Fungsi untuk mendapatkan judul status - FUNGSI BARU
+    function getStatusTitle(status) {
+      const statusTitles = {
+        'accepted': 'Order Diterima',
+        'on_the_way': 'Menuju Lokasi',
+        'arrived': 'Driver Tiba',
+        'on_trip': 'Perjalanan Dimulai',
+        'completed': 'Perjalanan Selesai',
+        'cancelled': 'Perjalanan Dibatalkan',
+        'waiting': 'Menunggu Konfirmasi'
+      };
+      
+      return statusTitles[status] || 'Status Diperbarui';
+    }
+
+    // Fungsi untuk kembali ke halaman rute - FUNGSI BARU
+    function goToRoutePage() {
+      // Hentikan listener Firebase sebelum kembali
+      if (orderRef && orderUpdateHandler) {
+        orderRef.off('value', orderUpdateHandler);
+      }
+      
+      // Hentikan timeout jika masih berjalan
+      if (dataTimeout) {
+        clearTimeout(dataTimeout);
+        dataTimeout = null;
+      }
+      
+      // Hapus data order aktif dari localStorage
+      localStorage.removeItem('jego_active_order');
+      
+      const routeData = {
+        action: 'go_to_route_page',
+        order_id: orderId,
+        message: 'Kembali ke halaman rute'
+      };
+      
+      sendToKodular(routeData);
     }
 
     // Fungsi untuk update data driver
@@ -1551,21 +1800,6 @@
     }
 
     // Fungsi untuk tombol aksi
-    function chatDriver() {
-      if (!driverData) {
-        showInfoModal('Peringatan', 'Data driver tidak tersedia');
-        return;
-      }
-      
-      const chatData = {
-        action: 'chat_driver',
-        driver: driverData,
-        order_id: orderId
-      };
-      
-      sendToKodular(chatData);
-    }
-
     function cancelTrip() {
       showConfirmationModal(
         'Konfirmasi Pembatalan', 
@@ -1601,9 +1835,9 @@
       
       showInfoModal('Informasi', 'Perjalanan dibatalkan');
       
-      // Kembali ke halaman sebelumnya setelah beberapa detik
+      // Kembali ke halaman rute setelah beberapa detik
       setTimeout(() => {
-        goBack();
+        goToRoutePage();
       }, 1500);
     }
 
@@ -1686,6 +1920,13 @@
     // ==================== INISIALISASI YANG DIPERBAIKI ====================
 
     window.onload = function() {
+      // Setup event listener untuk modal status
+      document.getElementById('statusModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeStatusModal();
+        }
+      });
+      
       // Setup event listener untuk modal rating (klik di luar modal untuk menutup)
       document.getElementById('ratingModal').addEventListener('click', function(e) {
         if (e.target === this) {
