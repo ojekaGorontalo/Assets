@@ -1061,8 +1061,8 @@
         }
       });
       
-      // Muat pesan yang sudah ada
-      loadExistingMessages();
+      // Tidak perlu memuat pesan yang sudah ada di sini
+      // Pesan akan dimuat saat chat dibuka
     }
 
     function loadExistingMessages() {
@@ -1070,14 +1070,17 @@
       
       chatRef.once('value').then((snapshot) => {
         const messages = snapshot.val();
-        if (!messages) return;
         
-        // Reset unread count saat memuat ulang
-        unreadMessages = 0;
-        updateChatBadge();
+        // Kosongkan chat messages terlebih dahulu
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.innerHTML = '';
         
-        // Kosongkan chat messages
-        document.getElementById('chatMessages').innerHTML = '';
+        if (!messages) {
+          console.log('💬 Tidak ada pesan sebelumnya');
+          return;
+        }
+        
+        console.log('💬 Memuat pesan yang sudah ada:', Object.keys(messages).length + ' pesan');
         
         // Tampilkan semua pesan
         Object.keys(messages).forEach(key => {
@@ -1086,6 +1089,8 @@
         
         // Scroll ke bawah
         scrollChatToBottom();
+      }).catch((error) => {
+        console.error('❌ Gagal memuat pesan:', error);
       });
     }
 
@@ -1184,6 +1189,9 @@
       // Setup UI chat
       setupChatUI();
       
+      // ⭐⭐ PERBAIKAN: Muat ulang pesan setiap kali chat dibuka ⭐⭐
+      loadExistingMessages();
+      
       // Tampilkan overlay chat
       document.getElementById('chatOverlay').style.display = 'flex';
       
@@ -1191,11 +1199,17 @@
       setTimeout(() => {
         document.getElementById('chatInput').focus();
       }, 300);
+      
+      // Tutup notifikasi jika terbuka
+      document.getElementById('chatNotification').style.display = 'none';
+      
+      console.log('💬 Chat dibuka, memuat pesan...');
     }
 
     function closeChat() {
       chatOpen = false;
       document.getElementById('chatOverlay').style.display = 'none';
+      console.log('💬 Chat ditutup');
     }
 
     function setupChatUI() {
