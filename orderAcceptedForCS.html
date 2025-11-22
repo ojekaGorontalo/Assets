@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Driver Details - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--dark);
+      min-height: 100vh;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .status-section {
+      background: var(--primary);
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+    }
+
+    .status-badge {
+      background: var(--accent);
+      color: var(--dark);
+      padding: 6px 15px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .driver-section {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .driver-profile {
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .driver-photo-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .driver-photo {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--secondary);
+    }
+
+    .driver-plate {
+      background: var(--accent);
+      color: var(--dark);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.7rem;
+      margin-top: 5px;
+      text-align: center;
+    }
+
+    .driver-info {
+      flex: 1;
+    }
+
+    .driver-name {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    .driver-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+    }
+
+    .stars {
+      color: var(--accent);
+    }
+
+    .rating-value {
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .driver-vehicle {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .route-section {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .route-details {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .route-point {
+      display: flex;
+      gap: 10px;
+    }
+
+    .route-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+    }
+
+    .pickup-icon {
+      background: var(--success);
+      color: white;
+    }
+
+    .destination-icon {
+      background: var(--primary);
+      color: white;
+    }
+
+    .route-text {
+      flex: 1;
+    }
+
+    .route-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .route-address {
+      font-weight: 500;
+      color: var(--dark);
+      font-size: 0.8rem;
+    }
+
+    .info-section {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .info-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      text-align: center;
+      padding: 0 5px;
+    }
+
+    .info-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.8rem;
+    }
+
+    .price-highlight {
+      color: var(--success);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .actions-section {
+      padding: 15px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-btn {
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .chat-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: 0 4px 12px rgba(40, 150, 114, 0.3);
+    }
+
+    .cancel-btn {
+      background: linear-gradient(to right, var(--danger), #e74c3c);
+      color: white;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .completed-badge {
+      background: var(--success);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .completed-badge:hover {
+      background: #218838;
+      transform: scale(1.05);
+    }
+
+    .driver-arrival {
+      background: rgba(40, 150, 114, 0.1);
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arrival-icon {
+      width: 35px;
+      height: 35px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .arrival-text {
+      flex: 1;
+    }
+
+    .arrival-title {
+      font-weight: 600;
+      color: var(--success);
+      margin-bottom: 2px;
+      font-size: 0.85rem;
+    }
+
+    .arrival-subtitle {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(40, 150, 114, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--secondary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    .error-message {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      text-align: center;
+      color: var(--danger);
+    }
+
+    .error-icon {
+      font-size: 40px;
+      margin-bottom: 15px;
+    }
+
+    .retry-btn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Modal Rating Styles */
+    .rating-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .rating-modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .rating-stars {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 15px 0;
+      font-size: 2rem;
+    }
+
+    .rating-star {
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #ddd;
+      user-select: none;
+    }
+
+    .rating-star:hover {
+      transform: scale(1.2);
+    }
+
+    .rating-star.active {
+      color: #FFD700;
+    }
+
+    .rating-comment {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 70px;
+      font-size: 0.85rem;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+
+    .modal-cancel {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .modal-cancel:hover {
+      background: #dee2e6;
+    }
+
+    .modal-submit {
+      background: var(--primary);
+      color: white;
+    }
+
+    .modal-submit:hover {
+      background: var(--secondary);
+    }
+
+    .modal-submit:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+
+    /* Modal Konfirmasi dan Informasi */
+    .confirmation-modal, .info-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .confirmation-modal-content, .info-modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      animation: modalAppear 0.3s ease-out;
+    }
+
+    .confirmation-title, .info-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--dark);
+    }
+
+    .confirmation-message, .info-message {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .confirmation-buttons, .info-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .confirmation-btn, .info-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+      min-width: 80px;
+    }
+
+    .btn-cancel {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .btn-cancel:hover {
+      background: #dee2e6;
+    }
+
+    .btn-confirm {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-confirm:hover {
+      background: #c82333;
+    }
+
+    .btn-ok {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-ok:hover {
+      background: var(--secondary);
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 8px;
+      }
+      
+      .container {
+        border-radius: 12px;
+      }
+      
+      .status-section, .driver-section, .route-section, .info-section, .actions-section {
+        padding: 15px;
+      }
+      
+      .driver-profile {
+        gap: 12px;
+      }
+      
+      .driver-photo {
+        width: 60px;
+        height: 60px;
+      }
+      
+      .info-row {
+        flex-wrap: wrap;
+      }
+      
+      .info-item {
+        min-width: 50%;
+        margin-bottom: 8px;
+      }
+      
+      .rating-modal-content, .confirmation-modal-content, .info-modal-content {
+        padding: 18px;
+      }
+      
+      .rating-stars {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Status Section (menggantikan header) -->
+    <div class="status-section">
+      <div class="status-badge" id="statusBadge" style="display: none;">Menuju Lokasi</div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Memuat data driver...</p>
+    </div>
+
+    <div id="error" class="error-message" style="display: none;">
+      <div class="error-icon">⚠️</div>
+      <h3>Data Tidak Tersedia</h3>
+      <p>Data driver tidak ditemukan. Silakan coba lagi atau pesan driver baru.</p>
+      <button class="retry-btn" onclick="goBack()">Kembali</button>
+    </div>
+
+    <div id="content" style="display: none;">
+      <div class="driver-section">
+        <div class="driver-profile">
+          <div class="driver-photo-container">
+            <img id="driverPhoto" src="" alt="Driver Photo" class="driver-photo">
+            <div class="driver-plate" id="driverPlate">-</div>
+          </div>
+          <div class="driver-info">
+            <div class="driver-name" id="driverName">-</div>
+            <div class="driver-rating">
+              <div class="stars">★★★★★</div>
+              <div class="rating-value" id="driverRating">4.9</div>
+            </div>
+            <div class="driver-vehicle">
+              <span id="driverVehicleBrand">-</span> • <span id="driverVehicleType">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="driver-arrival">
+          <div class="arrival-icon">🚗</div>
+          <div class="arrival-text">
+            <div class="arrival-title" id="arrivalTitle">Order Diterima</div>
+            <div class="arrival-subtitle" id="arrivalSubtitle">Driver sedang menuju lokasi penjemputan.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="route-section">
+        <div class="section-title">Detail Perjalanan</div>
+        <div class="route-details">
+          <div class="route-point">
+            <div class="route-icon pickup-icon">A</div>
+            <div class="route-text">
+              <div class="route-label">Penjemputan</div>
+              <div class="route-address" id="pickupAddress">-</div>
+            </div>
+          </div>
+          <div class="route-point">
+            <div class="route-icon destination-icon">B</div>
+            <div class="route-text">
+              <div class="route-label">Tujuan</div>
+              <div class="route-address" id="destinationAddress">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="section-title">Informasi Perjalanan</div>
+        <div class="info-grid">
+          <!-- Baris 1: Jenis Layanan | Kapasitas | Durasi -->
+          <div class="info-row">
+            <div class="info-item">
+              <div class="info-label">Jenis Layanan</div>
+              <div class="info-value" id="serviceType">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Kapasitas</div>
+              <div class="info-value" id="serviceCapacity">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Durasi</div>
+              <div class="info-value" id="tripDuration">-</div>
+            </div>
+          </div>
+          
+          <!-- Baris 2: Biaya saja -->
+          <div class="info-row">
+            <div class="info-item">
+              <div class="info-label">Biaya</div>
+              <div class="info-value"><span class="price-highlight" id="tripPrice">-</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-section" id="actionsSection">
+        <button class="action-btn chat-btn" onclick="chatDriver()">
+          <span>💬</span> Chat Driver
+        </button>
+        <button class="action-btn cancel-btn" onclick="cancelTrip()">
+          <span>✖</span> Batalkan Perjalanan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Rating -->
+  <div id="ratingModal" class="rating-modal">
+    <div class="rating-modal-content">
+      <h2>Beri Rating Driver</h2>
+      <p>Bagaimana pengalaman perjalanan Anda?</p>
+      
+      <div class="rating-stars" id="ratingStars">
+        <span class="rating-star" data-rating="1">☆</span>
+        <span class="rating-star" data-rating="2">☆</span>
+        <span class="rating-star" data-rating="3">☆</span>
+        <span class="rating-star" data-rating="4">☆</span>
+        <span class="rating-star" data-rating="5">☆</span>
+      </div>
+      
+      <textarea 
+        class="rating-comment" 
+        id="ratingComment" 
+        placeholder="Tambahkan komentar (opsional)..."
+      ></textarea>
+      
+      <div class="modal-buttons">
+        <button class="modal-btn modal-cancel" onclick="closeRatingModal()">Batal</button>
+        <button class="modal-btn modal-submit" onclick="submitRating()" id="submitRatingBtn">Kirim Rating</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Konfirmasi -->
+  <div id="confirmationModal" class="confirmation-modal">
+    <div class="confirmation-modal-content">
+      <div class="confirmation-title" id="confirmationTitle">Konfirmasi</div>
+      <div class="confirmation-message" id="confirmationMessage"></div>
+      <div class="confirmation-buttons">
+        <button class="confirmation-btn btn-cancel" onclick="closeConfirmationModal()">Batal</button>
+        <button class="confirmation-btn btn-confirm" onclick="confirmAction()">Ya</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Informasi -->
+  <div id="infoModal" class="info-modal">
+    <div class="info-modal-content">
+      <div class="info-title" id="infoTitle">Informasi</div>
+      <div class="info-message" id="infoMessage"></div>
+      <div class="info-buttons">
+        <button class="info-btn btn-ok" onclick="closeInfoModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
+      authDomain: "ojeka-ba255.firebaseapp.com",
+      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+      projectId: "ojeka-ba255",
+      storageBucket: "ojeka-ba255.firebasestorage.app",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef123456"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Data yang diterima dari halaman rute
+    let driverData = null;
+    let routeData = null;
+    let userData = null;
+    let orderId = null;
+    
+    // Variabel untuk Firebase listener
+    let orderRef = null;
+    let orderUpdateHandler = null;
+    
+    // Timeout untuk cek data kosong
+    let dataTimeout = null;
+
+    // Variabel untuk rating
+    let selectedRating = 0;
+    let isRatingSubmitted = false;
+
+    // Variabel untuk modal konfirmasi
+    let confirmCallback = null;
+    let currentAction = '';
+
+    // ==================== FUNGSI MODAL BARU ====================
+
+    // Fungsi untuk menampilkan modal konfirmasi
+    function showConfirmationModal(title, message, callback, action = '') {
+      document.getElementById('confirmationTitle').textContent = title;
+      document.getElementById('confirmationMessage').textContent = message;
+      confirmCallback = callback;
+      currentAction = action;
+      
+      const modal = document.getElementById('confirmationModal');
+      modal.style.display = 'flex';
+    }
+
+    // Fungsi untuk menutup modal konfirmasi
+    function closeConfirmationModal() {
+      const modal = document.getElementById('confirmationModal');
+      modal.style.display = 'none';
+      confirmCallback = null;
+      currentAction = '';
+    }
+
+    // Fungsi untuk menampilkan modal informasi
+    function showInfoModal(title, message) {
+      document.getElementById('infoTitle').textContent = title;
+      document.getElementById('infoMessage').textContent = message;
+      
+      const modal = document.getElementById('infoModal');
+      modal.style.display = 'flex';
+    }
+
+    // Fungsi untuk menutup modal informasi
+    function closeInfoModal() {
+      const modal = document.getElementById('infoModal');
+      modal.style.display = 'none';
+    }
+
+    // Fungsi ketika tombol konfirmasi ditekan
+    function confirmAction() {
+      if (confirmCallback) {
+        confirmCallback();
+      }
+      closeConfirmationModal();
+    }
+
+    // ==================== FUNGSI LOCALSTORAGE ====================
+
+    // Fungsi untuk mengambil data order aktif dari localStorage
+    function getActiveOrderFromLocalStorage() {
+        try {
+            const activeOrder = localStorage.getItem('jego_active_order');
+            return activeOrder ? JSON.parse(activeOrder) : null;
+        } catch (error) {
+            console.error('❌ Gagal mengambil order aktif dari localStorage:', error);
+            return null;
+        }
+    }
+
+    // Fungsi untuk memuat data dari localStorage
+    function loadFromLocalStorage() {
+        const activeOrder = getActiveOrderFromLocalStorage();
+        
+        if (activeOrder && activeOrder.is_active) {
+            console.log('✅ Data order aktif ditemukan di localStorage:', activeOrder);
+            
+            // Extract data dari localStorage
+            orderId = activeOrder.order_id;
+            driverData = activeOrder.selected_driver || activeOrder.driver || activeOrder.driver_data;
+            routeData = activeOrder.currentRouteData || activeOrder;
+            userData = activeOrder.user_data;
+            
+            // Tampilkan data di halaman
+            displayDriverData();
+            
+            // Mulai listen ke Firebase untuk update real-time
+            if (orderId) {
+                listenToOrderUpdates(orderId);
+            }
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    // ==================== FUNGSI RATING YANG DIPERBAIKI ====================
+
+    // Fungsi untuk menampilkan modal rating
+    function showRatingModal() {
+      if (!driverData) {
+        showInfoModal('Peringatan', 'Data driver tidak tersedia');
+        return;
+      }
+
+      // Reset rating
+      selectedRating = 0;
+      
+      // Reset tampilan bintang
+      const stars = document.querySelectorAll('.rating-star');
+      stars.forEach(star => {
+        star.textContent = '☆';
+        star.classList.remove('active');
+        star.style.color = '#ddd';
+        star.style.cursor = 'pointer';
+      });
+
+      // Reset komentar
+      document.getElementById('ratingComment').value = '';
+
+      // Reset tombol submit
+      const submitBtn = document.getElementById('submitRatingBtn');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Kirim Rating';
+
+      // Tampilkan modal
+      const modal = document.getElementById('ratingModal');
+      modal.style.display = 'flex';
+      
+      // Setup event listeners dengan cara yang lebih reliable
+      setupRatingStars();
+      
+      console.log('✅ Modal rating ditampilkan');
+    }
+
+    // FUNGSI YANG DIPERBAIKI: Setup rating stars dengan event delegation
+    function setupRatingStars() {
+      const starsContainer = document.getElementById('ratingStars');
+      
+      // Hapus semua event listeners lama dengan cloning element
+      const newStarsContainer = starsContainer.cloneNode(true);
+      starsContainer.parentNode.replaceChild(newStarsContainer, starsContainer);
+      
+      // Dapatkan container yang baru
+      const updatedStarsContainer = document.getElementById('ratingStars');
+      const stars = updatedStarsContainer.querySelectorAll('.rating-star');
+      
+      // Gunakan event delegation pada container
+      updatedStarsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('rating-star')) {
+          const rating = parseInt(e.target.getAttribute('data-rating'));
+          selectedRating = rating;
+          
+          console.log('⭐ Rating dipilih:', rating);
+          
+          // Update tampilan semua bintang
+          stars.forEach((star, index) => {
+            if (index < rating) {
+              star.textContent = '★';
+              star.classList.add('active');
+              star.style.color = '#FFD700';
+            } else {
+              star.textContent = '☆';
+              star.classList.remove('active');
+              star.style.color = '#ddd';
+            }
+          });
+        }
+      });
+      
+      // Tambahkan efek hover
+      updatedStarsContainer.addEventListener('mouseover', function(e) {
+        if (e.target.classList.contains('rating-star')) {
+          const hoverRating = parseInt(e.target.getAttribute('data-rating'));
+          
+          stars.forEach((star, index) => {
+            if (index < hoverRating && !star.classList.contains('active')) {
+              star.style.color = '#FFD700';
+            }
+          });
+        }
+      });
+      
+      updatedStarsContainer.addEventListener('mouseout', function(e) {
+        stars.forEach((star, index) => {
+          if (index >= selectedRating) {
+            star.style.color = '#ddd';
+          }
+        });
+      });
+      
+      console.log('✅ Event listeners rating stars dipasang');
+    }
+
+    // FUNGSI UTAMA RATING YANG DIPERBAIKI - PASTI BEKERJA
+    function submitRating() {
+      console.log('🔄 Tombol kirim rating diklik');
+      console.log('Selected rating:', selectedRating);
+      
+      if (selectedRating === 0) {
+        showInfoModal('Peringatan', 'Silakan pilih rating terlebih dahulu');
+        return;
+      }
+
+      if (!driverData) {
+        showInfoModal('Peringatan', 'Data driver tidak tersedia');
+        return;
+      }
+
+      // PERBAIKAN: Ambil driver_id dengan berbagai kemungkinan struktur data
+      const driverId = driverData.driver_id || driverData.id || driverData.uid;
+      
+      if (!driverId) {
+        console.error('❌ Driver ID tidak ditemukan. Data driver:', driverData);
+        showInfoModal('Error', 'ID Driver tidak ditemukan. Silakan refresh halaman dan coba lagi.');
+        return;
+      }
+
+      console.log(`⭐ Mengirim rating ${selectedRating} untuk driver ${driverId}, order: ${orderId}`);
+
+      const comment = document.getElementById('ratingComment').value.trim();
+
+      // Tampilkan loading state di tombol
+      const submitBtn = document.getElementById('submitRatingBtn');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Mengirim...';
+      submitBtn.disabled = true;
+
+      const ratingData = {
+        rating: selectedRating,
+        order_id: orderId,
+        driver_id: driverId,
+        customer_id: userData?.id || 'unknown',
+        customer_name: userData?.nama || 'Customer',
+        comment: comment,
+        rated_at: new Date().toISOString(),
+        timestamp: Date.now()
+      };
+
+      console.log('📦 Data rating yang akan dikirim:', ratingData);
+
+      // PERBAIKAN: Simpan rating di database dengan path yang benar
+      const ratingRef = database.ref(`drivers/${driverId}/ratings`).push();
+      
+      console.log(`📍 Menyimpan rating ke path: drivers/${driverId}/ratings/${ratingRef.key}`);
+
+      ratingRef.set(ratingData)
+        .then(() => {
+          console.log('✅ Rating berhasil disimpan di database dengan key:', ratingRef.key);
+          
+          // PERBAIKAN: Update statistik rating driver
+          updateDriverRating(driverId, selectedRating);
+          
+        })
+        .catch((error) => {
+          console.error('❌ Gagal menyimpan rating:', error);
+          
+          // Reset tombol jika error
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+          
+          showInfoModal('Error', 'Gagal memberikan rating. Silakan cek koneksi internet dan coba lagi.\nError: ' + error.message);
+        });
+    }
+
+    // FUNGSI UPDATE DRIVER RATING YANG DIPERBAIKI
+    function updateDriverRating(driverId, newRating) {
+      console.log('🔄 Memperbarui rating driver:', driverId, newRating);
+      
+      const driverRef = database.ref('drivers/' + driverId);
+      
+      driverRef.once('value')
+        .then((snapshot) => {
+          const driverData = snapshot.val();
+          
+          if (!driverData) {
+            console.error('❌ Data driver tidak ditemukan di database');
+            throw new Error('Driver tidak ditemukan');
+          }
+
+          // Data statistik saat ini - PERBAIKAN: Handle berbagai struktur data
+          const currentStats = {
+            avgRating: driverData.avgRating || driverData.rating || 0,
+            ratingCount: driverData.ratingCount || 0,
+            totalRating: driverData.totalRating || 0
+          };
+
+          console.log('📊 Statistik rating saat ini:', currentStats);
+
+          // Hitung rating baru
+          const updatedStats = {
+            ratingCount: currentStats.ratingCount + 1,
+            totalRating: currentStats.totalRating + newRating,
+            avgRating: (currentStats.totalRating + newRating) / (currentStats.ratingCount + 1)
+          };
+
+          // Format avgRating ke 1 desimal
+          updatedStats.avgRating = parseFloat(updatedStats.avgRating.toFixed(1));
+
+          console.log('⭐ Statistik rating baru:', updatedStats);
+
+          // Update ke Firebase
+          return driverRef.update({
+            avgRating: updatedStats.avgRating,
+            ratingCount: updatedStats.ratingCount,
+            totalRating: updatedStats.totalRating,
+            last_rating_update: new Date().toISOString()
+          });
+        })
+        .then(() => {
+          console.log('✅ Rating driver berhasil diupdate di database');
+          
+          // Tandai bahwa rating sudah dikirim
+          isRatingSubmitted = true;
+          
+          // Tutup modal
+          closeRatingModal();
+          
+          // Kirim notifikasi sederhana ke Kodular
+          sendToKodular({
+            action: 'driver_rated',
+            order_id: orderId,
+            driver_id: driverId,
+            rating: newRating,
+            message: `Rating ${newRating} bintang diberikan untuk driver`,
+            timestamp: new Date().toISOString()
+          });
+          
+          console.log('📨 Notifikasi rating terkirim ke Kodular');
+          
+          // Beri feedback ke user
+          showInfoModal('Terima Kasih', `Terima kasih! Anda memberikan rating ${selectedRating} bintang untuk driver.`);
+          
+          // Kembali ke halaman utama setelah rating
+          setTimeout(() => {
+            goBack();
+          }, 2000);
+          
+        })
+        .catch((error) => {
+          console.error('❌ Gagal update rating driver:', error);
+          
+          // Tetap tutup modal meski ada error (data rating sudah tersimpan)
+          closeRatingModal();
+          
+          showInfoModal('Informasi', 'Rating berhasil dikirim, tetapi ada masalah update statistik. Silakan refresh aplikasi.');
+          
+          // Kirim notifikasi error ke Kodular
+          sendToKodular({
+            action: 'rating_error',
+            order_id: orderId,
+            driver_id: driverId,
+            message: 'Gagal update statistik rating',
+            timestamp: new Date().toISOString()
+          });
+        });
+    }
+
+    // Fungsi untuk menutup modal rating
+    function closeRatingModal() {
+      const modal = document.getElementById('ratingModal');
+      modal.style.display = 'none';
+      
+      // Reset state tombol
+      const submitBtn = document.getElementById('submitRatingBtn');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Kirim Rating';
+      }
+      
+      console.log('✅ Modal rating ditutup');
+    }
+
+    // ==================== FUNGSI UTAMA YANG DIMODIFIKASI ====================
+
+    // Fungsi untuk mendapatkan pesan status - FUNGSI BARU
+    function getStatusMessage(status) {
+      const statusMessages = {
+        'accepted': 'Driver telah menerima pesanan Anda',
+        'on_the_way': 'Driver sedang menuju lokasi penjemputan',
+        'arrived': 'Driver telah tiba di lokasi penjemputan',
+        'on_trip': 'Perjalanan sedang berlangsung',
+        'completed': 'Perjalanan telah selesai',
+        'cancelled': 'Perjalanan telah dibatalkan',
+        'waiting': 'Menunggu konfirmasi driver'
+      };
+      
+      return statusMessages[status] || 'Status diperbarui';
+    }
+
+    // Fungsi untuk listen update order dari Firebase - DIMODIFIKASI
+    function listenToOrderUpdates(orderId) {
+      if (orderRef && orderUpdateHandler) {
+        orderRef.off('value', orderUpdateHandler);
+      }
+      
+      orderRef = database.ref('orders/' + orderId);
+      orderUpdateHandler = (snapshot) => {
+        const orderData = snapshot.val();
+        
+        if (orderData) {
+          console.log('Update order diterima:', orderData);
+          
+          // PERBAIKAN: Hanya kirim data sederhana ke Kodular
+          sendToKodular({
+            action: 'order_updated',
+            order_id: orderId,
+            new_status: orderData.status || 'unknown',
+            message: getStatusMessage(orderData.status),
+            timestamp: new Date().toISOString()
+          });
+          
+          // Handle berbagai struktur data driver
+          let driverDataFromFirebase = null;
+          
+          // Cek berbagai kemungkinan struktur data driver
+          if (orderData.selected_driver) {
+            driverDataFromFirebase = orderData.selected_driver;
+          } else if (orderData.driver) {
+            driverDataFromFirebase = orderData.driver;
+          } else if (orderData.driver_offers) {
+            const offerKeys = Object.keys(orderData.driver_offers);
+            if (offerKeys.length > 0) {
+              driverDataFromFirebase = orderData.driver_offers[offerKeys[0]];
+            }
+          }
+          
+          // Update status driver - fungsi ini sekarang sudah mengirim ke Kodular
+          updateDriverStatus(orderData.status, driverDataFromFirebase);
+          
+          // Update estimasi waktu jika ada - DIMODIFIKASI
+          if (orderData.estimated_arrival) {
+            // Kirim update estimasi ke Kodular dengan format sederhana
+            sendToKodular({
+              action: 'arrival_updated',
+              order_id: orderId,
+              estimated_arrival: orderData.estimated_arrival,
+              message: `Estimasi tiba: ${orderData.estimated_arrival}`,
+              timestamp: new Date().toISOString()
+            });
+          }
+          
+          // Update data driver jika ada perubahan
+          if (driverDataFromFirebase) {
+            updateDriverData(driverDataFromFirebase);
+            driverData = driverDataFromFirebase;
+          }
+          
+          // Update data rute jika ada perubahan
+          if (orderData.alamat_a || orderData.alamat_b) {
+            updateRouteData(orderData);
+            routeData = orderData;
+          }
+        } else {
+          console.error('Data order tidak ditemukan di Firebase');
+          // Coba gunakan data dari localStorage sebagai fallback
+          if (!loadFromLocalStorage()) {
+            showError('Data perjalanan tidak ditemukan');
+          }
+        }
+      };
+      
+      orderRef.on('value', orderUpdateHandler);
+    }
+
+    // Fungsi untuk update status driver - DIMODIFIKASI SESUAI PERMINTAAN
+    function updateDriverStatus(status, driverData = null) {
+      const statusBadge = document.getElementById('statusBadge');
+      const arrivalTitle = document.getElementById('arrivalTitle');
+      const arrivalSubtitle = document.getElementById('arrivalSubtitle');
+      const actionsSection = document.getElementById('actionsSection');
+      
+      statusBadge.style.display = 'block';
+      
+      // ========== KIRIM STATUS SEDERHANA KE KODULAR ==========
+      sendToKodular({
+        action: 'status_changed',
+        order_id: orderId,
+        new_status: status,
+        message: getStatusMessage(status),
+        timestamp: new Date().toISOString()
+      });
+      
+      switch(status) {
+        case 'accepted':
+          statusBadge.textContent = 'Order Diterima';
+          statusBadge.style.background = '#e6dd3b';
+          statusBadge.style.color = '#343a40';
+          statusBadge.className = 'status-badge';
+          arrivalTitle.textContent = 'Order Diterima';
+          arrivalSubtitle.innerHTML = 'Driver sedang bersiap untuk menjemput Anda.<br>Harap tunggu konfirmasi berikutnya..';
+          actionsSection.style.display = 'flex';
+          break;
+          
+        case 'on_the_way':
+          statusBadge.textContent = 'Menuju Lokasi';
+          statusBadge.style.background = '#289672';
+          statusBadge.style.color = 'white';
+          statusBadge.className = 'status-badge';
+          arrivalTitle.textContent = 'Menuju Lokasi Anda';
+          arrivalSubtitle.innerHTML = 'Driver dalam perjalanan menuju titik jemput.<br>Harap bersiap.';
+          actionsSection.style.display = 'flex';
+          break;
+          
+        case 'arrived':
+          statusBadge.textContent = 'Driver Tiba';
+          statusBadge.style.background = '#28a745';
+          statusBadge.style.color = 'white';
+          statusBadge.className = 'status-badge';
+          arrivalTitle.textContent = 'Driver Telah Tiba';
+          arrivalSubtitle.innerHTML = 'Driver sudah berada di lokasi penjemputan.<br>Silakan menuju kendaraan.';
+          actionsSection.style.display = 'flex';
+          break;
+          
+        case 'on_trip':
+          statusBadge.textContent = 'Dalam Perjalanan';
+          statusBadge.style.background = '#1e6f5c';
+          statusBadge.style.color = 'white';
+          statusBadge.className = 'status-badge';
+          arrivalTitle.textContent = 'Perjalanan Berlangsung';
+          arrivalSubtitle.innerHTML = 'Anda sedang dalam perjalanan menuju lokasi tujuan.';
+          actionsSection.style.display = 'flex';
+          break;
+          
+        case 'completed':
+          statusBadge.textContent = 'Selesai';
+          statusBadge.style.background = '#28a745';
+          statusBadge.style.color = 'white';
+          statusBadge.className = 'status-badge completed-badge';
+          statusBadge.onclick = goBack;
+          arrivalTitle.textContent = 'Perjalanan Selesai';
+          arrivalSubtitle.innerHTML = 'Terima kasih telah menggunakan JeGo.<br>Sampai jumpa pada perjalanan berikutnya!';
+          actionsSection.style.display = 'none';
+          
+          // Kirim status completed ke Kodular - DIMODIFIKASI
+          sendToKodular({
+            action: 'trip_completed',
+            order_id: orderId,
+            new_status: 'completed',
+            message: 'Perjalanan telah selesai',
+            timestamp: new Date().toISOString()
+          });
+          
+          // Tampilkan modal rating jika belum dikirim
+          if (!isRatingSubmitted) {
+            setTimeout(() => {
+              showRatingModal();
+            }, 1000);
+          }
+          break;
+          
+        case 'cancelled':
+          statusBadge.textContent = 'Dibatalkan';
+          statusBadge.style.background = '#dc3545';
+          statusBadge.style.color = 'white';
+          statusBadge.className = 'status-badge';
+          arrivalTitle.textContent = 'Perjalanan Dibatalkan';
+          arrivalSubtitle.innerHTML = 'Perjalanan telah dibatalkan.<br>Silakan pesan ulang jika diperlukan.';
+          actionsSection.style.display = 'none';
+          
+          // Kirim status cancelled ke Kodular - DIMODIFIKASI
+          sendToKodular({
+            action: 'trip_cancelled',
+            order_id: orderId,
+            new_status: 'cancelled',
+            message: 'Perjalanan telah dibatalkan',
+            timestamp: new Date().toISOString()
+          });
+          break;
+          
+        default:
+          statusBadge.textContent = 'Menunggu Konfirmasi';
+          statusBadge.style.background = '#e6dd3b';
+          statusBadge.style.color = '#343a40';
+          statusBadge.className = 'status-badge';
+          arrivalTitle.textContent = 'Menunggu Konfirmasi';
+          arrivalSubtitle.innerHTML = 'Sedang mencari driver terdekat...';
+          actionsSection.style.display = 'flex';
+          
+          // Kirim status default ke Kodular - DIMODIFIKASI
+          sendToKodular({
+            action: 'status_changed',
+            order_id: orderId,
+            new_status: 'waiting',
+            message: 'Menunggu konfirmasi driver',
+            timestamp: new Date().toISOString()
+          });
+      }
+      
+      console.log(`🔄 Status diperbarui: ${status}`);
+    }
+
+    // Fungsi untuk update data driver
+    function updateDriverData(driver) {
+      if (driver && driver.name) {
+        document.getElementById('driverName').textContent = driver.name;
+      }
+      
+      if (driver && driver.rating) {
+        document.getElementById('driverRating').textContent = driver.rating;
+      } else {
+        document.getElementById('driverRating').textContent = '4.9';
+      }
+      
+      if (driver && driver.vehicle_brand) {
+        document.getElementById('driverVehicleBrand').textContent = driver.vehicle_brand;
+      }
+      
+      if (driver && driver.vehicle_type) {
+        document.getElementById('driverVehicleType').textContent = driver.vehicle_type;
+      }
+      
+      if (driver && driver.plate_number) {
+        document.getElementById('driverPlate').textContent = driver.plate_number;
+      }
+      
+      if (driver && driver.profile_photo_url) {
+        document.getElementById('driverPhoto').src = driver.profile_photo_url;
+      } else {
+        document.getElementById('driverPhoto').src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      }
+    }
+
+    // Fungsi untuk update data rute
+    function updateRouteData(route) {
+      if (route.alamat_a) {
+        document.getElementById('pickupAddress').textContent = route.alamat_a;
+      }
+      
+      if (route.alamat_b) {
+        document.getElementById('destinationAddress').textContent = route.alamat_b;
+      }
+      
+      if (route.vehicle_name) {
+        document.getElementById('serviceType').textContent = route.vehicle_name;
+      }
+      
+      if (route.vehicle_capacity) {
+        document.getElementById('serviceCapacity').textContent = route.vehicle_capacity;
+      }
+      
+      if (route.durasi) {
+        document.getElementById('tripDuration').textContent = route.durasi;
+      }
+      
+      if (route.harga_total) {
+        document.getElementById('tripPrice').textContent = `Rp ${route.harga_total.toLocaleString('id-ID')}`;
+      }
+    }
+
+    // Fungsi untuk menampilkan data driver
+    function displayDriverData() {
+      // Sembunyikan loading, tampilkan konten
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      
+      console.log("Displaying driver data:", driverData);
+      console.log("Displaying route data:", routeData);
+      
+      // PERBAIKAN: Handle berbagai struktur data driver
+      let actualDriverData = driverData;
+      
+      // Jika driverData adalah objek yang kompleks (seperti dari Firebase), extract data yang diperlukan
+      if (driverData && typeof driverData === 'object') {
+        // Cek jika ada nested driver object (seperti dalam data yang Anda berikan)
+        if (driverData.driver) {
+          actualDriverData = driverData.driver;
+        }
+        
+        // PERBAIKAN: Handle selected_driver structure
+        if (driverData.selected_driver) {
+          actualDriverData = driverData.selected_driver;
+        }
+        
+        // Isi data driver
+        document.getElementById('driverName').textContent = actualDriverData.name || '-';
+        document.getElementById('driverRating').textContent = actualDriverData.rating || '4.9';
+        document.getElementById('driverVehicleBrand').textContent = actualDriverData.vehicle_brand || '-';
+        document.getElementById('driverVehicleType').textContent = actualDriverData.vehicle_type || '-';
+        document.getElementById('driverPlate').textContent = actualDriverData.plate_number || '-';
+        
+        // Foto driver (gunakan placeholder jika tidak ada)
+        const driverPhoto = document.getElementById('driverPhoto');
+        driverPhoto.src = actualDriverData.profile_photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+        driverPhoto.alt = actualDriverData.name || 'Driver Photo';
+      }
+      
+      // Isi data rute - PERBAIKAN: Handle berbagai struktur data
+      let actualRouteData = routeData;
+      
+      // Jika routeData adalah order data langsung dari Firebase atau localStorage
+      if (routeData && typeof routeData === 'object') {
+        // Gunakan data langsung dari routeData (order data)
+        document.getElementById('pickupAddress').textContent = routeData.alamat_a || '-';
+        document.getElementById('destinationAddress').textContent = routeData.alamat_b || '-';
+        document.getElementById('serviceType').textContent = routeData.vehicle_name || '-';
+        document.getElementById('serviceCapacity').textContent = routeData.vehicle_capacity || '-';
+        document.getElementById('tripDuration').textContent = routeData.durasi || '-';
+        
+        // Format harga dengan benar
+        if (routeData.harga_total) {
+          const harga = typeof routeData.harga_total === 'number' ? routeData.harga_total : parseInt(routeData.harga_total);
+          document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
+        } else {
+          document.getElementById('tripPrice').textContent = '-';
+        }
+      }
+      
+      // Update status berdasarkan data aktual
+      if (routeData && routeData.status) {
+        updateDriverStatus(routeData.status, actualDriverData);
+      } else {
+        updateArrivalStatus();
+      }
+    }
+
+    // Fungsi untuk memperbarui status kedatangan driver
+    function updateArrivalStatus() {
+      const statusBadge = document.getElementById('statusBadge');
+      statusBadge.style.display = 'block';
+      
+      // Simulasi estimasi waktu kedatangan (5-10 menit)
+      const arrivalMinutes = Math.floor(Math.random() * 6) + 5;
+      document.getElementById('arrivalTime').textContent = `${arrivalMinutes} menit`;
+      
+      // Update status badge berdasarkan waktu
+      if (arrivalMinutes <= 5) {
+        statusBadge.textContent = 'Akan Tiba';
+        statusBadge.style.background = '#28a745';
+        statusBadge.style.color = 'white';
+      } else {
+        statusBadge.textContent = 'Menuju Lokasi';
+        statusBadge.style.background = '#e6dd3b';
+        statusBadge.style.color = '#343a40';
+      }
+    }
+
+    // Fungsi untuk menampilkan error
+    function showError(message) {
+      console.error('Error:', message);
+      
+      // Sembunyikan loading dan content, tampilkan error
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('error').style.display = 'flex';
+      
+      // Kirim error ke Kodular
+      sendToKodular({
+        action: 'error',
+        message: message,
+        order_id: orderId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Fungsi untuk tombol aksi
+    function chatDriver() {
+      if (!driverData) {
+        showInfoModal('Peringatan', 'Data driver tidak tersedia');
+        return;
+      }
+      
+      const chatData = {
+        action: 'chat_driver',
+        driver: driverData,
+        order_id: orderId
+      };
+      
+      sendToKodular(chatData);
+    }
+
+    function cancelTrip() {
+      showConfirmationModal(
+        'Konfirmasi Pembatalan', 
+        'Apakah Anda yakin ingin membatalkan perjalanan?', 
+        confirmCancelTrip,
+        'cancel_trip'
+      );
+    }
+
+    function confirmCancelTrip() {
+      const cancelData = {
+        action: 'cancel_trip',
+        order_id: orderId,
+        message: 'Perjalanan dibatalkan oleh pengguna'
+      };
+      
+      sendToKodular(cancelData);
+      
+      // Update status di Firebase
+      if (orderId) {
+        const orderRef = database.ref('orders/' + orderId);
+        orderRef.update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .then(() => {
+          console.log('Status order diupdate menjadi cancelled');
+        })
+        .catch((error) => {
+          console.error('Gagal update status order:', error);
+        });
+      }
+      
+      showInfoModal('Informasi', 'Perjalanan dibatalkan');
+      
+      // Kembali ke halaman sebelumnya setelah beberapa detik
+      setTimeout(() => {
+        goBack();
+      }, 1500);
+    }
+
+    function goBack() {
+      // Hentikan listener Firebase sebelum kembali
+      if (orderRef && orderUpdateHandler) {
+        orderRef.off('value', orderUpdateHandler);
+      }
+      
+      // Hentikan timeout jika masih berjalan
+      if (dataTimeout) {
+        clearTimeout(dataTimeout);
+        dataTimeout = null;
+      }
+      
+      const backData = {
+        action: 'go_back'
+      };
+      
+      sendToKodular(backData);
+    }
+
+    // Fungsi untuk menerima data dari Kodular
+    function receiveDataFromKodular(dataString) {
+      try {
+        // Clear timeout karena data sudah diterima
+        if (dataTimeout) {
+          clearTimeout(dataTimeout);
+          dataTimeout = null;
+        }
+        
+        const data = JSON.parse(dataString);
+        console.log("Data diterima dari Kodular:", data);
+        
+        if (data.action === 'open_driver_details') {
+          // Simpan data
+          driverData = data.driver;
+          routeData = data.route_data;
+          userData = data.user_data;
+          orderId = data.order_id;
+          
+          // Tampilkan data di halaman
+          displayDriverData();
+          
+          // Mulai listen ke Firebase untuk update real-time
+          if (orderId) {
+            listenToOrderUpdates(orderId);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing data dari Kodular:", error);
+        showError("Format data tidak valid");
+      }
+    }
+
+    // Fungsi untuk mengirim data ke Kodular - DIMODIFIKASI UNTUK LOGGING
+    function sendToKodular(data) {
+      const kodularData = {
+        ...data,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('📤 Mengirim data SEDERHANA ke Kodular:', kodularData);
+      
+      // Menggunakan window.AppInventor.setWebViewString
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(kodularData));
+          console.log('✅ Data sederhana berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      } else {
+        console.warn('❌ window.AppInventor.setWebViewString tidak tersedia');
+        // Fallback untuk testing di browser
+        showInfoModal('Aksi', 'Aksi: ' + data.action + '\nData: ' + JSON.stringify(data, null, 2));
+      }
+    }
+
+    // ==================== INISIALISASI YANG DIPERBAIKI ====================
+
+    window.onload = function() {
+      // Setup event listener untuk modal rating (klik di luar modal untuk menutup)
+      document.getElementById('ratingModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeRatingModal();
+        }
+      });
+      
+      // Setup event listener untuk modal konfirmasi dan info
+      document.getElementById('confirmationModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeConfirmationModal();
+        }
+      });
+      
+      document.getElementById('infoModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeInfoModal();
+        }
+      });
+      
+      // Cek URL parameters untuk order_id langsung
+      const urlParams = new URLSearchParams(window.location.search);
+      const directOrderId = urlParams.get('order_id');
+      
+      if (directOrderId) {
+        // Jika ada order_id di URL, langsung ambil dari Firebase
+        console.log('Mengambil data langsung dari Firebase untuk order:', directOrderId);
+        orderId = directOrderId;
+        listenToOrderUpdates(directOrderId);
+        
+        // Set timeout untuk cek jika data tidak ada di Firebase
+        dataTimeout = setTimeout(() => {
+          if (!driverData) {
+            // Coba ambil dari localStorage sebagai fallback
+            if (!loadFromLocalStorage()) {
+              showError('Data driver tidak ditemukan di database');
+            }
+          }
+        }, 5000);
+        
+      } else {
+        // Jika tidak ada order_id di URL, coba ambil dari localStorage terlebih dahulu
+        console.log('Mencoba mengambil data dari localStorage...');
+        
+        if (loadFromLocalStorage()) {
+          console.log('✅ Data berhasil dimuat dari localStorage');
+        } else {
+          // Jika tidak ada data di localStorage, tunggu data dari Kodular
+          console.log('Tidak ada data di localStorage, menunggu data dari Kodular...');
+          
+          // Set timeout untuk cek jika tidak ada data dari Kodular
+          dataTimeout = setTimeout(() => {
+            if (!driverData) {
+              showError('Tidak ada data driver yang diterima dari aplikasi');
+            }
+          }, 5000);
+        }
+      }
+    };
+
+    // Ekspos fungsi receiveDataFromKodular ke global scope agar bisa dipanggil dari Kodular
+    window.receiveDataFromKodular = receiveDataFromKodular;
+  </script>
+</body>
+</html>
