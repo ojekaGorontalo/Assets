@@ -306,21 +306,173 @@
       100% { transform: scale(1.5); opacity: 0; }
     }
 
-    /* Notifikasi Order Aktif */
-    .active-order-notification {
-      position: absolute;
+    /* Notifikasi Status */
+    .search-status {
+      position: fixed;
       top: 100px;
       left: 50%;
       transform: translateX(-50%);
-      background: linear-gradient(135deg, #ff9800, #f57c00);
-      color: white;
+      background: rgba(255, 255, 255, 0.95);
       padding: 12px 20px;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       z-index: 1000;
       font-weight: 600;
       text-align: center;
       max-width: 80%;
+      border-left: 4px solid var(--primary);
+    }
+
+    /* POPUP STYLES */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .popup-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .popup {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .popup-overlay.active .popup {
+      transform: scale(1);
+    }
+
+    .popup-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .popup-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--dark);
+      margin: 0;
+    }
+
+    .popup-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-content {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .popup-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .popup-message {
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--dark);
+      margin-bottom: 20px;
+    }
+
+    .popup-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .popup-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      min-width: 100px;
+    }
+
+    .popup-button-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .popup-button-secondary {
+      background: #f8f9fa;
+      color: var(--dark);
+      border: 1px solid #ddd;
+    }
+
+    .popup-button-warning {
+      background: linear-gradient(135deg, var(--warning), #ff9800);
+      color: white;
+    }
+
+    .popup-button-danger {
+      background: linear-gradient(135deg, var(--danger), #e74c3c);
+      color: white;
+    }
+
+    .popup-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Tambahan style untuk data kurir */
+    .delivery-info-panel {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e9ecef;
+      display: none;
+    }
+    
+    .delivery-item {
+      display: flex;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    
+    .delivery-label {
+      font-weight: 600;
+      color: var(--primary);
+      min-width: 100px;
+      margin-right: 10px;
+    }
+    
+    .delivery-value {
+      flex: 1;
+      color: var(--dark);
     }
 
     /* STAR RATING STYLES */
@@ -493,24 +645,7 @@
       transition: all 0.3s ease;
     }
 
-    /* Notifikasi Status */
-    .search-status {
-      position: fixed;
-      top: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.95);
-      padding: 12px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      z-index: 1000;
-      font-weight: 600;
-      text-align: center;
-      max-width: 80%;
-      border-left: 4px solid var(--primary);
-    }
-
-    /* POPUP STYLES */
+    /* Popup Penawaran Harga */
     .popup-overlay {
       position: fixed;
       top: 0;
@@ -636,76 +771,6 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
-    /* Tambahan style untuk data kurir */
-    .delivery-info-panel {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #e9ecef;
-      display: none;
-    }
-    
-    .delivery-item {
-      display: flex;
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-    }
-    
-    .delivery-label {
-      font-weight: 600;
-      color: var(--primary);
-      min-width: 100px;
-      margin-right: 10px;
-    }
-    
-    .delivery-value {
-      flex: 1;
-      color: var(--dark);
-    }
-
-    /* Online Drivers Panel Styles */
-    .online-driver-photo {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1.5px solid var(--success);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      flex-shrink: 0;
-    }
-
-    .online-driver-photo:hover {
-      transform: scale(1.1);
-      border-color: var(--primary);
-    }
-
-    .online-driver-item {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .online-driver-badge {
-      position: absolute;
-      top: -3px;
-      right: -3px;
-      width: 8px;
-      height: 8px;
-      background: var(--success);
-      border-radius: 50%;
-      border: 1px solid white;
-    }
-
-    .no-drivers-message {
-      text-align: center;
-      color: #666;
-      font-size: 10px;
-      padding: 5px 0;
-      width: 100%;
-    }
-
     /* Responsive Design */
     @media (max-width: 768px) {
       :root {
@@ -820,12 +885,6 @@
       <input id="toInput" type="text" placeholder="Tujuan" />
       <button class="clear-btn" onclick="clearInput('toInput')">×</button>
       <button class="location-btn" onclick="detectLocation('toInput')">⌖</button>
-    </div>
-    
-    <!-- Panel Driver Online yang dipindahkan -->
-    <div id="onlineDriversPanel" style="display: none; margin-top: 10px; margin-bottom: 10px;">
-      <div style="font-weight: 600; margin-bottom: 8px; text-align: center; color: var(--primary); font-size: 11px;">🚗 Driver Online</div>
-      <div id="onlineDriversContainer" style="display: flex; overflow-x: auto; gap: 6px; padding: 5px 0;"></div>
     </div>
     
     <!-- Panel Data Pengiriman Kurir -->
@@ -991,6 +1050,9 @@
     let priceIncreaseTimer = null;
     let currentBasePrice = 0;
     let currentVehicleMinPrice = 0;
+
+    // Variabel untuk marker driver di peta
+    let driverMarkers = {};
 
     // Ambil parameter vehicle
     const urlParams = new URLSearchParams(window.location.search);
@@ -1209,33 +1271,107 @@
       popupOverlay.classList.remove('active');
     }
 
-    // Fungsi untuk menampilkan popup konfirmasi (opsional)
-    function showConfirmPopup(message, callback, title = "Konfirmasi") {
-      const popupOverlay = document.getElementById('popupOverlay');
-      const popupTitle = document.getElementById('popupTitle');
-      const popupMessage = document.getElementById('popupMessage');
-      const popupIcon = document.getElementById('popupIcon');
-      const popupButtons = document.querySelector('.popup-buttons');
+    // ==================== FUNGSI LOAD DRIVER ONLINE DI MAP ====================
+
+    // Fungsi untuk memuat driver online dan menampilkan di peta
+    function loadOnlineDriversOnMap() {
+      const driversRef = database.ref('drivers');
       
-      // Set konten popup
-      popupTitle.textContent = title;
-      popupMessage.textContent = message;
-      popupIcon.textContent = "❓";
+      driversRef.on('value', (snapshot) => {
+        const drivers = snapshot.val();
+        const pickupLocation = markerA ? markerA.getPosition() : null;
+        
+        if (!pickupLocation) return;
+        
+        // Hapus semua marker driver yang ada
+        clearDriverMarkers();
+        
+        if (drivers) {
+          Object.keys(drivers).forEach(driverId => {
+            const driver = drivers[driverId];
+            
+            // Cek apakah driver online dan memiliki lokasi
+            const isOnline = driver.tracking_enabled === true || driver.online === true;
+            const hasLocation = driver.latitude && driver.longitude;
+            
+            if (isOnline && hasLocation) {
+              const driverLocation = new google.maps.LatLng(
+                parseFloat(driver.latitude),
+                parseFloat(driver.longitude)
+              );
+              
+              // Hitung jarak dari lokasi penjemputan (dalam km)
+              const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                pickupLocation, 
+                driverLocation
+              ) / 1000;
+              
+              // Tampilkan hanya driver dalam radius 5 km
+              if (distance <= 5) {
+                addDriverMarker(driverId, driver, driverLocation);
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // Fungsi untuk menambahkan marker driver ke peta
+    function addDriverMarker(driverId, driver, location) {
+      // Tentukan icon berdasarkan jenis kendaraan
+      let iconUrl;
+      const vehicleType = driver.vehicle_type || 'motor';
       
-      // Buat tombol konfirmasi
-      popupButtons.innerHTML = `
-        <button class="popup-button popup-button-secondary" onclick="closePopup()">Batal</button>
-        <button class="popup-button popup-button-primary" id="confirmAction">Ya</button>
-      `;
+      switch(vehicleType.toLowerCase()) {
+        case 'motor':
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
+          break;
+        case 'bentor':
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png';
+          break;
+        case 'mobil':
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png';
+          break;
+        default:
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
+      }
       
-      // Tambahkan event listener untuk tombol konfirmasi
-      document.getElementById('confirmAction').addEventListener('click', function() {
-        closePopup();
-        if (callback) callback();
+      const marker = new google.maps.Marker({
+        position: location,
+        map: map,
+        icon: {
+          url: iconUrl,
+          scaledSize: new google.maps.Size(30, 30),
+          anchor: new google.maps.Point(15, 15)
+        },
+        title: `${driver.name || 'Driver'} - ${vehicleType}`
       });
       
-      // Tampilkan popup
-      popupOverlay.classList.add('active');
+      // Simpan marker ke objek driverMarkers
+      driverMarkers[driverId] = marker;
+      
+      // Tambahkan info window
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="padding: 8px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">${driver.name || 'Driver'}</div>
+            <div style="font-size: 12px; color: #666;">${vehicleType}</div>
+            <div style="font-size: 12px; color: #666;">Rating: ${driver.avg_rating || '0'}/5</div>
+          </div>
+        `
+      });
+      
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+    }
+
+    // Fungsi untuk menghapus semua marker driver
+    function clearDriverMarkers() {
+      Object.values(driverMarkers).forEach(marker => {
+        marker.setMap(null);
+      });
+      driverMarkers = {};
     }
 
     // ==================== SISTEM PRIORITISASI DRIVER ====================
@@ -1627,8 +1763,8 @@
                         document.getElementById('cancelBtn').disabled = false;
                         isSearching = true;
 
-                        // Tampilkan panel driver online
-                        showOnlineDriversPanel();
+                        // Mulai memuat driver di peta
+                        loadOnlineDriversOnMap();
 
                         // Listen for driver
                         listenForDriver(currentOrderId);
@@ -1649,8 +1785,8 @@
                             driver_data: currentDriverData
                         });
                         
-                        // Kirim data driver ke Kodular untuk membuka halaman baru
-                        sendDriverToKodular(activeOrder.driver, activeOrder);
+                        // Redirect ke halaman order diterima
+                        window.location.href = 'orderAcceptedForCS.html';
                         
                         // Reset UI
                         hideRadar();
@@ -1667,8 +1803,8 @@
                             driver_data: currentDriverData
                         });
                         
-                        // Kirim data driver ke Kodular untuk membuka halaman baru
-                        sendDriverToKodular(activeOrder.selected_driver, activeOrder);
+                        // Redirect ke halaman order diterima
+                        window.location.href = 'orderAcceptedForCS.html';
                         
                         // Reset UI
                         hideRadar();
@@ -2113,6 +2249,9 @@
           
           // Mulai timer untuk penawaran harga
           startPriceIncreaseTimer();
+          
+          // Mulai memuat driver di peta
+          loadOnlineDriversOnMap();
         })
         .catch((error) => {
           console.error('Gagal menyimpan order ke Firebase:', error);
@@ -2153,7 +2292,7 @@
           return;
         }
         
-        // MODIFIKASI PENTING: Jika status accepted, kirim data driver ke Kodular
+        // MODIFIKASI PENTING: Jika status accepted, redirect ke halaman order diterima
         if (orderData.status === 'accepted' && orderData.driver) {
           currentDriverData = orderData.driver;
           
@@ -2170,8 +2309,8 @@
           
           hideRadar();
           
-          // KIRIM DATA DRIVER KE KODULAR UNTUK BUKA HALAMAN BARU
-          sendDriverToKodular(orderData.driver, orderData);
+          // REDIRECT KE HALAMAN ORDER DITERIMA
+          window.location.href = 'orderAcceptedForCS.html';
           
           sendToKodular({
             action: 'driver_found',
@@ -2198,8 +2337,8 @@
           
           hideRadar();
           
-          // KIRIM DATA DRIVER KE KODULAR UNTUK BUKA HALAMAN BARU
-          sendDriverToKodular(orderData.selected_driver, orderData);
+          // REDIRECT KE HALAMAN ORDER DITERIMA
+          window.location.href = 'orderAcceptedForCS.html';
           
           sendToKodular({
             action: 'driver_accepted',
@@ -2378,27 +2517,13 @@
             final_price: finalPrice
           }, 'driver_selected');
           
-          showPopup('Driver berhasil dipilih!', "Sukses", "success");
+          // Redirect ke halaman order diterima
+          window.location.href = 'orderAcceptedForCS.html';
         })
         .catch((error) => {
           console.error('Gagal memilih driver:', error);
           showPopup('Gagal memilih driver. Silakan coba lagi.', "Error", "error");
         });
-    }
-
-    // FUNGSI BARU: Kirim data driver ke Kodular untuk membuka halaman baru
-    function sendDriverToKodular(driverData, orderData) {
-      const driverInfoData = {
-        action: 'open_driver_details',
-        order_id: currentOrderId,
-        driver: driverData,
-        route_data: orderData,
-        user_data: userData, // ✅ userData tetap disertakan
-        timestamp: new Date().toISOString()
-      };
-      
-      console.log('Mengirim data driver ke Kodular:', driverInfoData);
-      sendToKodular(driverInfoData, 'open_driver_details');
     }
 
     // ==================== FUNGSI BARU: SISTEM PENAWARAN HARGA ====================
@@ -2496,83 +2621,6 @@
       closePriceOfferPopup();
     }
 
-    // ==================== FUNGSI BARU: LOAD DRIVER ONLINE ====================
-
-    // Fungsi untuk memuat driver online
-    function loadOnlineDrivers() {
-      const driversRef = database.ref('drivers');
-      
-      driversRef.on('value', (snapshot) => {
-        const drivers = snapshot.val();
-        const onlineDrivers = [];
-        
-        if (drivers) {
-          Object.keys(drivers).forEach(driverId => {
-            const driver = drivers[driverId];
-            // Cek apakah driver online (prioritaskan tracking_enabled, lalu online)
-            const isOnline = driver.tracking_enabled === true || driver.online === true;
-            
-            if (isOnline && driver.profilePhotoUrl) {
-              onlineDrivers.push({
-                id: driverId,
-                profilePhotoUrl: driver.profilePhotoUrl,
-                name: driver.name || 'Driver'
-              });
-            }
-          });
-        }
-        
-        renderOnlineDrivers(onlineDrivers);
-      });
-    }
-
-    // Fungsi untuk menampilkan driver online
-    function renderOnlineDrivers(drivers) {
-      const container = document.getElementById('onlineDriversContainer');
-      
-      if (!container) return;
-      
-      container.innerHTML = '';
-      
-      if (drivers.length === 0) {
-        container.innerHTML = '<div class="no-drivers-message">Tidak ada driver online</div>';
-        return;
-      }
-      
-      // Tampilkan maksimal 8 driver (bisa di-scroll horizontal)
-      const displayDrivers = drivers.slice(0, 8);
-      
-      displayDrivers.forEach(driver => {
-        const driverElement = document.createElement('div');
-        driverElement.className = 'online-driver-item';
-        driverElement.innerHTML = `
-          <img src="${driver.profilePhotoUrl}" 
-               class="online-driver-photo" 
-               alt="${driver.name}"
-               title="${driver.name}"
-               onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-          <div class="online-driver-badge"></div>
-        `;
-        container.appendChild(driverElement);
-      });
-    }
-
-    // Fungsi untuk menampilkan panel driver online
-    function showOnlineDriversPanel() {
-      const panel = document.getElementById('onlineDriversPanel');
-      if (panel) {
-        panel.style.display = 'block';
-      }
-    }
-
-    // Fungsi untuk menyembunyikan panel driver online
-    function hideOnlineDriversPanel() {
-      const panel = document.getElementById('onlineDriversPanel');
-      if (panel) {
-        panel.style.display = 'none';
-      }
-    }
-
     function confirmRoute() {
       if (!currentRouteData) {
         showPopup("Silakan pilih rute terlebih dahulu", "Peringatan", "warning");
@@ -2581,9 +2629,6 @@
       
       // Nonaktifkan tombol sementara
       document.getElementById('confirmBtn').disabled = true;
-      
-      // Tampilkan panel driver online
-      showOnlineDriversPanel();
       
       // Simpan ke localStorage (sebagai konfirmasi tambahan)
       saveToLocalStorage(currentRouteData, 'confirmed');
@@ -2621,12 +2666,6 @@
         priceIncreaseTimer = null;
       }
       
-      // Sembunyikan panel driver online
-      hideOnlineDriversPanel();
-      
-      // Sembunyikan detail rute
-      hideRouteDetails();
-      
       // Hentikan listener Firebase dulu
       if (driverRef && driverUpdateHandler) {
         try {
@@ -2644,6 +2683,9 @@
         driverOffersRef.off();
         driverOffersRef = null;
       }
+      
+      // Hapus semua marker driver dari peta
+      clearDriverMarkers();
       
       if (!currentOrderId) {
         console.log('Tidak ada order aktif (currentOrderId null). Hanya reset UI.');
@@ -2762,9 +2804,6 @@
       isSearching = false;
       currentOrderId = null;
       currentDriverData = null;
-      
-      // Sembunyikan panel driver online
-      hideOnlineDriversPanel();
       
       // Update teks tombol dengan harga terbaru
       if (currentRouteData) {
@@ -3179,9 +3218,6 @@
             initMap();
             initAutocomplete();
             
-            // Mulai memuat driver online
-            loadOnlineDrivers();
-            
             // Event listener untuk tombol close panel penawaran driver
             document.getElementById('closeDriverOffers').addEventListener('click', () => {
               const container = document.getElementById('driverOffers');
@@ -3223,9 +3259,6 @@
             initMap();
             initAutocomplete();
             
-            // Mulai memuat driver online dengan fallback data
-            loadOnlineDrivers();
-            
             // Event listener untuk tombol close panel penawaran driver
             document.getElementById('closeDriverOffers').addEventListener('click', () => {
               const container = document.getElementById('driverOffers');
@@ -3251,7 +3284,7 @@
 
     // Load Google Maps API
     const script = document.createElement("script");
-    script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places&callback=onLoad";
+    script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places,geometry&callback=onLoad";
     script.async = true;
     script.defer = true;
     
