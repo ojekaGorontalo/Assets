@@ -189,6 +189,10 @@
       color: var(--success);
     }
 
+    .summary-value.fees {
+      color: var(--danger);
+    }
+
     .summary-value.distance {
       color: var(--secondary);
     }
@@ -238,6 +242,78 @@
       font-size: 0.9rem;
       font-weight: 600;
       color: var(--primary);
+    }
+
+    /* Transaction History Styles */
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .transaction-item:last-child {
+      border-bottom: none;
+    }
+
+    .transaction-details {
+      flex: 1;
+    }
+
+    .transaction-type {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+
+    .transaction-description {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .transaction-meta {
+      font-size: 0.7rem;
+      color: #888;
+    }
+
+    .transaction-amount {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: right;
+      min-width: 100px;
+    }
+
+    .transaction-amount.positive {
+      color: var(--success);
+    }
+
+    .transaction-amount.negative {
+      color: var(--danger);
+    }
+
+    .transaction-order {
+      font-size: 0.7rem;
+      color: var(--primary);
+      background: rgba(30, 111, 92, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 2px;
+    }
+
+    .empty-transactions {
+      text-align: center;
+      padding: 30px 20px;
+      color: #666;
+    }
+
+    .empty-transactions .material-icons {
+      font-size: 3rem;
+      color: #ccc;
+      margin-bottom: 10px;
     }
 
     /* Empty state */
@@ -354,6 +430,7 @@
   let driverOrders = [];
   let driverId = null;
   let fareRates = {};
+  let balanceHistory = {};
 
   // ==================== FUNGSI UTAMA ====================
 
@@ -374,10 +451,11 @@
     // Tampilkan loading state
     showLoadingState();
 
-    // Muat tarif dan data order secara paralel
+    // Muat tarif, data order, DAN balance_history secara paralel
     Promise.all([
       loadFareRates(),
-      loadDriverOrders()
+      loadDriverOrders(),
+      loadBalanceHistory()
     ])
     .then(() => {
       console.log('Semua data berhasil dimuat');
@@ -440,6 +518,91 @@
     });
   }
 
+  // Fungsi untuk memuat balance_history
+  function loadBalanceHistory() {
+    return new Promise((resolve, reject) => {
+      if (!driverId) {
+        resolve({});
+        return;
+      }
+
+      const balanceHistoryRef = database.ref('drivers/' + driverId + '/balance_history');
+      balanceHistoryRef.once('value')
+        .then((snapshot) => {
+          balanceHistory = snapshot.val() || {};
+          console.log('Balance history berhasil dimuat:', Object.keys(balanceHistory).length, 'transaksi');
+          resolve();
+        })
+        .catch(reject);
+    });
+  }
+
+  // Fungsi untuk menghitung pendapatan bersih dengan mempertimbangkan potongan
+  function calculateNetEarnings(orders, transactions, selectedDate) {
+    let grossEarnings = 0;
+    let totalFees = 0;
+    
+    // Hitung pendapatan kotor dari orders yang completed
+    orders.forEach(order => {
+      const earnings = order.harga_total || 0;
+      grossEarnings += earnings;
+    });
+    
+    // Hitung total potongan dari balance_history untuk tanggal yang sama
+    if (transactions) {
+      const filteredTransactions = filterTransactionsByDateWITA(transactions, selectedDate);
+      
+      filteredTransactions.forEach(transaction => {
+        // Hanya hitung transaksi dengan amount negatif (potongan)
+        if (transaction.amount < 0) {
+          totalFees += Math.abs(transaction); // Convert ke positif untuk dijumlahkan
+        }
+      });
+    }
+    
+    const netEarnings = grossEarnings - totalFees;
+    
+    console.log('💰 Perhitungan Pendapatan:', {
+      grossEarnings,
+      totalFees,
+      netEarnings,
+      transactionCount: transactions ? Object.keys(transactions).length : 0
+    });
+    
+    return {
+      grossEarnings,
+      totalFees,
+      netEarnings,
+      feePercentage: grossEarnings > 0 ? ((totalFees / grossEarnings) * 100).toFixed(1) : '0'
+    };
+  }
+
+  // Fungsi untuk memfilter transaksi berdasarkan tanggal (WITA)
+  function filterTransactionsByDateWITA(transactions, date) {
+    const dateWITA = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+    const dateStringWITA = dateWITA.toISOString().split('T')[0];
+    
+    const filtered = [];
+    
+    Object.values(transactions).forEach(transaction => {
+      if (!transaction.timestamp) return;
+      
+      try {
+        const transactionDate = new Date(transaction.timestamp);
+        const transactionDateWITA = new Date(transactionDate.getTime() + (8 * 60 * 60 * 1000));
+        const transactionDateStringWITA = transactionDateWITA.toISOString().split('T')[0];
+        
+        if (transactionDateStringWITA === dateStringWITA) {
+          filtered.push(transaction);
+        }
+      } catch (error) {
+        console.error('Error parsing transaction date:', error);
+      }
+    });
+    
+    return filtered;
+  }
+
   // Fungsi untuk menampilkan data di UI
   function displayEarningsData() {
     const container = document.getElementById('mainContainer');
@@ -447,15 +610,15 @@
     // Filter order berdasarkan tanggal yang dipilih (WITA)
     const filteredOrders = filterOrdersByDateWITA(driverOrders, currentDate);
     
-    if (filteredOrders.length === 0) {
+    if (filteredOrders.length === 0 && Object.keys(getFilteredTransactionsForDate()).length === 0) {
       container.innerHTML = `
         <div class="date-navigation">
-          <button class="nav-btn" id="prevBtn">�</button>
+          <button class="nav-btn" id="prevBtn">‹</button>
           <div class="current-date">
             <div class="date-display">${formatDateDisplay(currentDate)}</div>
             <div class="day-display">${getDayName(currentDate)}</div>
           </div>
-          <button class="nav-btn" id="nextBtn">�</button>
+          <button class="nav-btn" id="nextBtn">›</button>
         </div>
         
         <div class="empty-state">
@@ -472,17 +635,17 @@
       return;
     }
 
-    // Hitung statistik
-    const stats = calculateStats(filteredOrders);
+    // Hitung statistik DENGAN balance history
+    const stats = calculateStats(filteredOrders, currentDate);
     
     let html = `
       <div class="date-navigation">
-        <button class="nav-btn" id="prevBtn">�</button>
+        <button class="nav-btn" id="prevBtn">‹</button>
         <div class="current-date">
           <div class="date-display">${formatDateDisplay(currentDate)}</div>
           <div class="day-display">${getDayName(currentDate)}</div>
         </div>
-        <button class="nav-btn" id="nextBtn">�</button>
+        <button class="nav-btn" id="nextBtn">›</button>
       </div>
       
       <div class="summary-grid">
@@ -510,37 +673,111 @@
           <div class="summary-value">Rp ${stats.averagePerKm.toLocaleString('id-ID')}</div>
         </div>
         
+        <!-- UBAH: Pendapatan Kotor menjadi Pendapatan Bersih -->
         <div class="summary-card">
           <div class="summary-icon">
             <span class="material-icons">payments</span>
           </div>
-          <div class="summary-label">Pendapatan Kotor</div>
-          <div class="summary-value earnings">Rp ${stats.grossEarnings.toLocaleString('id-ID')}</div>
+          <div class="summary-label">Pendapatan Bersih</div>
+          <div class="summary-value earnings">Rp ${stats.netEarnings.toLocaleString('id-ID')}</div>
+        </div>
+        
+        <!-- TAMBAH: Card untuk Total Potongan -->
+        <div class="summary-card">
+          <div class="summary-icon">
+            <span class="material-icons">money_off</span>
+          </div>
+          <div class="summary-label">Total Potongan</div>
+          <div class="summary-value fees">Rp ${stats.totalFees.toLocaleString('id-ID')}</div>
+        </div>
+        
+        <!-- TAMBAH: Card untuk Persentase Potongan -->
+        <div class="summary-card">
+          <div class="summary-icon">
+            <span class="material-icons">percent</span>
+          </div>
+          <div class="summary-label">Persentase Potongan</div>
+          <div class="summary-value">${stats.feePercentage}%</div>
         </div>
       </div>
-      
-      <div class="breakdown-section">
-        <div class="section-title">Rincian Order</div>
-        <div class="breakdown-list">
     `;
     
-    // Tambahkan setiap order dalam breakdown
-    filteredOrders.forEach(order => {
-      const orderTime = formatTimeWITA(new Date(order.completed_at));
-      const distance = parseFloat(order.jarak_km.replace(',', '.')) || 0;
-      const earnings = order.harga_total || 0;
-      const perKm = distance > 0 ? Math.round(earnings / distance) : 0;
+    // Tambahkan rincian order jika ada
+    if (filteredOrders.length > 0) {
+      html += `
+        <div class="breakdown-section">
+          <div class="section-title">Rincian Order</div>
+          <div class="breakdown-list">
+      `;
+      
+      // Tambahkan setiap order dalam breakdown
+      filteredOrders.forEach(order => {
+        const orderTime = formatTimeWITA(new Date(order.completed_at));
+        const distance = parseFloat(order.jarak_km.replace(',', '.')) || 0;
+        const earnings = order.harga_total || 0;
+        const perKm = distance > 0 ? Math.round(earnings / distance) : 0;
+        
+        html += `
+          <div class="breakdown-item">
+            <div class="breakdown-label">
+              <div>${orderTime} • ${order.vehicle_name || 'Kendaraan'}</div>
+              <div style="font-size: 0.75rem; color: #999;">${distance.toFixed(1)} km</div>
+            </div>
+            <div class="breakdown-value">Rp ${earnings.toLocaleString('id-ID')}</div>
+          </div>
+        `;
+      });
       
       html += `
-        <div class="breakdown-item">
-          <div class="breakdown-label">
-            <div>${orderTime} � ${order.vehicle_name || 'Kendaraan'}</div>
-            <div style="font-size: 0.75rem; color: #999;">${distance.toFixed(1)} km</div>
           </div>
-          <div class="breakdown-value">Rp ${earnings.toLocaleString('id-ID')}</div>
         </div>
       `;
-    });
+    }
+    
+    // TAMBAH: Section untuk Riwayat Transaksi (Balance History)
+    html += `
+      <div class="breakdown-section" id="transactionHistorySection">
+        <div class="section-title">
+          <span class="material-icons" style="vertical-align: middle; margin-right: 8px;">history</span>
+          Riwayat Transaksi
+        </div>
+        <div class="breakdown-list" id="transactionHistoryList">
+    `;
+    
+    const filteredTransactions = getFilteredTransactionsForDate();
+    
+    if (Object.keys(filteredTransactions).length === 0) {
+      html += `
+        <div class="empty-transactions">
+          <span class="material-icons">receipt_long</span>
+          <div>Belum ada riwayat transaksi</div>
+        </div>
+      `;
+    } else {
+      // Tampilkan transaksi untuk tanggal yang dipilih
+      Object.entries(filteredTransactions).forEach(([key, transaction]) => {
+        const amount = transaction.amount || 0;
+        const isPositive = amount >= 0;
+        const amountFormatted = formatCurrency(Math.abs(amount));
+        const timeFormatted = formatTransactionTime(transaction.timestamp);
+        const typeText = getTransactionTypeText(transaction.type);
+        
+        html += `
+          <div class="transaction-item">
+            <div class="transaction-details">
+              <div class="transaction-type">${typeText}</div>
+              <div class="transaction-description">${transaction.description || '-'}</div>
+              ${transaction.order_id ? 
+                `<div class="transaction-order">Order: ${transaction.order_id}</div>` : ''}
+              <div class="transaction-meta">${timeFormatted}</div>
+            </div>
+            <div class="transaction-amount ${isPositive ? 'positive' : 'negative'}">
+              ${isPositive ? '+' : '-'} ${amountFormatted}
+            </div>
+          </div>
+        `;
+      });
+    }
     
     html += `
         </div>
@@ -607,8 +844,38 @@
     });
   }
 
+  // Fungsi untuk mendapatkan transaksi yang difilter berdasarkan tanggal
+  function getFilteredTransactionsForDate() {
+    if (!balanceHistory || Object.keys(balanceHistory).length === 0) {
+      return {};
+    }
+    
+    const dateWITA = new Date(currentDate.getTime() + (8 * 60 * 60 * 1000));
+    const dateStringWITA = dateWITA.toISOString().split('T')[0];
+    
+    const filtered = {};
+    
+    Object.entries(balanceHistory).forEach(([key, transaction]) => {
+      if (!transaction.timestamp) return;
+      
+      try {
+        const transactionDate = new Date(transaction.timestamp);
+        const transactionDateWITA = new Date(transactionDate.getTime() + (8 * 60 * 60 * 1000));
+        const transactionDateStringWITA = transactionDateWITA.toISOString().split('T')[0];
+        
+        if (transactionDateStringWITA === dateStringWITA) {
+          filtered[key] = transaction;
+        }
+      } catch (error) {
+        console.error('Error parsing transaction date:', error);
+      }
+    });
+    
+    return filtered;
+  }
+
   // Fungsi untuk menghitung statistik
-  function calculateStats(orders) {
+  function calculateStats(orders, selectedDate) {
     let totalOrders = orders.length;
     let totalDistance = 0;
     let grossEarnings = 0;
@@ -619,17 +886,23 @@
       const distance = parseFloat(distanceStr.replace(',', '.')) || 0;
       totalDistance += distance;
       
-      // Pendapatan
+      // Pendapatan kotor
       const earnings = order.harga_total || 0;
       grossEarnings += earnings;
     });
     
-    const averagePerKm = totalDistance > 0 ? Math.round(grossEarnings / totalDistance) : 0;
+    // Hitung pendapatan bersih dengan mempertimbangkan potongan
+    const earningsData = calculateNetEarnings(orders, balanceHistory, selectedDate);
+    
+    const averagePerKm = totalDistance > 0 ? Math.round(earningsData.netEarnings / totalDistance) : 0;
     
     return {
       totalOrders,
       totalDistance: totalDistance.toFixed(1),
-      grossEarnings,
+      grossEarnings: earningsData.grossEarnings,
+      netEarnings: earningsData.netEarnings,
+      totalFees: earningsData.totalFees,
+      feePercentage: earningsData.feePercentage,
       averagePerKm
     };
   }
@@ -658,6 +931,56 @@
       minute: '2-digit',
       timeZone: 'UTC' // Karena sudah di-convert manual ke WITA
     });
+  }
+
+  // Fungsi bantuan untuk format waktu transaksi
+  function formatTransactionTime(timestamp) {
+    if (!timestamp) return '-';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 60) {
+      return `${diffMins} menit lalu`;
+    } else if (diffHours < 24) {
+      return `${diffHours} jam lalu`;
+    } else if (diffDays < 7) {
+      return `${diffDays} hari lalu`;
+    } else {
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+  }
+
+  // Fungsi untuk mendapatkan teks tipe transaksi
+  function getTransactionTypeText(type) {
+    const typeMap = {
+      'order_fee': 'Biaya Layanan Order',
+      'withdrawal': 'Penarikan Saldo',
+      'deposit': 'Deposit',
+      'refund': 'Pengembalian Dana',
+      'bonus': 'Bonus'
+    };
+    return typeMap[type] || type || 'Transaksi';
+  }
+
+  // Fungsi untuk memformat mata uang
+  function formatCurrency(amount) {
+    if (!amount && amount !== 0) return 'Rp 0';
+    
+    try {
+      return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+    } catch (error) {
+      console.error('Error formatting currency:', error);
+      return 'Rp 0';
+    }
   }
 
   // ==================== FUNGSI NAVIGASI TANGGAL ====================
