@@ -771,45 +771,6 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
-    /* Animasi titik driver */
-    .driver-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background-color: var(--primary);
-      box-shadow: 0 0 0 0 rgba(30, 111, 92, 0.7);
-      animation: pulse 1.5s infinite;
-      position: relative;
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(0.9);
-        box-shadow: 0 0 0 0 rgba(30, 111, 92, 0.7);
-      }
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(30, 111, 92, 0);
-      }
-      100% {
-        transform: scale(0.9);
-        box-shadow: 0 0 0 0 rgba(30, 111, 92, 0);
-      }
-    }
-
-    /* Animasi polyline */
-    .animated-polyline {
-      stroke-dasharray: 1000;
-      stroke-dashoffset: 1000;
-      animation: dash 5s linear forwards;
-    }
-
-    @keyframes dash {
-      to {
-        stroke-dashoffset: 0;
-      }
-    }
-
     /* Responsive Design */
     @media (max-width: 768px) {
       :root {
@@ -1092,9 +1053,6 @@
 
     // Variabel untuk marker driver di peta
     let driverMarkers = {};
-    
-    // Variabel untuk animasi polyline
-    let animatedPolyline = null;
 
     // Ambil parameter vehicle
     const urlParams = new URLSearchParams(window.location.search);
@@ -1336,10 +1294,7 @@
             const isOnline = driver.tracking_enabled === true || driver.online === true;
             const hasLocation = driver.latitude && driver.longitude;
             
-            // Hanya tampilkan driver dengan vehicle_type yang sesuai
-            const isVehicleMatch = driver.vehicle_type === vehicle;
-            
-            if (isOnline && hasLocation && isVehicleMatch) {
+            if (isOnline && hasLocation) {
               const driverLocation = new google.maps.LatLng(
                 parseFloat(driver.latitude),
                 parseFloat(driver.longitude)
@@ -1363,24 +1318,33 @@
 
     // Fungsi untuk menambahkan marker driver ke peta
     function addDriverMarker(driverId, driver, location) {
-      // Buat div element untuk marker animasi
-      const driverDot = document.createElement('div');
-      driverDot.className = 'driver-dot';
+      // Tentukan icon berdasarkan jenis kendaraan
+      let iconUrl;
+      const vehicleType = driver.vehicle_type || 'motor';
       
-      // Buat marker dengan custom icon
+      switch(vehicleType.toLowerCase()) {
+        case 'motor':
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
+          break;
+        case 'bentor':
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png';
+          break;
+        case 'mobil':
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png';
+          break;
+        default:
+          iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
+      }
+      
       const marker = new google.maps.Marker({
         position: location,
         map: map,
         icon: {
-          url: 'data:image/svg+xml;base64,' + btoa(`
-            <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="10" cy="10" r="6" fill="${getVehicleColor(driver.vehicle_type)}" stroke="white" stroke-width="2"/>
-            </svg>
-          `),
-          scaledSize: new google.maps.Size(20, 20),
-          anchor: new google.maps.Point(10, 10)
+          url: iconUrl,
+          scaledSize: new google.maps.Size(30, 30),
+          anchor: new google.maps.Point(15, 15)
         },
-        title: `${driver.name || 'Driver'} - ${driver.vehicle_type || 'Unknown'}`
+        title: `${driver.name || 'Driver'} - ${vehicleType}`
       });
       
       // Simpan marker ke objek driverMarkers
@@ -1391,7 +1355,7 @@
         content: `
           <div style="padding: 8px;">
             <div style="font-weight: bold; margin-bottom: 4px;">${driver.name || 'Driver'}</div>
-            <div style="font-size: 12px; color: #666;">${driver.vehicle_type || 'Unknown'}</div>
+            <div style="font-size: 12px; color: #666;">${vehicleType}</div>
             <div style="font-size: 12px; color: #666;">Rating: ${driver.avg_rating || '0'}/5</div>
           </div>
         `
@@ -1402,63 +1366,12 @@
       });
     }
 
-    // Fungsi untuk mendapatkan warna berdasarkan jenis kendaraan
-    function getVehicleColor(vehicleType) {
-      switch(vehicleType) {
-        case 'motor':
-          return '#1e6f5c';
-        case 'bentor':
-          return '#289672';
-        case 'mobil':
-          return '#e6dd3b';
-        case 'kurir_motor':
-          return '#dc3545';
-        case 'kurir_bentor':
-          return '#ffc107';
-        default:
-          return '#1e6f5c';
-      }
-    }
-
     // Fungsi untuk menghapus semua marker driver
     function clearDriverMarkers() {
       Object.values(driverMarkers).forEach(marker => {
         marker.setMap(null);
       });
       driverMarkers = {};
-    }
-
-    // ==================== FUNGSI BARU: ANIMASI POLYLINE ====================
-
-    // Fungsi untuk membuat animasi polyline
-    function animateRoute(route) {
-      // Hapus polyline animasi sebelumnya jika ada
-      if (animatedPolyline) {
-        animatedPolyline.setMap(null);
-      }
-      
-      const path = route.overview_path;
-      const polyline = new google.maps.Polyline({
-        path: [],
-        geodesic: true,
-        strokeColor: '#289672',
-        strokeOpacity: 0.8,
-        strokeWeight: 6,
-        map: map
-      });
-      
-      animatedPolyline = polyline;
-      
-      // Animasikan polyline
-      let i = 0;
-      const interval = setInterval(() => {
-        if (i < path.length) {
-          polyline.getPath().push(path[i]);
-          i++;
-        } else {
-          clearInterval(interval);
-        }
-      }, 20);
     }
 
     // ==================== SISTEM PRIORITISASI DRIVER ====================
@@ -1946,11 +1859,6 @@
         circleB = null;
       }
       
-      if (animatedPolyline) {
-        animatedPolyline.setMap(null);
-        animatedPolyline = null;
-      }
-      
       hideRouteDetails();
       updateConfirmButton();
     }
@@ -2071,19 +1979,7 @@
       const newMarker = new google.maps.Marker({
         position: position,
         map: map,
-        icon: icon,
-        draggable: true // PERUBAHAN: Tambahkan kemampuan drag
-      });
-      
-      // PERUBAHAN: Tambahkan event listener untuk drag
-      newMarker.addListener('dragend', function() {
-        const newPosition = this.getPosition();
-        getAddressFromOSM(newPosition, (alamat) => {
-          document.getElementById(inputId).value = alamat;
-          if (markerA && markerB) {
-            tryDirection();
-          }
-        });
+        icon: icon
       });
       
       if (isFromInput) {
@@ -2223,9 +2119,6 @@
         
         if (status === "OK") {
           directionsRenderer.setDirections(res);
-          
-          // PERUBAHAN: Tambahkan animasi polyline
-          animateRoute(res.routes[0]);
           
           // Fit map to show the entire route
           const bounds = new google.maps.LatLngBounds();
@@ -2841,12 +2734,6 @@
                 circleB = null;
               }
               
-              // Hapus polyline animasi
-              if (animatedPolyline) {
-                animatedPolyline.setMap(null);
-                animatedPolyline = null;
-              }
-              
               currentRouteData = null;
               currentOrderId = null;
               currentDriverData = null;
@@ -3146,21 +3033,8 @@
         markerA = new google.maps.Marker({
           position: lokasiA,
           map: map,
-          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) },
-          draggable: true // PERUBAHAN: Tambahkan kemampuan drag
+          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
         });
-        
-        // PERUBAHAN: Tambahkan event listener untuk drag marker A
-        markerA.addListener('dragend', function() {
-          const newPosition = this.getPosition();
-          getAddressFromOSM(newPosition, (alamat) => {
-            document.getElementById("fromInput").value = alamat;
-            if (markerB) {
-              tryDirection();
-            }
-          });
-        });
-        
         // Untuk parameter from, gunakan OpenStreetMap untuk mendapatkan alamat
         getAddressFromOSM(lokasiA, (alamat) => {
           document.getElementById("fromInput").value = alamat || "";
@@ -3175,21 +3049,8 @@
           icon: {
             url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
             scaledSize: new google.maps.Size(40, 40)
-          },
-          draggable: true // PERUBAHAN: Tambahkan kemampuan drag
+          }
         });
-        
-        // PERUBAHAN: Tambahkan event listener untuk drag marker B
-        markerB.addListener('dragend', function() {
-          const newPosition = this.getPosition();
-          getAddressFromOSM(newPosition, (alamat) => {
-            document.getElementById("toInput").value = alamat;
-            if (markerA) {
-              tryDirection();
-            }
-          });
-        });
-        
         // Untuk parameter to, gunakan OpenStreetMap untuk mendapatkan alamat
         getAddressFromOSM(lokasiB, (alamat) => {
           document.getElementById("toInput").value = alamat || "";
@@ -3264,19 +3125,7 @@
         markerA = new google.maps.Marker({
           position: place.geometry.location,
           map: map,
-          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) },
-          draggable: true // PERUBAHAN: Tambahkan kemampuan drag
-        });
-        
-        // PERUBAHAN: Tambahkan event listener untuk drag marker A
-        markerA.addListener('dragend', function() {
-          const newPosition = this.getPosition();
-          getAddressFromOSM(newPosition, (alamat) => {
-            document.getElementById("fromInput").value = alamat;
-            if (markerB) {
-              tryDirection();
-            }
-          });
+          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
         });
 
         // ✅ Perbaikan: hapus plus-code dan gabungkan nama tempat dan alamat
@@ -3312,19 +3161,7 @@
           icon: {
             url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
             scaledSize: new google.maps.Size(40, 40)
-          },
-          draggable: true // PERUBAHAN: Tambahkan kemampuan drag
-        });
-        
-        // PERUBAHAN: Tambahkan event listener untuk drag marker B
-        markerB.addListener('dragend', function() {
-          const newPosition = this.getPosition();
-          getAddressFromOSM(newPosition, (alamat) => {
-            document.getElementById("toInput").value = alamat;
-            if (markerA) {
-              tryDirection();
-            }
-          });
+          }
         });
 
         // ✅ Perbaikan: hapus plus-code dan gabungkan nama tempat dan alamat
@@ -3473,3 +3310,4 @@
   </script>
 </body>
 </html>
+
