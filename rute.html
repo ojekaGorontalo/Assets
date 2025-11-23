@@ -771,6 +771,37 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
+    /* Pulsing marker CSS (small dot with pulse) */
+    .pulse-dot {
+      width: 14px;
+      height: 14px;
+      background: #28a745;
+      border-radius: 50%;
+      box-shadow: 0 0 0 rgba(40,167,69,0.7);
+      position: absolute;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(255,255,255,0.9);
+    }
+
+    .pulse-dot::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(40,167,69,0.25);
+      animation: pulse 2.4s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.9; }
+      70% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       :root {
@@ -1132,6 +1163,298 @@
       }
     };
 
+    // ==================== PRIORITY SCORE HELPERS ====================
+    const PRIORITY_WEIGHTS = {
+      'basic': 1,
+      'standard': 2,
+      'regular': 3,
+      'essential': 4
+    };
+
+    function getPriorityWeight(priorityLevel) {
+      return PRIORITY_WEIGHTS[priorityLevel] || 1;
+    }
+
+    function calculatePriorityScore(priorityLevel, rating, distanceToPickup) {
+      const levelWeight = getPriorityWeight(priorityLevel);
+      const ratingValue = Number(rating) || 0;
+      const distance = Number(distanceToPickup) || 0;
+      const priorityScore = (levelWeight * 1000) + (ratingValue * 100) - (distance * 100);
+      return priorityScore;
+    }
+
+    function getPriorityBadgeClass(priorityLevel) {
+      switch(priorityLevel) {
+        case 'basic': return 'priority-basic';
+        case 'standard': return 'priority-standard';
+        case 'regular': return 'priority-regular';
+        case 'essential': return 'priority-essential';
+        default: return 'priority-basic';
+      }
+    }
+
+    function getPriorityLabel(priorityLevel) {
+      switch(priorityLevel) {
+        case 'basic': return 'BASIC';
+        case 'standard': return 'STANDARD';
+        case 'regular': return 'REGULAR';
+        case 'essential': return 'ESSENTIAL';
+        default: return 'BASIC';
+      }
+    }
+
+    // ==================== LISTEN & SORT DRIVER OFFERS ====================
+    let driverOffersLocal = {};
+    let driverOffersListenerRef = null;
+
+    function listenDriverOffers(orderId) {
+      if (!orderId) return;
+      
+      const orderRef = database.ref('orders/' + orderId + '/driver_offers');
+      
+      // detach previous
+      if (driverOffersListenerRef) driverOffersListenerRef.off();
+      driverOffersListenerRef = orderRef;
+      
+      orderRef.on('value', async (snapshot) => {
+        const offers = snapshot.val() || {};
+        
+        // Build array of offers, but for each offer ensure we calculate fresh priority_score
+        const offerEntries = [];
+        const pickupLat = currentRouteData ? Number(currentRouteData.from_lat) : null;
+        const pickupLng = currentRouteData ? Number(currentRouteData.from_lng) : null;
+        
+        for (const driverId in offers) {
+          try {
+            const offer = offers[driverId];
+            const receivedAt = offer.offered_at || new Date().toISOString();
+            
+            // Get driver master data from /drivers/{driverId}
+            const driverSnapshot = await database.ref('drivers/' + driverId).once('value');
+            const driverMaster = driverSnapshot.val() || {};
+            
+            // distance to pickup (km) -> compute via google.maps.geometry if available
+            let distanceKm = 0;
+            if (pickupLat !== null && pickupLng !== null && driverMaster.latitude && driverMaster.longitude && 
+                window.google && google.maps && google.maps.geometry) {
+              const pickupLatLng = new google.maps.LatLng(pickupLat, pickupLng);
+              const driverLatLng = new google.maps.LatLng(
+                parseFloat(driverMaster.latitude), 
+                parseFloat(driverMaster.longitude)
+              );
+              distanceKm = google.maps.geometry.spherical.computeDistanceBetween(pickupLatLng, driverLatLng) / 1000;
+              distanceKm = Math.max(0, Number(distanceKm.toFixed(2)));
+            } else {
+              distanceKm = offer.distance_to_pickup || 0;
+            }
+            
+            // determine priority level & rating (prefer driverMaster fields)
+            const priorityLevel = (driverMaster.priority_level) || (offer.priority_level) || 'basic';
+            const rating = (driverMaster.avg_rating) || (offer.avg_rating) || (driverMaster.avgRating) || 0;
+            
+            const priorityScore = calculatePriorityScore(priorityLevel, rating, distanceKm);
+            
+            driverOffersLocal[driverId] = {
+              driverId,
+              offer,
+              driverMaster,
+              priorityLevel,
+              rating,
+              distanceKm,
+              priorityScore,
+              receivedAt
+            };
+            
+            offerEntries.push(driverOffersLocal[driverId]);
+          } catch (err) {
+            console.error('Error processing offer for', driverId, err);
+          }
+        }
+        
+        // Sort: highest priorityScore first; tie-breaker: earlier receivedAt (older offers first) OR smaller distance
+        offerEntries.sort((a, b) => {
+          if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
+          // if same score, prefer earlier receivedAt
+          const ta = new Date(a.receivedAt).getTime();
+          const tb = new Date(b.receivedAt).getTime();
+          if (ta !== tb) return ta - tb;
+          // fallback prefer closer driver
+          return a.distanceKm - b.distanceKm;
+        });
+        
+        // Render to UI
+        renderDriverOffersSorted(offerEntries);
+      });
+    }
+
+    // Renderer function: create cards in #driverOfferList from sorted offers
+    function renderDriverOffersSorted(sortedOffers) {
+      const container = document.getElementById('driverOfferList');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      
+      sortedOffers.forEach((entry, index) => {
+        const d = entry.driverMaster || entry.offer || {};
+        const name = d.name || d.fullName || entry.offer.name || 'Driver';
+        const rating = entry.rating || 0;
+        const offeredPrice = entry.offer.offered_price || (currentRouteData && currentRouteData.harga_total) || 0;
+        const priceDisplay = `Rp ${Number(offeredPrice).toLocaleString('id-ID')}`;
+        
+        const card = document.createElement('div');
+        card.className = 'driver-offer-card' + (index === 0 ? ' highlighted' : '');
+        card.id = `driver-${entry.driverId}`;
+        
+        const badge = `<div class="priority-badge ${getPriorityBadgeClass(entry.priorityLevel)}">${getPriorityLabel(entry.priorityLevel)}</div>`;
+        
+        card.innerHTML = `
+          <div class="driver-info">
+            <div style="width:60px; height:60px; border-radius:50%; overflow:hidden; margin-right:10px;">
+              <img src="${d.profile_photo_url || d.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" 
+                   style="width:100%; height:100%; object-fit:cover;">
+            </div>
+            <div class="driver-details">
+              ${badge}
+              <div class="driver-name">${name} <span class="position-badge">#${index + 1}</span></div>
+              <div class="driver-vehicle">${d.vehicle_brand || d.vehicleBrand || ''} • ${d.vehicle_type || d.vehicleType || ''}</div>
+              <div class="driver-rating">${getStarRatingHTML(rating)} <span>${rating}/5</span></div>
+              <div style="margin-top:5px; font-weight:600; color:var(--success);">${priceDisplay}</div>
+            </div>
+          </div>
+          <button class="accept-btn" onclick="selectDriver('${entry.driverId}')">Pilih</button>
+        `;
+        
+        container.appendChild(card);
+      });
+      
+      // show container if has offers
+      document.getElementById('driverOffers').style.display = sortedOffers.length ? 'block' : 'none';
+    }
+
+    // ==================== PULSING MARKER HELPERS (OverlayView) ====================
+    const pulsingOverlays = {};
+
+    function createPulsingMarker(driverId, latLng, options = {}) {
+      // Remove existing first
+      removePulsingMarker(driverId);
+      
+      function PulsingOverlay(position, map) {
+        this.position = position;
+        this.map = map;
+        this.div = null;
+        this.setMap(map);
+      }
+      
+      PulsingOverlay.prototype = new google.maps.OverlayView();
+      
+      PulsingOverlay.prototype.onAdd = function() {
+        this.div = document.createElement('div');
+        this.div.className = 'pulse-dot';
+        if (options.color) {
+          this.div.style.background = options.color;
+          this.div.style.boxShadow = `0 0 0 ${options.color}`;
+        }
+        
+        const panes = this.getPanes();
+        panes.overlayMouseTarget.appendChild(this.div);
+      };
+      
+      PulsingOverlay.prototype.draw = function() {
+        const pos = this.getProjection().fromLatLngToDivPixel(this.position);
+        if (pos && this.div) {
+          this.div.style.left = pos.x + 'px';
+          this.div.style.top = pos.y + 'px';
+        }
+      };
+      
+      PulsingOverlay.prototype.onRemove = function() {
+        if (this.div && this.div.parentNode) this.div.parentNode.removeChild(this.div);
+        this.div = null;
+      };
+      
+      const overlay = new PulsingOverlay(new google.maps.LatLng(latLng.lat, latLng.lng), map);
+      pulsingOverlays[driverId] = overlay;
+      return overlay;
+    }
+
+    function updatePulsingMarker(driverId, latLng) {
+      const existing = pulsingOverlays[driverId];
+      if (existing && existing.position) {
+        existing.position = new google.maps.LatLng(latLng.lat, latLng.lng);
+        existing.draw && existing.draw();
+      } else {
+        createPulsingMarker(driverId, latLng);
+      }
+    }
+
+    function removePulsingMarker(driverId) {
+      const overlay = pulsingOverlays[driverId];
+      if (!overlay) return;
+      overlay.setMap(null);
+      delete pulsingOverlays[driverId];
+    }
+
+    // ==================== MAP ZOOM ANIMATION (slow) ====================
+    let mapZoomAnimation = null;
+    let prevMapZoom = null;
+
+    function animateMapZoom(targetZoom, speedPerSecond = 0.1) {
+      // Cancel previous
+      if (mapZoomAnimation) {
+        cancelAnimationFrame(mapZoomAnimation);
+        mapZoomAnimation = null;
+      }
+      
+      const startZoom = map.getZoom();
+      const direction = targetZoom > startZoom ? 1 : -1;
+      const totalDelta = Math.abs(targetZoom - startZoom);
+      
+      if (totalDelta === 0) return;
+      
+      const startTime = performance.now();
+      const duration = totalDelta / speedPerSecond * 1000; // in ms
+      
+      function step(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        // simple ease-in-out
+        const eased = t<0.5 ? (2*t*t) : (-1 + (4 - 2*t)*t);
+        const newZoom = startZoom + direction * (totalDelta * eased);
+        
+        map.setZoom(newZoom);
+        
+        if (t < 1) {
+          mapZoomAnimation = requestAnimationFrame(step);
+        } else {
+          mapZoomAnimation = null;
+          map.setZoom(targetZoom); // ensure exact
+        }
+      }
+      
+      mapZoomAnimation = requestAnimationFrame(step);
+    }
+
+    function stopMapZoomAnimation() {
+      if (mapZoomAnimation) {
+        cancelAnimationFrame(mapZoomAnimation);
+        mapZoomAnimation = null;
+      }
+    }
+
+    function beginRadarMapAnimation() {
+      prevMapZoom = map.getZoom();
+      const target = Math.max(3, prevMapZoom - 0.6);
+      animateMapZoom(target, 0.1);
+    }
+
+    function endRadarMapAnimation() {
+      stopMapZoomAnimation();
+      if (prevMapZoom !== null) {
+        animateMapZoom(prevMapZoom, 0.15);
+        prevMapZoom = null;
+      }
+    }
+
     // ==================== FUNGSI LOAD DATA TARIF DARI FIREBASE ====================
 
     // Fungsi untuk mengambil data tarif dari Firebase
@@ -1283,8 +1606,10 @@
         
         if (!pickupLocation) return;
         
-        // Hapus semua marker driver yang ada
-        clearDriverMarkers();
+        // Clear all existing driver markers
+        Object.keys(pulsingOverlays).forEach(driverId => {
+          removePulsingMarker(driverId);
+        });
         
         if (drivers) {
           Object.keys(drivers).forEach(driverId => {
@@ -1308,70 +1633,19 @@
               
               // Tampilkan hanya driver dalam radius 5 km
               if (distance <= 5) {
-                addDriverMarker(driverId, driver, driverLocation);
+                updatePulsingMarker(driverId, {
+                  lat: parseFloat(driver.latitude),
+                  lng: parseFloat(driver.longitude)
+                });
+              } else {
+                removePulsingMarker(driverId);
               }
+            } else {
+              removePulsingMarker(driverId);
             }
           });
         }
       });
-    }
-
-    // Fungsi untuk menambahkan marker driver ke peta
-    function addDriverMarker(driverId, driver, location) {
-      // Tentukan icon berdasarkan jenis kendaraan
-      let iconUrl;
-      const vehicleType = driver.vehicle_type || 'motor';
-      
-      switch(vehicleType.toLowerCase()) {
-        case 'motor':
-          iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
-          break;
-        case 'bentor':
-          iconUrl = 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png';
-          break;
-        case 'mobil':
-          iconUrl = 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png';
-          break;
-        default:
-          iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
-      }
-      
-      const marker = new google.maps.Marker({
-        position: location,
-        map: map,
-        icon: {
-          url: iconUrl,
-          scaledSize: new google.maps.Size(30, 30),
-          anchor: new google.maps.Point(15, 15)
-        },
-        title: `${driver.name || 'Driver'} - ${vehicleType}`
-      });
-      
-      // Simpan marker ke objek driverMarkers
-      driverMarkers[driverId] = marker;
-      
-      // Tambahkan info window
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px;">
-            <div style="font-weight: bold; margin-bottom: 4px;">${driver.name || 'Driver'}</div>
-            <div style="font-size: 12px; color: #666;">${vehicleType}</div>
-            <div style="font-size: 12px; color: #666;">Rating: ${driver.avg_rating || '0'}/5</div>
-          </div>
-        `
-      });
-      
-      marker.addListener('click', () => {
-        infoWindow.open(map, marker);
-      });
-    }
-
-    // Fungsi untuk menghapus semua marker driver
-    function clearDriverMarkers() {
-      Object.values(driverMarkers).forEach(marker => {
-        marker.setMap(null);
-      });
-      driverMarkers = {};
     }
 
     // ==================== SISTEM PRIORITISASI DRIVER ====================
@@ -2006,6 +2280,9 @@
       const radar = document.getElementById('radar');
       radar.style.display = 'none';
       radar.classList.remove('expanding');
+      
+      // End map animation
+      endRadarMapAnimation();
     }
 
     function showRadar(message) {
@@ -2017,6 +2294,9 @@
       setTimeout(() => {
         radar.classList.add('expanding');
       }, 500);
+      
+      // Start map animation
+      beginRadarMapAnimation();
     }
 
     // Fungsi untuk membulatkan harga
@@ -2363,169 +2643,6 @@
       driverRef.on('value', driverUpdateHandler);
     }
 
-    // ==================== FUNGSI BARU: LISTEN DRIVER OFFERS ====================
-
-    // PERBAIKAN: Fungsi untuk listen penawaran driver
-    function listenDriverOffers(orderId) {
-      if (!orderId) return;
-      
-      // Hentikan listener sebelumnya jika ada
-      if (driverOffersRef) {
-        driverOffersRef.off();
-      }
-      
-      driverOffersRef = database.ref('orders/' + orderId + '/driver_offers');
-      
-      // Reset driver offers list
-      driverOffersList = [];
-      
-      // Listen untuk penawaran baru
-      driverOffersRef.on('child_added', (snapshot) => {
-        const offer = snapshot.val();
-        const offerId = snapshot.key;
-        
-        console.log('Penawaran driver baru:', offer);
-        
-        // Hentikan timer penawaran harga karena sudah ada driver
-        if (priceIncreaseTimer) {
-          clearTimeout(priceIncreaseTimer);
-          priceIncreaseTimer = null;
-        }
-        
-        // Tambahkan ID ke offer
-        offer.id = offerId;
-        
-        // Update array
-        const existingIndex = driverOffersList.findIndex(o => o.id === offerId);
-        if (existingIndex > -1) {
-            driverOffersList[existingIndex] = offer;
-        } else {
-            driverOffersList.push(offer);
-        }
-        
-        // Gunakan sistem prioritisasi smart
-        smartDriverPrioritization(driverOffersList);
-        
-        // Tampilkan notifikasi
-        showDriverOfferNotification(offer);
-      });
-      
-      // Listen untuk perubahan penawaran
-      driverOffersRef.on('child_changed', (snapshot) => {
-        const offer = snapshot.val();
-        const offerId = snapshot.key;
-        
-        // Update array
-        const existingIndex = driverOffersList.findIndex(o => o.id === offerId);
-        if (existingIndex > -1) {
-            driverOffersList[existingIndex] = { ...offer, id: offerId };
-            
-            // Render ulang dengan prioritisasi
-            smartDriverPrioritization(driverOffersList);
-        }
-      });
-      
-      // Listen untuk penawaran yang dihapus
-      driverOffersRef.on('child_removed', (snapshot) => {
-        const offerId = snapshot.key;
-        
-        // Hapus dari array
-        driverOffersList = driverOffersList.filter(o => o.id !== offerId);
-        
-        // Render ulang
-        smartDriverPrioritization(driverOffersList);
-      });
-    }
-
-    // PERBAIKAN: Fungsi untuk menampilkan notifikasi penawaran baru
-    function showDriverOfferNotification(offer) {
-      // Buat notifikasi sementara
-      const notification = document.createElement('div');
-      notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 1000;
-        font-weight: 600;
-        text-align: center;
-        max-width: 80%;
-      `;
-      notification.textContent = `🚗 ${offer.name || 'Driver'} mengirim penawaran!`;
-      
-      document.body.appendChild(notification);
-      
-      // Hapus notifikasi setelah 3 detik
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, 3000);
-    }
-
-    // PERBAIKAN: Fungsi untuk memilih driver dari penawaran
-    function selectDriver(offerId) {
-      if (!currentOrderId) {
-        showPopup('Tidak ada order aktif', "Error", "error");
-        return;
-      }
-      
-      const orderRef = database.ref('orders/' + currentOrderId);
-      const offerRef = database.ref('orders/' + currentOrderId + '/driver_offers/' + offerId);
-      
-      // Ambil data penawaran
-      offerRef.once('value')
-        .then((snapshot) => {
-          const offer = snapshot.val();
-          if (!offer) {
-            showPopup('Penawaran tidak ditemukan', "Error", "error");
-            return;
-          }
-          
-          // Gunakan harga tawaran jika ada, jika tidak gunakan harga normal
-          const finalPrice = offer.offered_price || currentRouteData.harga_total;
-          
-          // Update order dengan driver yang dipilih
-          return orderRef.update({
-            status: 'accepted',
-            selected_driver: {
-              ...offer,
-              offer_id: offerId,
-              selected_at: new Date().toISOString(),
-              final_price: finalPrice // Simpan harga final
-            },
-            harga_total: finalPrice, // Update harga order
-            updated_at: new Date().toISOString()
-          });
-        })
-        .then(() => {
-          console.log('Driver berhasil dipilih:', offerId);
-          
-          // Sembunyikan modal penawaran
-          document.getElementById('driverOffers').style.display = 'none';
-          
-          // Kirim notifikasi ke Kodular
-          sendToKodular({
-            action: 'driver_selected',
-            order_id: currentOrderId,
-            driver_offer_id: offerId,
-            final_price: finalPrice
-          }, 'driver_selected');
-          
-          // Redirect ke halaman order diterima
-          window.location.href = 'orderAcceptedForCS.html';
-        })
-        .catch((error) => {
-          console.error('Gagal memilih driver:', error);
-          showPopup('Gagal memilih driver. Silakan coba lagi.', "Error", "error");
-        });
-    }
-
     // ==================== FUNGSI BARU: SISTEM PENAWARAN HARGA ====================
 
     // Fungsi untuk memulai timer penawaran harga
@@ -2538,7 +2655,7 @@
       // Set timer 30 detik
       priceIncreaseTimer = setTimeout(() => {
         // Cek apakah masih mencari driver dan belum ada penawaran
-        if (isSearching && driverOffersList.length === 0) {
+        if (isSearching && Object.keys(driverOffersLocal).length === 0) {
           showPriceOfferPopup();
         }
       }, 30000); // 30 detik
@@ -2568,9 +2685,9 @@
       document.getElementById('priceOfferPopup').classList.remove('active');
       
       // Restart timer untuk penawaran berikutnya dalam 60 detik
-      if (isSearching && driverOffersList.length === 0) {
+      if (isSearching && Object.keys(driverOffersLocal).length === 0) {
         priceIncreaseTimer = setTimeout(() => {
-          if (isSearching && driverOffersList.length === 0) {
+          if (isSearching && Object.keys(driverOffersLocal).length === 0) {
             showPriceOfferPopup();
           }
         }, 60000);
@@ -2679,13 +2796,15 @@
       }
       
       // Hentikan listener penawaran driver
-      if (driverOffersRef) {
-        driverOffersRef.off();
-        driverOffersRef = null;
+      if (driverOffersListenerRef) {
+        driverOffersListenerRef.off();
+        driverOffersListenerRef = null;
       }
       
-      // Hapus semua marker driver dari peta
-      clearDriverMarkers();
+      // Clear all driver markers
+      Object.keys(pulsingOverlays).forEach(driverId => {
+        removePulsingMarker(driverId);
+      });
       
       if (!currentOrderId) {
         console.log('Tidak ada order aktif (currentOrderId null). Hanya reset UI.');
