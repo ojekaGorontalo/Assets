@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>Pembayaran Deposit - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     :root {
       --primary: #1e6f5c;
@@ -481,7 +484,7 @@
       <div class="info-box">
         <div class="info-title">Langkah Terakhir</div>
         <div class="info-text">
-          Setelah melakukan pembayaran, harap konfirmasi ke admin dengan mengirimkan bukti transfer melalui WhatsApp.
+          Setelah melakukan pembayaran, harap konfirmasi ke admin dengan mengirimkan bukti transfer.
         </div>
       </div>
       
@@ -489,7 +492,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>
-        Konfirmasi ke Admin via WhatsApp
+        Konfirmasi ke Admin
       </button>
     </div>
 
@@ -504,12 +507,39 @@
   <div class="toast" id="toast">Teks berhasil disalin!</div>
 
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
+      authDomain: "ojeka-ba255.firebaseapp.com",
+      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+      projectId: "ojeka-ba255",
+      storageBucket: "ojeka-ba255.firebasestorage.app",
+      messagingSenderId: "639980533353",
+      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+      measurementId: "G-PBP64Z8VQ8"
+    };
+
+    // Initialize Firebase
+    let database;
+    let isFirebaseInitialized = false;
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      database = firebase.database();
+      isFirebaseInitialized = true;
+      console.log('✅ Firebase berhasil diinisialisasi');
+    } catch (error) {
+      console.error('❌ Error inisialisasi Firebase:', error);
+      isFirebaseInitialized = false;
+    }
+
     // Variabel global
     let depositAmount = 0;
     let uniqueAmount = 0;
     let uniqueDigits = '000';
     let driverData = {};
     let qrisUrl = '';
+    let paymentId = '';
 
     // Inisialisasi saat halaman dimuat
     document.addEventListener('DOMContentLoaded', function() {
@@ -604,8 +634,11 @@
       // Generate angka unik (3 digit random)
       uniqueDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       
-      // PERBAIKAN: Hitung jumlah yang harus dibayar (deposit + angka unik)
+      // Hitung jumlah yang harus dibayar (deposit + angka unik)
       uniqueAmount = depositAmount + parseInt(uniqueDigits);
+      
+      // Generate payment ID
+      paymentId = 'PAY_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
       
       // Format tampilan jumlah yang harus dibayar
       const formattedAmount = formatCurrency(uniqueAmount);
@@ -619,7 +652,48 @@
       document.getElementById('qrcodeCard').style.display = 'block';
       document.getElementById('whatsappCard').style.display = 'block';
       
+      // Simpan data deposit ke Firebase
+      saveDepositToFirebase();
+      
       console.log(`💰 Deposit: ${depositAmount}, Angka Unik: ${uniqueDigits}, Total: ${uniqueAmount}`);
+    }
+
+    // Fungsi untuk menyimpan data deposit ke Firebase
+    function saveDepositToFirebase() {
+      if (!isFirebaseInitialized || !database) {
+        console.error('❌ Firebase tidak terinisialisasi');
+        return;
+      }
+
+      if (!driverData.driverId) {
+        console.error('❌ Driver ID tidak ditemukan');
+        return;
+      }
+
+      const depositData = {
+        paymentId: paymentId,
+        driverId: driverData.driverId,
+        driverName: driverData.fullName || 'Tidak diketahui',
+        depositAmount: depositAmount,
+        uniqueAmount: uniqueAmount,
+        uniqueDigits: uniqueDigits,
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        phoneNumber: driverData.phoneNumber || 'Tidak diketahui'
+      };
+
+      console.log('🔄 Menyimpan data deposit ke Firebase:', depositData);
+
+      // Simpan ke Firebase
+      const depositRef = database.ref('DataJego/Payment/ListDepostDriver/' + driverData.driverId + '/' + paymentId);
+      
+      depositRef.set(depositData)
+        .then(() => {
+          console.log('✅ Data deposit berhasil disimpan ke Firebase');
+        })
+        .catch((error) => {
+          console.error('❌ Error menyimpan data deposit ke Firebase:', error);
+        });
     }
 
     // Fungsi untuk menyalin jumlah pembayaran ke clipboard
@@ -662,25 +736,66 @@
       }, 3000);
     }
 
-    // Fungsi untuk mengirim konfirmasi via WhatsApp
+    // Fungsi untuk mengirim konfirmasi via Kodular
     function sendWhatsAppConfirmation() {
       if (!depositAmount || !uniqueAmount) {
         alert('Silakan generate kode pembayaran terlebih dahulu');
         return;
       }
       
-      // Format pesan WhatsApp
-      const phoneNumber = '6283142889149';
-      const driverName = driverData.fullName || 'Tidak diketahui';
-      const driverId = driverData.driverId || 'Tidak diketahui';
+      // Siapkan data untuk dikirim ke Kodular
+      const paymentData = {
+        action: 'confirm_deposit',
+        driverId: driverData.driverId || 'Tidak diketahui',
+        driverName: driverData.fullName || 'Tidak diketahui',
+        phoneNumber: driverData.phoneNumber || 'Tidak diketahui',
+        depositAmount: depositAmount,
+        uniqueAmount: uniqueAmount,
+        uniqueDigits: uniqueDigits,
+        paymentId: paymentId,
+        timestamp: new Date().toISOString()
+      };
       
-      const message = `Halo Admin JeGo,%0A%0ASaya ingin konfirmasi pembayaran deposit dengan detail berikut:%0A%0A- Nama Driver: ${driverName}%0A- ID Driver: ${driverId}%0A- Jumlah Deposit: Rp ${formatNumber(depositAmount)}%0A- Jumlah yang Dibayar: Rp ${formatNumber(uniqueAmount)}%0A- Angka Unik: ${uniqueDigits}%0A%0ATerima kasih.`;
+      // Kirim data ke Kodular
+      sendToKodular(paymentData);
       
-      // Buat URL WhatsApp
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+      // Tampilkan pesan sukses
+      showToast('Konfirmasi pembayaran berhasil dikirim!');
+    }
+
+    // Fungsi untuk mengirim data ke Kodular
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
       
-      // Buka WhatsApp
-      window.open(whatsappUrl, '_blank');
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      }
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular via window.android');
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      }
+      else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        // Fallback: tampilkan data di console untuk debugging
+        console.log('Data yang akan dikirim ke Kodular:', data);
+      }
     }
 
     // Fungsi untuk memformat mata uang
