@@ -1383,6 +1383,36 @@
     let currentDriverBalance = 0;
     let balanceListener = null;
     let potonganPercentage = 5.1; // Default potongan
+    let commissionRateListener = null; // Listener untuk komisi rate
+
+    // ==================== FUNGSI UNTUK MENGAMBIL DATA KOMISI DARI FIREBASE ====================
+    function initializeCommissionRate() {
+      if (!database) {
+        console.log('❌ Firebase tidak tersedia untuk mengambil data komisi');
+        return;
+      }
+
+      const commissionRateRef = database.ref('DataJego/ComissionRate/Komisi');
+      
+      commissionRateListener = commissionRateRef.on('value', (snapshot) => {
+        const commissionRate = snapshot.val();
+        if (commissionRate !== null && commissionRate !== undefined) {
+          potonganPercentage = commissionRate;
+          console.log(`💰 Komisi rate diperbarui dari Firebase: ${potonganPercentage}%`);
+          
+          // Kirim notifikasi ke Kodular tentang update komisi
+          sendToKodular({
+            action: 'commission_rate_updated',
+            commission_rate: potonganPercentage,
+            message: `Persentase komisi diperbarui menjadi ${potonganPercentage}%`
+          });
+        } else {
+          console.log(`💰 Komisi rate tidak ditemukan di Firebase, menggunakan default: ${potonganPercentage}%`);
+        }
+      }, (error) => {
+        console.error('❌ Error mengambil data komisi dari Firebase:', error);
+      });
+    }
 
     // ==================== FUNGSI NAVIGASI BOTTOM NAV YANG DIPERBARUI ====================
     function navigateToScreen(screen) {
@@ -3197,19 +3227,8 @@
         console.error('❌ Error listening to balance:', error);
       });
 
-      // Ambil nilai potongan dari Firebase
-      const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
-      potonganRef.once('value').then((snapshot) => {
-        const potonganValue = snapshot.val();
-        if (potonganValue !== null && potonganValue !== undefined) {
-          potonganPercentage = potonganValue;
-          console.log(`💰 Potongan dari Firebase: ${potonganPercentage}%`);
-        } else {
-          console.log(`💰 Potongan default: ${potonganPercentage}%`);
-        }
-      }).catch((error) => {
-        console.error('❌ Error mengambil data potongan:', error);
-      });
+      // PANGGIL FUNGSI UNTUK MENGAMBIL DATA KOMISI DARI PATH BARU
+      initializeCommissionRate();
     }
 
     // ==================== FUNGSI PERHITUNGAN POTONGAN BARU ====================
@@ -3726,6 +3745,11 @@
         if (driverId) {
           database.ref('drivers/' + driverId + '/Balance').off('value', balanceListener);
         }
+      }
+      // HAPUS LISTENER KOMISI RATE SAAT UNLOAD
+      if (commissionRateListener) {
+        database.ref('DataJego/ComissionRate/Komisi').off('value', commissionRateListener);
+        commissionRateListener = null;
       }
     });
   </script>
