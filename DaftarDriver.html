@@ -424,43 +424,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Notification Popup */
-    .notification {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      border-left: 4px solid var(--primary);
-      z-index: 1000;
-      display: none;
-      max-width: 300px;
-    }
-
-    .notification.success {
-      border-left-color: var(--success);
-    }
-
-    .notification.error {
-      border-left-color: var(--danger);
-    }
-
-    .notification.info {
-      border-left-color: var(--primary);
-    }
-
-    .notification-title {
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .notification-message {
-      font-size: 0.85rem;
-      color: #666;
-    }
-
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .header-title {
@@ -491,18 +454,11 @@
       }
       
       .form-title {
-        font-size: 1.3rem;
+        fontSize: 1.3rem;
       }
       
       .vehicle-options {
         grid-template-columns: 1fr 1fr;
-      }
-
-      .notification {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
       }
     }
   </style>
@@ -682,12 +638,6 @@
     </div>
   </div>
 
-  <!-- Notification Popup -->
-  <div class="notification" id="notificationPopup">
-    <div class="notification-title" id="notificationTitle">Informasi</div>
-    <div class="notification-message" id="notificationMessage"></div>
-  </div>
-
   <script>
     // Firebase Configuration
     const firebaseConfig = {
@@ -703,23 +653,6 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-
-    // Show notification popup
-    function showNotification(title, message, type = 'info') {
-      const notification = document.getElementById('notificationPopup');
-      const notificationTitle = document.getElementById('notificationTitle');
-      const notificationMessage = document.getElementById('notificationMessage');
-      
-      notificationTitle.textContent = title;
-      notificationMessage.textContent = message;
-      notification.className = `notification ${type}`;
-      notification.style.display = 'block';
-      
-      // Auto hide after 5 seconds
-      setTimeout(() => {
-        notification.style.display = 'none';
-      }, 5000);
-    }
 
     // Generate unique driver ID
     function generateDriverId() {
@@ -820,7 +753,7 @@
         
         // === FIELD BARU: SALDO AWAL DAN POTONGAN ===
         Balance: 25000, // Saldo awal Rp 25.000
-        Potongan: 5,  // Potongan 5%
+        Potongan: 5.1,  // Potongan 5.1%
         
         // FIELD BARU YANG DITAMBAHKAN untuk statistik driver
         totalOrders: 0,
@@ -851,11 +784,24 @@
           localStorage.setItem('jego_driver_data', JSON.stringify(formData));
           
           showStatus('Pendaftaran berhasil! Silakan verifikasi data Anda dengan Admin.', 'success');
-          showNotification('Pendaftaran Berhasil', 'Pendaftaran berhasil! Silakan verifikasi data Anda dengan Admin.', 'success');
           
           // Sembunyikan form dan tampilkan section verifikasi
           document.getElementById('driverForm').style.display = 'none';
           document.getElementById('verificationSection').style.display = 'block';
+          
+          // Kirim data ke Kodular - DIPERBARUI DENGAN DATA LENGKAP
+          sendToKodular({
+            action: 'driver_registered',
+            driver_id: formData.driverId,
+            full_name: formData.fullName,
+            phone_number: formData.phoneNumber,
+            vehicle_type: formData.vehicleType,
+            total_orders: formData.totalOrders,
+            avg_rating: formData.avgRating,
+            completion_rate: formData.completionRate,
+            initial_balance: formData.Balance, // Tambahkan info saldo awal
+            potongan_percentage: formData.Potongan // Tambahkan info potongan
+          });
         })
         .catch((error) => {
           console.error('Error saving driver data:', error);
@@ -871,16 +817,18 @@
     document.getElementById('whatsappBtn').addEventListener('click', function() {
       const driverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
       
-      // Buat pesan untuk WhatsApp
-      const message = `Halo Admin JeGo, saya ${driverData.fullName} ingin verifikasi data driver. Driver ID: ${driverData.driverId}`;
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/6283142889149?text=${encodedMessage}`;
-      
-      // Buka WhatsApp
-      window.open(whatsappUrl, '_blank');
+      // Kirim data ke Kodular untuk diarahkan ke WhatsApp - DIPERBARUI
+      sendToKodular({
+        action: 'whatsapp_verification',
+        driver_id: driverData.driverId,
+        admin_number: '083142889149',
+        driver_name: driverData.fullName,
+        vehicle_type: driverData.vehicleType,
+        initial_balance: driverData.Balance,
+        potongan_percentage: driverData.Potongan
+      });
       
       showStatus('Permintaan verifikasi telah dikirim. Tunggu konfirmasi dari Admin.', 'success');
-      showNotification('WhatsApp Dibuka', 'Membuka WhatsApp untuk verifikasi data driver.', 'info');
     });
 
     // Handle save profile photo - DIPERBARUI
@@ -913,19 +861,61 @@
         profileUpdatedAt: new Date().toISOString()
       })
       .then(() => {
-        showStatus('Foto profil berhasil disimpan! Mengalihkan...', 'success');
-        showNotification('Foto Profil Disimpan', 'Foto profil berhasil disimpan! Mengalihkan ke halaman utama...', 'success');
+        showStatus('Foto profil berhasil disimpan!', 'success');
         
-        // Redirect ke halaman list setelah 2 detik
-        setTimeout(() => {
-          window.location.href = 'list.html';
-        }, 2000);
+        // Kirim data ke Kodular - DIPERBARUI
+        sendToKodular({
+          action: 'profile_photo_updated',
+          driver_id: driverData.driverId,
+          profile_photo_url: profilePhotoUrl,
+          full_name: driverData.fullName,
+          status: 'completed_registration',
+          balance: driverData.Balance,
+          potongan: driverData.Potongan
+        });
       })
       .catch((error) => {
         console.error('Error updating profile photo:', error);
         showStatus('Terjadi kesalahan saat menyimpan foto profil.', 'error');
       });
     });
+
+    // Fungsi untuk mengirim data ke Kodular
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
+      
+      // METODE 1: Menggunakan window.AppInventor.setWebViewString
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor.setWebViewString');
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      }
+      // METODE 2: Menggunakan window.android (Android WebView)
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular via window.android');
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      }
+      // METODE 3: Menggunakan window.webkit.messageHandlers (iOS WebView)
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      }
+      else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        console.log('Data yang gagal dikirim:', data);
+      }
+    }
 
     // Cek status driver saat halaman dimuat
     function checkDriverStatus() {
@@ -950,18 +940,9 @@
                 document.getElementById('verificationSection').style.display = 'none';
                 document.getElementById('profilePhotoSection').style.display = 'block';
                 
-                // Jika sudah ada foto profil, redirect langsung ke list.html
+                // Jika sudah ada foto profil, isi field
                 if (currentData.profilePhotoUrl) {
-                  showStatus('Pendaftaran sudah lengkap. Mengalihkan...', 'success');
-                  showNotification('Pendaftaran Lengkap', 'Pendaftaran sudah lengkap. Mengalihkan ke halaman utama...', 'success');
-                  setTimeout(() => {
-                    window.location.href = 'list.html';
-                  }, 2000);
-                } else {
-                  // Jika belum ada foto profil, isi field jika ada data
-                  if (currentData.profilePhotoUrl) {
-                    document.getElementById('profilePhotoUrl').value = currentData.profilePhotoUrl;
-                  }
+                  document.getElementById('profilePhotoUrl').value = currentData.profilePhotoUrl;
                 }
               } else if (currentData.status === 'pending') {
                 // Jika status masih pending, tampilkan section verifikasi
