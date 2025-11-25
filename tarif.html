@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Manajemen Tarif - Admin</title>
+<style>
+    body { font-family: Arial; padding: 20px; background-color: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .tarif-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .tarif-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .tarif-header { display: flex; align-items: center; margin-bottom: 15px; }
+    .tarif-icon { width: 50px; height: 50px; margin-right: 15px; border-radius: 8px; }
+    .tarif-name { font-size: 18px; font-weight: bold; color: #333; }
+    .tarif-desc { color: #666; margin-bottom: 15px; font-size: 14px; }
+    .tarif-details { margin-bottom: 15px; }
+    .detail-item { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+    .detail-label { font-weight: bold; color: #555; }
+    .detail-value { color: #333; }
+    .btn-edit { background: #2196F3; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; width: 100%; }
+    .btn-edit:hover { background: #1976D2; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: white; margin: 2% auto; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .close:hover { color: black; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+    input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+    textarea { height: 80px; resize: vertical; }
+    .btn-save { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+    .btn-save:hover { background: #45a049; }
+    .btn-cancel { background: #f44336; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px; width: 100%; }
+    .btn-cancel:hover { background: #d32f2f; }
+    .stats { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; min-width: 150px; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #2196F3; }
+    .stat-label { font-size: 12px; color: #666; }
+    .search-box { margin-bottom: 20px; }
+    .search-box input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Manajemen Tarif Kendaraan</h1>
+        <p>Kelola semua tarif kendaraan yang tersedia di aplikasi</p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTarif">0</div>
+                <div class="stat-label">Total Jenis Kendaraan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">Rp <span id="avgMinPrice">0</span></div>
+                <div class="stat-label">Rata-rata Harga Minimum</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">Rp <span id="avgPricePerKm">0</span></div>
+                <div class="stat-label">Rata-rata Harga per KM</div>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Cari nama kendaraan atau deskripsi...">
+        </div>
+    </div>
+
+    <div class="tarif-grid" id="tarifContainer">
+        <div class="loading">Memuat data tarif...</div>
+    </div>
+</div>
+
+<!-- Modal Edit Tarif -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Edit Tarif Kendaraan</h2>
+        <form id="editForm">
+            <input type="hidden" id="editTarifKey">
+            
+            <div class="form-group">
+                <label>Nama Kendaraan:</label>
+                <input type="text" id="editNama" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Deskripsi:</label>
+                <textarea id="editDeskripsi" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Kapasitas:</label>
+                <input type="text" id="editCapacity" required>
+            </div>
+            
+            <div class="form-group">
+                <label>URL Icon:</label>
+                <input type="text" id="editIcon" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Jarak Minimum (km):</label>
+                <input type="number" id="editMinimalDistance" step="1" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Harga Minimum:</label>
+                <input type="number" id="editMinimalPrice" step="1000" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Harga per KM:</label>
+                <input type="number" id="editPricePerKm" step="100" min="0" required>
+            </div>
+            
+            <button type="submit" class="btn-save">Simpan Perubahan</button>
+            <button type="button" class="btn-cancel" onclick="closeEditModal()">Batal</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// URL Firebase untuk tarif
+const tarifUrl = "https://ojeka-ba255-default-rtdb.firebaseio.com/Tarif.json";
+
+let allTarif = {};
+
+// Function untuk memuat dan menampilkan data tarif
+async function loadTarif() {
+    try {
+        const response = await fetch(tarifUrl);
+        const data = await response.json();
+        
+        const container = document.getElementById("tarifContainer");
+        
+        if (!data) {
+            container.innerHTML = '<div class="loading">Tidak ada data tarif</div>';
+            updateStats(0, 0, 0);
+            return;
+        }
+        
+        allTarif = data;
+        displayTarif(data);
+        setupSearch();
+        console.log(`Data tarif loaded: ${Object.keys(data).length} jenis kendaraan`);
+        
+    } catch (error) {
+        console.error("Error loading tarif data:", error);
+        document.getElementById("tarifContainer").innerHTML = 
+            '<div class="loading error">Gagal memuat data tarif: ' + error.message + '</div>';
+    }
+}
+
+// Function untuk menampilkan data tarif dalam grid
+function displayTarif(data) {
+    const container = document.getElementById("tarifContainer");
+    
+    if (!data || Object.keys(data).length === 0) {
+        container.innerHTML = '<div class="loading">Tidak ada data tarif</div>';
+        updateStats(0, 0, 0);
+        return;
+    }
+    
+    let totalMinPrice = 0;
+    let totalPricePerKm = 0;
+    let count = 0;
+    
+    container.innerHTML = '';
+    
+    Object.entries(data).forEach(([key, tarif]) => {
+        totalMinPrice += tarif.MinimalPrice || 0;
+        totalPricePerKm += tarif.PricePerKm || 0;
+        count++;
+        
+        const card = document.createElement("div");
+        card.className = "tarif-card";
+        card.setAttribute("data-key", key);
+        
+        card.innerHTML = `
+            <div class="tarif-header">
+                <img src="${tarif.Icon || 'https://cdn-icons-png.flaticon.com/512/12689/12689302.png'}" 
+                     alt="${tarif.Nama}" class="tarif-icon" 
+                     onerror="this.src='https://cdn-icons-png.flaticon.com/512/12689/12689302.png'">
+                <div class="tarif-name">${tarif.Nama}</div>
+            </div>
+            <div class="tarif-desc">${tarif.Deskripsi}</div>
+            <div class="tarif-details">
+                <div class="detail-item">
+                    <span class="detail-label">Kapasitas:</span>
+                    <span class="detail-value">${tarif.Capacity}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Jarak Min:</span>
+                    <span class="detail-value">${tarif.MinimalDistance} km</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Harga Min:</span>
+                    <span class="detail-value">Rp ${(tarif.MinimalPrice || 0).toLocaleString('id-ID')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Harga per KM:</span>
+                    <span class="detail-value">Rp ${(tarif.PricePerKm || 0).toLocaleString('id-ID')}</span>
+                </div>
+            </div>
+            <button class="btn-edit" onclick="editTarif('${key}')">Edit Tarif</button>
+        `;
+        
+        container.appendChild(card);
+    });
+    
+    // Update statistik
+    const avgMinPrice = count > 0 ? Math.round(totalMinPrice / count) : 0;
+    const avgPricePerKm = count > 0 ? Math.round(totalPricePerKm / count) : 0;
+    updateStats(count, avgMinPrice, avgPricePerKm);
+}
+
+// Function untuk update statistik
+function updateStats(total, avgMinPrice, avgPricePerKm) {
+    document.getElementById("totalTarif").textContent = total;
+    document.getElementById("avgMinPrice").textContent = avgMinPrice.toLocaleString('id-ID');
+    document.getElementById("avgPricePerKm").textContent = avgPricePerKm.toLocaleString('id-ID');
+}
+
+// Function untuk setup pencarian
+function setupSearch() {
+    const searchInput = document.getElementById("searchInput");
+    const container = document.getElementById("tarifContainer");
+    
+    searchInput.addEventListener("keyup", function() {
+        const value = this.value.toLowerCase();
+        const cards = container.getElementsByClassName("tarif-card");
+        
+        for (let card of cards) {
+            const cardText = card.textContent.toLowerCase();
+            card.style.display = cardText.includes(value) ? "block" : "none";
+        }
+    });
+}
+
+// Modal functionality
+const modal = document.getElementById("editModal");
+const closeBtn = document.querySelector(".close");
+
+closeBtn.onclick = () => modal.style.display = "none";
+
+window.onclick = (event) => {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+function closeEditModal() {
+    modal.style.display = "none";
+}
+
+// Fungsi edit tarif
+function editTarif(tarifKey) {
+    const tarif = allTarif[tarifKey];
+    
+    if (!tarif) {
+        alert('Data tarif tidak ditemukan!');
+        return;
+    }
+
+    document.getElementById("editTarifKey").value = tarifKey;
+    document.getElementById("editNama").value = tarif.Nama || '';
+    document.getElementById("editDeskripsi").value = tarif.Deskripsi || '';
+    document.getElementById("editCapacity").value = tarif.Capacity || '';
+    document.getElementById("editIcon").value = tarif.Icon || '';
+    document.getElementById("editMinimalDistance").value = tarif.MinimalDistance || 0;
+    document.getElementById("editMinimalPrice").value = tarif.MinimalPrice || 0;
+    document.getElementById("editPricePerKm").value = tarif.PricePerKm || 0;
+    
+    modal.style.display = "block";
+}
+
+// Form submit untuk update tarif
+document.getElementById("editForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    
+    const tarifKey = document.getElementById("editTarifKey").value;
+    const updatedData = {
+        Nama: document.getElementById("editNama").value,
+        Deskripsi: document.getElementById("editDeskripsi").value,
+        Capacity: document.getElementById("editCapacity").value,
+        Icon: document.getElementById("editIcon").value,
+        MinimalDistance: parseInt(document.getElementById("editMinimalDistance").value),
+        MinimalPrice: parseInt(document.getElementById("editMinimalPrice").value),
+        PricePerKm: parseInt(document.getElementById("editPricePerKm").value),
+        updated_at: new Date().toISOString()
+    };
+
+    // Update data ke Firebase
+    fetch(`https://ojeka-ba255-default-rtdb.firebaseio.com/Tarif/${tarifKey}.json`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Data tarif berhasil diperbarui!');
+        modal.style.display = "none";
+        loadTarif(); // Reload data untuk memperbarui tampilan
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat memperbarui data.');
+    });
+});
+
+// Auto-refresh setiap 30 detik
+function startAutoRefresh() {
+    setInterval(loadTarif, 30000);
+}
+
+// Load data pertama kali
+loadTarif();
+
+// Mulai auto-refresh
+startAutoRefresh();
+</script>
+
+</body>
+</html>
