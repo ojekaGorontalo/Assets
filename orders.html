@@ -2,18 +2,31 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Orders</title>
+<title>Orders Management</title>
 <style>
     body { font-family: Arial; padding: 20px; }
     input { padding: 8px; width: 320px; margin-bottom: 15px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 10px; font-size: 14px; }
     th { background: #f2f2f2; }
+    .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+    .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; }
+    .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .close:hover { color: black; }
+    .detail-section { margin-bottom: 15px; }
+    .detail-section h4 { margin-bottom: 8px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+    .detail-row { display: flex; margin-bottom: 5px; }
+    .detail-label { font-weight: bold; width: 200px; flex-shrink: 0; }
+    .detail-value { flex: 1; }
+    .status-completed { color: green; font-weight: bold; }
+    .status-cancelled { color: red; font-weight: bold; }
+    .status-pending { color: orange; font-weight: bold; }
+    .btn-detail { background: #2196F3; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<h3>Daftar Order</h3>
+<h3>Manajemen Order</h3>
 <input id="searchInput" placeholder="Cari order ID, nama customer, driver, alamat...">
 
 <table>
@@ -22,29 +35,40 @@
     <th>Order ID</th>
     <th>Customer</th>
     <th>Telepon</th>
-    <th>Alamat Jemput</th>
-    <th>Alamat Tujuan</th>
     <th>Driver</th>
     <th>Kendaraan</th>
     <th>Jarak</th>
-    <th>Durasi</th>
-    <th>Harga</th>
+    <th>Harga Total</th>
     <th>Status</th>
     <th>Tanggal Order</th>
+    <th>Aksi</th>
 </tr>
 </thead>
 <tbody id="orderTable"></tbody>
 </table>
 
+<!-- Modal Detail Order -->
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Detail Order Lengkap</h3>
+        <div id="orderDetail"></div>
+    </div>
+</div>
+
 <script>
 const url = "https://ojeka-ba255-default-rtdb.firebaseio.com/orders.json";
+
+let allOrders = {};
 
 fetch(url)
   .then(res => res.json())
   .then(data => {
+      allOrders = data;
       const tbody = document.getElementById("orderTable");
+      tbody.innerHTML = '';
 
-      Object.values(data).forEach(order => {
+      Object.entries(data).forEach(([key, order]) => {
           const row = document.createElement("tr");
 
           // Format tanggal
@@ -55,20 +79,18 @@ fetch(url)
               <td>${order.order_id}</td>
               <td>${order.user_data?.nama || "-"}</td>
               <td>${order.user_data?.telepon || "-"}</td>
-              <td>${order.alamat_a}</td>
-              <td>${order.alamat_b}</td>
               <td>${order.selected_driver?.name || "-"}</td>
               <td>${order.vehicle_name || "-"}</td>
               <td>${order.jarak || "-"}</td>
-              <td>${order.durasi || "-"}</td>
-              <td>${order.harga_total}</td>
-              <td>${order.status}</td>
+              <td>Rp ${order.harga_total?.toLocaleString('id-ID') || "0"}</td>
+              <td class="status-${order.status}">${order.status}</td>
               <td>${formattedDate}</td>
+              <td><button class="btn-detail" onclick="showOrderDetail('${key}')">Detail</button></td>
           `;
           tbody.appendChild(row);
       });
 
-      // fitur pencarian
+      // Fitur pencarian
       document.getElementById("searchInput").addEventListener("keyup", function () {
           const value = this.value.toLowerCase();
           const rows = tbody.getElementsByTagName("tr");
@@ -78,7 +100,133 @@ fetch(url)
               rows[i].style.display = rowText.includes(value) ? "" : "none";
           }
       });
-  });
+  })
+  .catch(error => console.error('Error:', error));
+
+// Modal functionality
+const modal = document.getElementById("detailModal");
+const closeBtn = document.querySelector(".close");
+
+closeBtn.onclick = () => modal.style.display = "none";
+
+window.onclick = (event) => {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+// Fungsi untuk menampilkan detail order lengkap
+function showOrderDetail(orderKey) {
+    const order = allOrders[orderKey];
+    const detailContainer = document.getElementById("orderDetail");
+    
+    let detailHTML = `
+        <div class="detail-section">
+            <h4>Informasi Dasar</h4>
+            <div class="detail-row"><div class="detail-label">Order ID:</div><div class="detail-value">${order.order_id}</div></div>
+            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value status-${order.status}">${order.status}</div></div>
+            <div class="detail-row"><div class="detail-label">Kendaraan:</div><div class="detail-value">${order.vehicle || '-'} (${order.vehicle_name || '-'})</div></div>
+            <div class="detail-row"><div class="detail-label">Kapasitas:</div><div class="detail-value">${order.vehicle_capacity || '-'}</div></div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Informasi Waktu</h4>
+            <div class="detail-row"><div class="detail-label">Dibuat:</div><div class="detail-value">${new Date(order.created_at).toLocaleString('id-ID')}</div></div>
+            <div class="detail-row"><div class="detail-label">Driver Tiba:</div><div class="detail-value">${order.arrived_at ? new Date(order.arrived_at).toLocaleString('id-ID') : '-'}</div></div>
+            <div class="detail-row"><div class="detail-label">Perjalanan Dimulai:</div><div class="detail-value">${order.trip_started_at ? new Date(order.trip_started_at).toLocaleString('id-ID') : '-'}</div></div>
+            <div class="detail-row"><div class="detail-label">Selesai:</div><div class="detail-value">${order.completed_at ? new Date(order.completed_at).toLocaleString('id-ID') : '-'}</div></div>
+            <div class="detail-row"><div class="detail-label">Diupdate:</div><div class="detail-value">${order.updated_at ? new Date(order.updated_at).toLocaleString('id-ID') : '-'}</div></div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Informasi Lokasi</h4>
+            <div class="detail-row"><div class="detail-label">Alamat Jemput:</div><div class="detail-value">${order.alamat_a}</div></div>
+            <div class="detail-row"><div class="detail-label">Alamat Tujuan:</div><div class="detail-value">${order.alamat_b}</div></div>
+            <div class="detail-row"><div class="detail-label">Koordinat Jemput:</div><div class="detail-value">${order.from_lat}, ${order.from_lng}</div></div>
+            <div class="detail-row"><div class="detail-label">Koordinat Tujuan:</div><div class="detail-value">${order.to_lat}, ${order.to_lng}</div></div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Informasi Biaya</h4>
+            <div class="detail-row"><div class="detail-label">Harga Total:</div><div class="detail-value">Rp ${order.harga_total?.toLocaleString('id-ID') || '0'}</div></div>
+            <div class="detail-row"><div class="detail-label">Harga per KM:</div><div class="detail-value">Rp ${order.harga_per_km?.toLocaleString('id-ID') || '0'}</div></div>
+            <div class="detail-row"><div class="detail-label">Harga Minimum:</div><div class="detail-value">Rp ${order.min_price?.toLocaleString('id-ID') || '0'}</div></div>
+            <div class="detail-row"><div class="detail-label">Jarak Minimum:</div><div class="detail-value">${order.min_distance || '0'} km</div></div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Informasi Perjalanan</h4>
+            <div class="detail-row"><div class="detail-label">Jarak:</div><div class="detail-value">${order.jarak || '-'}</div></div>
+            <div class="detail-row"><div class="detail-label">Jarak (KM):</div><div class="detail-value">${order.jarak_km || '0'} km</div></div>
+            <div class="detail-row"><div class="detail-label">Durasi:</div><div class="detail-value">${order.durasi || '-'}</div></div>
+        </div>
+    `;
+
+    // Informasi Customer
+    if (order.user_data) {
+        detailHTML += `
+            <div class="detail-section">
+                <h4>Informasi Customer</h4>
+                <div class="detail-row"><div class="detail-label">Nama:</div><div class="detail-value">${order.user_data.nama || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Telepon:</div><div class="detail-value">${order.user_data.telepon || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${order.user_data.email || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Alamat:</div><div class="detail-value">${order.user_data.alamat || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Jenis Kelamin:</div><div class="detail-value">${order.user_data.jenisKelamin || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${order.user_data.status || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Tanggal Daftar:</div><div class="detail-value">${order.user_data.tanggalDaftar ? new Date(order.user_data.tanggalDaftar).toLocaleString('id-ID') : '-'}</div></div>
+            </div>
+        `;
+    }
+
+    // Informasi Driver Terpilih
+    if (order.selected_driver) {
+        detailHTML += `
+            <div class="detail-section">
+                <h4>Driver Terpilih</h4>
+                <div class="detail-row"><div class="detail-label">Nama:</div><div class="detail-value">${order.selected_driver.name || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Driver ID:</div><div class="detail-value">${order.selected_driver.driver_id || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Plat Nomor:</div><div class="detail-value">${order.selected_driver.plate_number || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Rating:</div><div class="detail-value">${order.selected_driver.avg_rating || '0'}</div></div>
+                <div class="detail-row"><div class="detail-label">Merk Kendaraan:</div><div class="detail-value">${order.selected_driver.vehicle_brand || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Tipe Kendaraan:</div><div class="detail-value">${order.selected_driver.vehicle_type || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Level Prioritas:</div><div class="detail-value">${order.selected_driver.priority_level || '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Skor Prioritas:</div><div class="detail-value">${order.selected_driver.priority_score || '0'}</div></div>
+                <div class="detail-row"><div class="detail-label">Harga Final:</div><div class="detail-value">Rp ${order.selected_driver.final_price?.toLocaleString('id-ID') || '0'}</div></div>
+                <div class="detail-row"><div class="detail-label">Ditawarkan Pada:</div><div class="detail-value">${order.selected_driver.offered_at ? new Date(order.selected_driver.offered_at).toLocaleString('id-ID') : '-'}</div></div>
+                <div class="detail-row"><div class="detail-label">Dipilih Pada:</div><div class="detail-value">${order.selected_driver.selected_at ? new Date(order.selected_driver.selected_at).toLocaleString('id-ID') : '-'}</div></div>
+            </div>
+        `;
+    }
+
+    // Informasi Driver Offers
+    if (order.driver_offers && Object.keys(order.driver_offers).length > 0) {
+        detailHTML += `
+            <div class="detail-section">
+                <h4>Driver yang Menawar (${Object.keys(order.driver_offers).length})</h4>
+        `;
+        
+        Object.values(order.driver_offers).forEach((offer, index) => {
+            detailHTML += `
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>Driver ${index + 1}:</strong>
+                    <div class="detail-row"><div class="detail-label">Nama:</div><div class="detail-value">${offer.name || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Driver ID:</div><div class="detail-value">${offer.driver_id || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Plat:</div><div class="detail-value">${offer.plate_number || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Rating:</div><div class="detail-value">${offer.avg_rating || '0'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Kendaraan:</div><div class="detail-value">${offer.vehicle_brand || '-'} - ${offer.vehicle_type || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Level Prioritas:</div><div class="detail-value">${offer.priority_level || '-'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Skor Prioritas:</div><div class="detail-value">${offer.priority_score || '0'}</div></div>
+                    <div class="detail-row"><div class="detail-label">Ditawarkan:</div><div class="detail-value">${offer.offered_at ? new Date(offer.offered_at).toLocaleString('id-ID') : '-'}</div></div>
+                </div>
+            `;
+        });
+        
+        detailHTML += `</div>`;
+    }
+
+    detailContainer.innerHTML = detailHTML;
+    modal.style.display = "block";
+}
 </script>
 
 </body>
