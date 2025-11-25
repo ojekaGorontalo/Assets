@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Driver List</title>
+<title>Driver Management</title>
 <style>
     body { font-family: Arial; padding: 20px; }
     input { padding: 8px; width: 300px; margin-bottom: 15px; }
@@ -10,11 +10,25 @@
     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
     th { background: #f2f2f2; }
     img { width: 50px; height: 50px; border-radius: 50%; }
+    .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+    .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; }
+    .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .close:hover { color: black; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input[type="text"], input[type="number"], input[type="email"], select { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    .btn-edit { background: #4CAF50; color: white; border: none; }
+    .btn-delete { background: #f44336; color: white; border: none; }
+    .btn-save { background: #2196F3; color: white; border: none; }
+    .status-accepted { color: green; font-weight: bold; }
+    .status-pending { color: orange; font-weight: bold; }
+    .status-blocked { color: red; font-weight: bold; }
 </style>
 </head>
 <body>
 
-<h3>Daftar Driver</h3>
+<h3>Manajemen Driver</h3>
 <input id="searchInput" placeholder="Cari nama, driverId, nomor HP, plat nomor...">
 
 <table>
@@ -25,14 +39,113 @@
             <th>Driver ID</th>
             <th>HP</th>
             <th>Plat</th>
-            <th>Status</th>
+            <th>Balance</th>
+            <th>Potongan</th>
+            <th>Status Admin</th>
+            <th>Online</th>
+            <th>Rating</th>
+            <th>Pesanan Selesai</th>
+            <th>Aksi</th>
         </tr>
     </thead>
     <tbody id="driverTable"></tbody>
 </table>
 
+<!-- Modal Edit Driver -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Edit Data Driver</h3>
+        <form id="editForm">
+            <input type="hidden" id="editDriverKey">
+            
+            <div class="form-group">
+                <label>Nama Lengkap:</label>
+                <input type="text" id="editFullName" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Driver ID:</label>
+                <input type="text" id="editDriverId" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Nomor HP:</label>
+                <input type="text" id="editPhoneNumber" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Plat Nomor:</label>
+                <input type="text" id="editPlateNumber" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="editEmail" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Alamat:</label>
+                <input type="text" id="editAddress" required>
+            </div>
+            
+            <div class="form-group">
+                <label>NIK:</label>
+                <input type="text" id="editIdCardNumber" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Merk Kendaraan:</label>
+                <input type="text" id="editVehicleBrand" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Jenis Kendaraan:</label>
+                <input type="text" id="editVehicleType" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Balance:</label>
+                <input type="number" id="editBalance" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Potongan (%):</label>
+                <input type="number" step="0.1" id="editPotongan" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Status Admin:</label>
+                <select id="editStatus" required>
+                    <option value="accepted">Diterima</option>
+                    <option value="pending">Pending</option>
+                    <option value="blocked">Diblokir</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Status Online:</label>
+                <select id="editIsOnline" required>
+                    <option value="true">Online</option>
+                    <option value="false">Offline</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>On Trip:</label>
+                <select id="editOnTrip" required>
+                    <option value="true">Ya</option>
+                    <option value="false">Tidak</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn-save">Simpan Perubahan</button>
+            <button type="button" id="btnCancel">Batal</button>
+        </form>
+    </div>
+</div>
+
 <script>
-// URL Firebase
 const url = "https://ojeka-ba255-default-rtdb.firebaseio.com/drivers.json";
 
 // Ambil data dari Firebase
@@ -40,16 +153,26 @@ fetch(url)
   .then(res => res.json())
   .then(data => {
       const tbody = document.getElementById("driverTable");
+      tbody.innerHTML = '';
 
-      Object.values(data).forEach(driver => {
+      Object.entries(data).forEach(([key, driver]) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-              <td><img src="${driver.profilePhotoUrl || ''}"></td>
+              <td><img src="${driver.profilePhotoUrl || ''}" alt="Foto Profil"></td>
               <td>${driver.fullName || '-'}</td>
               <td>${driver.driverId}</td>
               <td>${driver.phoneNumber}</td>
               <td>${driver.plateNumber}</td>
-              <td>${driver.online ? "Online" : "Offline"}</td>
+              <td>Rp ${driver.Balance?.toLocaleString() || '0'}</td>
+              <td>${driver.Potongan || '0'}%</td>
+              <td class="status-${driver.status}">${getStatusText(driver.status)}</td>
+              <td>${driver.isOnline ? "🟢 Online" : "🔴 Offline"}</td>
+              <td>⭐ ${driver.avgRating || '0'} (${driver.ratingCount || '0'})</td>
+              <td>${driver.completedOrders || '0'}/${driver.totalOrders || '0'}</td>
+              <td>
+                  <button class="btn-edit" onclick="editDriver('${key}')">Edit</button>
+                  <button class="btn-delete" onclick="deleteDriver('${key}')">Hapus</button>
+              </td>
           `;
           tbody.appendChild(row);
       });
@@ -64,7 +187,118 @@ fetch(url)
               rows[i].style.display = rowText.includes(value) ? "" : "none";
           }
       });
-  });
+  })
+  .catch(error => console.error('Error:', error));
+
+// Fungsi untuk mendapatkan teks status
+function getStatusText(status) {
+    const statusMap = {
+        'accepted': 'Diterima',
+        'pending': 'Pending', 
+        'blocked': 'Diblokir'
+    };
+    return statusMap[status] || status;
+}
+
+// Modal functionality
+const modal = document.getElementById("editModal");
+const closeBtn = document.querySelector(".close");
+const cancelBtn = document.getElementById("btnCancel");
+
+closeBtn.onclick = () => modal.style.display = "none";
+cancelBtn.onclick = () => modal.style.display = "none";
+
+window.onclick = (event) => {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+// Fungsi edit driver
+function editDriver(driverKey) {
+    fetch(`https://ojeka-ba255-default-rtdb.firebaseio.com/drivers/${driverKey}.json`)
+        .then(res => res.json())
+        .then(driver => {
+            document.getElementById("editDriverKey").value = driverKey;
+            document.getElementById("editFullName").value = driver.fullName || '';
+            document.getElementById("editDriverId").value = driver.driverId || '';
+            document.getElementById("editPhoneNumber").value = driver.phoneNumber || '';
+            document.getElementById("editPlateNumber").value = driver.plateNumber || '';
+            document.getElementById("editEmail").value = driver.email || '';
+            document.getElementById("editAddress").value = driver.address || '';
+            document.getElementById("editIdCardNumber").value = driver.idCardNumber || '';
+            document.getElementById("editVehicleBrand").value = driver.vehicleBrand || '';
+            document.getElementById("editVehicleType").value = driver.vehicleType || '';
+            document.getElementById("editBalance").value = driver.Balance || 0;
+            document.getElementById("editPotongan").value = driver.Potongan || 0;
+            document.getElementById("editStatus").value = driver.status || 'pending';
+            document.getElementById("editIsOnline").value = driver.isOnline ? 'true' : 'false';
+            document.getElementById("editOnTrip").value = driver.onTrip ? 'true' : 'false';
+            
+            modal.style.display = "block";
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// Form submit untuk update driver
+document.getElementById("editForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    
+    const driverKey = document.getElementById("editDriverKey").value;
+    const updatedData = {
+        fullName: document.getElementById("editFullName").value,
+        driverId: document.getElementById("editDriverId").value,
+        phoneNumber: document.getElementById("editPhoneNumber").value,
+        plateNumber: document.getElementById("editPlateNumber").value,
+        email: document.getElementById("editEmail").value,
+        address: document.getElementById("editAddress").value,
+        idCardNumber: document.getElementById("editIdCardNumber").value,
+        vehicleBrand: document.getElementById("editVehicleBrand").value,
+        vehicleType: document.getElementById("editVehicleType").value,
+        Balance: parseFloat(document.getElementById("editBalance").value),
+        Potongan: parseFloat(document.getElementById("editPotongan").value),
+        status: document.getElementById("editStatus").value,
+        isOnline: document.getElementById("editIsOnline").value === 'true',
+        onTrip: document.getElementById("editOnTrip").value === 'true'
+    };
+
+    // Update data ke Firebase
+    fetch(`https://ojeka-ba255-default-rtdb.firebaseio.com/drivers/${driverKey}.json`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Data driver berhasil diperbarui!');
+        modal.style.display = "none";
+        location.reload(); // Refresh halaman untuk melihat perubahan
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat memperbarui data.');
+    });
+});
+
+// Fungsi hapus driver
+function deleteDriver(driverKey) {
+    if (confirm('Apakah Anda yakin ingin menghapus driver ini?')) {
+        fetch(`https://ojeka-ba255-default-rtdb.firebaseio.com/drivers/${driverKey}.json`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('Driver berhasil dihapus!');
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menghapus driver.');
+        });
+    }
+}
 </script>
 
 </body>
