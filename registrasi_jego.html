@@ -313,6 +313,85 @@
             transform: translateY(-2px);
         }
         
+        /* Tambahan untuk promo section */
+        .promo-section {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px dashed #e6dd3b;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .promo-code-display {
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-align: center;
+            display: none;
+        }
+        
+        .promo-benefits {
+            list-style-type: none;
+            margin: 15px 0;
+        }
+        
+        .promo-benefits li {
+            margin: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .promo-benefits li:before {
+            content: "🎁";
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+        }
+        
+        .copy-btn {
+            background: var(--accent);
+            color: var(--dark);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: #d4c92a;
+            transform: translateY(-2px);
+        }
+        
+        .promo-timer {
+            color: var(--danger);
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        
+        .referral-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+        
+        .referral-code {
+            color: var(--secondary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+        
         @media (max-width: 768px) {
             .content {
                 flex-direction: column;
@@ -387,7 +466,7 @@
                 
                 <div class="highlight">
                     <p><strong>Perhatian:</strong> Data yang Anda berikan akan diverifikasi oleh tim JeGo. Pendaftaran palsu atau tidak sesuai dengan identitas asli akan dikenakan sanksi sesuai peraturan yang berlaku.</p>
-                    <p><strong>Catatan:</strong> Pendaftaran langsung aktif tanpa verifikasi KTP untuk memudahkan customer.</p>
+                    <p><strong>Catatan:</strong> Pendaftaran langsung aktif tanpa verifikasi untuk memudahkan customer.</p>
                 </div>
                 
                 <p>JeGo merupakan aplikasi lokal buatan anak Gorontalo yang bertujuan untuk memudahkan mobilitas masyarakat Gorontalo dengan tetap mengedepankan keamanan dan kenyamanan.</p>
@@ -431,6 +510,44 @@
                             <option value="Laki-laki">Laki-laki</option>
                             <option value="Perempuan">Perempuan</option>
                         </select>
+                    </div>
+                    
+                    <!-- Section Promo -->
+                    <div class="promo-section" id="promoSection">
+                        <h3 style="color: var(--primary); margin-bottom: 15px;">🎁 BONUS KHUSUS PENDAFTAR BARU!</h3>
+                        
+                        <p>Dapatkan <strong>kode promo khusus</strong> untuk digunakan sebagai customer:</p>
+                        
+                        <ul class="promo-benefits">
+                            <li><strong>DISKON 20%</strong> untuk order pertama (hanya 1x penggunaan)</li>
+                            <li><strong>KODE REFERRAL</strong> untuk mengajak teman</li>
+                            <li>Setiap teman yang daftar menggunakan kode referral Anda, dapat <strong>1 kode promo tambahan</strong></li>
+                            <li>Berlaku <strong>30 hari</strong> setelah pendaftaran</li>
+                        </ul>
+                        
+                        <div class="promo-code-display" id="promoCodeDisplay">
+                            <div style="font-size: 1rem; margin-bottom: 5px;">Kode Promo Anda:</div>
+                            <div id="promoCodeText" style="letter-spacing: 2px;"></div>
+                            <div style="font-size: 0.8rem; margin-top: 10px; color: #666;">
+                                Berlaku hingga: <span id="promoExpiry"></span>
+                            </div>
+                            
+                            <div class="referral-section">
+                                <div style="font-size: 1rem; margin-bottom: 5px;">Kode Referral Anda:</div>
+                                <div id="referralCodeText" class="referral-code"></div>
+                                <div style="font-size: 0.8rem; margin-top: 5px; color: #666;">
+                                    Bagikan kode ini ke teman untuk dapat bonus tambahan
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="copy-btn" onclick="copyPromoCode()">📋 Salin Kode Promo</button>
+                            <button type="button" class="copy-btn" onclick="copyReferralCode()">📋 Salin Kode Referral</button>
+                            <button type="button" class="copy-btn" onclick="sharePromoCode()">📱 Bagikan</button>
+                        </div>
+                        
+                        <div class="promo-timer" id="promoTimer" style="display: none;">
+                            ⏰ Kode promo akan muncul setelah pendaftaran berhasil
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -497,6 +614,18 @@
                     
                     // Tampilkan informasi redirect
                     autoRedirectInfo.style.display = 'block';
+                    
+                    // Jika user punya promo, tampilkan info
+                    if (user.has_promo) {
+                        const userPromo = localStorage.getItem('jego_user_promo');
+                        if (userPromo) {
+                            const promoData = JSON.parse(userPromo);
+                            autoRedirectInfo.innerHTML = `
+                                Anda sudah login dan memiliki kode promo aktif! 
+                                <br>Mengarahkan ke halaman utama...
+                            `;
+                        }
+                    }
                     
                     // Update tombol header
                     headerLoginBtn.style.display = 'none';
@@ -599,6 +728,122 @@
             this.style.borderColor = '#ddd';
         });
         
+        // Fungsi untuk generate kode promo unik
+        function generatePromoCode(userName, phone) {
+            const prefix = "JEGO";
+            const namePart = userName.substring(0, 3).toUpperCase();
+            const phonePart = phone.slice(-4);
+            const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
+            
+            return `${prefix}${namePart}${phonePart}${randomPart}`;
+        }
+        
+        // Fungsi untuk generate kode referral
+        function generateReferralCode(userName, phone) {
+            const prefix = "REF";
+            const namePart = userName.substring(0, 2).toUpperCase();
+            const phonePart = phone.slice(-3);
+            const randomPart = Math.random().toString(36).substring(2, 4).toUpperCase();
+            
+            return `${prefix}${namePart}${phonePart}${randomPart}`;
+        }
+        
+        // Fungsi untuk menghitung expiry date (30 hari dari sekarang)
+        function getPromoExpiryDate() {
+            const expiry = new Date();
+            expiry.setDate(expiry.getDate() + 30);
+            return expiry.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+        
+        // Fungsi untuk menampilkan promo code setelah registrasi berhasil
+        function showPromoCode(userData) {
+            const promoCode = userData.promo_code;
+            const referralCode = userData.referral_code;
+            const expiryDate = new Date(userData.promo_expiry).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            
+            // Tampilkan promo code dan referral
+            document.getElementById('promoCodeText').textContent = promoCode;
+            document.getElementById('referralCodeText').textContent = referralCode;
+            document.getElementById('promoExpiry').textContent = expiryDate;
+            document.getElementById('promoCodeDisplay').style.display = 'block';
+            document.getElementById('promoTimer').style.display = 'none';
+            
+            // Update alert success untuk include promo info
+            successAlert.innerHTML = `
+                ✅ Pendaftaran berhasil! Data telah disimpan dan dikirim ke aplikasi JeGo.
+                <br><br>
+                🎁 <strong>BONUS: Kode Promo ${promoCode} telah aktif!</strong>
+                <br>
+                Dapatkan diskon 20% untuk order pertama Anda (hanya 1x penggunaan).
+                <br><br>
+                📣 <strong>Kode Referral: ${referralCode}</strong>
+                <br>
+                Ajak teman daftar dengan kode ini untuk dapat bonus tambahan!
+            `;
+        }
+        
+        // Fungsi untuk copy promo code
+        function copyPromoCode() {
+            const promoCode = document.getElementById('promoCodeText').textContent;
+            navigator.clipboard.writeText(promoCode).then(() => {
+                alert('Kode promo berhasil disalin: ' + promoCode);
+            }).catch(() => {
+                // Fallback untuk browser lama
+                const textArea = document.createElement('textarea');
+                textArea.value = promoCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Kode promo berhasil disalin: ' + promoCode);
+            });
+        }
+        
+        // Fungsi untuk copy referral code
+        function copyReferralCode() {
+            const referralCode = document.getElementById('referralCodeText').textContent;
+            navigator.clipboard.writeText(referralCode).then(() => {
+                alert('Kode referral berhasil disalin: ' + referralCode);
+            }).catch(() => {
+                // Fallback untuk browser lama
+                const textArea = document.createElement('textarea');
+                textArea.value = referralCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Kode referral berhasil disalin: ' + referralCode);
+            });
+        }
+        
+        // Fungsi untuk share promo code
+        function sharePromoCode() {
+            const promoCode = document.getElementById('promoCodeText').textContent;
+            const referralCode = document.getElementById('referralCodeText').textContent;
+            const shareText = `Hai! Saya baru daftar JeGo dan dapat kode promo spesial: ${promoCode} 🎁\nDapatkan diskon 20% untuk order pertama di aplikasi JeGo!\n\nGunakan juga kode referral saya: ${referralCode} untuk dapat bonus tambahan!`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Kode Promo JeGo',
+                    text: shareText,
+                    url: window.location.href
+                });
+            } else {
+                // Fallback untuk copy ke clipboard
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('Teks promo berhasil disalin! Bagikan ke teman-teman Anda.');
+                });
+            }
+        }
+        
         // Handle form submission
         registrationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -642,6 +887,12 @@
                 return;
             }
             
+            // Generate promo code dan referral code SEBELUM simpan ke Firebase
+            const promoCode = generatePromoCode(nama, telepon);
+            const referralCode = generateReferralCode(nama, telepon);
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 30);
+            
             // Jika semua validasi passed, lanjutkan proses pendaftaran
             const formData = {
                 nama: nama,
@@ -650,8 +901,19 @@
                 alamat: alamat,
                 jenisKelamin: jenisKelamin,
                 tanggalDaftar: new Date().toISOString(),
-                // PERUBAHAN: Status langsung "success" bukan "pending"
-                status: "success"
+                status: "success",
+                // UBAH DATA PROMO: diskon 20% untuk 1x penggunaan
+                promo_code: promoCode,
+                promo_discount: 20,
+                promo_max_usage: 1,
+                promo_used_count: 0,
+                promo_expiry: expiryDate.toISOString(),
+                promo_status: "active",
+                promo_created: new Date().toISOString(),
+                // TAMBAH DATA REFERRAL
+                referral_code: referralCode,
+                referral_count: 0,
+                referral_bonus: 1
             };
             
             // Proses pendaftaran
@@ -674,20 +936,30 @@
                     // Kirim data ke Kodular melalui WebView menggunakan AppInventor.setWebViewString
                     sendToKodular(userData, newUserRef.key);
                     
+                    // TAMPILKAN PROMO CODE DAN REFERRAL
+                    showPromoCode(userData);
+                    
                     // Tampilkan pesan sukses
                     showAlert(successAlert);
                     
                     // Reset form
                     registrationForm.reset();
                     
-                    // PERUBAHAN: Setelah pendaftaran berhasil, simpan sebagai user logged in
+                    // Set user sebagai logged in
                     const userDataToStore = {
                         ...userData,
                         firebase_key: newUserRef.key,
-                        last_login: new Date().toISOString()
+                        last_login: new Date().toISOString(),
+                        has_promo: true
                     };
                     
                     localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
+                    localStorage.setItem('jego_user_promo', JSON.stringify({
+                        code: userData.promo_code,
+                        discount: userData.promo_discount,
+                        max_usage: userData.promo_max_usage,
+                        expiry: userData.promo_expiry
+                    }));
                     
                     // Update tombol header dan form
                     headerLoginBtn.style.display = 'none';
@@ -695,10 +967,10 @@
                     formLoginBtn.textContent = 'Lanjutkan ke Halaman Utama';
                     formLoginBtn.href = 'jenis_kenderaan.html';
                     
-                    // Redirect ke halaman utama setelah 3 detik
+                    // Redirect ke halaman utama setelah 5 detik
                     setTimeout(() => {
                         window.location.href = 'jenis_kenderaan.html';
-                    }, 3000);
+                    }, 5000);
                 })
                 .catch((error) => {
                     console.error('Error saving data to Firebase: ', error);
@@ -731,7 +1003,13 @@
                 jenis_kelamin: userData.jenisKelamin,
                 tanggal_daftar: userData.tanggalDaftar,
                 status: userData.status,
-                firebase_key: firebaseKey
+                firebase_key: firebaseKey,
+                // KIRIM JUGA DATA PROMO DAN REFERRAL
+                promo_code: userData.promo_code,
+                promo_discount: userData.promo_discount,
+                promo_max_usage: userData.promo_max_usage,
+                promo_expiry: userData.promo_expiry,
+                referral_code: userData.referral_code
             };
             
             console.log('Data yang akan dikirim ke Kodular:', kodularData);
@@ -815,6 +1093,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Cek apakah user sudah login
             checkIfUserIsLoggedIn();
+            
+            // Tampilkan timer promo untuk new user
+            const promoTimer = document.getElementById('promoTimer');
+            if (!localStorage.getItem('jego_logged_in_user')) {
+                promoTimer.style.display = 'block';
+            }
             
             const localUsers = JSON.parse(localStorage.getItem('jego_users'));
             if (localUsers) {
