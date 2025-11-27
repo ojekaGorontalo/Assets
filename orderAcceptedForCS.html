@@ -1061,7 +1061,7 @@
     let unreadMessages = 0;
     let chatOpen = false;
 
-    // ==================== FUNGSI UPDATE STATUS DISKON ====================
+    // ==================== FUNGSI UPDATE STATUS DISKON YANG DIPERBAIKI ====================
 
     // Fungsi untuk mengupdate status diskon ketika order diterima
     function updateDiscountStatus() {
@@ -1079,7 +1079,7 @@
         if (hasDiscount && promoCode) {
             console.log('💰 Order menggunakan diskon dengan kode:', promoCode);
             
-            // Update status diskon di Firebase
+            // Update status diskon di Firebase - PERBAIKAN: langsung di path user
             updateDiscountInFirebase(promoCode);
             
             // Update status diskon di localStorage
@@ -1092,32 +1092,53 @@
         }
     }
 
-    // Fungsi untuk mengupdate status diskon di Firebase
+    // FUNGSI YANG DIPERBAIKI: Update status diskon di Firebase di path user
     function updateDiscountInFirebase(promoCode) {
         if (!userData || !userData.firebase_key) {
             console.error('❌ User data tidak lengkap untuk update Firebase');
             return;
         }
 
+        console.log('📍 Mengupdate diskon di path: users/' + userData.firebase_key);
+        
         const userRef = database.ref('users/' + userData.firebase_key);
         
         userRef.once('value').then((snapshot) => {
             const userDataFromFirebase = snapshot.val();
             
-            if (userDataFromFirebase && userDataFromFirebase.promo_code === promoCode) {
-                // Update status promo menjadi used
-                userRef.update({
+            if (userDataFromFirebase) {
+                console.log('📊 Data user dari Firebase:', userDataFromFirebase);
+                
+                // PERBAIKAN: Update langsung di data user, bukan di nested path
+                const updates = {
                     promo_status: 'used',
                     promo_used_at: new Date().toISOString(),
                     promo_used_order: orderId,
                     promo_used_count: (userDataFromFirebase.promo_used_count || 0) + 1
-                }).then(() => {
+                };
+                
+                console.log('🔄 Data yang akan diupdate:', updates);
+                
+                userRef.update(updates)
+                    .then(() => {
                     console.log('✅ Status diskon diupdate di Firebase: used');
-                }).catch((error) => {
+                    
+                    // Verifikasi update berhasil
+                    userRef.once('value').then((updatedSnapshot) => {
+                        const updatedData = updatedSnapshot.val();
+                        console.log('✅ Data setelah update:', {
+                            promo_status: updatedData.promo_status,
+                            promo_used_at: updatedData.promo_used_at,
+                            promo_used_order: updatedData.promo_used_order,
+                            promo_used_count: updatedData.promo_used_count
+                        });
+                    });
+                })
+                .catch((error) => {
                     console.error('❌ Gagal update status diskon di Firebase:', error);
                 });
             } else {
-                console.log('ℹ️ Kode promo tidak ditemukan di data user Firebase');
+                console.log('❌ Data user tidak ditemukan di Firebase');
             }
         }).catch((error) => {
             console.error('❌ Gagal membaca data user dari Firebase:', error);
