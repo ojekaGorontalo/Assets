@@ -1020,13 +1020,14 @@
   <script>
     // Firebase Configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
+      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
       authDomain: "ojeka-ba255.firebaseapp.com",
       databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
       projectId: "ojeka-ba255",
       storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
+      messagingSenderId: "639980533353",
+      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+      measurementId: "G-PBP64Z8VQ8"
     };
 
     // Initialize Firebase
@@ -1059,6 +1060,151 @@
     let chatListener = null;
     let unreadMessages = 0;
     let chatOpen = false;
+
+    // ==================== FUNGSI UPDATE STATUS DISKON ====================
+
+    // Fungsi untuk mengupdate status diskon ketika order diterima
+    function updateDiscountStatus() {
+        if (!userData || !orderId) {
+            console.log('❌ Data user atau orderId tidak tersedia untuk update diskon');
+            return;
+        }
+
+        console.log('🔄 Memperbarui status diskon untuk order:', orderId);
+        
+        // Cek apakah ada diskon yang digunakan dalam order ini
+        const hasDiscount = routeData && routeData.diskon_persen && routeData.diskon_persen > 0;
+        const promoCode = routeData && routeData.promo_code_used;
+        
+        if (hasDiscount && promoCode) {
+            console.log('💰 Order menggunakan diskon dengan kode:', promoCode);
+            
+            // Update status diskon di Firebase
+            updateDiscountInFirebase(promoCode);
+            
+            // Update status diskon di localStorage
+            updateDiscountInLocalStorage(promoCode);
+            
+            // Kirim notifikasi ke Kodular tentang penggunaan diskon
+            sendDiscountUsedNotification(promoCode);
+        } else {
+            console.log('ℹ️ Order tidak menggunakan diskon');
+        }
+    }
+
+    // Fungsi untuk mengupdate status diskon di Firebase
+    function updateDiscountInFirebase(promoCode) {
+        if (!userData || !userData.firebase_key) {
+            console.error('❌ User data tidak lengkap untuk update Firebase');
+            return;
+        }
+
+        const userRef = database.ref('users/' + userData.firebase_key);
+        
+        userRef.once('value').then((snapshot) => {
+            const userDataFromFirebase = snapshot.val();
+            
+            if (userDataFromFirebase && userDataFromFirebase.promo_code === promoCode) {
+                // Update status promo menjadi used
+                userRef.update({
+                    promo_status: 'used',
+                    promo_used_at: new Date().toISOString(),
+                    promo_used_order: orderId,
+                    promo_used_count: (userDataFromFirebase.promo_used_count || 0) + 1
+                }).then(() => {
+                    console.log('✅ Status diskon diupdate di Firebase: used');
+                }).catch((error) => {
+                    console.error('❌ Gagal update status diskon di Firebase:', error);
+                });
+            } else {
+                console.log('ℹ️ Kode promo tidak ditemukan di data user Firebase');
+            }
+        }).catch((error) => {
+            console.error('❌ Gagal membaca data user dari Firebase:', error);
+        });
+    }
+
+    // Fungsi untuk mengupdate status diskon di localStorage
+    function updateDiscountInLocalStorage(promoCode) {
+        try {
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            const userPromo = localStorage.getItem('jego_user_promo');
+            
+            if (loggedInUser) {
+                const user = JSON.parse(loggedInUser);
+                
+                // Update status promo di user data
+                if (user.promo_code === promoCode) {
+                    user.promo_status = 'used';
+                    user.promo_used_at = new Date().toISOString();
+                    user.promo_used_order = orderId;
+                    user.promo_used_count = (user.promo_used_count || 0) + 1;
+                    
+                    localStorage.setItem('jego_logged_in_user', JSON.stringify(user));
+                    console.log('✅ Status diskon diupdate di localStorage user data');
+                }
+            }
+            
+            if (userPromo) {
+                const promo = JSON.parse(userPromo);
+                
+                // Update status promo di promo data
+                if (promo.code === promoCode) {
+                    promo.status = 'used';
+                    promo.used_at = new Date().toISOString();
+                    promo.used_order = orderId;
+                    
+                    localStorage.setItem('jego_user_promo', JSON.stringify(promo));
+                    console.log('✅ Status diskon diupdate di localStorage promo data');
+                }
+            }
+            
+            // Update juga di data active order
+            const activeOrder = localStorage.getItem('jego_active_order');
+            if (activeOrder) {
+                const order = JSON.parse(activeOrder);
+                if (order.promo_code_used === promoCode) {
+                    order.promo_status = 'used';
+                    localStorage.setItem('jego_active_order', JSON.stringify(order));
+                    console.log('✅ Status diskon diupdate di active order');
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Gagal update status diskon di localStorage:', error);
+        }
+    }
+
+    // Fungsi untuk mengirim notifikasi penggunaan diskon ke Kodular
+    function sendDiscountUsedNotification(promoCode) {
+        const discountData = {
+            action: 'discount_used',
+            order_id: orderId,
+            promo_code: promoCode,
+            discount_percentage: routeData.diskon_persen,
+            original_price: routeData.harga_asal,
+            discounted_price: routeData.harga_total,
+            message: `Diskon ${routeData.diskon_persen}% dengan kode ${promoCode} telah digunakan`,
+            timestamp: new Date().toISOString()
+        };
+        
+        sendToKodular(discountData);
+        console.log('📨 Notifikasi penggunaan diskon dikirim ke Kodular');
+    }
+
+    // Fungsi untuk mengecek dan mengupdate diskon ketika order diterima
+    function checkAndUpdateDiscountOnAccept() {
+        if (!routeData) return;
+        
+        // Cek apakah order baru saja diterima (status changed to accepted)
+        const hasDiscount = routeData.diskon_persen && routeData.diskon_persen > 0;
+        const hasPromoCode = routeData.promo_code_used;
+        
+        if (hasDiscount && hasPromoCode) {
+            console.log('🎯 Order diterima dengan diskon, memperbarui status...');
+            updateDiscountStatus();
+        }
+    }
 
     // ==================== FUNGSI DISKON YANG DIPERBAIKI ====================
 
@@ -1818,6 +1964,9 @@
           arrivalTitle.textContent = 'Order Diterima';
           arrivalSubtitle.innerHTML = 'Driver sedang bersiap untuk menjemput Anda.<br>Harap tunggu konfirmasi berikutnya..';
           actionsSection.style.display = 'flex';
+          
+          // ========== TAMBAHKAN: UPDATE STATUS DISKON KETIKA ORDER DITERIMA ==========
+          checkAndUpdateDiscountOnAccept();
           break;
           
         case 'on_the_way':
