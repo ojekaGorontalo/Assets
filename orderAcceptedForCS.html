@@ -237,6 +237,23 @@
       font-size: 0.9rem;
     }
 
+    .discount-badge {
+      background: var(--warning);
+      color: var(--dark);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+
+    .original-price {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 0.75rem;
+      margin-right: 5px;
+    }
+
     .actions-section {
       padding: 15px 20px;
       display: flex;
@@ -894,7 +911,11 @@
           <div class="info-row">
             <div class="info-item">
               <div class="info-label">Biaya</div>
-              <div class="info-value"><span class="price-highlight" id="tripPrice">-</span></div>
+              <div class="info-value">
+                <div id="priceContainer">
+                  <span class="price-highlight" id="tripPrice">-</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1038,6 +1059,55 @@
     let chatListener = null;
     let unreadMessages = 0;
     let chatOpen = false;
+
+    // ==================== FUNGSI DISKON YANG DIPERBAIKI ====================
+
+    // Fungsi untuk menampilkan harga dengan diskon
+    function displayPriceWithDiscount() {
+      const priceContainer = document.getElementById('priceContainer');
+      const tripPrice = document.getElementById('tripPrice');
+      
+      if (!routeData) return;
+      
+      // Cek apakah ada data diskon
+      const hasDiscount = routeData.diskon_persen && routeData.diskon_persen > 0;
+      const hasOriginalPrice = routeData.harga_asal && routeData.harga_asal > 0;
+      
+      if (hasDiscount && hasOriginalPrice) {
+        // Hitung harga setelah diskon
+        const discountAmount = (routeData.harga_asal * routeData.diskon_persen) / 100;
+        const discountedPrice = routeData.harga_asal - discountAmount;
+        
+        // Tampilkan harga asli yang dicoret dan harga setelah diskon
+        priceContainer.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <div>
+              <span class="original-price">Rp ${routeData.harga_asal.toLocaleString('id-ID')}</span>
+              <span class="price-highlight">Rp ${Math.round(discountedPrice).toLocaleString('id-ID')}</span>
+              <span class="discount-badge">-${routeData.diskon_persen}%</span>
+            </div>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 3px;">
+              Hemat: Rp ${Math.round(discountAmount).toLocaleString('id-ID')}
+            </div>
+          </div>
+        `;
+        
+        // Update routeData dengan harga diskon untuk perhitungan selanjutnya
+        routeData.harga_total = Math.round(discountedPrice);
+        
+        console.log('💰 Harga dengan diskon ditampilkan:', {
+          harga_asal: routeData.harga_asal,
+          diskon_persen: routeData.diskon_persen,
+          diskon_amount: Math.round(discountAmount),
+          harga_setelah_diskon: Math.round(discountedPrice)
+        });
+        
+      } else {
+        // Tampilkan harga normal tanpa diskon
+        tripPrice.textContent = `Rp ${routeData.harga_total.toLocaleString('id-ID')}`;
+        console.log('💰 Harga normal ditampilkan:', routeData.harga_total);
+      }
+    }
 
     // ==================== SISTEM CHAT INTEGRASI ====================
 
@@ -1879,7 +1949,7 @@
       }
     }
 
-    // Fungsi untuk update data rute
+    // Fungsi untuk update data rute - DIPERBAIKI UNTUK DISKON
     function updateRouteData(route) {
       if (route.alamat_a) {
         document.getElementById('pickupAddress').textContent = route.alamat_a;
@@ -1901,12 +1971,11 @@
         document.getElementById('tripDuration').textContent = route.durasi;
       }
       
-      if (route.harga_total) {
-        document.getElementById('tripPrice').textContent = `Rp ${route.harga_total.toLocaleString('id-ID')}`;
-      }
+      // PERBAIKAN: Tampilkan harga dengan diskon jika ada
+      displayPriceWithDiscount();
     }
 
-    // Fungsi untuk menampilkan data driver
+    // Fungsi untuk menampilkan data driver - DIPERBAIKI
     function displayDriverData() {
       // Sembunyikan loading, tampilkan konten
       document.getElementById('loading').style.display = 'none';
@@ -1955,13 +2024,8 @@
         document.getElementById('serviceCapacity').textContent = routeData.vehicle_capacity || '-';
         document.getElementById('tripDuration').textContent = routeData.durasi || '-';
         
-        // Format harga dengan benar
-        if (routeData.harga_total) {
-          const harga = typeof routeData.harga_total === 'number' ? routeData.harga_total : parseInt(routeData.harga_total);
-          document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
-        } else {
-          document.getElementById('tripPrice').textContent = '-';
-        }
+        // PERBAIKAN: Tampilkan harga dengan diskon jika ada
+        displayPriceWithDiscount();
       }
       
       // Update status berdasarkan data aktual
@@ -1979,7 +2043,6 @@
       
       // Simulasi estimasi waktu kedatangan (5-10 menit)
       const arrivalMinutes = Math.floor(Math.random() * 6) + 5;
-      document.getElementById('arrivalTime').textContent = `${arrivalMinutes} menit`;
       
       // Update status badge berdasarkan waktu
       if (arrivalMinutes <= 5) {
