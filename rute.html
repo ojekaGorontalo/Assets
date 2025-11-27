@@ -129,7 +129,7 @@
       right: 20px;
       background: #fff;
       border-radius: 12px;
-      padding: 12px;
+      padding: 8px 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 7;
       max-height: 30vh;
@@ -139,36 +139,37 @@
     }
 
     .route-info {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .route-address {
       display: flex;
       align-items: flex-start;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
+      margin-bottom: 5px;
+      font-size: 0.8rem;
       position: relative;
     }
 
     .route-address .label {
-      min-width: 80px;
+      min-width: 70px;
       color: var(--primary);
       font-weight: 600;
-      margin-right: 10px;
+      margin-right: 8px;
     }
 
     .route-address .value {
       flex: 1;
       color: var(--dark);
       margin-right: 8px;
+      line-height: 1.3;
     }
 
     .route-stats {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 10px;
-      padding-top: 10px;
+      margin-top: 8px;
+      padding-top: 8px;
       border-top: 1px solid #e9ecef;
     }
 
@@ -180,18 +181,18 @@
     .stat-value {
       font-weight: 600;
       color: var(--primary);
-      font-size: 1.1rem;
+      font-size: 1rem;
     }
 
     .stat-label {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #666;
     }
 
     .price-highlight {
       font-weight: 700;
       color: var(--success);
-      font-size: 1.2rem;
+      font-size: 1.1rem;
     }
 
     .confirm-btn {
@@ -771,6 +772,95 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
+    /* Popup Promo Styles */
+    .promo-popup .popup-content {
+      text-align: left;
+    }
+
+    .promo-input-container {
+      display: flex;
+      gap: 8px;
+      margin: 15px 0;
+    }
+
+    .promo-input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .apply-promo-btn {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+
+    .apply-promo-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .apply-promo-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .promo-details {
+      margin-top: 15px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid var(--success);
+      font-size: 14px;
+    }
+
+    .discount-badge {
+      background: var(--success);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    .original-price {
+      text-decoration: line-through;
+      color: #666;
+      font-size: 12px;
+    }
+
+    .final-price {
+      font-weight: bold;
+      color: var(--success);
+      font-size: 14px;
+    }
+
+    .promo-details div {
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .promo-info {
+      font-size: 12px;
+      color: #666;
+      margin-top: 10px;
+      text-align: center;
+      font-style: italic;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       :root {
@@ -807,7 +897,7 @@
       
       .route-details {
         max-height: 28vh;
-        padding: 10px;
+        padding: 6px 10px;
       }
 
       .driver-offer-card {
@@ -840,6 +930,11 @@
       .popup-buttons {
         flex-direction: column;
       }
+
+      .promo-input-container {
+        flex-direction: column;
+        gap: 10px;
+      }
     }
 
     @media (max-width: 480px) {
@@ -852,6 +947,10 @@
       .driver-photo {
         width: 45px;
         height: 45px;
+      }
+
+      .route-address {
+        font-size: 0.75rem;
       }
     }
 
@@ -996,27 +1095,81 @@
         <div class="popup-buttons" style="flex-direction: column; gap: 8px;">
           <button class="popup-button popup-button-primary" onclick="increasePrice(1000)">+ Rp 1.000</button>
           <button class="popup-button popup-button-primary" onclick="increasePrice(2000)">+ Rp 2.000</button>
-          <button class="popup-button popup-button-warning" onclick="increasePrice(30000)">+ Rp 3.000</button>
+          <button class="popup-button popup-button-warning" onclick="increasePrice(3000)">+ Rp 3.000</button>
           <button class="popup-button popup-button-secondary" onclick="closePriceOfferPopup()">Tidak, Terus Tunggu</button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Popup Kode Promo -->
+  <div class="popup-overlay promo-popup" id="promoPopup">
+    <div class="popup">
+      <div class="popup-header">
+        <h3 class="popup-title">🎁 Gunakan Kode Promo</h3>
+        <button class="popup-close" onclick="closePromoPopup()">×</button>
+      </div>
+      <div class="popup-content">
+        <div class="popup-icon">💰</div>
+        <div class="popup-message">
+          <p>Dapatkan diskon khusus dengan menggunakan kode promo!</p>
+          
+          <div class="promo-input-container">
+            <input type="text" id="promoInput" class="promo-input" placeholder="Masukkan kode promo" />
+            <button class="apply-promo-btn" id="applyPromoBtn" onclick="applyPromoCode()">Terapkan</button>
+          </div>
+          
+          <div class="promo-details" id="promoDetails" style="display: none;">
+            <div>
+              <span>Harga asli:</span>
+              <span class="original-price" id="originalPrice">Rp 0</span>
+            </div>
+            <div>
+              <span>Diskon:</span>
+              <span class="discount-badge" id="discountBadge">0%</span>
+            </div>
+            <div style="font-weight: bold;">
+              <span>Harga akhir:</span>
+              <span class="final-price" id="finalPrice">Rp 0</span>
+            </div>
+            <div style="font-size: 10px; color: #666; margin-top: 3px;">
+              Berlaku hingga: <span id="promoExpiryRute">-</span>
+            </div>
+          </div>
+          
+          <div class="promo-info">
+            💡 Tips: Gunakan kode promo dari pendaftaran untuk diskon 20%!
+          </div>
+        </div>
+        <div class="popup-buttons">
+          <button class="popup-button popup-button-secondary" onclick="closePromoPopup()">Nanti Saja</button>
+          <button class="popup-button popup-button-primary" onclick="skipPromo()">Lewati</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Firebase Configuration
+    // Firebase Configuration - DIPERBAIKI
     const firebaseConfig = {
-      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
+      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
       authDomain: "ojeka-ba255.firebaseapp.com",
       databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
       projectId: "ojeka-ba255",
       storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
+      messagingSenderId: "639980533353",
+      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+      measurementId: "G-PBP64Z8VQ8"
     };
 
     // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    try {
+      firebase.initializeApp(firebaseConfig);
+      console.log("Firebase berhasil diinisialisasi");
+    } catch (error) {
+      console.error("Error inisialisasi Firebase:", error);
+    }
+    
     const database = firebase.database();
 
     let map, directionsService, directionsRenderer;
@@ -1053,6 +1206,13 @@
 
     // Variabel untuk marker driver di peta
     let driverMarkers = {};
+
+    // Variabel untuk menyimpan data promo yang aktif
+    let activePromo = null;
+    let originalPrice = 0;
+    
+    // Flag untuk menandai apakah promo popup sudah ditampilkan
+    let promoPopupShown = false;
 
     // Ambil parameter vehicle
     const urlParams = new URLSearchParams(window.location.search);
@@ -1131,6 +1291,225 @@
         pricePerKm: 2100
       }
     };
+
+    // ==================== FUNGSI KODE PROMO ====================
+
+    // Fungsi untuk menampilkan popup promo
+    function showPromoPopup() {
+      // Jangan tampilkan promo untuk kurir
+      if (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor') {
+        console.log('Promo tidak berlaku untuk orderan kurir');
+        return;
+      }
+      
+      // Jangan tampilkan jika sudah ditampilkan sebelumnya
+      if (promoPopupShown) {
+        return;
+      }
+      
+      // Tampilkan popup promo
+      document.getElementById('promoPopup').classList.add('active');
+      promoPopupShown = true;
+      
+      // Auto-focus ke input promo
+      setTimeout(() => {
+        document.getElementById('promoInput').focus();
+      }, 300);
+    }
+
+    // Fungsi untuk menutup popup promo
+    function closePromoPopup() {
+      document.getElementById('promoPopup').classList.remove('active');
+    }
+
+    // Fungsi untuk skip promo
+    function skipPromo() {
+      closePromoPopup();
+      // Reset promo
+      resetPromo();
+    }
+
+    // Fungsi untuk apply kode promo
+    function applyPromoCode() {
+        const promoCode = document.getElementById('promoInput').value.trim();
+        const applyBtn = document.getElementById('applyPromoBtn');
+        
+        // Reset status
+        applyBtn.disabled = true;
+        applyBtn.textContent = 'Memeriksa...';
+        
+        if (!promoCode) {
+            showPopup('Masukkan kode promo terlebih dahulu', "Peringatan", "warning");
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Terapkan';
+            return;
+        }
+        
+        // Cek promo di localStorage terlebih dahulu
+        checkPromoCode(promoCode)
+            .then(isValid => {
+                if (isValid) {
+                    showPopup('Kode promo berhasil diterapkan! Diskon ' + activePromo.discount + '% aktif.', "Sukses", "success");
+                    calculateDiscountedPrice();
+                    updateConfirmButtonWithPromo();
+                    
+                    // Tutup popup promo setelah berhasil
+                    setTimeout(() => {
+                      closePromoPopup();
+                    }, 1500);
+                } else {
+                    showPopup('Kode promo tidak valid atau sudah kedaluwarsa', "Error", "error");
+                }
+            })
+            .catch(error => {
+                console.error('Error checking promo:', error);
+                showPopup('Terjadi kesalahan saat memeriksa kode promo', "Error", "error");
+            })
+            .finally(() => {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Terapkan';
+            });
+    }
+
+    // Fungsi untuk memeriksa kode promo
+    function checkPromoCode(promoCode) {
+        return new Promise((resolve) => {
+            // 1. Cek di localStorage (promo dari registrasi)
+            const userPromo = JSON.parse(localStorage.getItem('jego_user_promo'));
+            if (userPromo && userPromo.code === promoCode) {
+                // Cek masa berlaku
+                const now = new Date();
+                const expiry = new Date(userPromo.expiry);
+                
+                if (now <= expiry) {
+                    activePromo = {
+                        code: userPromo.code,
+                        discount: userPromo.discount,
+                        max_usage: userPromo.max_usage,
+                        expiry: userPromo.expiry,
+                        type: 'user_promo'
+                    };
+                    resolve(true);
+                    return;
+                }
+            }
+            
+            // 2. Cek di Firebase untuk promo umum
+            const promoRef = database.ref('promos').orderByChild('code').equalTo(promoCode);
+            promoRef.once('value')
+                .then(snapshot => {
+                    const promos = snapshot.val();
+                    
+                    if (promos) {
+                        const promoKey = Object.keys(promos)[0];
+                        const promo = promos[promoKey];
+                        
+                        // Cek masa berlaku dan status
+                        const now = new Date();
+                        const expiry = new Date(promo.expiry_date);
+                        
+                        if (now <= expiry && promo.status === 'active') {
+                            activePromo = {
+                                code: promo.code,
+                                discount: promo.discount_percentage,
+                                max_discount: promo.max_discount_amount,
+                                expiry: promo.expiry_date,
+                                type: 'general_promo',
+                                id: promoKey
+                            };
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    } else {
+                        resolve(false);
+                    }
+                })
+                .catch(() => {
+                    resolve(false);
+                });
+        });
+    }
+
+    // Fungsi untuk menghitung harga setelah diskon
+    function calculateDiscountedPrice() {
+        if (!activePromo || !currentRouteData) return;
+        
+        originalPrice = currentRouteData.harga_total;
+        let discountedPrice = originalPrice;
+        
+        // Hitung diskon
+        if (activePromo.discount) {
+            const discountAmount = (originalPrice * activePromo.discount) / 100;
+            
+            // Jika ada batas maksimal diskon
+            if (activePromo.max_discount && discountAmount > activePromo.max_discount) {
+                discountedPrice = originalPrice - activePromo.max_discount;
+            } else {
+                discountedPrice = originalPrice - discountAmount;
+            }
+        }
+        
+        // Pastikan harga tidak kurang dari minimal
+        const minPrice = currentVehicleMinPrice || 10000;
+        if (discountedPrice < minPrice) {
+            discountedPrice = minPrice;
+        }
+        
+        // Update display
+        document.getElementById('originalPrice').textContent = 'Rp ' + originalPrice.toLocaleString('id-ID');
+        document.getElementById('finalPrice').textContent = 'Rp ' + Math.round(discountedPrice).toLocaleString('id-ID');
+        document.getElementById('discountBadge').textContent = activePromo.discount + '%';
+        
+        // Format expiry date
+        const expiryDate = new Date(activePromo.expiry).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        document.getElementById('promoExpiryRute').textContent = expiryDate;
+        
+        // Tampilkan details
+        document.getElementById('promoDetails').style.display = 'block';
+        
+        // Update currentRouteData dengan harga diskon
+        currentRouteData.harga_asal = originalPrice;
+        currentRouteData.harga_diskon = Math.round(discountedPrice);
+        currentRouteData.diskon_persen = activePromo.discount;
+        currentRouteData.kode_promo = activePromo.code;
+    }
+
+    // Fungsi untuk update tombol konfirmasi dengan promo
+    function updateConfirmButtonWithPromo() {
+        const confirmBtn = document.getElementById('confirmBtn');
+        if (currentRouteData && currentRouteData.harga_diskon) {
+            const harga = currentRouteData.harga_diskon;
+            confirmBtn.textContent = `CARI DRIVER | Rp. ${harga.toLocaleString('id-ID')}`;
+            
+            // Tampilkan harga asli yang dicoret di tombol
+            confirmBtn.innerHTML = `CARI DRIVER | 
+                <span style="text-decoration: line-through; color: #999; margin-right: 5px; font-size: 14px;">
+                    Rp ${currentRouteData.harga_asal.toLocaleString('id-ID')}
+                </span>
+                <span style="color: var(--success); font-weight: bold;">
+                    Rp ${harga.toLocaleString('id-ID')}
+                </span>`;
+        }
+    }
+
+    // Fungsi untuk reset promo saat order dibatalkan
+    function resetPromo() {
+        activePromo = null;
+        document.getElementById('promoInput').value = '';
+        document.getElementById('promoDetails').style.display = 'none';
+        
+        if (currentRouteData) {
+            delete currentRouteData.harga_asal;
+            delete currentRouteData.harga_diskon;
+            delete currentRouteData.diskon_persen;
+            delete currentRouteData.kode_promo;
+        }
+    }
 
     // ==================== FUNGSI LOAD DATA TARIF DARI FIREBASE ====================
 
@@ -1826,7 +2205,7 @@
 
                 } else {
                     console.log('Tidak ada order aktif ditemukan');
-                    // ❌ Hapus dari localStorage jika tidak ada order aktif
+                    // ❌ HAPUS DARI LOCALSTORAGE jika tidak ada order aktif
                     removeActiveOrderFromLocalStorage();
                     
                     // Tampilkan data pengiriman jika ini adalah kurir dan ada data pengiriman
@@ -2171,6 +2550,11 @@
           console.log("Rute berhasil dihitung:", currentRouteData);
           updateConfirmButton();
           
+          // Tampilkan popup promo setelah rute berhasil dihitung
+          setTimeout(() => {
+            showPromoPopup();
+          }, 1000);
+          
           // Kirim data rute ke Kodular dan localStorage
           saveToLocalStorage(currentRouteData);
           sendToKodular(currentRouteData, 'route_calculated');
@@ -2212,6 +2596,15 @@
         console.log('Menambahkan data pengiriman ke order:', kurirDeliveryData);
       }
       
+      // Tambahkan data promo jika ada
+      if (activePromo) {
+        orderRecord.promo_data = activePromo;
+        orderRecord.harga_asal = orderData.harga_asal;
+        orderRecord.harga_diskon = orderData.harga_diskon;
+        orderRecord.diskon_persen = orderData.diskon_persen;
+        orderRecord.kode_promo = orderData.kode_promo;
+      }
+      
       console.log('Mengirim order ke Firebase dengan ID:', currentOrderId);
       console.log('Data order lengkap:', orderRecord);
       
@@ -2237,6 +2630,17 @@
               delivery_data: kurirDeliveryData,
               ...orderData
             }, 'kurir_order_created');
+          }
+          
+          // Kirim notifikasi jika menggunakan promo
+          if (activePromo) {
+            sendToKodular({
+              action: 'promo_applied',
+              order_id: currentOrderId,
+              promo_data: activePromo,
+              original_price: orderData.harga_asal,
+              discounted_price: orderData.harga_diskon
+            }, 'promo_applied');
           }
           
           // aktifkan tombol batal setelah data tersimpan
@@ -2321,7 +2725,7 @@
           
           resetSearchButton();
         } else if (orderData.status === 'accepted' && orderData.selected_driver) {
-          // Driver dipilih dari penawaran
+          // Driver sudah dipilih dari penawaran
           currentDriverData = orderData.selected_driver;
           
           // ✅ UPDATE LOCALSTORAGE DENGAN DATA DRIVER
@@ -2687,6 +3091,10 @@
       // Hapus semua marker driver dari peta
       clearDriverMarkers();
       
+      // Reset promo
+      resetPromo();
+      promoPopupShown = false; // Reset flag promo popup
+      
       if (!currentOrderId) {
         console.log('Tidak ada order aktif (currentOrderId null). Hanya reset UI.');
         resetSearchButton();
@@ -2805,6 +3213,10 @@
       currentOrderId = null;
       currentDriverData = null;
       
+      // Reset promo
+      resetPromo();
+      promoPopupShown = false; // Reset flag promo popup
+      
       // Update teks tombol dengan harga terbaru
       if (currentRouteData) {
         document.getElementById('confirmBtn').textContent = `CARI DRIVER | Rp. ${currentRouteData.harga_total.toLocaleString('id-ID')}`;
@@ -2911,6 +3323,8 @@
     // ==================== FUNGSI INISIALISASI MAP & AUTOCOMPLETE ====================
 
     function initMap() {
+      console.log("Memulai inisialisasi peta...");
+      
       const lokasiA = getLatLng(fromParam);
       const lokasiB = getLatLng(toParam);
 
@@ -2935,156 +3349,168 @@
       );
 
       // Inisialisasi map dengan lokasi default Gorontalo
-      map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 12,
-        center: { lat: 0.5441, lng: 123.0595 }, // Gorontalo
-        clickableIcons: false,
-        gestureHandling: "greedy",
-        mapTypeControlOptions: {
-          mapTypeIds: ['roadmap', 'styled_map']
-        },
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }]
-          }
-        ]
-      });
-
-      map.mapTypes.set('styled_map', styledMapType);
-      
-      // Inisialisasi directionsService dan directionsRenderer dengan benar
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: '#289672',
-          strokeWeight: 6,
-          strokeOpacity: 0.8
-        }
-      });
-
-      // Deteksi lokasi pengguna otomatis saat pertama kali membuka HANYA untuk fromInput
-      if (navigator.geolocation && !fromParam && !coordParam) {
-        showRadar('Mendeteksi lokasi penjemputan...');
-        
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const userLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            
-            // Update peta ke lokasi pengguna
-            map.setCenter(userLocation);
-            map.setZoom(14);
-            
-            // Isi input lokasi penjemputan dengan lokasi pengguna menggunakan OpenStreetMap
-            getAddressFromOSM(userLocation, (alamat) => {
-              document.getElementById("fromInput").value = alamat;
-              updateMarker("fromInput", userLocation);
-              hideRadar();
-            });
+      try {
+        map = new google.maps.Map(document.getElementById("map"), {
+          zoom: 12,
+          center: { lat: 0.5441, lng: 123.0595 }, // Gorontalo
+          clickableIcons: false,
+          gestureHandling: "greedy",
+          mapTypeControlOptions: {
+            mapTypeIds: ['roadmap', 'styled_map']
           },
-          (error) => {
-            console.log("Gagal mendapatkan lokasi pengguna:", error);
-            hideRadar();
-            
-            // Jika gagal, gunakan lokasi dari parameter atau default Gorontalo
-            if (lokasiA) {
-              map.setCenter(lokasiA);
-              map.setZoom(14);
-            } else {
-              // Tetap di Gorontalo dengan zoom yang lebih dekat
-              map.setCenter({ lat: 0.5441, lng: 123.0595 });
-              map.setZoom(14);
+          styles: [
+            {
+              featureType: "poi",
+              elementType: "labels",
+              stylers: [{ visibility: "off" }]
             }
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000
-          }
-        );
-      } else {
-        // Gunakan lokasi dari parameter jika ada, atau default Gorontalo
-        if (lokasiA) {
-          map.setCenter(lokasiA);
-          map.setZoom(14);
-        } else {
-          // Tetap di Gorontalo dengan zoom yang lebih dekat
-          map.setCenter({ lat: 0.5441, lng: 123.0595 });
-          map.setZoom(14);
-        }
-      }
+          ]
+        });
 
-      // Tambahkan marker untuk lokasi A jika ada
-      if (lokasiA) {
-        // Gunakan data kendaraan dari Firebase atau fallback
-        let vehicleIcon;
-        if (vehicleData && vehicleData[vehicle]) {
-            vehicleIcon = vehicleData[vehicle].icon;
+        console.log("Peta berhasil diinisialisasi");
+
+        map.mapTypes.set('styled_map', styledMapType);
+        
+        // Inisialisasi directionsService dan directionsRenderer dengan benar
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+          map: map,
+          suppressMarkers: true,
+          polylineOptions: {
+            strokeColor: '#289672',
+            strokeWeight: 6,
+            strokeOpacity: 0.8
+          }
+        });
+
+        console.log("Directions service dan renderer berhasil diinisialisasi");
+
+        // Deteksi lokasi pengguna otomatis saat pertama kali membuka HANYA untuk fromInput
+        if (navigator.geolocation && !fromParam && !coordParam) {
+          showRadar('Mendeteksi lokasi penjemputan...');
+          
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              
+              // Update peta ke lokasi pengguna
+              map.setCenter(userLocation);
+              map.setZoom(14);
+              
+              // Isi input lokasi penjemputan dengan lokasi pengguna menggunakan OpenStreetMap
+              getAddressFromOSM(userLocation, (alamat) => {
+                document.getElementById("fromInput").value = alamat;
+                updateMarker("fromInput", userLocation);
+                hideRadar();
+              });
+            },
+            (error) => {
+              console.log("Gagal mendapatkan lokasi pengguna:", error);
+              hideRadar();
+              
+              // Jika gagal, gunakan lokasi dari parameter atau default Gorontalo
+              if (lokasiA) {
+                map.setCenter(lokasiA);
+                map.setZoom(14);
+              } else {
+                // Tetap di Gorontalo dengan zoom yang lebih dekat
+                map.setCenter({ lat: 0.5441, lng: 123.0595 });
+                map.setZoom(14);
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 60000
+            }
+          );
         } else {
-            vehicleIcon = fallbackVehicleData[vehicle].icon;
+          // Gunakan lokasi dari parameter jika ada, atau default Gorontalo
+          if (lokasiA) {
+            map.setCenter(lokasiA);
+            map.setZoom(14);
+          } else {
+            // Tetap di Gorontalo dengan zoom yang lebih dekat
+            map.setCenter({ lat: 0.5441, lng: 123.0595 });
+            map.setZoom(14);
+          }
+        }
+
+        // Tambahkan marker untuk lokasi A jika ada
+        if (lokasiA) {
+          // Gunakan data kendaraan dari Firebase atau fallback
+          let vehicleIcon;
+          if (vehicleData && vehicleData[vehicle]) {
+              vehicleIcon = vehicleData[vehicle].icon;
+          } else {
+              vehicleIcon = fallbackVehicleData[vehicle].icon;
+          }
+          
+          markerA = new google.maps.Marker({
+            position: lokasiA,
+            map: map,
+            icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
+          });
+          // Untuk parameter from, gunakan OpenStreetMap untuk mendapatkan alamat
+          getAddressFromOSM(lokasiA, (alamat) => {
+            document.getElementById("fromInput").value = alamat || "";
+          });
+        }
+
+        // Tambahkan marker untuk lokasi B jika ada
+        if (lokasiB) {
+          markerB = new google.maps.Marker({
+            position: lokasiB,
+            map: map,
+            icon: {
+              url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+              scaledSize: new google.maps.Size(40, 40)
+            }
+          });
+          // Untuk parameter to, gunakan OpenStreetMap untuk mendapatkan alamat
+          getAddressFromOSM(lokasiB, (alamat) => {
+            document.getElementById("toInput").value = alamat || "";
+          });
+        }
+
+        // Jika kedua lokasi ada, hitung rute
+        if (lokasiA && lokasiB) {
+          setTimeout(() => {
+            tryDirection();
+          }, 1000);
         }
         
-        markerA = new google.maps.Marker({
-          position: lokasiA,
-          map: map,
-          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
-        });
-        // Untuk parameter from, gunakan OpenStreetMap untuk mendapatkan alamat
-        getAddressFromOSM(lokasiA, (alamat) => {
-          document.getElementById("fromInput").value = alamat || "";
-        });
-      }
-
-      // Tambahkan marker untuk lokasi B jika ada
-      if (lokasiB) {
-        markerB = new google.maps.Marker({
-          position: lokasiB,
-          map: map,
-          icon: {
-            url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-            scaledSize: new google.maps.Size(40, 40)
-          }
-        });
-        // Untuk parameter to, gunakan OpenStreetMap untuk mendapatkan alamat
-        getAddressFromOSM(lokasiB, (alamat) => {
-          document.getElementById("toInput").value = alamat || "";
-        });
-      }
-
-      // Jika kedua lokasi ada, hitung rute
-      if (lokasiA && lokasiB) {
-        setTimeout(() => {
-          tryDirection();
-        }, 1000);
-      }
-      
-      // Jika ada parameter coord, gunakan sebagai lokasi saat ini
-      if (coordParam) {
-        const coords = coordParam.split(',');
-        if (coords.length === 2) {
-          const lat = parseFloat(coords[0]);
-          const lng = parseFloat(coords[1]);
-          
-          if (!isNaN(lat) && !isNaN(lng)) {
-            currentPosition = { lat, lng };
-            getAddressFromOSM(currentPosition, (alamat) => {
-              document.getElementById("fromInput").value = alamat;
-              updateMarker("fromInput", currentPosition);
-              map.setCenter(currentPosition);
-              map.setZoom(14);
-            });
+        // Jika ada parameter coord, gunakan sebagai lokasi saat ini
+        if (coordParam) {
+          const coords = coordParam.split(',');
+          if (coords.length === 2) {
+            const lat = parseFloat(coords[0]);
+            const lng = parseFloat(coords[1]);
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              currentPosition = { lat, lng };
+              getAddressFromOSM(currentPosition, (alamat) => {
+                document.getElementById("fromInput").value = alamat;
+                updateMarker("fromInput", currentPosition);
+                map.setCenter(currentPosition);
+                map.setZoom(14);
+              });
+            }
           }
         }
+        
+      } catch (error) {
+        console.error("Error dalam inisialisasi peta:", error);
+        showPopup("Gagal memuat peta. Silakan refresh halaman.", "Error", "error");
       }
     }
 
     function initAutocomplete() {
+      console.log("Memulai inisialisasi autocomplete...");
+      
       const fromInput = document.getElementById("fromInput");
       const toInput = document.getElementById("toInput");
       
@@ -3181,11 +3607,15 @@
         }
         updateConfirmButton();
       });
+      
+      console.log("Autocomplete berhasil diinisialisasi");
     }
 
     // ==================== INISIALISASI ====================
 
     function onLoad() {
+      console.log("Memulai inisialisasi aplikasi...");
+      
       try {
         // Ambil data user dari localStorage
         userData = getUserData();
@@ -3274,16 +3704,17 @@
           });
         
       } catch (error) {
-        console.error("Gagal memuat peta:", error);
+        console.error("Gagal memuat aplikasi:", error);
         sendToKodular({
           status: "error",
-          message: "Gagal memuat peta: " + error.message
+          message: "Gagal memuat aplikasi: " + error.message
         }, 'load_error');
       }
     }
 
-    // Load Google Maps API
+    // Load Google Maps API - DIPERBAIKI dengan API key yang valid
     const script = document.createElement("script");
+    // Ganti dengan API key Google Maps yang valid
     script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places,geometry&callback=onLoad";
     script.async = true;
     script.defer = true;
@@ -3310,4 +3741,3 @@
   </script>
 </body>
 </html>
-
