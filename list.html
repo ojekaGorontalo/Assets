@@ -18,6 +18,7 @@
       --dark: #343a40;
       --success: #28a745;
       --danger: #dc3545;
+      --promo: #ff6b6b;
     }
 
     * {
@@ -189,6 +190,17 @@
       font-weight: 600;
     }
 
+    /* BADGE PROMO BARU */
+    .promo-badge {
+      background: linear-gradient(135deg, var(--promo), #ff8e8e);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+    }
+
     .status-badge {
       display: inline-block;
       padding: 4px 8px;
@@ -318,6 +330,35 @@
     .price-highlight {
       color: var(--success);
       font-weight: 700;
+    }
+
+    /* INFORMASI HARGA PROMO */
+    .price-promo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .original-price {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 0.7rem;
+      margin-bottom: 2px;
+    }
+
+    .promo-price {
+      color: var(--promo);
+      font-weight: 700;
+    }
+
+    .discount-badge {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 5px;
     }
 
     .distance-badge {
@@ -547,6 +588,44 @@
       font-size: 1.1rem;
     }
 
+    /* MODAL PROMO INFO BARU */
+    .modal-promo-info {
+      background: linear-gradient(135deg, #fff9e6, #fff3cd);
+      border: 1px solid #ffeeba;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 8px 0;
+    }
+
+    .modal-promo-item {
+      display: flex;
+      margin-bottom: 4px;
+      font-size: 0.8rem;
+    }
+
+    .modal-promo-label {
+      font-weight: 600;
+      color: #856404;
+      min-width: 100px;
+      margin-right: 10px;
+    }
+
+    .modal-promo-value {
+      flex: 1;
+      color: #856404;
+    }
+
+    .modal-promo-badge {
+      background: linear-gradient(135deg, var(--promo), #ff8e8e);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
     .countdown-container {
       background-color: #fff9e6;
       border: 1px solid #ffeeba;
@@ -694,6 +773,26 @@
       font-weight: 700;
       color: var(--success);
       margin: 10px 0;
+    }
+
+    /* AUTOBID PROMO INFO */
+    .autobid-promo-info {
+      background: linear-gradient(135deg, #fff9e6, #fff3cd);
+      border: 1px solid #ffeeba;
+      border-radius: 8px;
+      padding: 8px;
+      margin: 8px 0;
+    }
+
+    .autobid-promo-badge {
+      background: linear-gradient(135deg, var(--promo), #ff8e8e);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 8px;
     }
 
     .active-order-notification {
@@ -1109,6 +1208,20 @@
               <div class="modal-point-address" id="modalAddressB">-</div>
             </div>
           </div>
+          
+          <!-- INFO PROMO DI MODAL -->
+          <div class="modal-promo-info" id="modalPromoInfo" style="display: none;">
+            <div class="modal-promo-badge">🎁 ORDER PROMO</div>
+            <div class="modal-promo-item">
+              <span class="modal-promo-label">Kode Promo:</span>
+              <span class="modal-promo-value" id="modalPromoCode">-</span>
+            </div>
+            <div class="modal-promo-item">
+              <span class="modal-promo-label">Diskon:</span>
+              <span class="modal-promo-value" id="modalPromoDiscount">-</span>
+            </div>
+          </div>
+          
           <div id="modalDeliveryInfo"></div>
           <div class="modal-order-details">
             <div class="modal-detail-item">
@@ -1172,6 +1285,11 @@
               <div class="autobid-address autobid-address-a" id="autobidAddressA">-</div>
               <div style="font-size: 0.7rem; color: #666;">↓</div>
               <div class="autobid-address" id="autobidAddressB">-</div>
+            </div>
+            
+            <!-- INFO PROMO DI AUTOBID MODAL -->
+            <div class="autobid-promo-info" id="autobidPromoInfo" style="display: none;">
+              <div class="autobid-promo-badge">🎁 ORDER PROMO</div>
             </div>
             
             <div id="autobidDeliveryInfo"></div>
@@ -1386,6 +1504,34 @@
 
     // ==================== VARIABEL BARU UNTUK MANUAL CHECK INTERVAL ====================
     let manualCheckInterval = null;
+
+    // ==================== FUNGSI PERHITUNGAN HARGA DENGAN DISKON ====================
+
+    function calculateDiscountedPrice(order) {
+        // Jika tidak ada diskon, kembalikan harga normal
+        if (!order.diskon_persen || order.diskon_persen === 0) {
+            return {
+                hargaAsal: order.harga_total,
+                hargaDiskon: order.harga_total,
+                hasDiscount: false,
+                diskonAmount: 0
+            };
+        }
+        
+        // Hitung harga diskon
+        const hargaAsal = order.harga_asal || order.harga_total;
+        const diskonAmount = Math.round(hargaAsal * (order.diskon_persen / 100));
+        const hargaDiskon = Math.max(hargaAsal - diskonAmount, order.min_price || 10000);
+        
+        console.log(`💰 Perhitungan diskon: ${hargaAsal} - ${diskonAmount} (${order.diskon_persen}%) = ${hargaDiskon}`);
+        
+        return {
+            hargaAsal: hargaAsal,
+            hargaDiskon: hargaDiskon,
+            hasDiscount: true,
+            diskonAmount: diskonAmount
+        };
+    }
 
     // ==================== FUNGSI NAVIGASI BOTTOM NAV YANG DIPERBARUI ====================
     function navigateToScreen(screen) {
@@ -1712,8 +1858,9 @@
               return;
             }
             
-            // CEK SALDO SEBELUM PROSES AUTOBID
-            const balanceCheck = checkBalanceForOrder(order.harga_total);
+            // PERBAIKAN: Gunakan harga asli untuk perhitungan saldo
+            const discountedPrice = calculateDiscountedPrice(order);
+            const balanceCheck = checkBalanceForOrder(discountedPrice.hargaAsal);
             if (!balanceCheck.hasSufficientBalance) {
               console.log(`⏭️ Autobid: Skip order ${orderId} (saldo tidak cukup)`);
               return;
@@ -1971,10 +2118,31 @@
         document.getElementById('autobidAddressB').textContent = currentOrder.alamat_b || '-';
         document.getElementById('autobidDuration').textContent = currentOrder.durasi || '-';
         document.getElementById('autobidDistance').textContent = currentOrder.jarak || '-';
-        document.getElementById('autobidPrice').textContent = currentOrder.harga_total ? `Rp ${currentOrder.harga_total.toLocaleString('id-ID')}` : '-';
         
-        // Update info biaya potongan di modal Autobid
-        const hasSufficientBalance = updateFeeInfoInAutobidModal(currentOrder.harga_total);
+        // PERBAIKAN: Gunakan perhitungan diskon di modal autobid
+        const discountedPrice = calculateDiscountedPrice(currentOrder);
+        document.getElementById('autobidPrice').textContent = discountedPrice.hargaDiskon ? `Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}` : '-';
+        
+        // TAMPILKAN INFO PROMO JIKA ADA
+        const autobidPromoInfo = document.getElementById('autobidPromoInfo');
+        if (discountedPrice.hasDiscount) {
+          autobidPromoInfo.style.display = 'block';
+          autobidPromoInfo.innerHTML = `
+            <div class="autobid-promo-badge">🎁 ORDER PROMO - ${currentOrder.diskon_persen}%</div>
+            <div style="font-size: 0.7rem; color: #856404;">
+              Harga asli: Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')} → 
+              Harga diskon: Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}
+            </div>
+            <div style="font-size: 0.7rem; color: #856404; margin-top: 4px;">
+              💰 Bonus driver: Rp ${discountedPrice.diskonAmount.toLocaleString('id-ID')}
+            </div>
+          `;
+        } else {
+          autobidPromoInfo.style.display = 'none';
+        }
+        
+        // Update info biaya potongan di modal Autobid - gunakan harga asli
+        const hasSufficientBalance = updateFeeInfoInAutobidModal(discountedPrice.hargaAsal);
         
         if (!hasSufficientBalance) {
           console.log(`❌ Autobid: Saldo tidak cukup untuk order ${orderKey}`);
@@ -2105,8 +2273,10 @@
           return;
         }
         
-        // DOUBLE CHECK SALDO SEBELUM KIRIM PENAWARAN
-        const balanceCheck = checkBalanceForOrder(currentOrder.harga_total);
+        // PERBAIKAN: Gunakan harga asli untuk perhitungan saldo
+        const discountedPrice = calculateDiscountedPrice(currentOrder);
+        const balanceCheck = checkBalanceForOrder(discountedPrice.hargaAsal);
+        
         if (!balanceCheck.hasSufficientBalance) {
           showInfoPopup(`Saldo tidak cukup untuk order ini. Dibutuhkan: Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`);
           closeAutobidModal();
@@ -2360,7 +2530,9 @@
                 jarak: order.jarak || '-',
                 harga: order.harga_total || 0,
                 status: order.status || 'unknown',
-                created_at: order.created_at || null
+                created_at: order.created_at || null,
+                // TAMBAHAN: Info promo untuk Kodular
+                has_promo: !!(order.promo_data || order.kode_promo)
             }))
         };
         
@@ -2496,10 +2668,28 @@
         const alamatB = order.alamat_b || '-';
         const durasi = order.durasi || '-';
         const jarak = order.jarak || '-';
-        const harga = order.harga_total ? `Rp ${order.harga_total.toLocaleString('id-ID')}` : '-';
+        
+        // PERBAIKAN: Gunakan fungsi perhitungan diskon yang konsisten
+        const discountedPrice = calculateDiscountedPrice(order);
+        const hasPromo = discountedPrice.hasDiscount || order.promo_data || order.kode_promo;
         const isKurir = order.vehicle && order.vehicle.includes('kurir');
         const statusText = 'Mencari Driver';
         const statusClass = 'status-searching';
+        
+        let hargaDisplay = '';
+        let promoBadge = '';
+        
+        if (hasPromo && discountedPrice.hasDiscount) {
+          promoBadge = '<span class="promo-badge">🎁 PROMO</span>';
+          hargaDisplay = `
+            <div class="price-promo">
+              <span class="original-price">Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')}</span>
+              <span class="promo-price">Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}</span>
+            </div>
+          `;
+        } else {
+          hargaDisplay = `<span class="detail-value price-highlight">Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}</span>`;
+        }
         
         let distanceBadge = '';
         if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
@@ -2533,6 +2723,7 @@
             <div class="customer-name">
               ${customerName}
               ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
+              ${promoBadge}
               ${distanceBadge}
             </div>
             <span class="status-badge ${statusClass}">${statusText}</span>
@@ -2558,7 +2749,7 @@
               <span class="detail-label">Jarak</span>
             </div>
             <div class="detail-item">
-              <span class="detail-value price-highlight">${harga}</span>
+              ${hargaDisplay}
               <span class="detail-label">Harga</span>
             </div>
           </div>
@@ -2619,10 +2810,57 @@
         document.getElementById('modalAddressB').textContent = currentOrder.alamat_b || '-';
         document.getElementById('modalDuration').textContent = currentOrder.durasi || '-';
         document.getElementById('modalDistance').textContent = currentOrder.jarak || '-';
-        document.getElementById('modalPrice').textContent = currentOrder.harga_total ? `Rp ${currentOrder.harga_total.toLocaleString('id-ID')}` : '-';
         
-        // UPDATE INFO BIAYA POTONGAN DI MODAL
-        updateFeeInfoInModal(currentOrder.harga_total);
+        // PERBAIKAN: Gunakan perhitungan diskon konsisten di modal
+        const discountedPrice = calculateDiscountedPrice(currentOrder);
+        const hasRealPromo = discountedPrice.hasDiscount;
+        
+        const modalPrice = document.getElementById('modalPrice');
+        const modalPromoInfo = document.getElementById('modalPromoInfo');
+        
+        if (hasRealPromo) {
+          modalPromoInfo.style.display = 'block';
+          document.getElementById('modalPromoCode').textContent = currentOrder.kode_promo || currentOrder.promo_data?.code || '-';
+          document.getElementById('modalPromoDiscount').textContent = currentOrder.diskon_persen ? `${currentOrder.diskon_persen}%` : (currentOrder.promo_data?.discount ? `${currentOrder.promo_data.discount}%` : '-');
+          
+          modalPrice.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span style="text-decoration: line-through; color: #999; font-size: 0.9rem;">
+                Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')}
+              </span>
+              <span style="color: var(--success); font-weight: 700;">
+                Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}
+              </span>
+            </div>
+          `;
+          
+          // TAMBAHAN: Info saldo driver dari selisih diskon
+          const selisihSaldo = discountedPrice.diskonAmount;
+          const infoSaldoHTML = `
+            <div class="fee-info" style="background: #e3f2fd; border-color: #2196f3;">
+              <div class="fee-item">
+                <span class="fee-label">Keuntungan driver:</span>
+                <span class="fee-value" style="color: #1976d2; font-weight: 700;">Rp ${selisihSaldo.toLocaleString('id-ID')}</span>
+              </div>
+              <div class="fee-item">
+                <span class="fee-label">Keterangan:</span>
+                <span class="fee-value" style="color: #1976d2;">
+                  Selisih diskon (Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')} - Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}) akan ditambahkan ke saldo Anda setelah order selesai
+                </span>
+              </div>
+            </div>
+          `;
+          
+          // Tambahkan info saldo setelah info promo
+          modalPromoInfo.insertAdjacentHTML('afterend', infoSaldoHTML);
+          
+        } else {
+          modalPromoInfo.style.display = 'none';
+          modalPrice.textContent = discountedPrice.hargaDiskon ? `Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}` : '-';
+        }
+        
+        // UPDATE INFO BIAYA POTONGAN DI MODAL - gunakan harga asli untuk perhitungan fee
+        updateFeeInfoInModal(discountedPrice.hargaAsal);
         
         // Tambahkan info pengiriman di modal
         const modalDeliveryInfo = document.getElementById('modalDeliveryInfo');
@@ -2996,8 +3234,10 @@
       const driverId = currentDriverId;
       const ambilBtn = document.getElementById('ambilBtn');
       
-      // CEK SALDO SEBELUM KIRIM PENAWARAN
-      const balanceCheck = checkBalanceForOrder(currentSelectedOrder.harga_total);
+      // PERBAIKAN: Gunakan harga asli untuk perhitungan saldo
+      const discountedPrice = calculateDiscountedPrice(currentSelectedOrder);
+      const balanceCheck = checkBalanceForOrder(discountedPrice.hargaAsal);
+      
       if (!balanceCheck.hasSufficientBalance) {
         showInfoPopup(`Saldo tidak cukup untuk order ini. Dibutuhkan: Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`);
         return;
@@ -3326,13 +3566,14 @@
         if (balanceCheck.hasSufficientBalance) {
           feeInfo.style.background = '#d4edda';
           feeInfo.style.borderColor = '#c3e6cb';
+          return true;
         } else {
           feeInfo.style.background = '#f8d7da';
           feeInfo.style.borderColor = '#f5c6cb';
+          return false;
         }
       }
-
-      return balanceCheck.hasSufficientBalance;
+      return false;
     }
 
     function deductOrderFee(orderId, orderAmount, driverId) {
