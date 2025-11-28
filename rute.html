@@ -2019,37 +2019,53 @@
 
     // ==================== FUNGSI UTAMA ====================
 
-    // Ambil data user dari localStorage
+    // PERBAIKAN: Ambil data user dari localStorage dengan mencari firebase_key
     function getUserData() {
       try {
+        // Cek user yang sedang login
+        const loggedInUser = localStorage.getItem('jego_logged_in_user');
+        if (loggedInUser) {
+          const userData = JSON.parse(loggedInUser);
+          console.log("✅ User data ditemukan dari logged_in_user:", userData);
+          return userData;
+        }
+        
+        // Fallback: cek dari jego_users
         const jegoUsers = JSON.parse(localStorage.getItem('jego_users'));
         if (jegoUsers) {
           const keys = Object.keys(jegoUsers);
           if (keys.length > 0) {
             const latestKey = keys[keys.length - 1];
             const userData = jegoUsers[latestKey];
+            userData.firebase_key = latestKey; // Tambahkan firebase_key
+            console.log("✅ User data ditemukan dari jego_users:", userData);
             return userData;
           }
         }
         
+        // Fallback: cek dari registrasi biasa
         const userRegData = JSON.parse(localStorage.getItem('jego_user_data'));
         if (userRegData) {
+          console.log("✅ User data ditemukan dari user_data:", userRegData);
           return userRegData;
         }
         
       } catch (error) {
-        console.error('Error mengambil data user:', error);
+        console.error('❌ Error mengambil data user:', error);
       }
       
+      console.log("❌ Tidak ada data user ditemukan");
       return null;
     }
 
     // ==================== FUNGSI CHECK ACTIVE ORDER ====================
 
-    // Fungsi untuk mengecek order aktif
+    // PERBAIKAN: Fungsi untuk mengecek order aktif dengan user_key
     function checkActiveOrder() {
         if (!userData) {
-            console.log('Tidak ada user yang login');
+            console.log('❌ Tidak ada user yang login');
+            // Tampilkan pesan bahwa user perlu login
+            showPopup('Silakan login terlebih dahulu untuk melihat order aktif', "Perhatian", "warning");
             return;
         }
 
@@ -2063,10 +2079,17 @@
                     Object.keys(orders).forEach(orderId => {
                         const order = orders[orderId];
                         
-                        // PERBAIKAN: Perbaiki kondisi pencarian order aktif
-                        if (order.user_data && 
-                           ((userData.email && order.user_data.email === userData.email) || 
-                            (userData.telepon && order.user_data.telepon === userData.telepon)) && 
+                        // ✅ PERBAIKI KONDISI: Gunakan user_key atau telepon/email untuk pencocokan
+                        const isUserOrder = (
+                            // Cek berdasarkan user_key jika ada
+                            (order.user_key && userData.firebase_key && order.user_key === userData.firebase_key) ||
+                            // Fallback: cek berdasarkan telepon
+                            (order.user_data && userData.telepon && order.user_data.telepon === userData.telepon) ||
+                            // Fallback: cek berdasarkan email
+                            (order.user_data && userData.email && order.user_data.email === userData.email)
+                        );
+                        
+                        if (isUserOrder && 
                            (order.status === 'searching' || order.status === 'accepted' || order.status === 'driver_selected')) {
                             activeOrder = order;
                             activeOrder.orderId = orderId;
@@ -2075,6 +2098,7 @@
                 }
 
                 if (activeOrder) {
+                    console.log('✅ Order aktif ditemukan untuk user:', userData.telepon || userData.email);
                     currentOrderId = activeOrder.orderId;
 
                     // Isi currentRouteData dengan data dari order
@@ -2095,7 +2119,8 @@
                         vehicle_capacity: activeOrder.vehicle_capacity,
                         min_distance: activeOrder.min_distance,
                         min_price: activeOrder.min_price,
-                        status: activeOrder.status
+                        status: activeOrder.status,
+                        user_key: activeOrder.user_key // ✅ SIMPAN USER KEY
                     };
 
                     // ✅ SIMPAN KE LOCALSTORAGE
@@ -2200,11 +2225,12 @@
                     sendToKodular({
                         action: 'active_order_restored',
                         order_id: currentOrderId,
-                        order_data: activeOrder
+                        order_data: activeOrder,
+                        user_key: userData.firebase_key // ✅ SERTAKAN USER KEY
                     }, 'order_restored');
 
                 } else {
-                    console.log('Tidak ada order aktif ditemukan');
+                    console.log('❌ Tidak ada order aktif ditemukan untuk user:', userData.telepon || userData.email);
                     // ❌ HAPUS DARI LOCALSTORAGE jika tidak ada order aktif
                     removeActiveOrderFromLocalStorage();
                     
@@ -2577,8 +2603,12 @@
       });
     }
 
+    // PERBAIKAN: Fungsi untuk mengirim order ke Firebase dengan user_key
     function sendOrderToFirebase(orderData) {
       currentOrderId = generateOrderId();
+      
+      // ✅ DAPATKAN USER KEY DARI USER DATA
+      const userKey = userData ? (userData.firebase_key || userData.key || null) : null;
       
       // Tambahkan data kurir jika ada
       const orderRecord = {
@@ -2587,7 +2617,11 @@
         status: 'searching',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        user_data: userData
+        user_data: userData,
+        // ✅ TAMBAHKAN USER KEY UNTUK RELASI
+        user_key: userKey,
+        user_phone: userData ? userData.telepon : null,
+        user_email: userData ? userData.email : null
       };
       
       // Jika ini adalah pesanan kurir, tambahkan data pengiriman
@@ -2605,8 +2639,9 @@
         orderRecord.kode_promo = orderData.kode_promo;
       }
       
-      console.log('Mengirim order ke Firebase dengan ID:', currentOrderId);
-      console.log('Data order lengkap:', orderRecord);
+      console.log('📤 Mengirim order ke Firebase dengan ID:', currentOrderId);
+      console.log('📝 Data order lengkap:', orderRecord);
+      console.log('👤 User key yang disertakan:', userKey);
       
       // ✅ SIMPAN ORDER BARU KE LOCALSTORAGE
       saveActiveOrderToLocalStorage(orderRecord);
@@ -2620,7 +2655,8 @@
       const orderRef = database.ref('orders/' + currentOrderId);
       orderRef.set(orderRecord)
         .then(() => {
-          console.log('Order berhasil disimpan di Firebase:', currentOrderId);
+          console.log('✅ Order berhasil disimpan di Firebase:', currentOrderId);
+          console.log('🔑 User key yang tersimpan:', userKey);
           
           // Kirim notifikasi ke Kodular bahwa order kurir telah dibuat
           if (kurirDeliveryData) {
@@ -2628,6 +2664,7 @@
               action: 'kurir_order_created',
               order_id: currentOrderId,
               delivery_data: kurirDeliveryData,
+              user_key: userKey, // ✅ SERTAKAN USER KEY
               ...orderData
             }, 'kurir_order_created');
           }
@@ -2638,6 +2675,7 @@
               action: 'promo_applied',
               order_id: currentOrderId,
               promo_data: activePromo,
+              user_key: userKey, // ✅ SERTAKAN USER KEY
               original_price: orderData.harga_asal,
               discounted_price: orderData.harga_diskon
             }, 'promo_applied');
@@ -2658,7 +2696,7 @@
           loadOnlineDriversOnMap();
         })
         .catch((error) => {
-          console.error('Gagal menyimpan order ke Firebase:', error);
+          console.error('❌ Gagal menyimpan order ke Firebase:', error);
           removeActiveOrderFromLocalStorage();
           showPopup('Gagal mengirim order. Silakan coba lagi.', "Error", "error");
           currentOrderId = null;
@@ -3025,9 +3063,21 @@
       closePriceOfferPopup();
     }
 
+    // PERBAIKAN: Fungsi confirmRoute dengan validasi user login
     function confirmRoute() {
       if (!currentRouteData) {
         showPopup("Silakan pilih rute terlebih dahulu", "Peringatan", "warning");
+        return;
+      }
+      
+      // ✅ VALIDASI: Pastikan user sudah login
+      if (!userData) {
+        showPopup("Silakan login terlebih dahulu untuk memesan driver", "Perhatian", "warning");
+        
+        // Redirect ke halaman login setelah 2 detik
+        setTimeout(() => {
+          window.location.href = 'loginUser.html';
+        }, 2000);
         return;
       }
       
@@ -3038,7 +3088,11 @@
       saveToLocalStorage(currentRouteData, 'confirmed');
       
       // Kirim ke Kodular dengan status konfirmasi
-      sendToKodular(currentRouteData, 'route_confirmed');
+      sendToKodular({
+        ...currentRouteData,
+        user_key: userData.firebase_key || userData.key, // ✅ SERTAKAN USER KEY
+        action: 'route_confirmed'
+      }, 'route_confirmed');
       
       // Tampilkan radar pencarian driver
       showRadar('Mencari driver...');
@@ -3614,12 +3668,19 @@
     // ==================== INISIALISASI ====================
 
     function onLoad() {
-      console.log("Memulai inisialisasi aplikasi...");
+      console.log("🚀 Memulai inisialisasi aplikasi...");
       
       try {
         // Ambil data user dari localStorage
         userData = getUserData();
-        console.log("Data user dari registrasi:", userData);
+        console.log("👤 Data user dari registrasi:", userData);
+        
+        if (!userData) {
+          console.log("⚠️ Tidak ada user yang login, beberapa fitur mungkin terbatas");
+        } else {
+          console.log("✅ User berhasil diidentifikasi:", userData.nama || userData.telepon);
+          console.log("🔑 User key:", userData.firebase_key || userData.key);
+        }
         
         // Muat data tarif dari Firebase terlebih dahulu
         loadVehicleData()
