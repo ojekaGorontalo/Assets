@@ -1292,7 +1292,7 @@
       }
     };
 
-    // ==================== FUNGSI KODE PROMO ====================
+    // ==================== FUNGSI KODE PROMO YANG DIPERBAIKI ====================
 
     // Fungsi untuk menampilkan popup promo
     function showPromoPopup() {
@@ -1329,6 +1329,149 @@
       resetPromo();
     }
 
+    // FUNGSI BARU: Cek kode promo langsung dari Firebase tanpa localStorage
+    function checkPromoCode(promoCode) {
+        return new Promise((resolve) => {
+            // Jika tidak ada user yang login, tolak promo
+            if (!userData || !userData.firebase_key) {
+                console.error('User tidak login atau tidak memiliki firebase_key');
+                showPopup('Silakan login terlebih dahulu untuk menggunakan promo', "Perhatian", "warning");
+                resolve(false);
+                return;
+            }
+
+            // Ambil data user terbaru dari Firebase
+            const userRef = database.ref('users/' + userData.firebase_key);
+            userRef.once('value')
+                .then(snapshot => {
+                    const userDataFromFirebase = snapshot.val();
+                    
+                    if (!userDataFromFirebase) {
+                        console.error('Data user tidak ditemukan di Firebase');
+                        resolve(false);
+                        return;
+                    }
+
+                    // Cek apakah user memiliki promo code yang sesuai
+                    const userPromoCode = userDataFromFirebase.promo_code;
+                    const promoUsedCount = userDataFromFirebase.promo_used_count || 0;
+                    const promoMaxUsage = userDataFromFirebase.promo_max_usage || 1;
+                    const promoExpiry = userDataFromFirebase.promo_expiry;
+                    const promoDiscount = userDataFromFirebase.promo_discount || 20;
+
+                    console.log('🔥 Cek promo dari Firebase:', {
+                        userPromoCode,
+                        promoUsedCount,
+                        promoMaxUsage,
+                        promoExpiry,
+                        promoDiscount
+                    });
+
+                    // Jika kode promo cocok
+                    if (userPromoCode === promoCode) {
+                        // Cek masa berlaku
+                        const now = new Date();
+                        const expiry = new Date(promoExpiry);
+                        
+                        if (now <= expiry) {
+                            // Cek apakah masih bisa digunakan
+                            if (promoUsedCount < promoMaxUsage) {
+                                activePromo = {
+                                    code: userPromoCode,
+                                    discount: promoDiscount,
+                                    max_usage: promoMaxUsage,
+                                    expiry: promoExpiry,
+                                    type: 'user_promo',
+                                    current_usage: promoUsedCount,
+                                    user_key: userData.firebase_key
+                                };
+                                console.log('✅ Promo valid, penggunaan:', promoUsedCount + 1 + '/' + promoMaxUsage);
+                                resolve(true);
+                            } else {
+                                console.log('❌ Promo sudah mencapai batas penggunaan');
+                                showPopup('Kode promo sudah mencapai batas penggunaan maksimal (1x penggunaan)', "Peringatan", "warning");
+                                resolve(false);
+                            }
+                        } else {
+                            console.log('❌ Promo sudah kedaluwarsa');
+                            showPopup('Kode promo sudah kedaluwarsa', "Peringatan", "warning");
+                            resolve(false);
+                        }
+                    } else {
+                        // Jika tidak cocok, coba cek di promo umum (node 'promos')
+                        console.log('🔍 Cek promo umum di Firebase...');
+                        const promoRef = database.ref('promos').orderByChild('code').equalTo(promoCode);
+                        promoRef.once('value')
+                            .then(snapshot => {
+                                const promos = snapshot.val();
+                                
+                                if (promos) {
+                                    const promoKey = Object.keys(promos)[0];
+                                    const promo = promos[promoKey];
+                                    
+                                    // Cek masa berlaku dan status
+                                    const now = new Date();
+                                    const expiry = new Date(promo.expiry_date);
+                                    
+                                    if (now <= expiry && promo.status === 'active') {
+                                        activePromo = {
+                                            code: promo.code,
+                                            discount: promo.discount_percentage,
+                                            max_discount: promo.max_discount_amount,
+                                            expiry: promo.expiry_date,
+                                            type: 'general_promo',
+                                            id: promoKey
+                                        };
+                                        console.log('✅ Promo umum valid');
+                                        resolve(true);
+                                    } else {
+                                        console.log('❌ Promo umum tidak aktif atau expired');
+                                        resolve(false);
+                                    }
+                                } else {
+                                    console.log('❌ Kode promo tidak ditemukan');
+                                    resolve(false);
+                                }
+                            })
+                            .catch((error) => {
+                                console.error('Error mengambil data promo umum:', error);
+                                resolve(false);
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error mengambil data user dari Firebase:', error);
+                    resolve(false);
+                });
+        });
+    }
+
+    // FUNGSI BARU: Update penggunaan promo di Firebase
+    function updatePromoUsage() {
+        return new Promise((resolve, reject) => {
+            if (!activePromo || activePromo.type !== 'user_promo' || !activePromo.user_key) {
+                resolve(false);
+                return;
+            }
+
+            const userRef = database.ref('users/' + activePromo.user_key);
+            const currentCount = activePromo.current_usage || 0;
+            const newCount = currentCount + 1;
+
+            userRef.update({
+                promo_used_count: newCount,
+                promo_last_used: new Date().toISOString()
+            }).then(() => {
+                console.log('✅ Promo usage count updated to:', newCount);
+                activePromo.current_usage = newCount;
+                resolve(true);
+            }).catch(error => {
+                console.error('❌ Gagal update promo usage count:', error);
+                reject(error);
+            });
+        });
+    }
+
     // Fungsi untuk apply kode promo
     function applyPromoCode() {
         const promoCode = document.getElementById('promoInput').value.trim();
@@ -1345,20 +1488,33 @@
             return;
         }
         
-        // Cek promo di localStorage terlebih dahulu
+        // Cek promo di Firebase
         checkPromoCode(promoCode)
             .then(isValid => {
                 if (isValid) {
-                    showPopup('Kode promo berhasil diterapkan! Diskon ' + activePromo.discount + '% aktif.', "Sukses", "success");
-                    calculateDiscountedPrice();
-                    updateConfirmButtonWithPromo();
-                    
-                    // Tutup popup promo setelah berhasil
-                    setTimeout(() => {
-                      closePromoPopup();
-                    }, 1500);
+                    // Update penggunaan promo di Firebase
+                    updatePromoUsage()
+                        .then(() => {
+                            showPopup('Kode promo berhasil diterapkan! Diskon ' + activePromo.discount + '% aktif.', "Sukses", "success");
+                            calculateDiscountedPrice();
+                            updateConfirmButtonWithPromo();
+                            
+                            // Tutup popup promo setelah berhasil
+                            setTimeout(() => {
+                                closePromoPopup();
+                            }, 1500);
+                        })
+                        .catch(error => {
+                            console.error('Gagal update penggunaan promo:', error);
+                            showPopup('Promo berhasil diterapkan tapi gagal update penggunaan', "Peringatan", "warning");
+                            calculateDiscountedPrice();
+                            updateConfirmButtonWithPromo();
+                            setTimeout(() => {
+                                closePromoPopup();
+                            }, 1500);
+                        });
                 } else {
-                    showPopup('Kode promo tidak valid atau sudah kedaluwarsa', "Error", "error");
+                    showPopup('Kode promo tidak valid, sudah kedaluwarsa, atau sudah mencapai batas penggunaan', "Error", "error");
                 }
             })
             .catch(error => {
@@ -1369,66 +1525,6 @@
                 applyBtn.disabled = false;
                 applyBtn.textContent = 'Terapkan';
             });
-    }
-
-    // Fungsi untuk memeriksa kode promo
-    function checkPromoCode(promoCode) {
-        return new Promise((resolve) => {
-            // 1. Cek di localStorage (promo dari registrasi)
-            const userPromo = JSON.parse(localStorage.getItem('jego_user_promo'));
-            if (userPromo && userPromo.code === promoCode) {
-                // Cek masa berlaku
-                const now = new Date();
-                const expiry = new Date(userPromo.expiry);
-                
-                if (now <= expiry) {
-                    activePromo = {
-                        code: userPromo.code,
-                        discount: userPromo.discount,
-                        max_usage: userPromo.max_usage,
-                        expiry: userPromo.expiry,
-                        type: 'user_promo'
-                    };
-                    resolve(true);
-                    return;
-                }
-            }
-            
-            // 2. Cek di Firebase untuk promo umum
-            const promoRef = database.ref('promos').orderByChild('code').equalTo(promoCode);
-            promoRef.once('value')
-                .then(snapshot => {
-                    const promos = snapshot.val();
-                    
-                    if (promos) {
-                        const promoKey = Object.keys(promos)[0];
-                        const promo = promos[promoKey];
-                        
-                        // Cek masa berlaku dan status
-                        const now = new Date();
-                        const expiry = new Date(promo.expiry_date);
-                        
-                        if (now <= expiry && promo.status === 'active') {
-                            activePromo = {
-                                code: promo.code,
-                                discount: promo.discount_percentage,
-                                max_discount: promo.max_discount_amount,
-                                expiry: promo.expiry_date,
-                                type: 'general_promo',
-                                id: promoKey
-                            };
-                            resolve(true);
-                        } else {
-                            resolve(false);
-                        }
-                    } else {
-                        resolve(false);
-                    }
-                })
-                .catch(() => {
-                    resolve(false);
-                });
-        });
     }
 
     // Fungsi untuk menghitung harga setelah diskon
@@ -1477,6 +1573,7 @@
         currentRouteData.harga_diskon = Math.round(discountedPrice);
         currentRouteData.diskon_persen = activePromo.discount;
         currentRouteData.kode_promo = activePromo.code;
+        currentRouteData.promo_data = activePromo;
     }
 
     // Fungsi untuk update tombol konfirmasi dengan promo
@@ -1508,6 +1605,7 @@
             delete currentRouteData.harga_diskon;
             delete currentRouteData.diskon_persen;
             delete currentRouteData.kode_promo;
+            delete currentRouteData.promo_data;
         }
     }
 
