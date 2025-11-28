@@ -1061,6 +1061,142 @@
     let unreadMessages = 0;
     let chatOpen = false;
 
+    // ==================== FUNGSI BARU: UPDATE PROMO DI LOCALSTORAGE ====================
+
+    // FUNGSI BARU: Update status promo di localStorage
+    function updatePromoStatusInLocalStorage(promoCode) {
+        try {
+            console.log('💾 Memperbarui status promo di localStorage...');
+            
+            // 1. Update di jego_logged_in_user
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            if (loggedInUser) {
+                const user = JSON.parse(loggedInUser);
+                if (user.promo_code === promoCode) {
+                    user.promo_status = 'used';
+                    user.promo_used_at = new Date().toISOString();
+                    user.promo_used_order = orderId;
+                    user.promo_used_count = (user.promo_used_count || 0) + 1;
+                    
+                    localStorage.setItem('jego_logged_in_user', JSON.stringify(user));
+                    console.log('✅ Status promo diupdate di jego_logged_in_user');
+                }
+            }
+            
+            // 2. Update di jego_user_promo
+            const userPromo = localStorage.getItem('jego_user_promo');
+            if (userPromo) {
+                const promo = JSON.parse(userPromo);
+                if (promo.code === promoCode) {
+                    promo.status = 'used';
+                    promo.used_at = new Date().toISOString();
+                    promo.used_order = orderId;
+                    promo.used_count = (promo.used_count || 0) + 1;
+                    
+                    localStorage.setItem('jego_user_promo', JSON.stringify(promo));
+                    console.log('✅ Status promo diupdate di jego_user_promo');
+                }
+            }
+            
+            // 3. Update di jego_users (data registrasi)
+            const jegoUsers = localStorage.getItem('jego_users');
+            if (jegoUsers) {
+                const users = JSON.parse(jegoUsers);
+                let updated = false;
+                
+                Object.keys(users).forEach(key => {
+                    const user = users[key];
+                    if (user.promo_code === promoCode) {
+                        user.promo_status = 'used';
+                        user.promo_used_at = new Date().toISOString();
+                        user.promo_used_order = orderId;
+                        user.promo_used_count = (user.promo_used_count || 0) + 1;
+                        updated = true;
+                        console.log('✅ Status promo diupdate di jego_users untuk user:', key);
+                    }
+                });
+                
+                if (updated) {
+                    localStorage.setItem('jego_users', JSON.stringify(users));
+                }
+            }
+            
+            // 4. Update di jego_active_order
+            const activeOrder = localStorage.getItem('jego_active_order');
+            if (activeOrder) {
+                const order = JSON.parse(activeOrder);
+                if (order.promo_code_used === promoCode || order.kode_promo === promoCode) {
+                    order.promo_status = 'used';
+                    order.promo_used_at = new Date().toISOString();
+                    localStorage.setItem('jego_active_order', JSON.stringify(order));
+                    console.log('✅ Status promo diupdate di jego_active_order');
+                }
+            }
+            
+            console.log('💾 Update promo di localStorage selesai');
+            
+        } catch (error) {
+            console.error('❌ Gagal update status promo di localStorage:', error);
+        }
+    }
+
+    // FUNGSI BARU: Validasi masa berlaku promo
+    function validatePromoExpiry(promoData) {
+        if (!promoData || !promoData.promo_expiry) {
+            console.warn('⚠️ Data promo tidak lengkap untuk validasi expiry');
+            return false;
+        }
+        
+        try {
+            const expiryDate = new Date(promoData.promo_expiry);
+            const currentDate = new Date();
+            
+            const isValid = currentDate <= expiryDate;
+            console.log('📅 Validasi masa berlaku promo:', {
+                expiry: expiryDate.toLocaleDateString('id-ID'),
+                current: currentDate.toLocaleDateString('id-ID'),
+                isValid: isValid
+            });
+            
+            return isValid;
+            
+        } catch (error) {
+            console.error('❌ Error validasi expiry promo:', error);
+            return false;
+        }
+    }
+
+    // FUNGSI BARU: Cleanup promo yang sudah kadaluarsa di localStorage
+    function cleanupExpiredPromos() {
+        try {
+            console.log('🧹 Membersihkan promo yang sudah kadaluarsa...');
+            
+            // Cleanup jego_user_promo
+            const userPromo = localStorage.getItem('jego_user_promo');
+            if (userPromo) {
+                const promo = JSON.parse(userPromo);
+                if (promo.expiry && !validatePromoExpiry(promo)) {
+                    localStorage.removeItem('jego_user_promo');
+                    console.log('✅ Promo kadaluarsa dihapus dari jego_user_promo');
+                }
+            }
+            
+            // Cleanup jego_logged_in_user
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            if (loggedInUser) {
+                const user = JSON.parse(loggedInUser);
+                if (user.promo_expiry && !validatePromoExpiry(user)) {
+                    user.promo_status = 'expired';
+                    localStorage.setItem('jego_logged_in_user', JSON.stringify(user));
+                    console.log('✅ Status promo diupdate menjadi expired di jego_logged_in_user');
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Error cleanup promo kadaluarsa:', error);
+        }
+    }
+
     // ==================== FUNGSI UPDATE STATUS DISKON YANG DIPERBAIKI ====================
 
     // Fungsi untuk mengupdate status diskon ketika order diterima
@@ -1111,6 +1247,16 @@
                 harga_asal: routeData.harga_asal,
                 harga_total: routeData.harga_total
             });
+            
+            // ⭐⭐ VALIDASI MASA BERLAKU PROMO SEBELUM UPDATE ⭐⭐
+            const promoData = userData.promo_data || userData;
+            const isPromoValid = validatePromoExpiry(promoData);
+            
+            if (!isPromoValid) {
+                console.warn('⚠️ Promo sudah kadaluarsa, tidak melakukan update status');
+                showInfoModal('Promo Kadaluarsa', 'Kode promo yang digunakan sudah melewati masa berlaku (30 hari).');
+                return;
+            }
             
             // Update status diskon di Firebase
             updateDiscountInFirebase(promoCode);
@@ -1307,6 +1453,9 @@
                     console.log('✅ Status diskon diupdate di active order');
                 }
             }
+            
+            // ⭐⭐ PERBAIKAN UTAMA: UPDATE DATA PROMO DI LOCALSTORAGE REGISTRASI ⭐⭐
+            updatePromoStatusInLocalStorage(promoCode);
             
             console.log('💾 Update localStorage selesai');
             
@@ -2505,6 +2654,9 @@
           closeChat();
         }
       });
+      
+      // ⭐⭐ PERBAIKAN: CLEANUP PROMO KADALUARSA SAAT INISIALISASI ⭐⭐
+      cleanupExpiredPromos();
       
       // Cek URL parameters untuk order_id langsung
       const urlParams = new URLSearchParams(window.location.search);
