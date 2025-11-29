@@ -389,7 +389,7 @@
     <p class="app-subtitle fade-in delay-2">Transportasi online terdepan untuk masyarakat Gorontalo</p>
     
     <div class="location-badge fade-in delay-2">
-      <span>📍</span>
+      <span></span>
       <span>Gorontalo bisa olo</span>
     </div>
     
@@ -401,7 +401,7 @@
     </div>
     
     <div class="driver-badge fade-in delay-4">
-      <span>🚗—</span>
+      <span>—</span>
       <span>Driver Mode - Siap Melayani</span>
     </div>
 
@@ -554,7 +554,7 @@
       }, 1000);
     }
     
-    // Fungsi untuk menampilkan pesan akun ditolak
+    // Fungsi untuk menampilkan pesan akun ditolak - DIPERBAIKI
     function showRejectedMessage() {
       // Sembunyikan elemen loading
       document.querySelector('.loading-container').style.display = 'none';
@@ -563,6 +563,9 @@
       // Tampilkan pesan rejected
       rejectedMessage.style.display = 'block';
       rejectedMessage.classList.add('fade-in');
+      
+      // BATALKAN fallback timeout karena status rejected
+      clearTimeout(fallbackTimeout);
     }
     
     // Event listener untuk tombol hubungi admin
@@ -585,13 +588,16 @@
       redirectToPage('DaftarDriver.html', 'Mengalihkan ke halaman pendaftaran...');
     });
     
-    // Fallback: redirect otomatis setelah 8 detik
-    setTimeout(() => {
-      const driverData = localStorage.getItem('jego_driver_data');
-      if (driverData && driverData !== '{}') {
-        window.location.href = 'list.html';
-      } else {
-        window.location.href = 'loginDriver.html';
+    // Fallback: redirect otomatis setelah 8 detik - DIPERBAIKI
+    let fallbackTimeout = setTimeout(() => {
+      // Cek apakah pesan rejected sedang ditampilkan
+      if (rejectedMessage.style.display !== 'block') {
+        const driverData = localStorage.getItem('jego_driver_data');
+        if (driverData && driverData !== '{}') {
+          window.location.href = 'list.html';
+        } else {
+          window.location.href = 'loginDriver.html';
+        }
       }
     }, 8000);
     
