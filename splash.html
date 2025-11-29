@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <title>JeGo - Driver Gorontalo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     :root {
       --primary: #1e6f5c;
@@ -13,6 +16,7 @@
       --dark: #343a40;
       --gorontalo-blue: #1e4f6f;
       --gorontalo-yellow: #e6b93b;
+      --danger: #dc3545;
     }
 
     * {
@@ -182,6 +186,68 @@
       background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
     }
 
+    /* Status Message Styles */
+    .status-message {
+      background-color: rgba(255,255,255,0.15);
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      max-width: 400px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.2);
+      display: none;
+    }
+
+    .status-message.error {
+      background-color: rgba(220, 53, 69, 0.2);
+      border: 1px solid rgba(220, 53, 69, 0.4);
+    }
+
+    .status-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+
+    .status-desc {
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 0.9rem;
+    }
+
+    .primary-btn {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .secondary-btn {
+      background-color: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
     @keyframes pulse {
       0% {
         transform: scale(1);
@@ -323,7 +389,7 @@
     <p class="app-subtitle fade-in delay-2">Transportasi online terdepan untuk masyarakat Gorontalo</p>
     
     <div class="location-badge fade-in delay-2">
-      <span>👍</span>
+      <span>📍</span>
       <span>Gorontalo bisa olo</span>
     </div>
     
@@ -335,20 +401,50 @@
     </div>
     
     <div class="driver-badge fade-in delay-4">
-      <span>🛵—</span>
+      <span>🚗—</span>
       <span>Driver Mode - Siap Melayani</span>
+    </div>
+
+    <!-- Status Message untuk akun ditolak -->
+    <div class="status-message error" id="rejectedMessage">
+      <div class="status-title">Akun Driver Ditolak</div>
+      <div class="status-desc">
+        Maaf, status akun driver Anda ditolak. Hal ini bisa disebabkan oleh data yang tidak sesuai, 
+        dokumen tidak lengkap, atau alasan lainnya. Silakan hubungi admin untuk informasi lebih lanjut 
+        atau daftar ulang dengan data yang benar.
+      </div>
+      <div class="action-buttons">
+        <button class="action-btn primary-btn" id="contactAdminBtn">Hubungi Admin</button>
+        <button class="action-btn secondary-btn" id="registerAgainBtn">Daftar Ulang</button>
+      </div>
     </div>
   </div>
 
   <div class="splash-footer fade-in delay-4">
-    &copy; 2025 JeGo Gorontalo - Transportasi Digital
+    &copy; 2024 JeGo Gorontalo - Transportasi Digital
   </div>
 
   <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
+      authDomain: "ojeka-ba255.firebaseapp.com",
+      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+      projectId: "ojeka-ba255",
+      storageBucket: "ojeka-ba255.firebasestorage.app",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef123456"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
     // Simulasi proses loading yang lebih realistis
     let progress = 0;
     const progressBar = document.getElementById('loadingProgress');
     const loadingText = document.getElementById('loadingText');
+    const rejectedMessage = document.getElementById('rejectedMessage');
     
     // Daftar pesan loading yang relevan dengan Gorontalo
     const loadingMessages = [
@@ -356,6 +452,7 @@
       "Menyiapkan peta Gorontalo...",
       "Menghubungkan dengan driver...",
       "Mengambil data lokasi...",
+      "Memeriksa status akun...",
       "Hampir selesai..."
     ];
     
@@ -382,32 +479,112 @@
       } else if (progress >= 40 && messageIndex < 2) {
         loadingText.textContent = loadingMessages[2];
         messageIndex = 2;
-      } else if (progress >= 70 && messageIndex < 3) {
+      } else if (progress >= 60 && messageIndex < 3) {
         loadingText.textContent = loadingMessages[3];
         messageIndex = 3;
-      } else if (progress >= 90 && messageIndex < 4) {
+      } else if (progress >= 80 && messageIndex < 4) {
         loadingText.textContent = loadingMessages[4];
         messageIndex = 4;
+      } else if (progress >= 90 && messageIndex < 5) {
+        loadingText.textContent = loadingMessages[5];
+        messageIndex = 5;
       }
       
       // Redirect ke list.html setelah loading selesai
       if (progress >= 100) {
         clearInterval(loadingInterval);
-        setTimeout(() => {
-          // Cek apakah user sudah login sebelumnya
-          const driverData = localStorage.getItem('jego_driver_data');
-          if (driverData && driverData !== '{}') {
-            // Jika sudah login, langsung ke halaman list
-            window.location.href = 'list.html';
-          } else {
-            // Jika belum login, ke halaman login driver
-            window.location.href = 'loginDriver.html';
-          }
-        }, 800);
+        checkDriverStatus();
       }
     }, 300);
     
-    // Fallback: redirect otomatis setelah 6 detik
+    // Fungsi untuk memeriksa status driver
+    function checkDriverStatus() {
+      // Cek apakah user sudah login sebelumnya
+      const driverData = localStorage.getItem('jego_driver_data');
+      
+      if (driverData && driverData !== '{}') {
+        // Jika sudah login, cek status di Firebase
+        const driverObj = JSON.parse(driverData);
+        const driverId = driverObj.driverId;
+        
+        loadingText.textContent = "Memeriksa status akun...";
+        
+        const driversRef = database.ref('drivers/' + driverId);
+        driversRef.once('value')
+          .then((snapshot) => {
+            const currentData = snapshot.val();
+            
+            if (currentData) {
+              // Update data di localStorage dengan data terbaru dari Firebase
+              const updatedData = { ...driverObj, ...currentData };
+              localStorage.setItem('jego_driver_data', JSON.stringify(updatedData));
+              
+              // Tentukan redirect berdasarkan status
+              if (currentData.status === 'accepted') {
+                // Jika status accepted, redirect ke list.html
+                redirectToPage('list.html', 'Status akun diterima. Mengalihkan...');
+              } else if (currentData.status === 'rejected') {
+                // Jika status rejected, tampilkan pesan
+                showRejectedMessage();
+              } else {
+                // Jika status pending atau lainnya, redirect ke DaftarDriver.html
+                redirectToPage('DaftarDriver.html', 'Status akun pending. Mengalihkan...');
+              }
+            } else {
+              // Jika data tidak ditemukan di Firebase, arahkan ke login
+              redirectToPage('loginDriver.html', 'Data tidak ditemukan. Mengalihkan...');
+            }
+          })
+          .catch((error) => {
+            console.error('Error checking driver status:', error);
+            // Jika terjadi error, arahkan ke login
+            redirectToPage('loginDriver.html', 'Terjadi kesalahan. Mengalihkan...');
+          });
+      } else {
+        // Jika belum login, ke halaman login driver
+        redirectToPage('loginDriver.html', 'Mengalihkan ke halaman login...');
+      }
+    }
+    
+    // Fungsi untuk mengarahkan ke halaman tertentu
+    function redirectToPage(page, message) {
+      loadingText.textContent = message;
+      setTimeout(() => {
+        window.location.href = page;
+      }, 1000);
+    }
+    
+    // Fungsi untuk menampilkan pesan akun ditolak
+    function showRejectedMessage() {
+      // Sembunyikan elemen loading
+      document.querySelector('.loading-container').style.display = 'none';
+      document.querySelector('.driver-badge').style.display = 'none';
+      
+      // Tampilkan pesan rejected
+      rejectedMessage.style.display = 'block';
+      rejectedMessage.classList.add('fade-in');
+    }
+    
+    // Event listener untuk tombol hubungi admin
+    document.getElementById('contactAdminBtn').addEventListener('click', function() {
+      const message = `Halo Admin JeGo, saya ingin menanyakan alasan penolakan akun driver saya.`;
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/6283142889149?text=${encodedMessage}`;
+      
+      // Buka WhatsApp
+      window.open(whatsappUrl, '_blank');
+    });
+    
+    // Event listener untuk tombol daftar ulang
+    document.getElementById('registerAgainBtn').addEventListener('click', function() {
+      // Hapus data driver dari localStorage
+      localStorage.removeItem('jego_driver_data');
+      
+      // Redirect ke halaman pendaftaran
+      redirectToPage('DaftarDriver.html', 'Mengalihkan ke halaman pendaftaran...');
+    });
+    
+    // Fallback: redirect otomatis setelah 8 detik
     setTimeout(() => {
       const driverData = localStorage.getItem('jego_driver_data');
       if (driverData && driverData !== '{}') {
@@ -415,7 +592,7 @@
       } else {
         window.location.href = 'loginDriver.html';
       }
-    }, 6000);
+    }, 8000);
     
     // Fungsi untuk mengirim data ke Kodular (jika diperlukan)
     function sendToKodular(data) {
@@ -455,4 +632,3 @@
   </script>
 </body>
 </html>
-
