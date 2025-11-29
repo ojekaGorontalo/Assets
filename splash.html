@@ -490,14 +490,14 @@
         messageIndex = 5;
       }
       
-      // Redirect ke list.html setelah loading selesai
+      // Check driver status setelah loading selesai
       if (progress >= 100) {
         clearInterval(loadingInterval);
         checkDriverStatus();
       }
     }, 300);
     
-    // Fungsi untuk memeriksa status driver
+    // Fungsi untuk memeriksa status driver langsung ke Firebase
     function checkDriverStatus() {
       // Cek apakah user sudah login sebelumnya
       const driverData = localStorage.getItem('jego_driver_data');
@@ -519,12 +519,12 @@
               const updatedData = { ...driverObj, ...currentData };
               localStorage.setItem('jego_driver_data', JSON.stringify(updatedData));
               
-              // Tentukan redirect berdasarkan status
+              // Tentukan redirect berdasarkan status langsung dari Firebase
               if (currentData.status === 'accepted') {
                 // Jika status accepted, redirect ke list.html
                 redirectToPage('list.html', 'Status akun diterima. Mengalihkan...');
               } else if (currentData.status === 'rejected') {
-                // Jika status rejected, tampilkan pesan
+                // Jika status rejected, tampilkan pesan penolakan
                 showRejectedMessage();
               } else {
                 // Jika status pending atau lainnya, redirect ke DaftarDriver.html
@@ -567,7 +567,8 @@
     
     // Event listener untuk tombol hubungi admin
     document.getElementById('contactAdminBtn').addEventListener('click', function() {
-      const message = `Halo Admin JeGo, saya ingin menanyakan alasan penolakan akun driver saya.`;
+      const driverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
+      const message = `Halo Admin JeGo, saya ${driverData.fullName || ''} ingin menanyakan alasan penolakan akun driver saya. Driver ID: ${driverData.driverId || ''}`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/6283142889149?text=${encodedMessage}`;
       
