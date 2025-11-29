@@ -861,13 +861,17 @@
       font-style: italic;
     }
 
-    /* Error message styles for promo */
+    /* Error message styles for promo - DIPINDAHKAN KE ATAS MODAL */
     .promo-error {
       color: var(--danger);
       font-size: 14px;
-      margin-top: 8px;
+      margin-bottom: 12px;
       text-align: center;
       display: none;
+      background: #ffeaea;
+      padding: 10px;
+      border-radius: 8px;
+      border-left: 4px solid var(--danger);
     }
 
     /* Driver dot animation styles */
@@ -1152,13 +1156,13 @@
         <div class="popup-message">
           <p>Dapatkan diskon khusus dengan menggunakan kode promo!</p>
           
+          <!-- Error message for promo code - DIPINDAHKAN KE ATAS -->
+          <div id="promoError" class="promo-error"></div>
+          
           <div class="promo-input-container">
             <input type="text" id="promoInput" class="promo-input" placeholder="Masukkan kode promo" />
             <button class="apply-promo-btn" id="applyPromoBtn" onclick="applyPromoCode()">Terapkan</button>
           </div>
-          
-          <!-- Error message for promo code -->
-          <div id="promoError" class="promo-error"></div>
           
           <div class="promo-details" id="promoDetails" style="display: none;">
             <div>
@@ -1513,7 +1517,7 @@
         });
     }
 
-    // Fungsi untuk apply kode promo
+    // Fungsi untuk apply kode promo - DIPERBAIKI UNTUK ERROR HANDLING
     function applyPromoCode() {
         const promoCode = document.getElementById('promoInput').value.trim();
         const applyBtn = document.getElementById('applyPromoBtn');
@@ -1566,14 +1570,14 @@
                 } else {
                     promoError.textContent = 'Kode promo tidak valid, sudah kedaluwarsa, atau sudah mencapai batas penggunaan';
                     promoError.style.display = 'block';
+                    applyBtn.disabled = false;
+                    applyBtn.textContent = 'Terapkan';
                 }
             })
             .catch(error => {
                 console.error('Error checking promo:', error);
                 promoError.textContent = 'Terjadi kesalahan saat memeriksa kode promo';
                 promoError.style.display = 'block';
-            })
-            .finally(() => {
                 applyBtn.disabled = false;
                 applyBtn.textContent = 'Terapkan';
             });
@@ -1802,7 +1806,7 @@
 
     // ==================== FUNGSI LOAD DRIVER ONLINE DI MAP ====================
 
-    // Fungsi untuk memuat driver online dan menampilkan di peta
+    // Fungsi untuk memuat driver online dan menampilkan di peta - DIPERBAIKI DENGAN TITIK ANIMASI
     function loadOnlineDriversOnMap() {
       const driversRef = database.ref('drivers');
       
@@ -1845,7 +1849,7 @@
       });
     }
 
-    // Fungsi untuk menambahkan marker driver ke peta
+    // Fungsi untuk menambahkan marker driver ke peta - DIPERBAIKI DENGAN TITIK ANIMASI
     function addDriverMarker(driverId, driver, location) {
       // Buat elemen div untuk titik animasi
       const dotElement = document.createElement('div');
@@ -2547,6 +2551,28 @@
       return parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) ? { lat: parts[0], lng: parts[1] } : null;
     };
 
+    // Fungsi untuk menampilkan radar - DIPERBAIKI DENGAN ZOOM EFFECT
+    function showRadar(message) {
+      const radar = document.getElementById('radar');
+      radar.style.display = 'flex';
+      radar.querySelector('span').textContent = message || 'Memproses...';
+      
+      // Zoom in map sedikit dengan animasi halus
+      if (map) {
+        const currentZoom = map.getZoom();
+        // Zoom in hanya jika belum terlalu dekat
+        if (currentZoom < 18) {
+          map.setZoom(currentZoom + 1);
+        }
+      }
+      
+      // Mulai animasi ekspansi setelah delay kecil
+      setTimeout(() => {
+        radar.classList.add('expanding');
+      }, 500);
+    }
+
+    // Fungsi untuk menyembunyikan radar - DIPERBAIKI DENGAN ZOOM EFFECT
     function hideRadar() {
       clearInterval(radarInterval);
       const radar = document.getElementById('radar');
@@ -2556,27 +2582,11 @@
       // Kembalikan zoom map ke normal
       if (map) {
         const currentZoom = map.getZoom();
+        // Zoom out hanya jika sebelumnya di-zoom in
         if (currentZoom > 14) {
           map.setZoom(currentZoom - 1);
         }
       }
-    }
-
-    function showRadar(message) {
-      const radar = document.getElementById('radar');
-      radar.style.display = 'flex';
-      radar.querySelector('span').textContent = message || 'Memproses...';
-      
-      // Zoom in map sedikit
-      if (map) {
-        const currentZoom = map.getZoom();
-        map.setZoom(currentZoom + 1);
-      }
-      
-      // Mulai animasi ekspansi setelah delay kecil
-      setTimeout(() => {
-        radar.classList.add('expanding');
-      }, 500);
     }
 
     // Fungsi untuk membulatkan harga
@@ -3141,7 +3151,7 @@
       }, 30000); // 30 detik
     }
 
-    // Fungsi untuk menampilkan popup penawaran harga
+    // Fungsi untuk menampilkan popup penawaran harga - DIPERBAIKI DENGAN PERHITUNGAN NOMINAL
     function showPriceOfferPopup() {
       const currentPrice = currentRouteData.harga_total;
       currentBasePrice = currentPrice;
@@ -3161,14 +3171,15 @@
       const price20 = Math.round(currentPrice * 1.2);
       const price30 = Math.round(currentPrice * 1.3);
       
-      document.getElementById('price10').textContent = price10.toLocaleString('id-ID');
-      document.getElementById('price20').textContent = price20.toLocaleString('id-ID');
-      document.getElementById('price30').textContent = price30.toLocaleString('id-ID');
+      // Hitung nominal kenaikan
+      const increase10 = price10 - currentPrice;
+      const increase20 = price20 - currentPrice;
+      const increase30 = price30 - currentPrice;
       
-      // Update tombol dengan harga baru
-      document.getElementById('price10Btn').innerHTML = `+ 10% (Rp <span id="price10">${price10.toLocaleString('id-ID')}</span>)`;
-      document.getElementById('price20Btn').innerHTML = `+ 20% (Rp <span id="price20">${price20.toLocaleString('id-ID')}</span>)`;
-      document.getElementById('price30Btn').innerHTML = `+ 30% (Rp <span id="price30">${price30.toLocaleString('id-ID')}</span>)`;
+      // Update tombol dengan nominal kenaikan
+      document.getElementById('price10Btn').innerHTML = `+ 10% (Rp ${increase10.toLocaleString('id-ID')})`;
+      document.getElementById('price20Btn').innerHTML = `+ 20% (Rp ${increase20.toLocaleString('id-ID')})`;
+      document.getElementById('price30Btn').innerHTML = `+ 30% (Rp ${increase30.toLocaleString('id-ID')})`;
       
       // Tampilkan popup
       document.getElementById('priceOfferPopup').classList.add('active');
