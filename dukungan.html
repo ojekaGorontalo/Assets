@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dukungan - JeGo</title>
     <style>
+        /* CSS yang sudah ada tetap sama */
         :root {
             --primary: #1e6f5c;
             --secondary: #289672;
@@ -536,6 +537,72 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
+        /* CS Info Section */
+        .cs-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .cs-info h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .cs-info ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .cs-info li {
+            margin-bottom: 5px;
+        }
+
+        .cs-contact {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .contact-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .contact-action {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .copy-btn {
+            background-color: var(--accent);
+            color: var(--dark);
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background-color: #d4c92a;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             body {
@@ -708,7 +775,51 @@
                     </div>
                     
                     <!-- Tombol Hubungi Dukungan -->
-                    <a href="chatCs.html" class="support-btn">Hubungi Dukungan</a>
+                    <button class="support-btn" id="hubungiDukunganBtn">Hubungi Dukungan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Dukungan CS -->
+    <div class="modal" id="csModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Hubungi Customer Service</h3>
+                <button class="close-btn" id="closeCsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-details">
+                    <div class="cs-info">
+                        <h4>Informasi Kontak CS JeGo</h4>
+                        <p>Untuk pertanyaan, keluhan, atau bantuan teknis, silakan hubungi kami melalui:</p>
+                        
+                        <div class="cs-contact">
+                            <div class="contact-item">
+                                <div class="contact-icon">📧</div>
+                                <div>
+                                    <strong>Email:</strong> cs.jego.app@gmail.com
+                                    <div class="contact-action">
+                                        <button class="copy-btn" data-text="cs.jego.app@gmail.com">Salin Email</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 15px;"><strong>Informasi yang perlu disertakan:</strong></p>
+                        <ul>
+                            <li>Nomor HP Anda</li>
+                            <li>Order ID: <span id="csOrderId">-</span></li>
+                            <li>Detail keluhan atau pertanyaan</li>
+                            <li>Screenshot perjalanan yang dikeluhkan (jika ada)</li>
+                        </ul>
+                        
+                        <p style="margin-top: 15px; font-style: italic;">
+                            <strong>Catatan:</strong> Kami akan membalas pesan Anda dalam waktu 1x24 jam.
+                        </p>
+                    </div>
+                    
+                    <button class="support-btn" id="tutupCsModal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -745,6 +856,7 @@
         let ordersListener = null;
         let currentUser = null;
         let currentFilter = 'all';
+        let currentOrderId = null; // Untuk menyimpan ID order yang sedang dilihat
 
         // ==================== FUNGSI UTAMA ====================
 
@@ -1107,6 +1219,7 @@
         // Fungsi untuk menampilkan detail order di modal
         function showOrderDetail(order) {
             console.log('📋 Menampilkan detail order:', order.id);
+            currentOrderId = order.id; // Simpan ID order untuk modal CS
             
             // Update konten modal
             document.getElementById('modalAddressA').textContent = order.alamat_a || '-';
@@ -1151,6 +1264,37 @@
         // Fungsi untuk menutup modal
         function closeModal() {
             document.getElementById('orderModal').style.display = 'none';
+        }
+
+        // Fungsi untuk menampilkan modal CS
+        function showCsModal() {
+            if (!currentOrderId) {
+                alert('Tidak ada order yang dipilih');
+                return;
+            }
+            
+            // Set Order ID di modal CS
+            document.getElementById('csOrderId').textContent = currentOrderId;
+            
+            // Tutup modal order detail
+            closeModal();
+            
+            // Tampilkan modal CS
+            document.getElementById('csModal').style.display = 'flex';
+        }
+
+        // Fungsi untuk menutup modal CS
+        function closeCsModal() {
+            document.getElementById('csModal').style.display = 'none';
+        }
+
+        // Fungsi untuk menyalin teks ke clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Teks berhasil disalin: ' + text);
+            }).catch(err => {
+                console.error('Gagal menyalin teks: ', err);
+            });
         }
 
         // ==================== FUNGSI FILTER ====================
@@ -1350,16 +1494,32 @@
             // Inisialisasi event listeners
             document.getElementById('backBtn').addEventListener('click', goBack);
             document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('hubungiDukunganBtn').addEventListener('click', showCsModal);
+            document.getElementById('closeCsModal').addEventListener('click', closeCsModal);
+            document.getElementById('tutupCsModal').addEventListener('click', closeCsModal);
             
+            // Event listener untuk klik di luar modal
             document.getElementById('orderModal').addEventListener('click', (e) => {
                 if (e.target === document.getElementById('orderModal')) closeModal();
             });
+            
+            document.getElementById('csModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('csModal')) closeCsModal();
+            });
 
-            // Event listeners untuk filter - DIPERBAIKI
+            // Event listener untuk tombol salin email
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const textToCopy = btn.getAttribute('data-text');
+                    copyToClipboard(textToCopy);
+                });
+            });
+
+            // Event listeners untuk filter
             const filterOptions = document.querySelectorAll('.filter-option');
             filterOptions.forEach(option => {
                 option.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Mencegah event bubbling
+                    e.stopPropagation();
                     changeFilter(option.dataset.filter);
                 });
             });
