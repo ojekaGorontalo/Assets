@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penghapusan Akun - JeGo</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary: #1e6f5c;
+            --secondary: #289672;
+            --accent: #e6dd3b;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: var(--dark);
+            line-height: 1.4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 0;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .logo img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+        }
+        
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 0;
+        }
+        
+        .tagline {
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+        
+        h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--accent);
+            font-size: 1.3rem;
+        }
+        
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .warning-box h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .warning-box h3 i {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .warning-box ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .warning-box li {
+            margin-bottom: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input[type="text"],
+        input[type="tel"],
+        input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .verification-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .verification-code {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .verification-code input {
+            flex: 1;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            color: var(--dark);
+            font-size: 0.8rem;
+            background-color: white;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+            font-size: 0.85rem;
+        }
+        
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .alert-info {
+            background-color: rgba(23, 162, 184, 0.1);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
+        .countdown {
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .local-badge {
+            display: inline-block;
+            background-color: var(--accent);
+            color: var(--dark);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 0.75rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-buttons .btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <div class="logo">
+                        <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="JeGo Logo">
+                    </div>
+                    <h1>JeGo - Penghapusan Akun</h1>
+                </div>
+                <div class="header-actions">
+                    <a href="jenis_kenderaan.html" class="header-btn">Halaman Utama</a>
+                    <a href="userAccount.html" class="header-btn">Akun Saya</a>
+                </div>
+            </div>
+            <p class="tagline">Jasa Ekspedisi Gorontalo - Aplikasi Lokal Buatan Anak Gorontalo</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div id="successAlert" class="alert alert-success">
+            ✅ Permintaan penghapusan akun berhasil. Akun Anda akan dihapus dalam waktu 24 jam.
+        </div>
+        
+        <div id="errorAlert" class="alert alert-danger">
+            ❌ Terjadi kesalahan. Silakan coba lagi.
+        </div>
+        
+        <div id="infoAlert" class="alert alert-info">
+            ℹ️ Kode verifikasi telah dikirim ke nomor telepon Anda.
+        </div>
+        
+        <div class="content">
+            <h2>Permintaan Penghapusan Akun</h2>
+            
+            <div class="warning-box">
+                <h3>⚠️ PERINGATAN: TINDAKAN INI TIDAK DAPAT DIBATALKAN</h3>
+                <p>Dengan menghapus akun JeGo Anda:</p>
+                <ul>
+                    <li>Semua data pribadi Anda akan dihapus dari sistem kami</li>
+                    <li>Riwayat transaksi dan pesanan akan dihapus</li>
+                    <li>Promo dan kode referral aktif akan hangus</li>
+                    <li>Anda tidak dapat menggunakan nomor telepon yang sama untuk mendaftar ulang</li>
+                </ul>
+                <p><strong>Proses penghapusan akun akan memakan waktu hingga 24 jam setelah konfirmasi.</strong></p>
+            </div>
+            
+            <form id="deleteAccountForm">
+                <div class="form-group">
+                    <label for="phoneNumber">Nomor Telepon Terdaftar</label>
+                    <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="Masukkan nomor telepon yang terdaftar" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reason">Alasan Penghapusan Akun (Opsional)</label>
+                    <input type="text" id="reason" name="reason" placeholder="Berikan alasan Anda menghapus akun (opsional)">
+                </div>
+                
+                <div class="verification-section" id="verificationSection" style="display: none;">
+                    <h3>Verifikasi Penghapusan Akun</h3>
+                    <p>Kami telah mengirimkan kode verifikasi 6 digit ke nomor telepon Anda. Masukkan kode tersebut di bawah ini:</p>
+                    
+                    <div class="verification-code">
+                        <input type="text" id="verificationCode" name="verificationCode" maxlength="6" placeholder="XXXXXX">
+                    </div>
+                    
+                    <p style="margin-top: 10px; font-size: 0.9rem;">
+                        Tidak menerima kode? 
+                        <a href="#" id="resendCode" style="color: var(--primary); text-decoration: underline;">Kirim ulang</a>
+                        <span id="countdownText" style="display: none;"> dalam <span id="countdown" class="countdown">60</span> detik</span>
+                    </p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button type="button" id="cancelBtn" class="btn btn-outline">Batal</button>
+                    <button type="submit" id="submitBtn" class="btn btn-danger">Hapus Akun Saya</button>
+                </div>
+            </form>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <strong>Masukkan nomor telepon</strong> yang terdaftar di akun JeGo Anda
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <strong>Verifikasi identitas</strong> dengan kode yang akan dikirim ke nomor telepon Anda
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <strong>Konfirmasi penghapusan</strong> dan akun Anda akan dihapus dalam 24 jam
+                </div>
+            </div>
+            
+            <div class="local-badge">BUATAN ANAK GORONTALO</div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 JeGo - Jasa Ekspedisi Gorontalo. Aplikasi Lokal Buatan Anak Gorontalo.</p>
+            <p>Untuk bantuan lebih lanjut, hubungi: <a href="mailto:admin@jego.com">admin@jego.com</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
+            authDomain: "ojeka-ba255.firebaseapp.com",
+            databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+            projectId: "ojeka-ba255",
+            storageBucket: "ojeka-ba255.firebasestorage.app",
+            messagingSenderId: "639980533353",
+            appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+            measurementId: "G-PBP64Z8VQ8"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Referensi ke database
+        const usersRef = database.ref('users');
+        const deletionRequestsRef = database.ref('deletion_requests');
+        
+        // Elemen DOM
+        const deleteAccountForm = document.getElementById('deleteAccountForm');
+        const phoneNumberInput = document.getElementById('phoneNumber');
+        const reasonInput = document.getElementById('reason');
+        const verificationSection = document.getElementById('verificationSection');
+        const verificationCodeInput = document.getElementById('verificationCode');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const resendCode = document.getElementById('resendCode');
+        const countdownText = document.getElementById('countdownText');
+        const countdownElement = document.getElementById('countdown');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+        const infoAlert = document.getElementById('infoAlert');
+        
+        let countdownInterval;
+        let countdownTime = 60;
+        let verificationCode = '';
+        let userKey = '';
+        
+        // Fungsi untuk menghasilkan kode verifikasi 6 digit
+        function generateVerificationCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+        
+        // Fungsi untuk memulai countdown
+        function startCountdown() {
+            countdownTime = 60;
+            countdownElement.textContent = countdownTime;
+            countdownText.style.display = 'inline';
+            resendCode.style.pointerEvents = 'none';
+            resendCode.style.opacity = '0.5';
+            
+            countdownInterval = setInterval(() => {
+                countdownTime--;
+                countdownElement.textContent = countdownTime;
+                
+                if (countdownTime <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownText.style.display = 'none';
+                    resendCode.style.pointerEvents = 'auto';
+                    resendCode.style.opacity = '1';
+                }
+            }, 1000);
+        }
+        
+        // Fungsi untuk menampilkan alert
+        function showAlert(alertElement, customMessage) {
+            if (customMessage) {
+                alertElement.textContent = customMessage;
+            }
+            alertElement.style.display = 'block';
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Fungsi untuk mengirim kode verifikasi (simulasi)
+        function sendVerificationCode(phoneNumber) {
+            // Dalam implementasi nyata, ini akan mengirim SMS atau email
+            // Di sini kita hanya menghasilkan kode dan menampilkannya di console
+            verificationCode = generateVerificationCode();
+            console.log(`Kode verifikasi untuk ${phoneNumber}: ${verificationCode}`);
+            
+            // Tampilkan pesan info
+            showAlert(infoAlert, `Kode verifikasi telah dikirim ke ${phoneNumber}. Untuk demo, kode: ${verificationCode}`);
+            
+            // Tampilkan section verifikasi
+            verificationSection.style.display = 'block';
+            
+            // Mulai countdown
+            startCountdown();
+        }
+        
+        // Fungsi untuk memverifikasi kode
+        function verifyCode(inputCode) {
+            return inputCode === verificationCode;
+        }
+        
+        // Fungsi untuk menandai akun sebagai akan dihapus
+        function markAccountForDeletion(userKey, reason) {
+            const deletionData = {
+                user_key: userKey,
+                phone_number: phoneNumberInput.value,
+                reason: reason || 'Tidak disebutkan',
+                requested_at: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            return deletionRequestsRef.push(deletionData)
+                .then(() => {
+                    // Update status user di database
+                    return usersRef.child(userKey).update({
+                        status: 'delete_account',
+                        deletion_requested_at: new Date().toISOString(),
+                        deletion_reason: reason || 'Tidak disebutkan'
+                    });
+                })
+                .then(() => {
+                    console.log('Akun berhasil ditandai untuk dihapus');
+                    return true;
+                })
+                .catch(error => {
+                    console.error('Error menandai akun untuk dihapus:', error);
+                    return false;
+                });
+        }
+        
+        // Event listener untuk form submission
+        deleteAccountForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const phoneNumber = phoneNumberInput.value.trim();
+            const reason = reasonInput.value.trim();
+            
+            if (!phoneNumber) {
+                showAlert(errorAlert, 'Harap masukkan nomor telepon yang terdaftar');
+                return;
+            }
+            
+            // Jika verifikasi belum dimulai, kirim kode verifikasi
+            if (!verificationSection.style.display || verificationSection.style.display === 'none') {
+                // Cek apakah nomor telepon terdaftar
+                usersRef.orderByChild('telepon').equalTo(phoneNumber).once('value')
+                    .then(snapshot => {
+                        if (snapshot.exists()) {
+                            // Ambil kunci user
+                            snapshot.forEach(childSnapshot => {
+                                userKey = childSnapshot.key;
+                            });
+                            
+                            // Kirim kode verifikasi
+                            sendVerificationCode(phoneNumber);
+                        } else {
+                            showAlert(errorAlert, 'Nomor telepon tidak terdaftar di sistem JeGo');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error mencari user:', error);
+                        showAlert(errorAlert, 'Terjadi kesalahan. Silakan coba lagi.');
+                    });
+            } else {
+                // Jika sudah dalam tahap verifikasi, verifikasi kode
+                const inputCode = verificationCodeInput.value.trim();
+                
+                if (!inputCode || inputCode.length !== 6) {
+                    showAlert(errorAlert, 'Harap masukkan kode verifikasi 6 digit');
+                    return;
+                }
+                
+                if (verifyCode(inputCode)) {
+                    // Nonaktifkan tombol submit
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Memproses...';
+                    
+                    // Tandai akun untuk dihapus
+                    markAccountForDeletion(userKey, reason)
+                        .then(success => {
+                            if (success) {
+                                showAlert(successAlert, 'Permintaan penghapusan akun berhasil. Akun Anda akan dihapus dalam waktu 24 jam.');
+                                
+                                // Reset form
+                                deleteAccountForm.reset();
+                                verificationSection.style.display = 'none';
+                                
+                                // Redirect setelah beberapa detik
+                                setTimeout(() => {
+                                    window.location.href = 'jenis_kenderaan.html';
+                                }, 5000);
+                            } else {
+                                showAlert(errorAlert, 'Gagal memproses permintaan penghapusan. Silakan coba lagi.');
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = 'Hapus Akun Saya';
+                            }
+                        });
+                } else {
+                    showAlert(errorAlert, 'Kode verifikasi tidak valid. Silakan coba lagi.');
+                }
+            }
+        });
+        
+        // Event listener untuk tombol batal
+        cancelBtn.addEventListener('click', function() {
+            if (confirm('Batalkan permintaan penghapusan akun?')) {
+                window.location.href = 'userAccount.html';
+            }
+        });
+        
+        // Event listener untuk kirim ulang kode
+        resendCode.addEventListener('click', function(e) {
+            e.preventDefault();
+            sendVerificationCode(phoneNumberInput.value.trim());
+        });
+    </script>
+</body>
+</html>
