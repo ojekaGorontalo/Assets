@@ -837,7 +837,7 @@
       <div class="error-icon">⚠️</div>
       <h3>Data Tidak Tersedia</h3>
       <p>Data driver tidak ditemukan. Silakan coba lagi atau pesan driver baru.</p>
-      <button class="retry-btn" onclick="goBack()">Kembali</button>
+      <button class="retry-btn" onclick="safeGoBack()">Kembali</button>
     </div>
 
     <div id="content" style="display: none;">
@@ -1060,6 +1060,10 @@
     let chatListener = null;
     let unreadMessages = 0;
     let chatOpen = false;
+
+    // ==================== VARIABEL UNTUK MENCEGAH BACK ====================
+    let currentOrderStatus = '';
+    let isBackBlocked = false;
 
     // ==================== FUNGSI BARU: UPDATE PROMO DI LOCALSTORAGE ====================
 
@@ -2077,9 +2081,9 @@
           // Beri feedback ke user
           showInfoModal('Terima Kasih', `Terima kasih! Anda memberikan rating ${selectedRating} bintang untuk driver.`);
           
-          // Kembali ke halaman utama setelah rating
+          // Kembali ke halaman utama setelah rating (boleh back karena sudah completed)
           setTimeout(() => {
-            goBack();
+            safeGoBack();
           }, 2000);
           
         })
@@ -2221,6 +2225,9 @@
       
       statusBadge.style.display = 'block';
       
+      // ========== PERBAIKAN UTAMA: UPDATE STATUS ORDER GLOBAL ==========
+      currentOrderStatus = status;
+      
       // ========== KIRIM STATUS SEDERHANA KE KODULAR ==========
       sendToKodular({
         action: 'status_changed',
@@ -2279,7 +2286,8 @@
           statusBadge.style.background = '#28a745';
           statusBadge.style.color = 'white';
           statusBadge.className = 'status-badge completed-badge';
-          statusBadge.onclick = goBack;
+          // PERBAIKAN: Ganti ke safeGoBack
+          statusBadge.onclick = safeGoBack;
           arrivalTitle.textContent = 'Perjalanan Selesai';
           arrivalSubtitle.innerHTML = 'Terima kasih telah menggunakan JeGo.<br>Sampai jumpa pada perjalanan berikutnya!';
           actionsSection.style.display = 'none';
@@ -2498,6 +2506,83 @@
       });
     }
 
+    // ==================== FUNGSI UNTUK MENCEGAH BACK PADA STATUS TERTENTU ====================
+
+    // Fungsi untuk memeriksa apakah status order memungkinkan untuk back
+    function canGoBack() {
+        const blockedStatuses = ['accepted', 'on_the_way', 'arrived', 'on_trip'];
+        const canBack = !blockedStatuses.includes(currentOrderStatus);
+        
+        console.log(`🔙 Status saat ini: ${currentOrderStatus}, Boleh back: ${canBack}`);
+        return canBack;
+    }
+
+    // Fungsi untuk tombol back yang aman (memeriksa status dulu)
+    function safeGoBack() {
+        if (canGoBack()) {
+            // Panggil fungsi goBack asli
+            performGoBack();
+        } else {
+            // Tampilkan pesan bahwa tidak bisa back saat perjalanan masih berlangsung
+            showInfoModal(
+                'Perjalanan Berlangsung', 
+                'Anda tidak dapat kembali saat perjalanan masih berlangsung. Harap tunggu sampai perjalanan selesai atau batalkan terlebih dahulu.'
+            );
+        }
+    }
+
+    // Fungsi asli untuk kembali ke halaman sebelumnya
+    function performGoBack() {
+        // Hentikan listener Firebase sebelum kembali
+        if (orderRef && orderUpdateHandler) {
+            orderRef.off('value', orderUpdateHandler);
+        }
+        
+        // Hentikan chat listener
+        if (chatRef && chatListener) {
+            chatRef.off('child_added', chatListener);
+        }
+        
+        // Hentikan timeout jika masih berjalan
+        if (dataTimeout) {
+            clearTimeout(dataTimeout);
+            dataTimeout = null;
+        }
+        
+        const backData = {
+            action: 'go_back'
+        };
+        
+        sendToKodular(backData);
+    }
+
+    // Fungsi untuk menangani tombol back fisik (hardware back button)
+    function setupBackButtonHandler() {
+        // Tangani hardware back button untuk Android/WebView
+        if (window.history && window.history.pushState) {
+            // Tambah state ke history untuk mencegah back langsung
+            history.pushState(null, null, document.URL);
+            
+            window.addEventListener('popstate', function(event) {
+                if (!canGoBack()) {
+                    // Tampilkan pesan bahwa tidak bisa back
+                    showInfoModal(
+                        'Perjalanan Berlangsung', 
+                        'Anda tidak dapat kembali saat perjalanan masih berlangsung. Harap tunggu sampai perjalanan selesai atau batalkan terlebih dahulu.'
+                    );
+                    
+                    // Tambah lagi state untuk mencegah back
+                    history.pushState(null, null, document.URL);
+                } else {
+                    // Jika boleh back, lanjutkan dengan back normal
+                    performGoBack();
+                }
+            });
+        }
+        
+        console.log('✅ Handler tombol back dipasang');
+    }
+
     // Fungsi untuk tombol aksi
     function chatDriver() {
       openChat();
@@ -2538,34 +2623,10 @@
       
       showInfoModal('Informasi', 'Perjalanan dibatalkan');
       
-      // Kembali ke halaman sebelumnya setelah beberapa detik
+      // Kembali ke halaman sebelumnya setelah beberapa detik (boleh karena sudah cancelled)
       setTimeout(() => {
-        goBack();
+        safeGoBack();
       }, 1500);
-    }
-
-    function goBack() {
-      // Hentikan listener Firebase sebelum kembali
-      if (orderRef && orderUpdateHandler) {
-        orderRef.off('value', orderUpdateHandler);
-      }
-      
-      // Hentikan chat listener
-      if (chatRef && chatListener) {
-        chatRef.off('child_added', chatListener);
-      }
-      
-      // Hentikan timeout jika masih berjalan
-      if (dataTimeout) {
-        clearTimeout(dataTimeout);
-        dataTimeout = null;
-      }
-      
-      const backData = {
-        action: 'go_back'
-      };
-      
-      sendToKodular(backData);
     }
 
     // Fungsi untuk menerima data dari Kodular
@@ -2657,6 +2718,9 @@
       
       // ⭐⭐ PERBAIKAN: CLEANUP PROMO KADALUARSA SAAT INISIALISASI ⭐⭐
       cleanupExpiredPromos();
+      
+      // ⭐⭐ PERBAIKAN: SETUP HANDLER UNTUK TOMBOL BACK ⭐⭐
+      setupBackButtonHandler();
       
       // Cek URL parameters untuk order_id langsung
       const urlParams = new URLSearchParams(window.location.search);
