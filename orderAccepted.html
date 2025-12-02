@@ -8,7 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
-    /* CSS yang sama seperti sebelumnya */
+    /* CSS tetap sama seperti sebelumnya */
     :root {
       --primary: #1e6f5c;
       --secondary: #289672;
@@ -161,7 +161,7 @@
 
     .customer-avatar.default-unknown {
       background-color: #e2e3e5;
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org2000/svg" viewBox="0 0 24 24" fill="%23555"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23555"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
       background-repeat: no-repeat;
       background-position: center;
       background-size: 60%;
@@ -742,7 +742,7 @@
               <div class="route-icon destination-icon">B</div>
               <div class="route-text">
                 <div class="route-label">Tujuan</div>
-                <div class="route-address" id="destinationAddress">-</div>
+                <div class="route-address" id="destinationAddress">0</div>
               </div>
             </div>
           </div>
@@ -909,6 +909,7 @@
     let isTrackingActive = false;
     let currentLocation = null;
     let watchId = null;
+    let lastSentLocation = null;
 
     // ==================== SISTEM TRACKING LOKASI DRIVER ====================
 
@@ -947,16 +948,45 @@
             
             // Mulai tracking dengan watchPosition untuk update real-time
             startWatchingLocation();
+            
+            // Set interval untuk mengirim lokasi ke Firebase setiap 5 detik
+            locationTrackingInterval = setInterval(() => {
+              if (currentLocation) {
+                sendLocationToFirebase(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
+              } else {
+                console.log('📍 Belum ada lokasi yang didapatkan, melewatkan pengiriman...');
+              }
+            }, 5000); // 5 detik
+            
           })
           .catch((error) => {
             console.error('❌ Error cek izin lokasi:', error);
             // Tetap coba tracking jika API permissions tidak tersedia
             startWatchingLocation();
+            
+            locationTrackingInterval = setInterval(() => {
+              if (currentLocation) {
+                sendLocationToFirebase(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
+              } else {
+                console.log('📍 Belum ada lokasi yang didapatkan, melewatkan pengiriman...');
+              }
+            }, 5000);
           });
       } else {
         // Browser tidak mendukung permissions API, langsung coba tracking
         startWatchingLocation();
+        
+        locationTrackingInterval = setInterval(() => {
+          if (currentLocation) {
+            sendLocationToFirebase(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
+          } else {
+            console.log('📍 Belum ada lokasi yang didapatkan, melewatkan pengiriman...');
+          }
+        }, 5000);
       }
+      
+      isTrackingActive = true;
+      console.log('✅ Tracking lokasi aktif, interval 5 detik');
     }
 
     function startWatchingLocation() {
@@ -980,8 +1010,10 @@
             timestamp: Date.now()
           };
           
-          // Kirim lokasi ke Firebase
-          sendLocationToFirebase(latitude, longitude, accuracy);
+          // Kirim langsung lokasi pertama kali didapatkan
+          if (!lastSentLocation) {
+            sendLocationToFirebase(latitude, longitude, accuracy);
+          }
           
           // Kirim juga ke Kodular
           sendToKodular({
@@ -1019,24 +1051,23 @@
         options
       );
       
-      isTrackingActive = true;
-      console.log('✅ Tracking lokasi aktif dengan watchId:', watchId);
-      
-      // Kirim lokasi pertama kali
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          sendLocationToFirebase(latitude, longitude, accuracy);
-        },
-        (error) => console.error('❌ Error lokasi pertama:', error),
-        options
-      );
+      console.log('✅ Watch position aktif dengan watchId:', watchId);
     }
 
     function sendLocationToFirebase(latitude, longitude, accuracy) {
       if (!currentOrderId || !currentDriverData) {
         console.log('❌ Order ID atau Driver Data tidak tersedia, tidak mengirim lokasi');
         return;
+      }
+      
+      // Cek apakah lokasi berubah signifikan untuk menghindari spam data yang sama
+      const newLocation = { latitude, longitude };
+      const isSignificantChange = !lastSentLocation || 
+        (Math.abs(lastSentLocation.latitude - latitude) > 0.0001 || 
+         Math.abs(lastSentLocation.longitude - longitude) > 0.0001);
+      
+      if (!isSignificantChange && lastSentLocation) {
+        console.log('📍 Lokasi tidak berubah signifikan, update timestamp saja');
       }
       
       const locationData = {
@@ -1048,17 +1079,18 @@
         order_id: currentOrderId,
         timestamp: Date.now(),
         status: currentOrderData?.status || 'tracking',
-        battery_level: getBatteryLevel() // Opsional
+        battery_level: getBatteryLevel()
       };
       
-      // Simpan lokasi di node order
+      // PERBAIKAN: Kirim ke node orders/[orderId]/driver_location
       const orderLocationRef = database.ref('orders/' + currentOrderId + '/driver_location');
       orderLocationRef.set(locationData)
         .then(() => {
-          console.log('✅ Lokasi driver terkirim ke Firebase:', locationData);
+          console.log('✅ Lokasi driver terkirim ke orders/' + currentOrderId + '/driver_location:', locationData);
+          lastSentLocation = newLocation;
         })
         .catch((error) => {
-          console.error('❌ Gagal mengirim lokasi ke Firebase:', error);
+          console.error('❌ Gagal mengirim lokasi ke orders:', error);
         });
       
       // Simpan juga di node tracking terpisah untuk riwayat
@@ -1066,6 +1098,10 @@
       trackingRef.push({
         ...locationData,
         timestamp: Date.now()
+      }).then(() => {
+        console.log('✅ Lokasi disimpan di driver_tracking untuk riwayat');
+      }).catch((error) => {
+        console.error('❌ Gagal menyimpan riwayat tracking:', error);
       });
       
       // Update lokasi terakhir driver di profil driver
@@ -1079,6 +1115,10 @@
             order_id: currentOrderId
           },
           last_active: new Date().toISOString()
+        }).then(() => {
+          console.log('✅ Last location driver diperbarui di profil');
+        }).catch((error) => {
+          console.error('❌ Gagal update last location di profil driver:', error);
         });
       }
     }
@@ -1086,16 +1126,18 @@
     function stopLocationTracking() {
       if (watchId) {
         navigator.geolocation.clearWatch(watchId);
-        console.log('📍 Tracking lokasi dihentikan, watchId:', watchId);
+        console.log('📍 Watch position dihentikan, watchId:', watchId);
         watchId = null;
       }
       
       if (locationTrackingInterval) {
         clearInterval(locationTrackingInterval);
         locationTrackingInterval = null;
+        console.log('📍 Interval tracking dihentikan');
       }
       
       isTrackingActive = false;
+      lastSentLocation = null;
       
       // Hapus lokasi driver dari Firebase ketika tracking dihentikan
       if (currentOrderId) {
@@ -1639,7 +1681,9 @@
           
           // Mulai tracking lokasi jika order dalam status yang membutuhkan tracking
           if (orderData.status === 'on_the_way' || orderData.status === 'arrived' || orderData.status === 'on_trip') {
-            startLocationTracking();
+            if (!isTrackingActive) {
+              startLocationTracking();
+            }
           }
         } else {
           showError('Order tidak ditemukan di database');
