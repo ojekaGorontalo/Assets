@@ -1082,7 +1082,7 @@
         battery_level: getBatteryLevel()
       };
       
-      // PERBAIKAN: Kirim ke node orders/[orderId]/driver_location
+      // 1. Kirim ke node orders/[orderId]/driver_location
       const orderLocationRef = database.ref('orders/' + currentOrderId + '/driver_location');
       orderLocationRef.set(locationData)
         .then(() => {
@@ -1093,7 +1093,26 @@
           console.error('❌ Gagal mengirim lokasi ke orders:', error);
         });
       
-      // Simpan juga di node tracking terpisah untuk riwayat
+      // 2. Kirim ke field current_location di dalam selected_driver
+      const selectedDriverLocationRef = database.ref('orders/' + currentOrderId + '/selected_driver/current_location');
+      const selectedDriverLocationData = {
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy || null,
+        timestamp: Date.now(),
+        battery_level: getBatteryLevel(),
+        status: currentOrderData?.status || 'tracking'
+      };
+      
+      selectedDriverLocationRef.set(selectedDriverLocationData)
+        .then(() => {
+          console.log('✅ Lokasi driver terkirim ke selected_driver/current_location');
+        })
+        .catch((error) => {
+          console.error('❌ Gagal mengirim lokasi ke selected_driver:', error);
+        });
+      
+      // 3. Simpan juga di node tracking terpisah untuk riwayat
       const trackingRef = database.ref('driver_tracking/' + currentOrderId);
       trackingRef.push({
         ...locationData,
@@ -1104,7 +1123,7 @@
         console.error('❌ Gagal menyimpan riwayat tracking:', error);
       });
       
-      // Update lokasi terakhir driver di profil driver
+      // 4. Update lokasi terakhir driver di profil driver
       if (currentDriverData.driverId) {
         const driverRef = database.ref('drivers/' + currentDriverData.driverId);
         driverRef.update({
@@ -1141,10 +1160,17 @@
       
       // Hapus lokasi driver dari Firebase ketika tracking dihentikan
       if (currentOrderId) {
+        // 1. Hapus dari driver_location
         const orderLocationRef = database.ref('orders/' + currentOrderId + '/driver_location');
         orderLocationRef.remove()
-          .then(() => console.log('✅ Lokasi driver dihapus dari Firebase'))
+          .then(() => console.log('✅ Lokasi driver dihapus dari driver_location'))
           .catch((error) => console.error('❌ Gagal menghapus lokasi:', error));
+        
+        // 2. Hapus dari selected_driver/current_location
+        const selectedDriverLocationRef = database.ref('orders/' + currentOrderId + '/selected_driver/current_location');
+        selectedDriverLocationRef.remove()
+          .then(() => console.log('✅ Lokasi driver dihapus dari selected_driver/current_location'))
+          .catch((error) => console.error('❌ Gagal menghapus lokasi dari selected_driver:', error));
       }
     }
 
