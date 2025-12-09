@@ -296,6 +296,77 @@
       font-size: 0.8rem;
     }
 
+    /* ==================== PROMO SECTION STYLES ==================== */
+    .promo-section {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      display: none;
+    }
+
+    .promo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(135deg, #ffd700, #ff9800);
+      color: #333;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .promo-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 8px;
+      border-left: 4px solid #ffc107;
+    }
+
+    .promo-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .promo-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .promo-value {
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .original-price {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 0.75rem;
+    }
+
+    .discount-badge {
+      background: var(--success);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    .final-price {
+      color: var(--success);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    /* ==================== END PROMO SECTION ==================== */
+
     .delivery-section {
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
@@ -643,7 +714,7 @@
         height: calc(100vh - 10px);
       }
       
-      .status-section, .customer-section, .route-section, .info-section, .delivery-section, .actions-section {
+      .status-section, .customer-section, .route-section, .info-section, .promo-section, .delivery-section, .actions-section {
         padding: 10px 12px;
       }
       
@@ -774,6 +845,33 @@
             <div class="info-item">
               <div class="info-label">Waktu</div>
               <div class="info-value" id="orderTime">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SECTION PROMO ==================== -->
+        <div class="promo-section" id="promoSection">
+          <div class="section-title">Promo</div>
+          <div class="promo-details">
+            <div class="promo-item">
+              <span class="promo-label">Kode Promo:</span>
+              <span class="promo-value" id="promoCode">-</span>
+            </div>
+            <div class="promo-item">
+              <span class="promo-label">Harga Asli:</span>
+              <span class="promo-value">
+                <span class="original-price" id="originalPrice">-</span>
+              </span>
+            </div>
+            <div class="promo-item">
+              <span class="promo-label">Diskon:</span>
+              <span class="promo-value">
+                <span class="discount-badge" id="discountPercentage">-</span>
+              </span>
+            </div>
+            <div class="promo-item">
+              <span class="promo-label">Harga Final:</span>
+              <span class="promo-value final-price" id="finalPrice">-</span>
             </div>
           </div>
         </div>
@@ -1731,11 +1829,56 @@
       document.getElementById('tripDuration').textContent = order.durasi || '-';
       document.getElementById('tripDistance').textContent = order.jarak || '-';
       
-      if (order.harga_total) {
-        const harga = typeof order.harga_total === 'number' ? order.harga_total : parseInt(order.harga_total);
-        document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
+      // ==================== TAMPILKAN DATA HARGA DENGAN PROMO ====================
+      const promoSection = document.getElementById('promoSection');
+      
+      // Cek apakah order memiliki data promo
+      const hasPromoData = order.promo_data || order.harga_asal || order.diskon_persen;
+      
+      if (hasPromoData) {
+        // Tampilkan section promo
+        promoSection.style.display = 'block';
+        
+        // Isi data promo
+        const promoCode = document.getElementById('promoCode');
+        const originalPrice = document.getElementById('originalPrice');
+        const discountPercentage = document.getElementById('discountPercentage');
+        const finalPrice = document.getElementById('finalPrice');
+        
+        // Kode promo
+        if (order.promo_data && order.promo_data.code) {
+          promoCode.textContent = order.promo_data.code;
+        } else if (order.kode_promo) {
+          promoCode.textContent = order.kode_promo;
+        } else {
+          promoCode.textContent = 'PROMO';
+        }
+        
+        // Harga asli
+        const hargaAsal = order.harga_asal || order.harga_total;
+        originalPrice.textContent = `Rp ${parseInt(hargaAsal).toLocaleString('id-ID')}`;
+        
+        // Diskon persentase
+        const diskonPersen = order.diskon_persen || (order.promo_data && order.promo_data.discount) || 0;
+        discountPercentage.textContent = `${diskonPersen}%`;
+        
+        // Harga final (setelah diskon)
+        const hargaFinal = order.harga_total;
+        finalPrice.textContent = `Rp ${parseInt(hargaFinal).toLocaleString('id-ID')}`;
+        
+        // Update tampilan harga di info-grid dengan harga final (setelah diskon)
+        document.getElementById('tripPrice').textContent = `Rp ${parseInt(hargaFinal).toLocaleString('id-ID')}`;
       } else {
-        document.getElementById('tripPrice').textContent = '-';
+        // Sembunyikan section promo jika tidak ada
+        promoSection.style.display = 'none';
+        
+        // Tampilkan harga normal
+        if (order.harga_total) {
+          const harga = typeof order.harga_total === 'number' ? order.harga_total : parseInt(order.harga_total);
+          document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
+        } else {
+          document.getElementById('tripPrice').textContent = '-';
+        }
       }
       
       if (order.created_at) {
@@ -1961,7 +2104,9 @@
       console.log('🔄 Memulai perjalanan dan memotong saldo...');
       
       // CEK SALDO SEBELUM MEMULAI PERJALANAN
-      const balanceCheck = checkBalanceForOrder(currentOrderData.harga_total);
+      // Gunakan harga_total (setelah diskon jika ada promo) untuk perhitungan potongan
+      const orderAmount = currentOrderData.harga_total;
+      const balanceCheck = checkBalanceForOrder(orderAmount);
       if (!balanceCheck.hasSufficientBalance) {
         alert(`Saldo tidak cukup untuk memulai perjalanan. Dibutuhkan: Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`);
         return;
@@ -1977,13 +2122,14 @@
         
         // ⭐⭐ POTONG SALDO SETELAH PERJALANAN DIMULAI ⭐⭐
         if (currentDriverData && currentDriverData.driverId) {
-          deductOrderFee(currentOrderId, currentOrderData.harga_total, currentDriverData.driverId);
+          deductOrderFee(currentOrderId, orderAmount, currentDriverData.driverId);
         }
         
         sendToKodular({
           action: 'start_trip',
           order_id: currentOrderId,
           order_data: currentOrderData,
+          order_amount: orderAmount,
           message: 'Perjalanan dimulai dan saldo dipotong'
         });
       }).catch((error) => {
@@ -2010,6 +2156,7 @@
         localStorage.removeItem('jego_driver_accepted_order');
         
         // UPDATE STATISTIK DRIVER
+        // Gunakan harga_total (setelah diskon jika ada promo) untuk perhitungan earnings
         updateDriverStatistics(currentOrderData);
         
         sendToKodular({
