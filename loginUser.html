@@ -16,6 +16,8 @@
       --dark: #343a40;
       --success: #28a745;
       --danger: #dc3545;
+      --warning: #ffc107;
+      --info: #17a2b8;
     }
 
     html, body {
@@ -35,6 +37,8 @@
       border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
       overflow: hidden;
+      z-index: 10;
+      position: relative;
     }
 
     .login-header {
@@ -160,27 +164,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    .message {
-      padding: 10px 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      text-align: center;
-      font-size: 14px;
-      display: none;
-    }
-
-    .success-message {
-      background-color: rgba(40, 167, 69, 0.1);
-      color: var(--success);
-      border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    .error-message {
-      background-color: rgba(220, 53, 69, 0.1);
-      color: var(--danger);
-      border: 1px solid rgba(220, 53, 69, 0.3);
-    }
-
     .register-link {
       text-align: center;
       margin-top: 20px;
@@ -228,6 +211,204 @@
       display: none;
     }
 
+    /* Modal Popup Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .modal-title {
+      display: flex;
+      align-items: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .modal-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .modal-icon.success {
+      background-color: var(--success);
+    }
+
+    .modal-icon.error {
+      background-color: var(--danger);
+    }
+
+    .modal-icon.warning {
+      background-color: var(--warning);
+    }
+
+    .modal-icon.info {
+      background-color: var(--info);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6c757d;
+      line-height: 1;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s;
+    }
+
+    .close-btn:hover {
+      background-color: #f8f9fa;
+      color: var(--dark);
+    }
+
+    .modal-body {
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid #e9ecef;
+      background-color: #f8f9fa;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 15px;
+    }
+
+    .modal-btn.confirm {
+      background-color: var(--primary);
+      color: white;
+      margin-left: 10px;
+    }
+
+    .modal-btn.confirm:hover {
+      background-color: var(--secondary);
+    }
+
+    .modal-btn.cancel {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .modal-btn.cancel:hover {
+      background-color: #5a6268;
+    }
+
+    /* Modal types */
+    .modal.success .modal-header {
+      background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    .modal.error .modal-header {
+      background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .modal.warning .modal-header {
+      background-color: rgba(255, 193, 7, 0.1);
+    }
+
+    .modal.info .modal-header {
+      background-color: rgba(23, 162, 184, 0.1);
+    }
+
+    /* Loading Modal */
+    .loading-modal .modal-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(40, 150, 114, 0.1);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    .loading-text {
+      font-size: 16px;
+      color: var(--dark);
+      text-align: center;
+    }
+
+    /* Auto-hide modal */
+    .modal.auto-hide {
+      animation: fadeOut 0.5s ease 2s forwards;
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+
     @media (max-width: 480px) {
       .login-container {
         width: 95%;
@@ -251,10 +432,15 @@
       .header-title {
         font-size: 1.5rem;
       }
+
+      .modal {
+        width: 95%;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Login Container -->
   <div class="login-container">
     <div class="login-header">
       <div class="logo-container">
@@ -279,9 +465,6 @@
         Anda sudah login, mengarahkan ke halaman utama...
       </div>
       
-      <div id="errorMessage" class="message error-message"></div>
-      <div id="successMessage" class="message success-message"></div>
-      
       <div class="input-container">
         <input id="namaInput" type="text" placeholder="Nama Lengkap" />
       </div>
@@ -294,6 +477,36 @@
       
       <div class="register-link">
         Belum punya akun? <a href="registrasi_jego.html">Daftar di sini</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Popup Overlay -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div id="modal" class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span id="modalIcon" class="modal-icon">!</span>
+          <span id="modalTitleText">Judul Modal</span>
+        </h3>
+        <button id="modalCloseBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Isi pesan modal akan ditampilkan di sini.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="modalCancelBtn" class="modal-btn cancel" style="display: none;">Batal</button>
+        <button id="modalConfirmBtn" class="modal-btn confirm">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Modal -->
+  <div id="loadingModal" class="modal-overlay">
+    <div class="modal loading-modal">
+      <div class="modal-body">
+        <div class="loading-spinner"></div>
+        <p id="loadingText" class="loading-text">Sedang memproses...</p>
       </div>
     </div>
   </div>
@@ -315,20 +528,109 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Fungsi untuk menampilkan pesan
-    function showMessage(message, isError = false) {
-      const errorMessage = document.getElementById('errorMessage');
-      const successMessage = document.getElementById('successMessage');
+    // DOM Elements untuk Modal
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitleText = document.getElementById('modalTitleText');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const loadingModal = document.getElementById('loadingModal');
+    const loadingText = document.getElementById('loadingText');
+
+    // Fungsi untuk menampilkan modal popup
+    function showPopup(title, message, type = 'info', options = {}) {
+      // Set judul dan pesan
+      modalTitleText.textContent = title;
+      modalMessage.textContent = message;
       
-      if (isError) {
-        errorMessage.textContent = message;
-        errorMessage.style.display = 'block';
-        successMessage.style.display = 'none';
+      // Set tipe modal (success, error, warning, info)
+      modal.className = 'modal ' + type;
+      
+      // Set icon sesuai tipe
+      modalIcon.className = 'modal-icon ' + type;
+      modalIcon.textContent = type === 'success' ? '✓' : 
+                               type === 'error' ? '✗' : 
+                               type === 'warning' ? '!' : 'i';
+      
+      // Set text button konfirmasi
+      modalConfirmBtn.textContent = options.confirmText || 'OK';
+      
+      // Tampilkan atau sembunyikan button batal
+      if (options.showCancel) {
+        modalCancelBtn.style.display = 'inline-block';
+        modalCancelBtn.textContent = options.cancelText || 'Batal';
       } else {
-        successMessage.textContent = message;
-        successMessage.style.display = 'block';
-        errorMessage.style.display = 'none';
+        modalCancelBtn.style.display = 'none';
       }
+      
+      // Setup event listeners untuk button
+      modalConfirmBtn.onclick = function() {
+        hidePopup();
+        if (options.onConfirm) {
+          options.onConfirm();
+        }
+      };
+      
+      modalCancelBtn.onclick = function() {
+        hidePopup();
+        if (options.onCancel) {
+          options.onCancel();
+        }
+      };
+      
+      modalCloseBtn.onclick = function() {
+        hidePopup();
+        if (options.onCancel) {
+          options.onCancel();
+        }
+      };
+      
+      // Tampilkan modal
+      modalOverlay.classList.add('active');
+      
+      // Auto hide jika diatur
+      if (options.autoHide) {
+        modal.classList.add('auto-hide');
+        setTimeout(() => {
+          hidePopup();
+          if (options.onAutoHide) {
+            options.onAutoHide();
+          }
+        }, options.autoHideDelay || 3000);
+      }
+    }
+
+    // Fungsi untuk menyembunyikan modal
+    function hidePopup() {
+      modalOverlay.classList.remove('active');
+      modal.classList.remove('auto-hide');
+    }
+
+    // Fungsi untuk menampilkan modal loading
+    function showLoading(message = 'Sedang memproses...') {
+      loadingText.textContent = message;
+      loadingModal.classList.add('active');
+    }
+
+    // Fungsi untuk menyembunyikan modal loading
+    function hideLoading() {
+      loadingModal.classList.remove('active');
+    }
+
+    // Fungsi untuk menampilkan pesan error
+    function showErrorMessage(message) {
+      showPopup('Error', message, 'error');
+    }
+
+    // Fungsi untuk menampilkan pesan sukses
+    function showSuccessMessage(message, autoHide = false) {
+      showPopup('Sukses', message, 'success', {
+        autoHide: autoHide,
+        autoHideDelay: 2000
+      });
     }
 
     // Fungsi untuk membersihkan nomor telepon
@@ -455,12 +757,14 @@
       
       // Validasi input
       if (!nama) {
-        showMessage('Masukkan nama lengkap', true);
+        showErrorMessage('Masukkan nama lengkap');
+        document.getElementById('namaInput').focus();
         return;
       }
       
       if (!telepon) {
-        showMessage('Masukkan nomor telepon', true);
+        showErrorMessage('Masukkan nomor telepon');
+        document.getElementById('teleponInput').focus();
         return;
       }
       
@@ -469,7 +773,7 @@
       loginBtn.classList.add('loading');
       loginBtn.textContent = 'MEMPROSES...';
       
-      showMessage('Sedang memverifikasi data...', false);
+      showLoading('Sedang memverifikasi data...');
       
       // Cari user di Firebase
       findUserInFirebase(nama, telepon, (userFound, matchKey, error) => {
@@ -478,14 +782,17 @@
         loginBtn.classList.remove('loading');
         loginBtn.textContent = 'MASUK';
         
+        // Sembunyikan loading
+        hideLoading();
+        
         if (error) {
-          showMessage('Login gagal: Gagal terhubung ke server', true);
+          showErrorMessage('Login gagal: Gagal terhubung ke server');
           return;
         }
         
         if (userFound) {
           // Login berhasil
-          showMessage('Login berhasil! Mengalihkan...', false);
+          showSuccessMessage('Login berhasil! Mengalihkan...', true);
           
           // ✅ SIMPAN KE LOCALSTORAGE DENGAN CARA YANG SAMA SEPERTI REGISTRASI
           const userDataToStore = {
@@ -524,8 +831,8 @@
           }, 2000);
           
         } else {
-          // Login gagal - hanya tampilkan pesan sederhana
-          showMessage('Login gagal: Nama atau nomor telepon tidak sesuai', true);
+          // Login gagal - tampilkan pesan error
+          showErrorMessage('Login gagal: Nama atau nomor telepon tidak sesuai');
           
           // Kirim status gagal ke Kodular
           sendToKodular({
@@ -555,10 +862,14 @@
           
           console.log('User sudah login, mengarahkan ke jenis_kenderaan.html...');
           
-          // Redirect setelah 3 detik
-          setTimeout(() => {
-            window.location.href = 'jenis_kenderaan.html';
-          }, 3000);
+          // Tampilkan popup info
+          showPopup('Informasi', 'Anda sudah login sebelumnya. Mengarahkan ke halaman utama...', 'info', {
+            autoHide: true,
+            autoHideDelay: 3000,
+            onAutoHide: () => {
+              window.location.href = 'jenis_kenderaan.html';
+            }
+          });
           
           return true;
         } catch (error) {
@@ -570,7 +881,7 @@
       return false;
     }
 
-    // Event listener untuk tombol Enter
+    // Event listener untuk tombol Enter dan modal
     document.addEventListener('DOMContentLoaded', function() {
       // Cek apakah user sudah login
       const isLoggedIn = checkIfUserIsLoggedIn();
@@ -601,6 +912,20 @@
           }
         }
       }
+      
+      // Close modal ketika klik di luar modal
+      modalOverlay.addEventListener('click', function(e) {
+        if (e.target === modalOverlay) {
+          hidePopup();
+        }
+      });
+      
+      // Close modal dengan tombol ESC
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+          hidePopup();
+        }
+      });
     });
   </script>
 </body>
