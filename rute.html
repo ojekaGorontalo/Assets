@@ -476,16 +476,18 @@
       color: var(--dark);
     }
 
-    /* STAR RATING STYLES */
+    /* STAR RATING STYLES - DIPERBAIKI */
     .star-rating {
       display: inline-flex;
       align-items: center;
-      gap: 2px;
+      gap: 1px;
+      flex-wrap: nowrap;
+      max-width: 85px;
     }
 
     .star {
       color: #ddd;
-      font-size: 14px;
+      font-size: 12px;
     }
 
     .star.filled {
@@ -506,18 +508,20 @@
       color: #ffc107;
     }
 
-    /* DRIVER OFFER CARD STYLES */
+    /* DRIVER OFFER CARD STYLES - DIPERBAIKI SECARA LENGKAP */
     .driver-offer-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: #fff;
-      padding: 12px;
+      padding: 10px;
       border-radius: 10px;
       margin-bottom: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       border-left: 4px solid #e9ecef;
       transition: all 0.3s ease;
+      min-height: 70px;
+      overflow: hidden;
     }
 
     .driver-offer-card:hover {
@@ -527,59 +531,80 @@
 
     .driver-info {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
       flex: 1;
+      min-width: 0; /* Penting untuk truncate text */
     }
 
     .driver-photo {
-      width: 60px;
-      height: 60px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       object-fit: cover;
       border: 3px solid #e9ecef;
+      flex-shrink: 0;
     }
 
     .driver-details {
       flex: 1;
       min-width: 0;
+      max-width: calc(100% - 90px); /* Batasi lebar maksimal */
+      overflow: hidden;
     }
 
     .driver-name {
       font-weight: 700;
-      font-size: 16px;
+      font-size: 14px;
       margin-bottom: 4px;
       display: flex;
       align-items: center;
       gap: 6px;
       flex-wrap: wrap;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .driver-name-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
     }
 
     .driver-vehicle {
-      font-size: 13px;
+      font-size: 12px;
       color: #444;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
 
-    .driver-rating {
+    .driver-rating-container {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
+      flex-wrap: wrap;
+      max-width: 100%;
     }
 
     .accept-btn {
       background: linear-gradient(135deg, #28a745, #20c997);
       color: #fff;
       border: none;
-      padding: 10px 16px;
+      padding: 8px 12px;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 700;
-      font-size: 14px;
-      min-width: 80px;
+      font-size: 12px;
+      min-width: 70px;
       transition: all 0.3s;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .accept-btn:hover {
@@ -590,13 +615,14 @@
     /* PRIORITAS DRIVER BADGE STYLES */
     .priority-badge {
       display: inline-block;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 10px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
-      margin-left: 8px;
+      margin-left: 5px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      white-space: nowrap;
     }
 
     .priority-basic {
@@ -623,20 +649,23 @@
     .top-driver-badge {
       background: linear-gradient(135deg, #FFD700, #FFA500);
       color: #000;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 10px;
+      font-size: 9px;
       font-weight: 800;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      display: inline-block;
     }
 
     .position-badge {
       background: #6c757d;
       color: white;
-      padding: 2px 6px;
+      padding: 2px 5px;
       border-radius: 50%;
-      font-size: 10px;
-      margin-left: 5px;
+      font-size: 9px;
+      margin-left: 4px;
+      flex-shrink: 0;
     }
 
     .driver-offer-card.highlighted {
@@ -943,7 +972,7 @@
       }
 
       .driver-offer-card {
-        padding: 10px;
+        padding: 8px;
       }
 
       .driver-info {
@@ -951,18 +980,18 @@
       }
 
       .driver-photo {
-        width: 50px;
-        height: 50px;
+        width: 45px;
+        height: 45px;
       }
 
-      .driver-name {
-        font-size: 14px;
+      .driver-details {
+        max-width: calc(100% - 80px);
       }
 
       .accept-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-        min-width: 70px;
+        padding: 6px 10px;
+        font-size: 11px;
+        min-width: 60px;
       }
 
       .popup {
@@ -981,18 +1010,86 @@
 
     @media (max-width: 480px) {
       .driver-info {
-        flex-direction: column;
-        align-items: flex-start;
         gap: 6px;
       }
 
       .driver-photo {
-        width: 45px;
-        height: 45px;
+        width: 40px;
+        height: 40px;
       }
 
       .route-address {
         font-size: 0.75rem;
+      }
+
+      .driver-details {
+        max-width: calc(100% - 70px);
+      }
+
+      .driver-name {
+        font-size: 13px;
+      }
+
+      .driver-name-text {
+        max-width: 90px;
+      }
+
+      .driver-vehicle {
+        font-size: 11px;
+      }
+
+      .driver-rating-container {
+        font-size: 10px;
+      }
+
+      .star-rating {
+        max-width: 70px;
+      }
+
+      .star {
+        font-size: 10px;
+      }
+
+      .accept-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+        min-width: 55px;
+      }
+
+      .priority-badge {
+        font-size: 8px;
+        padding: 2px 4px;
+      }
+
+      .top-driver-badge {
+        font-size: 8px;
+        padding: 2px 4px;
+      }
+
+      .position-badge {
+        font-size: 8px;
+        padding: 1px 4px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .driver-details {
+        max-width: calc(100% - 65px);
+      }
+
+      .driver-name-text {
+        max-width: 70px;
+      }
+
+      .accept-btn {
+        min-width: 50px;
+        padding: 4px 6px;
+        font-size: 9px;
+      }
+
+      .driver-photo {
+        width: 35px;
+        height: 35px;
       }
     }
 
@@ -1970,6 +2067,7 @@
         });
     }
 
+    // PERBAIKAN: Fungsi renderDriver dengan layout yang lebih baik
     function renderDriver(driver, index) {
         const card = document.createElement('div');
         card.className = 'driver-offer-card';
@@ -1978,8 +2076,10 @@
         // Tambahkan badge prioritas
         const priorityBadge = getPriorityBadge(driver.avg_rating, index);
         
-        // Dapatkan bintang untuk rating
-        const stars = getStarRatingHTML(driver.avg_rating);
+        // Dapatkan bintang untuk rating dengan format yang lebih baik
+        const rating = Math.min(parseFloat(driver.avg_rating) || 0, 5.0);
+        const formattedRating = rating.toFixed(1);
+        const stars = getStarRatingHTML(rating);
         
         // Tampilkan harga tawaran jika ada, jika tidak gunakan harga normal
         const offeredPrice = driver.offered_price || currentRouteData.harga_total;
@@ -1993,17 +2093,17 @@
                 <div class="driver-details">
                     ${priorityBadge}
                     <div class="driver-name">
-                        ${driver.name || 'Driver'}
+                        <span class="driver-name-text">${driver.name || 'Driver'}</span>
                         <span class="position-badge">#${index + 1}</span>
                     </div>
                     <div class="driver-vehicle">
                         ${driver.vehicle_brand || ''} • ${driver.vehicle_type || ''}
                     </div>
-                    <div class="driver-rating">
+                    <div class="driver-rating-container">
                         ${stars}
-                        <span>${driver.avg_rating || '0'}/5</span>
+                        <span>${formattedRating}/5</span>
                     </div>
-                    <div style="margin-top: 5px; font-weight: 600; color: var(--success);">
+                    <div style="margin-top: 5px; font-weight: 600; color: var(--success); font-size: 12px;">
                         ${priceDisplay}
                     </div>
                 </div>
