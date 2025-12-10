@@ -15,6 +15,8 @@
             --dark: #343a40;
             --success: #28a745;
             --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
         }
         
         * {
@@ -238,25 +240,6 @@
             margin-top: 10px;
         }
         
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .alert-success {
-            background-color: rgba(40, 167, 69, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-        }
-        
-        .alert-danger {
-            background-color: rgba(220, 53, 69, 0.1);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-        }
-        
         .phone-format {
             font-size: 0.85rem;
             color: #666;
@@ -392,6 +375,209 @@
             margin: 10px 0;
         }
         
+        /* Modal Popup Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .modal-icon.success {
+            background-color: var(--success);
+        }
+
+        .modal-icon.error {
+            background-color: var(--danger);
+        }
+
+        .modal-icon.warning {
+            background-color: var(--warning);
+        }
+
+        .modal-icon.info {
+            background-color: var(--info);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background-color: #f8f9fa;
+            color: var(--dark);
+        }
+
+        .modal-body {
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+
+        .modal-btn.confirm {
+            background-color: var(--primary);
+            color: white;
+            margin-left: 10px;
+        }
+
+        .modal-btn.confirm:hover {
+            background-color: var(--secondary);
+        }
+
+        .modal-btn.cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .modal-btn.cancel:hover {
+            background-color: #5a6268;
+        }
+
+        /* Modal types */
+        .modal.success .modal-header {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+
+        .modal.error .modal-header {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .modal.warning .modal-header {
+            background-color: rgba(255, 193, 7, 0.1);
+        }
+
+        .modal.info .modal-header {
+            background-color: rgba(23, 162, 184, 0.1);
+        }
+
+        /* Loading Modal */
+        .loading-modal .modal-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(40, 150, 114, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: var(--dark);
+            text-align: center;
+        }
+
+        /* Auto-hide modal */
+        .modal.auto-hide {
+            animation: fadeOut 0.5s ease 2s forwards;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        
         @media (max-width: 768px) {
             .content {
                 flex-direction: column;
@@ -413,6 +599,11 @@
 
             .header-btn {
                 width: 100%;
+            }
+
+            .modal {
+                width: 95%;
+                max-width: 95%;
             }
         }
     </style>
@@ -443,14 +634,6 @@
             Anda sudah login, mengarahkan ke halaman utama...
         </div>
 
-        <div class="alert alert-success" id="successAlert">
-            ✅ Pendaftaran berhasil! Data telah disimpan dan dikirim ke aplikasi JeGo.
-        </div>
-        
-        <div class="alert alert-danger" id="errorAlert">
-            ❌ Terjadi kesalahan. Silakan coba lagi.
-        </div>
-        
         <div class="content">
             <section class="info-section">
                 <h2>Syarat Pendaftaran JeGo</h2>
@@ -492,9 +675,6 @@
                         <input type="tel" id="telepon" name="telepon" placeholder="+6281234567890" required>
                         <div class="phone-format">
                             Format: <span class="example">+6281234567890</span> (gunakan kode negara +62)
-                        </div>
-                        <div class="validation-error" id="teleponError">
-                            Nomor telepon sudah terdaftar atau format tidak valid
                         </div>
                     </div>
                     
@@ -572,6 +752,36 @@
         </div>
     </footer>
 
+    <!-- Modal Popup Overlay -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div id="modal" class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <span id="modalIcon" class="modal-icon">!</span>
+                    <span id="modalTitleText">Judul Modal</span>
+                </h3>
+                <button id="modalCloseBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Isi pesan modal akan ditampilkan di sini.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modalCancelBtn" class="modal-btn cancel" style="display: none;">Batal</button>
+                <button id="modalConfirmBtn" class="modal-btn confirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="modal-overlay">
+        <div class="modal loading-modal">
+            <div class="modal-body">
+                <div class="loading-spinner"></div>
+                <p id="loadingText" class="loading-text">Sedang memproses...</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Firebase configuration dengan kredensial yang benar
         const firebaseConfig = {
@@ -595,14 +805,124 @@
         // Elemen DOM
         const registrationForm = document.getElementById('registrationForm');
         const submitBtn = document.getElementById('submitBtn');
-        const successAlert = document.getElementById('successAlert');
-        const errorAlert = document.getElementById('errorAlert');
-        const teleponError = document.getElementById('teleponError');
         const teleponInput = document.getElementById('telepon');
         const autoRedirectInfo = document.getElementById('autoRedirectInfo');
         const headerLoginBtn = document.getElementById('headerLoginBtn');
         const headerHomeBtn = document.getElementById('headerHomeBtn');
         const formLoginBtn = document.getElementById('formLoginBtn');
+        
+        // DOM Elements untuk Modal
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modal = document.getElementById('modal');
+        const modalIcon = document.getElementById('modalIcon');
+        const modalTitleText = document.getElementById('modalTitleText');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+        const loadingModal = document.getElementById('loadingModal');
+        const loadingText = document.getElementById('loadingText');
+
+        // Fungsi untuk menampilkan modal popup
+        function showPopup(title, message, type = 'info', options = {}) {
+            // Set judul dan pesan
+            modalTitleText.textContent = title;
+            modalMessage.textContent = message;
+            
+            // Set tipe modal (success, error, warning, info)
+            modal.className = 'modal ' + type;
+            
+            // Set icon sesuai tipe
+            modalIcon.className = 'modal-icon ' + type;
+            modalIcon.textContent = type === 'success' ? '✓' : 
+                                   type === 'error' ? '✗' : 
+                                   type === 'warning' ? '!' : 'i';
+            
+            // Set text button konfirmasi
+            modalConfirmBtn.textContent = options.confirmText || 'OK';
+            
+            // Tampilkan atau sembunyikan button batal
+            if (options.showCancel) {
+                modalCancelBtn.style.display = 'inline-block';
+                modalCancelBtn.textContent = options.cancelText || 'Batal';
+            } else {
+                modalCancelBtn.style.display = 'none';
+            }
+            
+            // Setup event listeners untuk button
+            modalConfirmBtn.onclick = function() {
+                hidePopup();
+                if (options.onConfirm) {
+                    options.onConfirm();
+                }
+            };
+            
+            modalCancelBtn.onclick = function() {
+                hidePopup();
+                if (options.onCancel) {
+                    options.onCancel();
+                }
+            };
+            
+            modalCloseBtn.onclick = function() {
+                hidePopup();
+                if (options.onCancel) {
+                    options.onCancel();
+                }
+            };
+            
+            // Tampilkan modal
+            modalOverlay.classList.add('active');
+            
+            // Auto hide jika diatur
+            if (options.autoHide) {
+                modal.classList.add('auto-hide');
+                setTimeout(() => {
+                    hidePopup();
+                    if (options.onAutoHide) {
+                        options.onAutoHide();
+                    }
+                }, options.autoHideDelay || 3000);
+            }
+        }
+
+        // Fungsi untuk menyembunyikan modal
+        function hidePopup() {
+            modalOverlay.classList.remove('active');
+            modal.classList.remove('auto-hide');
+        }
+
+        // Fungsi untuk menampilkan modal loading
+        function showLoading(message = 'Sedang memproses...') {
+            loadingText.textContent = message;
+            loadingModal.classList.add('active');
+        }
+
+        // Fungsi untuk menyembunyikan modal loading
+        function hideLoading() {
+            loadingModal.classList.remove('active');
+        }
+
+        // Fungsi untuk menampilkan pesan error
+        function showErrorMessage(message) {
+            showPopup('Error', message, 'error');
+        }
+
+        // Fungsi untuk menampilkan pesan sukses
+        function showSuccessMessage(message, autoHide = false) {
+            showPopup('Sukses', message, 'success', {
+                autoHide: autoHide,
+                autoHideDelay: 2000
+            });
+        }
+
+        // Fungsi untuk menampilkan pesan informasi
+        function showInfoMessage(message, autoHide = false) {
+            showPopup('Informasi', message, 'info', {
+                autoHide: autoHide,
+                autoHideDelay: 3000
+            });
+        }
 
         // Fungsi untuk cek apakah user sudah login
         function checkIfUserIsLoggedIn() {
@@ -627,13 +947,14 @@
                         }
                     }
                     
-                    // Update tombol header
+                    // Update tombol header dan form
                     headerLoginBtn.style.display = 'none';
                     headerHomeBtn.style.display = 'inline-block';
-                    
-                    // Update tombol form
                     formLoginBtn.textContent = 'Lanjutkan ke Halaman Utama';
                     formLoginBtn.href = 'jenis_kenderaan.html';
+                    
+                    // Tampilkan popup info
+                    showInfoMessage('Anda sudah login sebelumnya. Mengarahkan ke halaman utama...', true);
                     
                     console.log('User sudah login, mengarahkan ke jenis_kenderaan.html...');
                     
@@ -699,32 +1020,32 @@
                 
                 // Validasi format
                 if (!validatePhoneFormat(formattedPhone)) {
-                    teleponError.textContent = 'Format nomor telepon tidak valid. Gunakan format: +6281234567890';
-                    teleponError.style.display = 'block';
+                    showErrorMessage('Format nomor telepon tidak valid. Gunakan format: +6281234567890');
                     this.style.borderColor = 'var(--danger)';
                     return;
                 }
                 
                 // Cek apakah nomor sudah terdaftar
-                const exists = await checkPhoneNumberExists(formattedPhone);
-                
-                if (exists) {
-                    teleponError.textContent = 'Nomor telepon ini sudah terdaftar. Gunakan nomor lain.';
-                    teleponError.style.display = 'block';
-                    this.style.borderColor = 'var(--danger)';
-                } else {
-                    teleponError.style.display = 'none';
-                    this.style.borderColor = 'var(--secondary)';
-                    // Update value dengan format yang benar
-                    this.value = formattedPhone;
+                try {
+                    const exists = await checkPhoneNumberExists(formattedPhone);
+                    
+                    if (exists) {
+                        showErrorMessage('Nomor telepon ini sudah terdaftar. Gunakan nomor lain.');
+                        this.style.borderColor = 'var(--danger)';
+                    } else {
+                        this.style.borderColor = 'var(--secondary)';
+                        // Update value dengan format yang benar
+                        this.value = formattedPhone;
+                    }
+                } catch (error) {
+                    console.error('Error checking phone number:', error);
                 }
             }
         });
         
         // Event listener untuk input real-time validation
         teleponInput.addEventListener('input', function() {
-            // Sembunyikan error saat user mulai mengetik ulang
-            teleponError.style.display = 'none';
+            // Reset border color saat user mulai mengetik ulang
             this.style.borderColor = '#ddd';
         });
         
@@ -775,26 +1096,13 @@
             document.getElementById('promoExpiry').textContent = expiryDate;
             document.getElementById('promoCodeDisplay').style.display = 'block';
             document.getElementById('promoTimer').style.display = 'none';
-            
-            // Update alert success untuk include promo info
-            successAlert.innerHTML = `
-                ✅ Pendaftaran berhasil! Data telah disimpan dan dikirim ke aplikasi JeGo.
-                <br><br>
-                🎁 <strong>BONUS: Kode Promo ${promoCode} telah aktif!</strong>
-                <br>
-                Dapatkan diskon 20% untuk order pertama Anda (hanya 1x penggunaan).
-                <br><br>
-                📣 <strong>Kode Referral: ${referralCode}</strong>
-                <br>
-                Ajak teman daftar dengan kode ini untuk dapat bonus tambahan!
-            `;
         }
         
         // Fungsi untuk copy promo code
         function copyPromoCode() {
             const promoCode = document.getElementById('promoCodeText').textContent;
             navigator.clipboard.writeText(promoCode).then(() => {
-                alert('Kode promo berhasil disalin: ' + promoCode);
+                showSuccessMessage('Kode promo berhasil disalin: ' + promoCode, true);
             }).catch(() => {
                 // Fallback untuk browser lama
                 const textArea = document.createElement('textarea');
@@ -803,7 +1111,7 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert('Kode promo berhasil disalin: ' + promoCode);
+                showSuccessMessage('Kode promo berhasil disalin: ' + promoCode, true);
             });
         }
         
@@ -811,7 +1119,7 @@
         function copyReferralCode() {
             const referralCode = document.getElementById('referralCodeText').textContent;
             navigator.clipboard.writeText(referralCode).then(() => {
-                alert('Kode referral berhasil disalin: ' + referralCode);
+                showSuccessMessage('Kode referral berhasil disalin: ' + referralCode, true);
             }).catch(() => {
                 // Fallback untuk browser lama
                 const textArea = document.createElement('textarea');
@@ -820,7 +1128,7 @@
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert('Kode referral berhasil disalin: ' + referralCode);
+                showSuccessMessage('Kode referral berhasil disalin: ' + referralCode, true);
             });
         }
         
@@ -835,11 +1143,20 @@
                     title: 'Kode Promo JeGo',
                     text: shareText,
                     url: window.location.href
+                }).then(() => {
+                    showSuccessMessage('Berhasil membagikan kode promo!', true);
+                }).catch(() => {
+                    // Fallback untuk copy ke clipboard
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        showSuccessMessage('Teks promo berhasil disalin! Bagikan ke teman-teman Anda.', true);
+                    });
                 });
             } else {
                 // Fallback untuk copy ke clipboard
                 navigator.clipboard.writeText(shareText).then(() => {
-                    alert('Teks promo berhasil disalin! Bagikan ke teman-teman Anda.');
+                    showSuccessMessage('Teks promo berhasil disalin! Bagikan ke teman-teman Anda.', true);
+                }).catch(() => {
+                    showErrorMessage('Gagal menyalin teks promo. Silakan coba lagi.');
                 });
             }
         }
@@ -859,29 +1176,38 @@
             const alamat = document.getElementById('alamat').value.trim();
             const jenisKelamin = document.getElementById('jenisKelamin').value;
             
-            // Format nomor telepon
-            telepon = formatPhoneNumber(telepon);
-            
-            // Validasi format nomor telepon
-            if (!validatePhoneFormat(telepon)) {
-                teleponError.textContent = 'Format nomor telepon tidak valid. Gunakan format: +6281234567890';
-                teleponError.style.display = 'block';
-                teleponInput.style.borderColor = 'var(--danger)';
-                
+            // Validasi input dasar
+            if (!nama || !email || !telepon || !alamat || !jenisKelamin) {
+                showErrorMessage('Harap isi semua field yang wajib diisi.');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Daftar Sekarang';
                 return;
             }
             
+            // Format nomor telepon
+            telepon = formatPhoneNumber(telepon);
+            
+            // Validasi format nomor telepon
+            if (!validatePhoneFormat(telepon)) {
+                showErrorMessage('Format nomor telepon tidak valid. Gunakan format: +6281234567890');
+                teleponInput.style.borderColor = 'var(--danger)';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Daftar Sekarang';
+                return;
+            }
+            
+            // Tampilkan loading
+            showLoading('Memeriksa nomor telepon...');
+            
             // Cek apakah nomor telepon sudah terdaftar
-            submitBtn.textContent = 'Memeriksa nomor telepon...';
             const phoneExists = await checkPhoneNumberExists(telepon);
             
+            // Sembunyikan loading
+            hideLoading();
+            
             if (phoneExists) {
-                teleponError.textContent = 'Nomor telepon ini sudah terdaftar. Gunakan nomor lain.';
-                teleponError.style.display = 'block';
+                showErrorMessage('Nomor telepon ini sudah terdaftar. Gunakan nomor lain.');
                 teleponInput.style.borderColor = 'var(--danger)';
-                
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Daftar Sekarang';
                 return;
@@ -924,6 +1250,9 @@
         function processRegistration(userData) {
             submitBtn.textContent = 'Mendaftarkan...';
             
+            // Tampilkan loading
+            showLoading('Menyimpan data ke server...');
+            
             // Simpan ke Firebase
             const newUserRef = usersRef.push();
             newUserRef.set(userData)
@@ -939,8 +1268,20 @@
                     // TAMPILKAN PROMO CODE DAN REFERRAL
                     showPromoCode(userData);
                     
-                    // Tampilkan pesan sukses
-                    showAlert(successAlert);
+                    // Sembunyikan loading
+                    hideLoading();
+                    
+                    // Tampilkan pesan sukses dengan modal
+                    showPopup('🎉 Pendaftaran Berhasil!', 
+                        `✅ Data telah disimpan dan dikirim ke aplikasi JeGo.<br><br>
+                         🎁 <strong>BONUS: Kode Promo ${userData.promo_code} telah aktif!</strong><br>
+                         Dapatkan diskon 20% untuk order pertama Anda (hanya 1x penggunaan).<br><br>
+                         📣 <strong>Kode Referral: ${userData.referral_code}</strong><br>
+                         Ajak teman daftar dengan kode ini untuk dapat bonus tambahan!`, 
+                        'success', {
+                            confirmText: 'Lanjutkan',
+                            autoHide: false
+                        });
                     
                     // Reset form
                     registrationForm.reset();
@@ -967,14 +1308,17 @@
                     formLoginBtn.textContent = 'Lanjutkan ke Halaman Utama';
                     formLoginBtn.href = 'jenis_kenderaan.html';
                     
-                    // Redirect ke halaman utama setelah 5 detik
-                    setTimeout(() => {
+                    // Update modal confirm button untuk redirect ke halaman utama
+                    modalConfirmBtn.onclick = function() {
+                        hidePopup();
                         window.location.href = 'jenis_kenderaan.html';
-                    }, 5000);
+                    };
+                    
                 })
                 .catch((error) => {
                     console.error('Error saving data to Firebase: ', error);
-                    showAlert(errorAlert);
+                    hideLoading();
+                    showErrorMessage('Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
                 })
                 .finally(() => {
                     // Enable tombol submit
@@ -1041,56 +1385,33 @@
                     console.error('Error mengirim data via webkit.messageHandlers:', error);
                 }
             }
-            // METODE 4: Fallback - coba semua metode yang mungkin
             else {
-                console.warn('Tidak ada metode AppInventor yang tersedia, mencoba semua metode...');
+                console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+                console.log('Data yang gagal dikirim:', kodularData);
                 
-                // Coba metode yang mungkin
-                const methods = [
-                    { name: 'AppInventor.setWebViewString', check: () => window.AppInventor && window.AppInventor.setWebViewString },
-                    { name: 'android.receiveData', check: () => window.android && window.android.receiveData },
-                    { name: 'webkit.messageHandlers', check: () => window.webkit && window.webkit.messageHandlers }
-                ];
-                
-                let sent = false;
-                methods.forEach(method => {
-                    if (method.check() && !sent) {
-                        try {
-                            if (method.name === 'AppInventor.setWebViewString') {
-                                window.AppInventor.setWebViewString(JSON.stringify(kodularData));
-                            } else if (method.name === 'android.receiveData') {
-                                window.android.receiveData(JSON.stringify(kodularData));
-                            } else if (method.name === 'webkit.messageHandlers') {
-                                window.webkit.messageHandlers.observe.postMessage(kodularData);
-                            }
-                            console.log(`✅ Data dikirim via ${method.name}`);
-                            sent = true;
-                        } catch (error) {
-                            console.error(`Error dengan ${method.name}:`, error);
-                        }
-                    }
-                });
-                
-                if (!sent) {
-                    console.error('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
-                    console.log('Data yang gagal dikirim:', kodularData);
-                    
-                    // Tampilkan alert bahwa data tidak bisa dikirim ke Kodular
-                    alert('Pendaftaran berhasil di sistem, tetapi tidak dapat mengirim data ke aplikasi. Silakan buka aplikasi JeGo untuk melanjutkan.');
-                }
+                // Tampilkan modal informasi bahwa data tidak bisa dikirim ke Kodular
+                setTimeout(() => {
+                    showInfoMessage('Pendaftaran berhasil di sistem, tetapi tidak dapat mengirim data ke aplikasi. Silakan buka aplikasi JeGo untuk melanjutkan.');
+                }, 1000);
             }
-        }
-        
-        // Fungsi untuk menampilkan alert
-        function showAlert(alertElement) {
-            alertElement.style.display = 'block';
-            setTimeout(() => {
-                alertElement.style.display = 'none';
-            }, 5000);
         }
         
         // Muat data dari localStorage saat halaman dimuat (jika diperlukan)
         document.addEventListener('DOMContentLoaded', function() {
+            // Setup event listeners untuk modal
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    hidePopup();
+                }
+            });
+            
+            // Close modal dengan tombol ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                    hidePopup();
+                }
+            });
+            
             // Cek apakah user sudah login
             checkIfUserIsLoggedIn();
             
