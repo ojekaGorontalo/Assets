@@ -258,6 +258,13 @@
             display: none;
         }
 
+        .validation-success {
+            color: var(--success);
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
         /* Tambahan untuk auto-redirect info */
         .auto-redirect-info {
             text-align: center;
@@ -606,6 +613,30 @@
                 max-width: 95%;
             }
         }
+
+        /* Styles for referral validation */
+        .referral-owner-info {
+            background-color: rgba(40, 167, 69, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 5px;
+            font-size: 0.85rem;
+            border-left: 3px solid var(--success);
+            display: none;
+        }
+
+        .referral-field {
+            position: relative;
+        }
+
+        .referral-info-icon {
+            position: absolute;
+            right: 10px;
+            top: 40px;
+            color: var(--info);
+            cursor: pointer;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -690,6 +721,19 @@
                             <option value="Laki-laki">Laki-laki</option>
                             <option value="Perempuan">Perempuan</option>
                         </select>
+                    </div>
+                    
+                    <!-- Field Kode Referensi -->
+                    <div class="form-group referral-field">
+                        <label for="referralInput">Kode Referensi (Opsional)</label>
+                        <input type="text" id="referralInput" name="referralInput" placeholder="Masukkan kode referral teman Anda">
+                        <span class="referral-info-icon" title="Dapatkan bonus dengan menggunakan kode referral teman!">ℹ️</span>
+                        <div class="phone-format">
+                            Dapatkan bonus dengan menggunakan kode referral teman
+                        </div>
+                        <div id="referralValidation" class="validation-error" style="display: none;"></div>
+                        <div id="referralSuccess" class="validation-success" style="display: none;"></div>
+                        <div id="referralOwnerInfo" class="referral-owner-info" style="display: none;"></div>
                     </div>
                     
                     <!-- Section Promo -->
@@ -806,6 +850,7 @@
         const registrationForm = document.getElementById('registrationForm');
         const submitBtn = document.getElementById('submitBtn');
         const teleponInput = document.getElementById('telepon');
+        const referralInput = document.getElementById('referralInput');
         const autoRedirectInfo = document.getElementById('autoRedirectInfo');
         const headerLoginBtn = document.getElementById('headerLoginBtn');
         const headerHomeBtn = document.getElementById('headerHomeBtn');
@@ -823,11 +868,14 @@
         const loadingModal = document.getElementById('loadingModal');
         const loadingText = document.getElementById('loadingText');
 
+        // Variabel untuk menyimpan informasi referral
+        let referralInfo = null;
+
         // Fungsi untuk menampilkan modal popup
         function showPopup(title, message, type = 'info', options = {}) {
             // Set judul dan pesan
             modalTitleText.textContent = title;
-            modalMessage.textContent = message;
+            modalMessage.innerHTML = message;
             
             // Set tipe modal (success, error, warning, info)
             modal.className = 'modal ' + type;
@@ -1010,6 +1058,152 @@
                 return false;
             }
         }
+
+        // Fungsi untuk memeriksa kode referral
+        async function checkReferralCode(referralCode) {
+            try {
+                const snapshot = await usersRef.orderByChild('referral_code').equalTo(referralCode).once('value');
+                
+                if (snapshot.exists()) {
+                    // Ambil data user yang memiliki kode referral ini
+                    let referralOwner = null;
+                    let referralOwnerKey = null;
+                    
+                    snapshot.forEach((childSnapshot) => {
+                        referralOwner = childSnapshot.val();
+                        referralOwnerKey = childSnapshot.key;
+                    });
+                    
+                    return {
+                        exists: true,
+                        data: referralOwner,
+                        key: referralOwnerKey
+                    };
+                } else {
+                    return {
+                        exists: false,
+                        data: null,
+                        key: null
+                    };
+                }
+            } catch (error) {
+                console.error('Error checking referral code:', error);
+                return {
+                    exists: false,
+                    data: null,
+                    key: null,
+                    error: error.message
+                };
+            }
+        }
+
+        // Fungsi untuk mengupdate referral owner
+        async function updateReferralOwner(referralOwnerKey, referralData, newUserData) {
+            try {
+                const ownerRef = database.ref('users/' + referralOwnerKey);
+                
+                // Update referral count
+                const currentCount = referralData.referral_count || 0;
+                const newCount = currentCount + 1;
+                
+                // Generate bonus promo code untuk referral owner jika mencapai kelipatan 3
+                const bonusThreshold = 3; // Setiap 3 referral dapat bonus
+                let bonusUpdates = {};
+                
+                // Cek apakah sudah mencapai kelipatan 3
+                if (newCount % bonusThreshold === 0) {
+                    const bonusPromoCode = generateBonusPromoCode(referralData.nama, referralData.telepon);
+                    
+                    bonusUpdates = {
+                        bonus_promo_code: bonusPromoCode,
+                        bonus_promo_expiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        bonus_promo_used: false,
+                        bonus_promo_discount: 15, // Diskon 15% untuk bonus
+                        last_bonus_date: new Date().toISOString()
+                    };
+                    
+                    // Tambahkan bonus ke data referral owner di Firebase
+                    await ownerRef.update({
+                        bonus_promo_codes: firebase.database.ServerValue.increment(1)
+                    });
+                }
+                
+                // Update data di Firebase
+                const updates = {
+                    referral_count: newCount,
+                    last_referral_date: new Date().toISOString(),
+                    referral_history: firebase.database.ServerValue.increment ? 
+                        (referralData.referral_history || 0) + 1 : 1
+                };
+                
+                // Gabungkan dengan bonus updates jika ada
+                Object.assign(updates, bonusUpdates);
+                
+                // Tambahkan detail referral baru ke array referrals jika ada
+                try {
+                    const userRef = database.ref('users/' + referralOwnerKey);
+                    const snapshot = await userRef.once('value');
+                    const currentUser = snapshot.val();
+                    
+                    // Buat array referrals jika belum ada
+                    if (!currentUser.referrals) {
+                        currentUser.referrals = [];
+                    }
+                    
+                    // Tambahkan referral baru
+                    currentUser.referrals.push({
+                        referred_user: newUserData.nama,
+                        referred_phone: newUserData.telepon,
+                        referral_date: new Date().toISOString(),
+                        bonus_earned: (newCount % bonusThreshold === 0) ? 15 : 0 // Diskon 15% jika dapat bonus
+                    });
+                    
+                    // Update referrals array
+                    updates.referrals = currentUser.referrals;
+                } catch (err) {
+                    console.error('Error updating referrals array:', err);
+                }
+                
+                await ownerRef.update(updates);
+                
+                // Simpan juga di localStorage jika user yang memberikan referral sedang login
+                const loggedInUser = JSON.parse(localStorage.getItem('jego_logged_in_user') || '{}');
+                if (loggedInUser.telepon === referralData.telepon) {
+                    loggedInUser.referral_count = newCount;
+                    if (bonusUpdates.bonus_promo_code) {
+                        loggedInUser.bonus_promo_code = bonusUpdates.bonus_promo_code;
+                    }
+                    localStorage.setItem('jego_logged_in_user', JSON.stringify(loggedInUser));
+                }
+                
+                return {
+                    success: true,
+                    referral_count: newCount,
+                    got_bonus: !!bonusUpdates.bonus_promo_code,
+                    bonus_code: bonusUpdates.bonus_promo_code,
+                    bonus_threshold: bonusThreshold,
+                    next_bonus_at: bonusThreshold - (newCount % bonusThreshold)
+                };
+                
+            } catch (error) {
+                console.error('Error updating referral owner:', error);
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        // Fungsi untuk generate bonus promo code
+        function generateBonusPromoCode(userName, phone) {
+            const prefix = "BONUS";
+            const namePart = userName.substring(0, 2).toUpperCase();
+            const phonePart = phone.slice(-3);
+            const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const datePart = new Date().getDate().toString().padStart(2, '0');
+            
+            return `${prefix}${datePart}${namePart}${phonePart}${randomPart}`;
+        }
         
         // Event listener untuk input nomor telepon
         teleponInput.addEventListener('blur', async function() {
@@ -1047,6 +1241,93 @@
         teleponInput.addEventListener('input', function() {
             // Reset border color saat user mulai mengetik ulang
             this.style.borderColor = '#ddd';
+        });
+
+        // Event listener untuk validasi real-time kode referral
+        referralInput.addEventListener('blur', async function() {
+            const referralCode = this.value.trim().toUpperCase();
+            const validationDiv = document.getElementById('referralValidation');
+            const successDiv = document.getElementById('referralSuccess');
+            const ownerInfoDiv = document.getElementById('referralOwnerInfo');
+            
+            if (referralCode) {
+                showLoading('Memeriksa kode referral...');
+                
+                const referralCheck = await checkReferralCode(referralCode);
+                
+                hideLoading();
+                
+                if (referralCheck.exists) {
+                    // Cek apakah user mencoba menggunakan kode referral sendiri
+                    const phoneValue = document.getElementById('telepon').value.trim();
+                    if (phoneValue && formatPhoneNumber(phoneValue) === referralCheck.data.telepon) {
+                        validationDiv.textContent = '❌ Anda tidak dapat menggunakan kode referral sendiri';
+                        validationDiv.style.color = 'var(--danger)';
+                        validationDiv.style.display = 'block';
+                        successDiv.style.display = 'none';
+                        ownerInfoDiv.style.display = 'none';
+                        this.style.borderColor = 'var(--danger)';
+                        
+                        // Reset referral info
+                        referralInfo = null;
+                        return;
+                    }
+                    
+                    successDiv.textContent = '✅ Kode referral valid';
+                    successDiv.style.color = 'var(--success)';
+                    successDiv.style.display = 'block';
+                    validationDiv.style.display = 'none';
+                    
+                    // Tampilkan info pemilik kode referral
+                    ownerInfoDiv.innerHTML = `
+                        <strong>Kode dari:</strong> ${referralCheck.data.nama}<br>
+                        <strong>Bonus:</strong> Anda dan pemilik kode akan mendapatkan benefit khusus
+                    `;
+                    ownerInfoDiv.style.display = 'block';
+                    
+                    this.style.borderColor = 'var(--success)';
+                    
+                    // Simpan informasi referral
+                    referralInfo = {
+                        code: referralCode,
+                        owner_key: referralCheck.key,
+                        owner_data: referralCheck.data
+                    };
+                    
+                } else {
+                    validationDiv.textContent = '❌ Kode referral tidak ditemukan';
+                    validationDiv.style.color = 'var(--danger)';
+                    validationDiv.style.display = 'block';
+                    successDiv.style.display = 'none';
+                    ownerInfoDiv.style.display = 'none';
+                    this.style.borderColor = 'var(--danger)';
+                    
+                    // Reset referral info
+                    referralInfo = null;
+                }
+            } else {
+                validationDiv.style.display = 'none';
+                successDiv.style.display = 'none';
+                ownerInfoDiv.style.display = 'none';
+                this.style.borderColor = '#ddd';
+                
+                // Reset referral info
+                referralInfo = null;
+            }
+        });
+
+        // Reset validation saat user mulai mengetik
+        referralInput.addEventListener('input', function() {
+            const validationDiv = document.getElementById('referralValidation');
+            const successDiv = document.getElementById('referralSuccess');
+            const ownerInfoDiv = document.getElementById('referralOwnerInfo');
+            validationDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            ownerInfoDiv.style.display = 'none';
+            this.style.borderColor = '#ddd';
+            
+            // Reset referral info
+            referralInfo = null;
         });
         
         // Fungsi untuk generate kode promo unik
@@ -1175,6 +1456,7 @@
             let telepon = document.getElementById('telepon').value.trim();
             const alamat = document.getElementById('alamat').value.trim();
             const jenisKelamin = document.getElementById('jenisKelamin').value;
+            const referralCodeInput = document.getElementById('referralInput').value.trim().toUpperCase();
             
             // Validasi input dasar
             if (!nama || !email || !telepon || !alamat || !jenisKelamin) {
@@ -1196,7 +1478,42 @@
                 return;
             }
             
-            // Tampilkan loading
+            // Jika ada input referral, validasi kodenya
+            if (referralCodeInput) {
+                showLoading('Memvalidasi kode referral...');
+                
+                const referralCheck = await checkReferralCode(referralCodeInput);
+                
+                if (!referralCheck.exists) {
+                    hideLoading();
+                    showErrorMessage('Kode referral tidak valid. Silakan periksa kembali atau kosongkan field ini.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Daftar Sekarang';
+                    return;
+                }
+                
+                // Cegah penggunaan referral code milik sendiri
+                if (telepon === referralCheck.data.telepon) {
+                    hideLoading();
+                    showErrorMessage('Anda tidak dapat menggunakan kode referral sendiri.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Daftar Sekarang';
+                    return;
+                }
+                
+                // Simpan informasi referral owner
+                referralInfo = {
+                    code: referralCodeInput,
+                    owner_key: referralCheck.key,
+                    owner_data: referralCheck.data
+                };
+                
+                hideLoading();
+            } else {
+                referralInfo = null;
+            }
+            
+            // Tampilkan loading untuk pengecekan nomor telepon
             showLoading('Memeriksa nomor telepon...');
             
             // Cek apakah nomor telepon sudah terdaftar
@@ -1213,13 +1530,13 @@
                 return;
             }
             
-            // Generate promo code dan referral code SEBELUM simpan ke Firebase
+            // Generate promo code dan referral code
             const promoCode = generatePromoCode(nama, telepon);
             const referralCode = generateReferralCode(nama, telepon);
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + 30);
             
-            // Jika semua validasi passed, lanjutkan proses pendaftaran
+            // Data user
             const formData = {
                 nama: nama,
                 email: email,
@@ -1228,7 +1545,7 @@
                 jenisKelamin: jenisKelamin,
                 tanggalDaftar: new Date().toISOString(),
                 status: "success",
-                // UBAH DATA PROMO: diskon 20% untuk 1x penggunaan
+                // Data promo
                 promo_code: promoCode,
                 promo_discount: 20,
                 promo_max_usage: 1,
@@ -1236,18 +1553,22 @@
                 promo_expiry: expiryDate.toISOString(),
                 promo_status: "active",
                 promo_created: new Date().toISOString(),
-                // TAMBAH DATA REFERRAL
+                // Data referral
                 referral_code: referralCode,
                 referral_count: 0,
-                referral_bonus: 1
+                referral_bonus: 1,
+                // Jika menggunakan kode referral, simpan informasi nya
+                used_referral_code: referralInfo ? referralInfo.code : null,
+                referred_by: referralInfo ? referralInfo.owner_key : null,
+                referred_by_name: referralInfo ? referralInfo.owner_data.nama : null
             };
             
-            // Proses pendaftaran
-            processRegistration(formData);
+            // Proses pendaftaran dengan referral info
+            processRegistration(formData, referralInfo);
         });
         
-        // Fungsi untuk memproses pendaftaran
-        function processRegistration(userData) {
+        // Update fungsi processRegistration untuk menerima parameter referralInfo
+        function processRegistration(userData, referralInfo) {
             submitBtn.textContent = 'Mendaftarkan...';
             
             // Tampilkan loading
@@ -1255,15 +1576,26 @@
             
             // Simpan ke Firebase
             const newUserRef = usersRef.push();
-            newUserRef.set(userData)
-                .then(() => {
+            
+            // Promise untuk menyimpan data user
+            const saveUserPromise = newUserRef.set(userData);
+            
+            // Jika ada referral info, update referral owner
+            let updateReferralPromise = Promise.resolve(null);
+            if (referralInfo) {
+                updateReferralPromise = updateReferralOwner(referralInfo.owner_key, referralInfo.owner_data, userData);
+            }
+            
+            // Jalankan semua promise secara bersamaan
+            Promise.all([saveUserPromise, updateReferralPromise])
+                .then(async ([userResult, referralResult]) => {
                     console.log('Data berhasil disimpan ke Firebase dengan ID:', newUserRef.key);
                     
-                    // Simpan ke localStorage juga
+                    // Simpan ke localStorage
                     saveToLocalStorage(userData, newUserRef.key);
                     
-                    // Kirim data ke Kodular melalui WebView menggunakan AppInventor.setWebViewString
-                    sendToKodular(userData, newUserRef.key);
+                    // Kirim data ke Kodular
+                    sendToKodular(userData, newUserRef.key, referralInfo);
                     
                     // TAMPILKAN PROMO CODE DAN REFERRAL
                     showPromoCode(userData);
@@ -1271,15 +1603,34 @@
                     // Sembunyikan loading
                     hideLoading();
                     
+                    // Buat pesan sukses dengan informasi referral jika ada
+                    let successMessage = `✅ <strong>Pendaftaran Berhasil!</strong><br><br>
+                                         🎁 <strong>Kode Promo Anda: ${userData.promo_code}</strong><br>
+                                         Dapatkan diskon 20% untuk order pertama Anda (hanya 1x penggunaan).<br><br>
+                                         📣 <strong>Kode Referral Anda: ${userData.referral_code}</strong><br>
+                                         Ajak teman daftar dengan kode ini untuk dapat bonus tambahan!`;
+                    
+                    // Tambahkan informasi jika menggunakan referral
+                    if (referralInfo && referralResult && referralResult.success) {
+                        successMessage += `<br><br>✨ <strong>Anda menggunakan kode referral ${referralInfo.code}</strong><br>
+                                          Terima kasih telah bergabung melalui rekomendasi <strong>${referralInfo.owner_data.nama}</strong>!`;
+                        
+                        // Jika referral owner mendapatkan bonus, tampilkan info
+                        if (referralResult.got_bonus) {
+                            successMessage += `<br>🎉 <strong>Pemilik kode referral mendapatkan bonus kode promo baru!</strong>`;
+                        }
+                        
+                        successMessage += `<br><br>💡 <strong>Sistem Referral:</strong><br>
+                                          • Setiap 3 referral berhasil = 1 bonus kode promo<br>
+                                          • Pemilik kode referral saat ini: ${referralResult.referral_count} referral<br>
+                                          • Menuju bonus berikutnya: ${referralResult.next_bonus_at} referral lagi`;
+                    }
+                    
                     // Tampilkan pesan sukses dengan modal
-                    showPopup('🎉 Pendaftaran Berhasil!', 
-                        `✅ Data telah disimpan dan dikirim ke aplikasi JeGo.<br><br>
-                         🎁 <strong>BONUS: Kode Promo ${userData.promo_code} telah aktif!</strong><br>
-                         Dapatkan diskon 20% untuk order pertama Anda (hanya 1x penggunaan).<br><br>
-                         📣 <strong>Kode Referral: ${userData.referral_code}</strong><br>
-                         Ajak teman daftar dengan kode ini untuk dapat bonus tambahan!`, 
+                    showPopup('🎉 Selamat!', 
+                        successMessage, 
                         'success', {
-                            confirmText: 'Lanjutkan',
+                            confirmText: 'Lanjutkan ke Aplikasi',
                             autoHide: false
                         });
                     
@@ -1291,7 +1642,8 @@
                         ...userData,
                         firebase_key: newUserRef.key,
                         last_login: new Date().toISOString(),
-                        has_promo: true
+                        has_promo: true,
+                        referral_used: referralInfo ? referralInfo.code : null
                     };
                     
                     localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
@@ -1299,7 +1651,8 @@
                         code: userData.promo_code,
                         discount: userData.promo_discount,
                         max_usage: userData.promo_max_usage,
-                        expiry: userData.promo_expiry
+                        expiry: userData.promo_expiry,
+                        used_referral: referralInfo ? referralInfo.code : null
                     }));
                     
                     // Update tombol header dan form
@@ -1336,7 +1689,7 @@
         }
         
         // FUNGSI UTAMA UNTUK MENGIRIM DATA KE KODULAR
-        function sendToKodular(userData, firebaseKey) {
+        function sendToKodular(userData, firebaseKey, referralInfo) {
             // Data yang akan dikirim ke Kodular
             const kodularData = {
                 action: 'registration',
@@ -1348,12 +1701,17 @@
                 tanggal_daftar: userData.tanggalDaftar,
                 status: userData.status,
                 firebase_key: firebaseKey,
-                // KIRIM JUGA DATA PROMO DAN REFERRAL
+                // Data promo
                 promo_code: userData.promo_code,
                 promo_discount: userData.promo_discount,
                 promo_max_usage: userData.promo_max_usage,
                 promo_expiry: userData.promo_expiry,
-                referral_code: userData.referral_code
+                // Data referral
+                referral_code: userData.referral_code,
+                // Data referral yang digunakan
+                used_referral_code: userData.used_referral_code || null,
+                referred_by: userData.referred_by || null,
+                referred_by_name: userData.referred_by_name || null
             };
             
             console.log('Data yang akan dikirim ke Kodular:', kodularData);
@@ -1431,6 +1789,14 @@
             
             // Set placeholder untuk input telepon
             teleponInput.placeholder = '+6281234567890';
+            
+            // Tambahkan tooltip untuk info icon referral
+            const infoIcon = document.querySelector('.referral-info-icon');
+            if (infoIcon) {
+                infoIcon.addEventListener('click', function() {
+                    showInfoMessage('Sistem Referral JeGo:<br><br>1. Gunakan kode referral teman untuk mendaftar<br>2. Anda dapat kode promo diskon 20%<br>3. Pemilik kode referral dapat bonus:<br>   • Setiap 3 referral = 1 kode promo bonus<br>   • Kode bonus = diskon 15%<br>4. Anda juga dapat kode referral untuk dibagikan');
+                });
+            }
         });
     </script>
 </body>
