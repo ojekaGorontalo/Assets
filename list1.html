@@ -112,7 +112,7 @@
       background: rgba(255,255,255,0.3);
     }
 
-    /* Tombol Menu Baru */
+    /* Tombol Menu Baru - DIPINDAH KE KIRI FOTO PROFIL */
     .menu-btn {
       background: rgba(255,255,255,0.2);
       color: white;
@@ -1181,10 +1181,14 @@
       transform: translateX(26px);
     }
 
-    /* Input Group */
+    /* Input Group - DIPERBESAR UNTUK FILTER TUJUAN */
     .input-group {
       position: relative;
-      width: 120px;
+      width: 150px; /* DIPERBESAR DARI 120px */
+    }
+
+    .input-group-large {
+      width: 220px !important; /* INPUT GROUP LEBIH BESAR UNTUK FILTER TUJUAN */
     }
 
     .input-group input {
@@ -1335,6 +1339,15 @@
       .menu-item {
         padding: 10px 0;
       }
+      
+      /* Input Group Responsive */
+      .input-group {
+        width: 130px;
+      }
+      
+      .input-group-large {
+        width: 180px !important;
+      }
     }
 
     @media (max-width: 576px) {
@@ -1418,6 +1431,15 @@
       .balance-info {
         display: none;
       }
+      
+      /* Input Group Responsive */
+      .input-group {
+        width: 110px;
+      }
+      
+      .input-group-large {
+        width: 150px !important;
+      }
     }
 
     /* Update untuk sembunyikan teks GPS */
@@ -1431,6 +1453,12 @@
   <div class="header">
     <div class="logo-container">
       <img id="driverPhoto" class="driver-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Driver Photo">
+      <!-- TOMBOL MENU DIPINDAH KE SINI (SEBELAH KIRI FOTO PROFIL) -->
+      <button class="menu-btn" id="menuBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+      </button>
       <div class="gps-status" id="gpsStatus">
         <span class="gps-dot gps-inactive" id="gpsDot"></span>
         <span id="gpsText" style="display: none;">Mendapatkan lokasi...</span>
@@ -1439,12 +1467,6 @@
     <div class="header-controls">
       <button class="location-toggle-btn" id="locationToggleBtn">
         <span>📍</span> OFF
-      </button>
-      
-      <button class="menu-btn" id="menuBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 12h18M3 6h18M3 18h18"/>
-        </svg>
       </button>
       
       <button class="refresh-btn" id="refreshBtn" title="Refresh">
@@ -1473,7 +1495,7 @@
               <span class="menu-item-desc">Autobid order terdekat</span>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="autobidToggle">
+              <input type="checkbox" id="autobidToggle" disabled>
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -1505,7 +1527,8 @@
               <span>🎯 Filter Tujuan</span>
               <span class="menu-item-desc">Kosongkan untuk semua</span>
             </div>
-            <div class="input-group">
+            <!-- INPUT GROUP DIPERBESAR UNTUK FILTER TUJUAN -->
+            <div class="input-group input-group-large">
               <input type="text" id="filterTujuanInput" placeholder="Contoh: Jalan Sudirman">
               <button class="clear-btn" id="clearFilterTujuan">&times;</button>
             </div>
@@ -2089,12 +2112,16 @@
       locationTrackingEnabled = !locationTrackingEnabled;
       updateLocationToggleButton();
       
+      // UPDATE: Jika tracking ON, aktifkan tombol autobid toggle
+      updateAutobidToggleStatus();
+      
       if (locationTrackingEnabled) {
         // Cek apakah GPS aktif
         if (!driverLocation.latitude || !driverLocation.longitude) {
           showInfoPopup('GPS diperlukan untuk mengaktifkan tracking. Pastikan lokasi Anda aktif.');
           locationTrackingEnabled = false;
           updateLocationToggleButton();
+          updateAutobidToggleStatus();
           return;
         }
         
@@ -2110,11 +2137,32 @@
         }
         
       } else {
+        // UPDATE: Jika tracking OFF, matikan autobid jika sedang aktif
+        if (autobidEnabled) {
+          autobidEnabled = false;
+          stopAutobid();
+          updateAutobidButton();
+        }
+        
         stopLocationTracking();
         stopManualCheckInterval(); // HENTIKAN INTERVAL MANUAL
       }
       
       localStorage.setItem('jego_location_tracking_enabled', locationTrackingEnabled);
+    }
+
+    // FUNGSI BARU: Update status toggle autobid berdasarkan tracking
+    function updateAutobidToggleStatus() {
+      const autobidToggle = document.getElementById('autobidToggle');
+      if (autobidToggle) {
+        if (locationTrackingEnabled) {
+          autobidToggle.disabled = false;
+          autobidToggle.parentElement.style.opacity = '1';
+        } else {
+          autobidToggle.disabled = true;
+          autobidToggle.parentElement.style.opacity = '0.5';
+        }
+      }
     }
 
     function updateLocationToggleButton() {
@@ -2223,6 +2271,9 @@
         const filterData = JSON.parse(savedFilterTujuan);
         document.getElementById('filterTujuanInput').value = filterTujuanText = filterData.text || '';
       }
+      
+      // Update status toggle autobid berdasarkan tracking
+      updateAutobidToggleStatus();
     }
 
     // Fungsi untuk menyimpan pengaturan
@@ -2298,11 +2349,13 @@
             const filterInput = document.getElementById('filterTujuanInput');
             filterInput.disabled = !filterTujuanEnabled;
             filterInput.placeholder = filterTujuanEnabled ? 
-              'Contoh: Jalan Sudirman' : 
+              'Contoh: Jalan Tilongkabila' : 
               'Tidak diizinkan untuk driver Anda';
               
             if (!filterTujuanEnabled) {
               document.getElementById('filterTujuanContainer').style.opacity = '0.6';
+            } else {
+              document.getElementById('filterTujuanContainer').style.opacity = '1';
             }
           }
         }
@@ -2314,7 +2367,14 @@
     // ==================== UPDATE FUNGSI FILTER ORDER ====================
 
     function filterOrderByType(order) {
-      if (currentFilter === 'all') return true;
+      if (currentFilter === 'all') {
+        // Filter berdasarkan checkbox "Terima Kurir"
+        const isKurir = order.vehicle && order.vehicle.includes('kurir');
+        if (!acceptKurirEnabled && isKurir) {
+          return false;
+        }
+        return true;
+      }
       
       const isKurir = order.vehicle && order.vehicle.includes('kurir');
       
@@ -2353,7 +2413,7 @@
       return distance <= customRadius;
     }
 
-    // Fungsi untuk cek filter tujuan
+    // Fungsi untuk cek filter tujuan - DIPERBAIKI
     function checkFilterTujuan(order) {
       if (!filterTujuanEnabled || !filterTujuanText.trim()) {
         return true; // Tidak ada filter, semua order diterima
@@ -2364,7 +2424,9 @@
       const tujuan = (order.tujuan || '').toLowerCase();
       
       // Cek apakah teks pencarian ada di alamat_b atau tujuan
-      return alamatB.includes(searchText) || tujuan.includes(searchText);
+      const result = alamatB.includes(searchText) || tujuan.includes(searchText);
+      console.log(`🔍 Filter Tujuan: "${searchText}" vs "${alamatB}" = ${result}`);
+      return result;
     }
 
     // ==================== FUNGSI TOGGLE AUTOBID YANG DIPERBARUI ====================
@@ -2378,12 +2440,15 @@
       // Cek apakah location tracking aktif
       if (!locationTrackingEnabled) {
         showInfoPopup('Aktifkan tracking terlebih dahulu');
+        // Reset toggle button di UI
+        document.getElementById('autobidToggle').checked = false;
         return;
       }
 
       if (!driverLocation.latitude || !driverLocation.longitude) {
         showInfoPopup('GPS diperlukan untuk mengaktifkan Autobid. Pastikan lokasi Anda aktif.');
         updateGPSStatus(false, 'GPS diperlukan untuk Autobid');
+        document.getElementById('autobidToggle').checked = false;
         return;
       }
 
@@ -2456,6 +2521,13 @@
               return;
             }
             
+            // Filter berdasarkan tujuan
+            const matchesTujuan = checkFilterTujuan(order);
+            if (!matchesTujuan && filterTujuanText.trim()) {
+              console.log(`⏭️ Manual Popup: Skip order ${orderId} (tidak sesuai filter tujuan)`);
+              return;
+            }
+            
             console.log(`🎯 Manual Popup: Order ${orderId} dalam radius, menampilkan modal manual...`);
             processedOrders.add(orderId);
             foundOrder = true;
@@ -2520,9 +2592,9 @@
               return;
             }
             
-            // Filter berdasarkan tujuan
+            // Filter berdasarkan tujuan - DIPERBAIKI
             const matchesTujuan = checkFilterTujuan(order);
-            if (!matchesTujuan) {
+            if (!matchesTujuan && filterTujuanText.trim()) {
               console.log(`⏭️ Autobid: Skip order ${orderId} (tidak sesuai filter tujuan)`);
               return;
             }
@@ -3316,6 +3388,11 @@
         const statusText = 'Mencari Driver';
         const statusClass = 'status-searching';
         
+        // UPDATE: Filter kurir jika acceptKurirEnabled = false
+        if (!acceptKurirEnabled && isKurir) {
+          return; // Skip order kurir jika tidak diterima
+        }
+        
         let hargaDisplay = '';
         let promoBadge = '';
         
@@ -3659,6 +3736,7 @@
       if (savedLocationTracking !== null) {
         locationTrackingEnabled = savedLocationTracking === 'true';
         updateLocationToggleButton();
+        updateAutobidToggleStatus(); // UPDATE STATUS AUTOBID TOGGLE
         
         if (locationTrackingEnabled) {
           startLocationTracking();
@@ -4569,12 +4647,13 @@
       
       // Event listeners untuk perubahan nilai
       document.getElementById('autobidToggle').addEventListener('change', function(e) {
-        autobidEnabled = e.target.checked;
-        toggleAutobid(); // Panggil fungsi toggle yang sudah ada
+        toggleAutobid();
       });
       
       document.getElementById('acceptKurirToggle').addEventListener('change', function(e) {
         acceptKurirEnabled = e.target.checked;
+        // Refresh orders list untuk menerapkan filter kurir
+        loadOrders();
       });
       
       document.getElementById('radiusInput').addEventListener('change', function(e) {
