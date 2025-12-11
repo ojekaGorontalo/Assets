@@ -1379,41 +1379,80 @@
   </audio>
 
   <script>
-    // ==================== FUNGSI UTAMA SEND TO KODULAR ====================
+    // ==================== FUNGSI UTAMA SEND TO KODULAR - DIPERBAIKI ====================
     function sendToKodular(data) {
         console.log('📤 Mengirim data ke Kodular:', data);
         
-        // Prioritaskan AppInventor
-        if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        // Konversi data ke string JSON
+        const jsonString = JSON.stringify(data);
+        console.log('📦 Data JSON:', jsonString);
+        
+        // Prioritaskan AppInventor (Kodular)
+        if (typeof window.AppInventor !== 'undefined') {
+            console.log('📱 Deteksi AppInventor (Kodular)');
             try {
-                window.AppInventor.setWebViewString(JSON.stringify(data));
-                return true;
+                if (window.AppInventor.setWebViewString) {
+                    window.AppInventor.setWebViewString(jsonString);
+                    console.log('✅ Data berhasil dikirim via AppInventor.setWebViewString');
+                    return true;
+                }
             } catch (error) {
-                console.error('Error mengirim via AppInventor:', error);
+                console.error('❌ Error mengirim via AppInventor:', error);
             }
         }
+        
         // Fallback untuk Android
-        else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        else if (typeof window.android !== 'undefined') {
+            console.log('📱 Deteksi Android');
             try {
-                window.android.receiveData(JSON.stringify(data));
-                return true;
+                if (window.android.receiveData) {
+                    window.android.receiveData(jsonString);
+                    console.log('✅ Data berhasil dikirim via android.receiveData');
+                    return true;
+                } else if (window.android.sendDataToKodular) {
+                    window.android.sendDataToKodular(jsonString);
+                    console.log('✅ Data berhasil dikirim via android.sendDataToKodular');
+                    return true;
+                }
             } catch (error) {
-                console.error('Error mengirim via android:', error);
+                console.error('❌ Error mengirim via android:', error);
             }
         }
+        
         // Fallback untuk iOS
-        else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        else if (window.webkit && window.webkit.messageHandlers) {
+            console.log('📱 Deteksi iOS (WKWebView)');
             try {
-                window.webkit.messageHandlers.observe.postMessage(data);
-                return true;
+                if (window.webkit.messageHandlers.observe) {
+                    window.webkit.messageHandlers.observe.postMessage(data);
+                    console.log('✅ Data berhasil dikirim via webkit.messageHandlers');
+                    return true;
+                }
             } catch (error) {
-                console.error('Error mengirim via webkit:', error);
+                console.error('❌ Error mengirim via webkit:', error);
             }
         }
-        else {
-            console.log('🔕 Mode browser: Tidak ada bridge ke Kodular');
-            return false;
+        
+        // Metode alternatif menggunakan prompt (untuk debugging)
+        else if (window.location.href.indexOf('file://') === -1) {
+            console.log('🔧 Coba metode prompt untuk debugging');
+            try {
+                const result = prompt('KodularBridge', jsonString);
+                if (result) {
+                    console.log('✅ Data berhasil dikirim via prompt');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error mengirim via prompt:', error);
+            }
         }
+        
+        console.log('🔕 Mode browser: Tidak ada bridge ke Kodular yang terdeteksi');
+        
+        // Untuk debugging di browser, tampilkan data di console
+        console.log('🔄 Data yang akan dikirim ke Kodular (browser mode):', data);
+        
+        return false;
     }
 
     // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
@@ -1593,13 +1632,22 @@
     function navigateToScreen(screen) {
       console.log(`🔄 Navigasi ke screen: ${screen}`);
       
+      // Update tampilan navigasi
+      updateActiveNavItem(screen);
+      
       // Kirim event navigasi ke Kodular
-      sendToKodular({
+      const success = sendToKodular({
         action: "navigate",
-        target: screen
+        target: screen,
+        timestamp: new Date().getTime()
       });
       
-      updateActiveNavItem(screen);
+      console.log(`📤 Hasil pengiriman navigasi ke ${screen}: ${success ? 'Berhasil' : 'Gagal'}`);
+      
+      if (!success) {
+        // Fallback untuk browser: tampilkan pesan
+        showInfoPopup(`Navigasi ke ${screen} - Mode browser aktif`);
+      }
     }
 
     function updateActiveNavItem(screen) {
@@ -3898,6 +3946,32 @@
       document.getElementById('infoModal').style.display = 'none';
     }
 
+    // ==================== FUNGSI TAMBAHAN UNTUK REFRESH ====================
+    function refreshData() {
+        console.log('🔄 Refresh data manual');
+        loadOrders();
+        
+        if (locationTrackingEnabled && driverLocation.latitude && driverLocation.longitude) {
+            sendLocationToFirebase();
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('orderModal').style.display = 'none';
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        if (offerListenerRef && offerListener) {
+            offerListenerRef.off('value', offerListener);
+            offerListenerRef = null;
+            offerListener = null;
+        }
+        currentSelectedOrder = null;
+        currentDriverId = null;
+        isAutobidProcessing = false;
+    }
+
     // ==================== INISIALISASI ====================
 
     // Inisialisasi saat halaman dimuat
@@ -3945,11 +4019,17 @@
         if (e.target === document.getElementById('orderModal')) closeModal();
       });
 
-      // Event listener untuk bottom navigation
+      // Event listener untuk bottom navigation - DIPERBAIKI
       const navItems = document.querySelectorAll('.nav-item');
       navItems.forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
           const screen = item.dataset.screen;
+          console.log(`🔄 Klik nav item: ${screen}`);
+          
+          // Panggil fungsi navigasi
           navigateToScreen(screen);
         });
       });
