@@ -1002,289 +1002,16 @@
     let unreadMessages = 0;
     let chatOpen = false;
 
-    // ==================== VARIABEL SISTEM TRACKING LOKASI ====================
-    let locationTrackingInterval = null;
-    let isTrackingActive = false;
-    let currentLocation = null;
-    let watchId = null;
-    let lastSentLocation = null;
-    let locationUpdateCount = 0;
+    // ==================== FUNGSI LOCALSTORAGE ====================
 
-    // ==================== SISTEM TRACKING LOKASI DRIVER ====================
-
-    function startLocationTracking() {
-      console.log('📍 Memulai tracking lokasi driver...');
-      
-      // Hentikan tracking sebelumnya jika ada
-      stopLocationTracking();
-      
-      // Cek apakah browser mendukung geolocation
-      if (!navigator.geolocation) {
-        console.error('❌ Browser tidak mendukung geolocation');
-        sendToKodular({
-          action: 'location_tracking_error',
-          message: 'Browser tidak mendukung tracking lokasi',
-          order_id: currentOrderId
-        });
-        return;
-      }
-      
-      // Minta izin lokasi
-      if (navigator.permissions && navigator.permissions.query) {
-        navigator.permissions.query({ name: 'geolocation' })
-          .then((permissionStatus) => {
-            console.log('📍 Status izin lokasi:', permissionStatus.state);
-            
-            if (permissionStatus.state === 'denied') {
-              console.error('❌ Izin lokasi ditolak oleh pengguna');
-              sendToKodular({
-                action: 'location_permission_denied',
-                message: 'Izin lokasi ditolak. Harap aktifkan izin lokasi di pengaturan browser.',
-                order_id: currentOrderId
-              });
-              return;
-            }
-            
-            // Mulai tracking dengan watchPosition untuk update real-time
-            startWatchingLocation();
-            
-            // Set interval untuk mengirim lokasi ke Firebase setiap 5 detik
-            locationTrackingInterval = setInterval(() => {
-              if (currentLocation) {
-                sendLocationToFirebase(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
-              } else {
-                console.log('📍 Belum ada lokasi yang didapatkan, melewatkan pengiriman...');
-              }
-            }, 5000); // 5 detik
-            
-          })
-          .catch((error) => {
-            console.error('❌ Error cek izin lokasi:', error);
-            // Tetap coba tracking jika API permissions tidak tersedia
-            startWatchingLocation();
-            
-            locationTrackingInterval = setInterval(() => {
-              if (currentLocation) {
-                sendLocationToFirebase(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
-              } else {
-                console.log('📍 Belum ada lokasi yang didapatkan, melewatkan pengiriman...');
-              }
-            }, 5000);
-          });
-      } else {
-        // Browser tidak mendukung permissions API, langsung coba tracking
-        startWatchingLocation();
-        
-        locationTrackingInterval = setInterval(() => {
-          if (currentLocation) {
-            sendLocationToFirebase(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
-          } else {
-            console.log('📍 Belum ada lokasi yang didapatkan, melewatkan pengiriman...');
-          }
-        }, 5000);
-      }
-      
-      isTrackingActive = true;
-      console.log('✅ Tracking lokasi aktif, interval 5 detik');
-    }
-
-    function startWatchingLocation() {
-      // Options untuk geolocation
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      };
-      
-      // Gunakan watchPosition untuk update real-time
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          locationUpdateCount++;
-          console.log(`📍 Lokasi diperbarui #${locationUpdateCount}: ${latitude}, ${longitude} (Akurasi: ${accuracy}m)`);
-          
-          currentLocation = {
-            latitude: latitude,
-            longitude: longitude,
-            accuracy: accuracy,
-            timestamp: Date.now()
-          };
-          
-          // Kirim langsung lokasi pertama kali didapatkan
-          if (!lastSentLocation) {
-            sendLocationToFirebase(latitude, longitude, accuracy);
-          }
-          
-          // Kirim juga ke Kodular
-          sendToKodular({
-            action: 'driver_location_updated',
-            order_id: currentOrderId,
-            latitude: latitude,
-            longitude: longitude,
-            accuracy: accuracy,
-            timestamp: currentLocation.timestamp
-          });
-        },
-        (error) => {
-          console.error('❌ Error mendapatkan lokasi:', error);
-          
-          let errorMessage = 'Gagal mendapatkan lokasi';
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Izin lokasi ditolak. Harap aktifkan izin lokasi.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Informasi lokasi tidak tersedia.';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Permintaan lokasi timeout.';
-              break;
-          }
-          
-          sendToKodular({
-            action: 'location_tracking_error',
-            order_id: currentOrderId,
-            error: errorMessage,
-            code: error.code
-          });
-        },
-        options
-      );
-      
-      console.log('✅ Watch position aktif dengan watchId:', watchId);
-    }
-
-    function sendLocationToFirebase(latitude, longitude, accuracy) {
-      if (!currentOrderId || !currentDriverData) {
-        console.log('❌ Order ID atau Driver Data tidak tersedia, tidak mengirim lokasi');
-        return;
-      }
-      
-      // Cek apakah lokasi berubah signifikan untuk menghindari spam data yang sama
-      const newLocation = { latitude, longitude };
-      const isSignificantChange = !lastSentLocation || 
-        (Math.abs(lastSentLocation.latitude - latitude) > 0.0001 || 
-         Math.abs(lastSentLocation.longitude - longitude) > 0.0001);
-      
-      if (!isSignificantChange && lastSentLocation) {
-        console.log('📍 Lokasi tidak berubah signifikan, update timestamp saja');
-      }
-      
-      const locationData = {
-        latitude: latitude,
-        longitude: longitude,
-        accuracy: accuracy || null,
-        driver_id: currentDriverData.driverId,
-        driver_name: currentDriverData.nama || 'Driver',
-        order_id: currentOrderId,
-        timestamp: Date.now(),
-        status: currentOrderData?.status || 'tracking',
-        battery_level: getBatteryLevel()
-      };
-      
-      // 1. Kirim ke node orders/[orderId]/driver_location
-      const orderLocationRef = database.ref('orders/' + currentOrderId + '/driver_location');
-      orderLocationRef.set(locationData)
-        .then(() => {
-          console.log('✅ Lokasi driver terkirim ke orders/' + currentOrderId + '/driver_location');
-          lastSentLocation = newLocation;
-        })
-        .catch((error) => {
-          console.error('❌ Gagal mengirim lokasi ke orders:', error);
-        });
-      
-      // 2. Kirim ke field current_location di dalam selected_driver
-      const selectedDriverLocationRef = database.ref('orders/' + currentOrderId + '/selected_driver/current_location');
-      const selectedDriverLocationData = {
-        latitude: latitude,
-        longitude: longitude,
-        accuracy: accuracy || null,
-        timestamp: Date.now(),
-        battery_level: getBatteryLevel(),
-        status: currentOrderData?.status || 'tracking'
-      };
-      
-      selectedDriverLocationRef.set(selectedDriverLocationData)
-        .then(() => {
-          console.log('✅ Lokasi driver terkirim ke selected_driver/current_location');
-        })
-        .catch((error) => {
-          console.error('❌ Gagal mengirim lokasi ke selected_driver:', error);
-        });
-      
-      // 3. Simpan juga di node tracking terpisah untuk riwayat
-      const trackingRef = database.ref('driver_tracking/' + currentOrderId);
-      trackingRef.push({
-        ...locationData,
-        timestamp: Date.now()
-      }).then(() => {
-        console.log('✅ Lokasi disimpan di driver_tracking untuk riwayat');
-      }).catch((error) => {
-        console.error('❌ Gagal menyimpan riwayat tracking:', error);
-      });
-      
-      // 4. Update lokasi terakhir driver di profil driver
-      if (currentDriverData.driverId) {
-        const driverRef = database.ref('drivers/' + currentDriverData.driverId);
-        driverRef.update({
-          last_location: {
-            latitude: latitude,
-            longitude: longitude,
-            timestamp: Date.now(),
-            order_id: currentOrderId
-          },
-          last_active: new Date().toISOString()
-        }).then(() => {
-          console.log('✅ Last location driver diperbarui di profil');
-        }).catch((error) => {
-          console.error('❌ Gagal update last location di profil driver:', error);
-        });
-      }
-    }
-
-    function stopLocationTracking() {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        console.log('📍 Watch position dihentikan, watchId:', watchId);
-        watchId = null;
-      }
-      
-      if (locationTrackingInterval) {
-        clearInterval(locationTrackingInterval);
-        locationTrackingInterval = null;
-        console.log('📍 Interval tracking dihentikan');
-      }
-      
-      isTrackingActive = false;
-      lastSentLocation = null;
-      locationUpdateCount = 0;
-      
-      // Hapus lokasi driver dari Firebase ketika tracking dihentikan
-      if (currentOrderId) {
-        // 1. Hapus dari driver_location
-        const orderLocationRef = database.ref('orders/' + currentOrderId + '/driver_location');
-        orderLocationRef.remove()
-          .then(() => console.log('✅ Lokasi driver dihapus dari driver_location'))
-          .catch((error) => console.error('❌ Gagal menghapus lokasi:', error));
-        
-        // 2. Hapus dari selected_driver/current_location
-        const selectedDriverLocationRef = database.ref('orders/' + currentOrderId + '/selected_driver/current_location');
-        selectedDriverLocationRef.remove()
-          .then(() => console.log('✅ Lokasi driver dihapus dari selected_driver/current_location'))
-          .catch((error) => console.error('❌ Gagal menghapus lokasi dari selected_driver:', error));
-      }
-    }
-
-    function getBatteryLevel() {
-      // Coba dapatkan informasi baterai jika browser mendukung
-      if ('getBattery' in navigator) {
-        navigator.getBattery()
-          .then((battery) => {
-            return Math.round(battery.level * 100);
-          })
-          .catch(() => null);
-      }
-      return null;
+    function getAcceptedOrderFromLocalStorage() {
+        try {
+            const acceptedOrder = localStorage.getItem('jego_driver_accepted_order');
+            return acceptedOrder ? JSON.parse(acceptedOrder) : null;
+        } catch (error) {
+            console.error('❌ Gagal mengambil order yang diterima dari localStorage:', error);
+            return null;
+        }
     }
 
     // ==================== SISTEM SALDO DRIVER ====================
@@ -1643,18 +1370,6 @@
       });
     }
 
-    // ==================== FUNGSI LOCALSTORAGE ====================
-
-    function getAcceptedOrderFromLocalStorage() {
-        try {
-            const acceptedOrder = localStorage.getItem('jego_driver_accepted_order');
-            return acceptedOrder ? JSON.parse(acceptedOrder) : null;
-        } catch (error) {
-            console.error('❌ Gagal mengambil order yang diterima dari localStorage:', error);
-            return null;
-        }
-    }
-
     // ==================== FUNGSI UPDATE STATISTIK DRIVER ====================
 
     function getDriverDataFromStorage() {
@@ -1813,13 +1528,6 @@
             
             // Inisialisasi sistem chat
             initializeChatSystem(orderId);
-            
-            // Mulai tracking lokasi jika order dalam status yang membutuhkan tracking
-            if (orderData.status === 'on_the_way' || orderData.status === 'arrived' || orderData.status === 'on_trip') {
-              if (!isTrackingActive) {
-                startLocationTracking();
-              }
-            }
           } else {
             // Untuk update selanjutnya, hanya update status dan data yang perlu diupdate
             // TIDAK memanggil displayOrderData() untuk mencegah perubahan teks yang tidak perlu
@@ -2044,11 +1752,6 @@
           arrivedBtn.style.display = 'flex';
           contactBtn.style.display = 'flex';
           cancelBtn.style.display = 'flex';
-          
-          // Mulai tracking lokasi ketika driver mulai menuju lokasi
-          if (!isTrackingActive) {
-            startLocationTracking();
-          }
           break;
           
         case 'arrived':
@@ -2117,9 +1820,6 @@
         updated_at: new Date().toISOString()
       }).then(() => {
         console.log('Status updated to on_the_way');
-        
-        // Mulai tracking lokasi driver
-        startLocationTracking();
         
         sendToKodular({
           action: 'start_to_pickup',
@@ -2196,9 +1896,6 @@
       
       console.log('🔄 Menyelesaikan order dan update statistik...');
       
-      // Hentikan tracking lokasi
-      stopLocationTracking();
-      
       const orderRef = database.ref('orders/' + currentOrderId);
       orderRef.update({
         status: 'completed',
@@ -2250,9 +1947,6 @@
         return;
       }
       
-      // Hentikan tracking lokasi
-      stopLocationTracking();
-      
       const orderRef = database.ref('orders/' + currentOrderId);
       orderRef.update({
         status: 'cancelled',
@@ -2284,9 +1978,6 @@
     }
 
     function goBack() {
-      // Hentikan tracking lokasi
-      stopLocationTracking();
-      
       if (orderRef && orderListener) {
         orderRef.off('value', orderListener);
       }
