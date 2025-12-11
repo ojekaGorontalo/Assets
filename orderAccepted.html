@@ -1008,6 +1008,7 @@
     let currentLocation = null;
     let watchId = null;
     let lastSentLocation = null;
+    let locationUpdateCount = 0;
 
     // ==================== SISTEM TRACKING LOKASI DRIVER ====================
 
@@ -1099,7 +1100,8 @@
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
-          console.log(`📍 Lokasi diperbarui: ${latitude}, ${longitude} (Akurasi: ${accuracy}m)`);
+          locationUpdateCount++;
+          console.log(`📍 Lokasi diperbarui #${locationUpdateCount}: ${latitude}, ${longitude} (Akurasi: ${accuracy}m)`);
           
           currentLocation = {
             latitude: latitude,
@@ -1184,7 +1186,7 @@
       const orderLocationRef = database.ref('orders/' + currentOrderId + '/driver_location');
       orderLocationRef.set(locationData)
         .then(() => {
-          console.log('✅ Lokasi driver terkirim ke orders/' + currentOrderId + '/driver_location:', locationData);
+          console.log('✅ Lokasi driver terkirim ke orders/' + currentOrderId + '/driver_location');
           lastSentLocation = newLocation;
         })
         .catch((error) => {
@@ -1255,6 +1257,7 @@
       
       isTrackingActive = false;
       lastSentLocation = null;
+      locationUpdateCount = 0;
       
       // Hapus lokasi driver dari Firebase ketika tracking dihentikan
       if (currentOrderId) {
@@ -1792,22 +1795,38 @@
       }
       
       orderRef = database.ref('orders/' + orderId);
+      
+      // Simpan data awal untuk mencegah perubahan UI yang tidak perlu
+      let initialDisplayData = null;
+      
       orderListener = orderRef.on('value', (snapshot) => {
         const orderData = snapshot.val();
         
         if (orderData) {
           console.log('Data order diterima:', orderData);
           currentOrderData = orderData;
-          displayOrderData(orderData);
           
-          // Inisialisasi sistem chat
-          initializeChatSystem(orderId);
-          
-          // Mulai tracking lokasi jika order dalam status yang membutuhkan tracking
-          if (orderData.status === 'on_the_way' || orderData.status === 'arrived' || orderData.status === 'on_trip') {
-            if (!isTrackingActive) {
-              startLocationTracking();
+          // Jika data belum ditampilkan, tampilkan pertama kali
+          if (!initialDisplayData) {
+            initialDisplayData = orderData;
+            displayOrderData(orderData);
+            
+            // Inisialisasi sistem chat
+            initializeChatSystem(orderId);
+            
+            // Mulai tracking lokasi jika order dalam status yang membutuhkan tracking
+            if (orderData.status === 'on_the_way' || orderData.status === 'arrived' || orderData.status === 'on_trip') {
+              if (!isTrackingActive) {
+                startLocationTracking();
+              }
             }
+          } else {
+            // Untuk update selanjutnya, hanya update status dan data yang perlu diupdate
+            // TIDAK memanggil displayOrderData() untuk mencegah perubahan teks yang tidak perlu
+            updateOrderStatus(orderData.status);
+            
+            // Update data lain yang mungkin berubah
+            updateOrderStatusOnly(orderData);
           }
         } else {
           showError('Order tidak ditemukan di database');
@@ -1818,10 +1837,45 @@
       });
     }
 
+    function updateOrderStatusOnly(order) {
+      // Hanya update data yang benar-benar perlu diupdate
+      // Jangan update alamat, harga, dll yang sudah ditampilkan
+      
+      // Update status badge
+      const statusBadge = document.getElementById('statusBadge');
+      statusBadge.textContent = getStatusText(order.status);
+      statusBadge.className = 'status-badge ' + getStatusClass(order.status);
+    }
+
+    function getStatusText(status) {
+      switch(status) {
+        case 'accepted': return 'Diterima';
+        case 'on_the_way': return 'Menuju';
+        case 'arrived': return 'Tiba';
+        case 'on_trip': return 'Perjalanan';
+        case 'completed': return 'Selesai';
+        case 'cancelled': return 'Batal';
+        default: return 'Tidak Diketahui';
+      }
+    }
+
+    function getStatusClass(status) {
+      switch(status) {
+        case 'accepted': return 'status-accepted';
+        case 'on_the_way': return 'status-on_the_way';
+        case 'arrived': return 'status-arrived';
+        case 'on_trip': return 'status-on_trip';
+        case 'completed': return 'status-completed';
+        case 'cancelled': return 'status-cancelled';
+        default: return 'status-accepted';
+      }
+    }
+
     function displayOrderData(order) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
       
+      // Set data hanya sekali saat pertama kali dimuat
       document.getElementById('pickupAddress').textContent = order.alamat_a || '-';
       document.getElementById('destinationAddress').textContent = order.alamat_b || '-';
       document.getElementById('serviceType').textContent = order.vehicle_name || '-';
@@ -2172,9 +2226,13 @@
           message: 'Order berhasil diselesaikan'
         });
         
-        setTimeout(() => {
-          window.location.href = "list.html";
-        }, 200);
+        // Kirim sinyal untuk navigasi ke Kodular
+        sendToKodular({
+          action: 'navigate_to',
+          screen: 'list_orders',
+          order_id: currentOrderId,
+          message: 'Order selesai, kembali ke list order'
+        });
 
       }).catch((error) => {
         console.error('❌ Gagal menyelesaikan order:', error);
@@ -2212,9 +2270,14 @@
           order_data: currentOrderData
         });
         
-        setTimeout(() => {
-          goBack();
-        }, 1500);
+        // Kirim sinyal untuk navigasi ke Kodular
+        sendToKodular({
+          action: 'navigate_to',
+          screen: 'list_orders',
+          order_id: currentOrderId,
+          message: 'Order dibatalkan, kembali ke list order'
+        });
+        
       }).catch((error) => {
         console.error('Gagal membatalkan order:', error);
       });
@@ -2239,10 +2302,14 @@
         }
       }
       
+      // Kirim sinyal ke Kodular untuk menutup halaman atau kembali
       sendToKodular({
-        action: 'go_back_from_order_details_driver'
+        action: 'go_back',
+        order_id: currentOrderId,
+        message: 'Kembali dari detail order'
       });
-      window.location.href = 'list.html';
+      
+      // TIDAK ADA REDIRECT - Kodular yang akan menangani navigasi
     }
 
     function sendToKodular(data) {
@@ -2254,20 +2321,17 @@
       
       console.log('Mengirim data ke Kodular:', kodularData);
       
+      // Gunakan hanya window.AppInventor.setWebViewString untuk komunikasi
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
           window.AppInventor.setWebViewString(JSON.stringify(kodularData));
         } catch (error) {
           console.error('Error mengirim data via AppInventor:', error);
         }
-      } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
-        try {
-          window.android.receiveData(JSON.stringify(kodularData));
-        } catch (error) {
-          console.error('Error mengirim data via window.android:', error);
-        }
       } else {
         console.warn('Metode pengiriman data ke Kodular tidak tersedia');
+        // Fallback untuk debugging
+        console.log('Data yang akan dikirim:', kodularData);
       }
     }
 
