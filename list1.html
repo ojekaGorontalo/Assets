@@ -56,12 +56,44 @@
       gap: 10px;
     }
 
+    /* TOMBOL MENU DIPINDAH KE KIRI - UPDATE STYLE */
+    .menu-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 5px;
+      order: 1; /* MENJADI ELEMEN PERTAMA */
+    }
+
+    .menu-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
     .driver-photo {
       width: 40px;
       height: 40px;
       border-radius: 50%;
       object-fit: cover;
       border: 2px solid var(--accent);
+      order: 2; /* MENJADI ELEMEN KEDUA */
+    }
+
+    .gps-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      background: rgba(255,255,255,0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      order: 3; /* MENJADI ELEMEN KETIGA */
     }
 
     .header-controls {
@@ -110,35 +142,6 @@
 
     .refresh-btn:hover {
       background: rgba(255,255,255,0.3);
-    }
-
-    /* Tombol Menu Baru - DIPINDAH KE KIRI FOTO PROFIL */
-    .menu-btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 5px;
-    }
-
-    .menu-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
-
-    .gps-status {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.75rem;
-      background: rgba(255,255,255,0.1);
-      padding: 4px 8px;
-      border-radius: 4px;
     }
 
     .gps-active {
@@ -1187,8 +1190,11 @@
       width: 150px; /* DIPERBESAR DARI 120px */
     }
 
+    /* PERBAIKAN: FILTER TUJUAN LEBAR PENUH */
+    .input-group.input-group-large,
     .input-group-large {
-      width: 220px !important; /* INPUT GROUP LEBIH BESAR UNTUK FILTER TUJUAN */
+      width: 100% !important; /* LEBAR PENUH */
+      max-width: 250px; /* Batas maksimal di desktop */
     }
 
     .input-group input {
@@ -1284,6 +1290,11 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
 
+    /* Update untuk sembunyikan teks GPS */
+    .gps-status span#gpsText {
+      display: none !important;
+    }
+
     @media (max-width: 768px) {
       body {
         font-size: 0.8rem;
@@ -1345,8 +1356,11 @@
         width: 130px;
       }
       
+      /* PERBAIKAN UNTUK FILTER TUJUAN DI TABLET */
+      .input-group.input-group-large,
       .input-group-large {
-        width: 180px !important;
+        width: 100% !important;
+        max-width: 180px;
       }
     }
 
@@ -1437,28 +1451,26 @@
         width: 110px;
       }
       
+      /* PERBAIKAN UNTUK FILTER TUJUAN DI MOBILE */
+      .input-group.input-group-large,
       .input-group-large {
-        width: 150px !important;
+        width: 100% !important;
+        max-width: 150px;
       }
-    }
-
-    /* Update untuk sembunyikan teks GPS */
-    .gps-status span#gpsText {
-      display: none !important;
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header dengan tombol menu di kiri foto profil -->
   <div class="header">
     <div class="logo-container">
-      <img id="driverPhoto" class="driver-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Driver Photo">
-      <!-- TOMBOL MENU DIPINDAH KE SINI (SEBELAH KIRI FOTO PROFIL) -->
+      <!-- TOMBOL MENU DIPINDAH KE KIRI FOTO PROFIL -->
       <button class="menu-btn" id="menuBtn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 12h18M3 6h18M3 18h18"/>
         </svg>
       </button>
+      <img id="driverPhoto" class="driver-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Driver Photo">
       <div class="gps-status" id="gpsStatus">
         <span class="gps-dot gps-inactive" id="gpsDot"></span>
         <span id="gpsText" style="display: none;">Mendapatkan lokasi...</span>
@@ -1554,6 +1566,7 @@
         </div>
         
         <div class="sidebar-footer">
+          <!-- TOMBOL SIMPAN PENGATURAN YANG BERFUNGSI -->
           <button class="save-btn" id="saveSettings">Simpan Pengaturan</button>
         </div>
       </div>
@@ -2289,40 +2302,66 @@
       updateAutobidToggleStatus();
     }
 
-    // Fungsi untuk menyimpan pengaturan
+    // PERBAIKAN: Fungsi untuk menyimpan pengaturan (TOMBOL SIMPAN PENGATURAN)
     function saveSettings() {
       console.log('💾 Menyimpan pengaturan...');
       
-      // Ambil nilai langsung dari UI untuk memastikan nilai terbaru
-      acceptKurirEnabled = document.getElementById('acceptKurirToggle').checked;
-      customRadius = parseFloat(document.getElementById('radiusInput').value);
-      filterTujuanText = document.getElementById('filterTujuanInput').value;
-      
-      console.log('✅ acceptKurirEnabled dari UI saat simpan:', acceptKurirEnabled);
-      
-      // Simpan ke localStorage
-      localStorage.setItem('jego_accept_kurir', acceptKurirEnabled);
-      localStorage.setItem('jego_custom_radius', customRadius);
-      localStorage.setItem('jego_filter_tujuan', JSON.stringify({
-        text: filterTujuanText,
-        enabled: filterTujuanEnabled
-      }));
-      
-      console.log('✅ Pengaturan disimpan ke localStorage');
-      console.log('✅ jago_accept_kurir di localStorage:', localStorage.getItem('jego_accept_kurir'));
-      
-      // Update status
-      if (autobidEnabled) {
-        updateAutobidButton();
+      try {
+        // Ambil nilai langsung dari UI untuk memastikan nilai terbaru
+        acceptKurirEnabled = document.getElementById('acceptKurirToggle').checked;
+        customRadius = parseFloat(document.getElementById('radiusInput').value);
+        filterTujuanText = document.getElementById('filterTujuanInput').value;
+        
+        // Validasi radius
+        if (isNaN(customRadius) || customRadius < 0.1 || customRadius > 10) {
+          showInfoPopup('Jarak radius harus antara 0.1 - 10 km');
+          document.getElementById('radiusInput').value = 1.0;
+          customRadius = 1.0;
+          return;
+        }
+        
+        console.log('✅ Pengaturan yang akan disimpan:');
+        console.log('- acceptKurirEnabled:', acceptKurirEnabled);
+        console.log('- customRadius:', customRadius);
+        console.log('- filterTujuanText:', filterTujuanText);
+        
+        // Simpan ke localStorage
+        localStorage.setItem('jego_accept_kurir', acceptKurirEnabled);
+        localStorage.setItem('jego_custom_radius', customRadius);
+        localStorage.setItem('jego_filter_tujuan', JSON.stringify({
+          text: filterTujuanText,
+          enabled: filterTujuanEnabled
+        }));
+        
+        console.log('✅ Pengaturan disimpan ke localStorage');
+        
+        // Update status
+        if (autobidEnabled) {
+          updateAutobidButton();
+        }
+        
+        // Refresh orders list dengan filter baru
+        loadOrders();
+        
+        // Tutup sidebar
+        closeSidebar();
+        
+        // Tampilkan konfirmasi
+        showInfoPopup('Pengaturan berhasil disimpan dan diterapkan');
+        
+        // Kirim event ke Kodular
+        sendToKodular({
+          action: 'settings_saved',
+          accept_kurir: acceptKurirEnabled,
+          radius: customRadius,
+          filter_tujuan: filterTujuanText,
+          message: 'Pengaturan driver berhasil disimpan'
+        });
+        
+      } catch (error) {
+        console.error('❌ Error menyimpan pengaturan:', error);
+        showInfoPopup('Gagal menyimpan pengaturan. Silakan coba lagi.');
       }
-      
-      // Refresh orders list dengan filter baru
-      loadOrders();
-      
-      // Tutup sidebar
-      closeSidebar();
-      
-      showInfoPopup('Pengaturan berhasil disimpan');
     }
 
     // Fungsi untuk update info status di sidebar
@@ -4673,7 +4712,10 @@
       document.getElementById('menuBtn').addEventListener('click', openSidebar);
       document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
       document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+      
+      // PERBAIKAN: TOMBOL SIMPAN PENGATURAN YANG BERFUNGSI
       document.getElementById('saveSettings').addEventListener('click', saveSettings);
+      
       document.getElementById('clearFilterTujuan').addEventListener('click', function() {
         document.getElementById('filterTujuanInput').value = '';
         filterTujuanText = '';
