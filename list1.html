@@ -2257,14 +2257,27 @@
 
     // Fungsi untuk memuat pengaturan ke UI
     function loadSettingsToUI() {
+      console.log('🔄 Memuat pengaturan ke UI...');
+      
       // Load dari localStorage
       const savedAcceptKurir = localStorage.getItem('jego_accept_kurir');
       const savedRadius = localStorage.getItem('jego_custom_radius');
       const savedFilterTujuan = localStorage.getItem('jego_filter_tujuan');
       
+      console.log('📋 Nilai savedAcceptKurir dari localStorage:', savedAcceptKurir);
+      
+      // PERBAIKAN: Gunakan perbandingan yang benar untuk boolean dari localStorage
+      if (savedAcceptKurir !== null) {
+        acceptKurirEnabled = savedAcceptKurir === 'true';
+      } else {
+        acceptKurirEnabled = true; // Default value
+      }
+      
+      console.log('✅ acceptKurirEnabled setelah parsing:', acceptKurirEnabled);
+      
       // Set nilai ke UI
       document.getElementById('autobidToggle').checked = autobidEnabled;
-      document.getElementById('acceptKurirToggle').checked = acceptKurirEnabled = (savedAcceptKurir !== null ? savedAcceptKurir === 'true' : true);
+      document.getElementById('acceptKurirToggle').checked = acceptKurirEnabled;
       document.getElementById('radiusInput').value = customRadius = savedRadius ? parseFloat(savedRadius) : 1.0;
       
       if (savedFilterTujuan) {
@@ -2278,6 +2291,15 @@
 
     // Fungsi untuk menyimpan pengaturan
     function saveSettings() {
+      console.log('💾 Menyimpan pengaturan...');
+      
+      // Ambil nilai langsung dari UI untuk memastikan nilai terbaru
+      acceptKurirEnabled = document.getElementById('acceptKurirToggle').checked;
+      customRadius = parseFloat(document.getElementById('radiusInput').value);
+      filterTujuanText = document.getElementById('filterTujuanInput').value;
+      
+      console.log('✅ acceptKurirEnabled dari UI saat simpan:', acceptKurirEnabled);
+      
       // Simpan ke localStorage
       localStorage.setItem('jego_accept_kurir', acceptKurirEnabled);
       localStorage.setItem('jego_custom_radius', customRadius);
@@ -2285,6 +2307,9 @@
         text: filterTujuanText,
         enabled: filterTujuanEnabled
       }));
+      
+      console.log('✅ Pengaturan disimpan ke localStorage');
+      console.log('✅ jago_accept_kurir di localStorage:', localStorage.getItem('jego_accept_kurir'));
       
       // Update status
       if (autobidEnabled) {
@@ -2371,6 +2396,7 @@
         // Filter berdasarkan checkbox "Terima Kurir"
         const isKurir = order.vehicle && order.vehicle.includes('kurir');
         if (!acceptKurirEnabled && isKurir) {
+          console.log(`⏭️ Filter: Skip order kurir karena acceptKurirEnabled = false`);
           return false;
         }
         return true;
@@ -2380,6 +2406,7 @@
       
       // Filter berdasarkan checkbox "Terima Kurir"
       if (!acceptKurirEnabled && isKurir) {
+        console.log(`⏭️ Filter: Skip order kurir karena acceptKurirEnabled = false`);
         return false;
       }
       
@@ -3260,6 +3287,7 @@
 
     function loadOrders() {
       console.log('🔄 Memulai loadOrders...');
+      console.log('✅ Status acceptKurirEnabled saat loadOrders:', acceptKurirEnabled);
       
       const ordersList = document.getElementById('ordersList');
       if (!ordersList) {
@@ -3390,6 +3418,7 @@
         
         // UPDATE: Filter kurir jika acceptKurirEnabled = false
         if (!acceptKurirEnabled && isKurir) {
+          console.log(`⏭️ Render: Skip order kurir karena acceptKurirEnabled = false`);
           return; // Skip order kurir jika tidak diterima
         }
         
@@ -3665,9 +3694,14 @@
           const savedRadius = localStorage.getItem('jego_custom_radius');
           const savedFilterTujuan = localStorage.getItem('jego_filter_tujuan');
           
+          // PERBAIKAN: Pastikan parsing boolean dari localStorage benar
           if (savedAcceptKurir !== null) {
             acceptKurirEnabled = savedAcceptKurir === 'true';
+          } else {
+            acceptKurirEnabled = true; // Default value
           }
+          
+          console.log('✅ acceptKurirEnabled dari localStorage saat checkDriverData:', acceptKurirEnabled);
           
           if (savedRadius) {
             customRadius = parseFloat(savedRadius);
@@ -4645,13 +4679,19 @@
         filterTujuanText = '';
       });
       
-      // Event listeners untuk perubahan nilai
+      // PERBAIKAN: Event listeners untuk perubahan nilai - FIXED
       document.getElementById('autobidToggle').addEventListener('change', function(e) {
+        console.log('🔄 autobidToggle changed:', e.target.checked);
         toggleAutobid();
       });
       
+      // PERBAIKAN: Event listener untuk Terima Kurir - FIXED
       document.getElementById('acceptKurirToggle').addEventListener('change', function(e) {
+        console.log('🔄 acceptKurirToggle changed:', e.target.checked);
         acceptKurirEnabled = e.target.checked;
+        // Langsung simpan ke localStorage
+        localStorage.setItem('jego_accept_kurir', acceptKurirEnabled);
+        console.log('✅ acceptKurirEnabled disimpan ke localStorage:', acceptKurirEnabled);
         // Refresh orders list untuk menerapkan filter kurir
         loadOrders();
       });
