@@ -351,6 +351,7 @@
       justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid #f0f0f0;
+      align-items: center;
     }
 
     .info-item:last-child {
@@ -369,6 +370,33 @@
       font-size: 0.85rem;
       max-width: 60%;
       word-break: break-word;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Copy Button Styles */
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-btn:hover {
+      background-color: rgba(30, 111, 92, 0.1);
+      transform: scale(1.1);
+    }
+
+    .copy-btn svg {
+      width: 16px;
+      height: 16px;
     }
 
     /* Action Buttons */
@@ -628,11 +656,14 @@
       .info-item {
         flex-direction: column;
         gap: 5px;
+        align-items: flex-start;
       }
       
       .info-value {
         text-align: left;
         max-width: 100%;
+        width: 100%;
+        justify-content: space-between;
       }
       
       .profile-stats {
@@ -730,7 +761,15 @@
           
           <div class="info-item">
             <div class="info-label">No. Telepon</div>
-            <div class="info-value" id="phoneNumber">-</div>
+            <div class="info-value" id="phoneNumberContainer">
+              <span id="phoneNumber">-</span>
+              <button class="copy-btn" data-copy-target="phoneNumber" title="Salin nomor telepon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div class="info-item">
@@ -798,7 +837,15 @@
         <div class="card-content" id="accountInfo">
           <div class="info-item">
             <div class="info-label">ID Driver</div>
-            <div class="info-value" id="driverId">-</div>
+            <div class="info-value" id="driverIdContainer">
+              <span id="driverId">-</span>
+              <button class="copy-btn" data-copy-target="driverId" title="Salin ID Driver">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div class="info-item">
@@ -993,7 +1040,15 @@
             
             <div class="info-item">
               <div class="info-label">No. Telepon</div>
-              <div class="info-value" id="phoneNumber">-</div>
+              <div class="info-value" id="phoneNumberContainer">
+                <span id="phoneNumber">-</span>
+                <button class="copy-btn" data-copy-target="phoneNumber" title="Salin nomor telepon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
             
             <div class="info-item">
@@ -1061,7 +1116,15 @@
           <div class="card-content" id="accountInfo">
             <div class="info-item">
               <div class="info-label">ID Driver</div>
-              <div class="info-value" id="driverId">-</div>
+              <div class="info-value" id="driverIdContainer">
+                <span id="driverId">-</span>
+                <button class="copy-btn" data-copy-target="driverId" title="Salin ID Driver">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
             
             <div class="info-item">
@@ -1473,6 +1536,20 @@
     if (phoneNumber) phoneNumber.textContent = safeData.phoneNumber;
     if (address) address.textContent = safeData.address;
     if (idCardNumber) idCardNumber.textContent = maskIdCard(safeData.idCardNumber);
+    
+    // Pastikan tombol copy sudah ada di container nomor telepon
+    const phoneNumberContainer = document.getElementById('phoneNumberContainer');
+    if (phoneNumberContainer && !phoneNumberContainer.querySelector('.copy-btn')) {
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.setAttribute('data-copy-target', 'phoneNumber');
+      copyBtn.setAttribute('title', 'Salin nomor telepon');
+      copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>`;
+      phoneNumberContainer.appendChild(copyBtn);
+    }
 
     // Informasi kendaraan
     const vehicleType = document.getElementById('vehicleType');
@@ -1491,6 +1568,20 @@
     if (driverId) driverId.textContent = safeData.driverId;
     if (registrationDate) registrationDate.textContent = formatDate(safeData.registrationDate);
     if (verificationStatus) verificationStatus.textContent = getStatusText(safeData.status);
+    
+    // Pastikan tombol copy sudah ada di container ID driver
+    const driverIdContainer = document.getElementById('driverIdContainer');
+    if (driverIdContainer && !driverIdContainer.querySelector('.copy-btn')) {
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.setAttribute('data-copy-target', 'driverId');
+      copyBtn.setAttribute('title', 'Salin ID Driver');
+      copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>`;
+      driverIdContainer.appendChild(copyBtn);
+    }
   }
 
   // ==================== FUNGSI PRIORITAS BERDASARKAN RATING ====================
@@ -1684,31 +1775,40 @@
       console.log('✅ Tombol logout diinisialisasi');
     }
     
-    // PERUBAHAN: Event listener untuk rating - redirect ke penilaianLayanan.html
+    // PERUBAHAN: Event listener untuk rating - kirim data ke Kodular
     const ratingClickable = document.getElementById('ratingClickable');
     if (ratingClickable) {
       ratingClickable.addEventListener('click', function() {
-        window.location.href = 'penilaianLayanan.html';
+        sendToKodular({
+          action: 'open_ratings',
+          message: 'Buka halaman penilaian layanan'
+        });
+        console.log('✅ Mengirim permintaan buka halaman penilaian ke Kodular');
       });
-      console.log('✅ Area rating diinisialisasi (redirect ke penilaianLayanan.html)');
     }
 
-    // PERUBAHAN: Event listener untuk pendapatan hari ini - redirect ke pendapatan.html
+    // PERUBAHAN: Event listener untuk pendapatan hari ini - kirim data ke Kodular
     const todayEarningsStat = document.getElementById('todayEarningsStat');
     if (todayEarningsStat) {
       todayEarningsStat.addEventListener('click', function() {
-        window.location.href = 'pendapatan.html';
+        sendToKodular({
+          action: 'open_earnings',
+          message: 'Buka halaman pendapatan'
+        });
+        console.log('✅ Mengirim permintaan buka halaman pendapatan ke Kodular');
       });
-      console.log('✅ Area pendapatan hari ini diinisialisasi (redirect ke pendapatan.html)');
     }
     
-    // PERUBAHAN: Event listener untuk balance container - redirect ke payment.html
+    // PERUBAHAN: Event listener untuk balance container - kirim data ke Kodular
     const balanceContainer = document.getElementById('balanceContainer');
     if (balanceContainer) {
       balanceContainer.addEventListener('click', function() {
-        window.location.href = 'payment.html';
+        sendToKodular({
+          action: 'open_payment',
+          message: 'Buka halaman pembayaran'
+        });
+        console.log('✅ Mengirim permintaan buka halaman pembayaran ke Kodular');
       });
-      console.log('✅ Area saldo deposit diinisialisasi (redirect ke payment.html)');
     }
     
     // Event listeners untuk toggle buttons
@@ -1724,6 +1824,53 @@
           const icon = this.querySelector('svg');
           if (icon) {
             icon.style.transform = content.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
+          }
+        }
+      });
+    });
+    
+    // Event listeners untuk tombol copy
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    copyButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-copy-target');
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+          const textToCopy = targetElement.textContent;
+          
+          // Gunakan Clipboard API jika tersedia
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy)
+              .then(() => {
+                showInfoPopup('Berhasil Disalin', `"${textToCopy}" telah disalin ke clipboard`);
+                console.log('✅ Teks berhasil disalin:', textToCopy);
+              })
+              .catch(err => {
+                console.error('❌ Gagal menyalin teks:', err);
+                showInfoPopup('Gagal Menyalin', 'Gagal menyalin teks ke clipboard');
+              });
+          } else {
+            // Fallback untuk browser yang tidak mendukung Clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+              const successful = document.execCommand('copy');
+              if (successful) {
+                showInfoPopup('Berhasil Disalin', `"${textToCopy}" telah disalin ke clipboard`);
+                console.log('✅ Teks berhasil disalin (fallback):', textToCopy);
+              } else {
+                throw new Error('Gagal menyalin');
+              }
+            } catch (err) {
+              console.error('❌ Gagal menyalin teks (fallback):', err);
+              showInfoPopup('Gagal Menyalin', 'Gagal menyalin teks ke clipboard');
+            }
+            
+            document.body.removeChild(textArea);
           }
         }
       });
@@ -1780,6 +1927,8 @@
     }
     else {
       console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+      // Fallback: tampilkan data di console untuk debugging
+      console.log('Data untuk Kodular:', JSON.stringify(data));
     }
   }
 
@@ -1791,6 +1940,7 @@
         action: 'navigate_back'
     });
 
+    // Tetap redirect ke list.html sebagai fallback
     window.location.href = "list.html";
   }
 
@@ -1806,19 +1956,20 @@
     localStorage.removeItem('jego_driver_accepted_order');
     
     // Kirim perintah logout ke Kodular
-sendToKodular({
-  action: 'logout',
-  message: 'Driver berhasil logout'
-});
+    sendToKodular({
+      action: 'logout',
+      message: 'Driver berhasil logout'
+    });
 
-// Tampilkan pesan konfirmasi
-showInfoPopup('Berhasil Logout', 'Anda telah berhasil keluar dari akun driver JeGo.');
+    // Tampilkan pesan konfirmasi
+    showInfoPopup('Berhasil Logout', 'Anda telah berhasil keluar dari akun driver JeGo.');
 
-// Tunggu popup tampil dulu, lalu redirect
-setTimeout(() => {
-  window.location.href = "loginDriver.html";
-}, 1200); // delay 1.2 detik
+    // Tunggu popup tampil dulu, lalu redirect
+    setTimeout(() => {
+      window.location.href = "loginDriver.html";
+    }, 1200); // delay 1.2 detik
   }
+  
   // ==================== INISIALISASI APLIKASI ====================
 
   // Inisialisasi saat halaman dimuat
@@ -1841,4 +1992,4 @@ setTimeout(() => {
   });
   </script>
 </body>
-</html>
+  </html>
