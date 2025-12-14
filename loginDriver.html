@@ -401,7 +401,7 @@
         <h2 class="otp-title">Verifikasi OTP</h2>
         
         <div class="otp-info">
-          <p>Kode OTP telah dikirim ke nomor WhatsApp/ SMS Anda.</p>
+          <p>Kode OTP telah dikirim via SMS ke nomor Anda.</p>
           <p>Masukkan kode OTP 6 digit untuk melanjutkan.</p>
         </div>
         
@@ -613,48 +613,65 @@
         });
     }
 
-    // Fungsi untuk mengirim SMS OTP
+    // Fungsi untuk mengirim SMS OTP dengan proxy CORS
     function sendSmsOtp(phoneNumber, otp) {
-      // Format nomor telepon: Hilangkan semua karakter non-angka
-      const cleanNumber = phoneNumber.replace(/\D/g, '');
-      
-      // Jika nomor diawali dengan 0, ganti dengan 62
-      let formattedNumber = cleanNumber;
-      if (formattedNumber.startsWith('0')) {
-        formattedNumber = '62' + formattedNumber.substring(1);
-      }
-      
-      // Buat pesan SMS
-      const messageText = `Kode OTP JeGo Anda adalah: ${otp}. Jangan berikan kode ini kepada siapapun.`;
-      
-      // Encode pesan untuk URL
-      const encodedMessage = encodeURIComponent(messageText);
-      
-      // Susun URL untuk SMS gateway (DENGAN PERINGATAN KEAMANAN)
-      // PERHATIAN: Ini mengekspos kredensial di kode client. Hanya untuk testing!
-      const smsGatewayUrl = `https://srv2.soufasms.com/sms_gateway/?user=gsmreload&pass=Jd59dm$jr*dj%5Ehy&no=${formattedNumber}&msg=${encodedMessage}&max=1`;
-      
-      console.log('Mengirim SMS ke:', formattedNumber);
-      
-      // Kirim permintaan ke gateway SMS
-      return fetch(smsGatewayUrl)
-        .then(response => response.json())
-        .then(data => {
-          console.log('Respon dari Gateway SMS:', data);
-          
-          // Cek status respon
-          if (data.status === 200) {
-            console.log('SMS berhasil dikirim! Sisa kredit:', data.data.sisa_kredit);
-            return { success: true, data: data };
-          } else {
-            // Jika gagal, lempar error
-            throw new Error(`Gagal mengirim SMS. Status: ${data.status_message || 'Tidak diketahui'}`);
-          }
-        })
-        .catch(error => {
-          console.error('Error mengirim SMS:', error);
-          throw error;
-        });
+      return new Promise((resolve, reject) => {
+        // Format nomor telepon: Hilangkan semua karakter non-angka
+        const cleanNumber = phoneNumber.replace(/\D/g, '');
+        
+        // Jika nomor diawali dengan 0, ganti dengan 62
+        let formattedNumber = cleanNumber;
+        if (formattedNumber.startsWith('0')) {
+          formattedNumber = '62' + formattedNumber.substring(1);
+        }
+        
+        // Buat pesan SMS
+        const messageText = `Kode OTP JeGo Anda adalah: ${otp}. Jangan berikan kode ini kepada siapapun.`;
+        
+        // Encode pesan untuk URL
+        const encodedMessage = encodeURIComponent(messageText);
+        
+        // URL asli untuk SMS gateway
+        const originalUrl = `https://srv2.soufasms.com/sms_gateway/?user=gsmreload&pass=Jd59dm$jr*dj%5Ehy&no=${formattedNumber}&msg=${encodedMessage}&max=1`;
+        
+        // Gunakan proxy CORS untuk menghindari error "Failed to fetch"
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(originalUrl)}`;
+        
+        console.log('Mengirim SMS ke:', formattedNumber);
+        console.log('Menggunakan proxy CORS:', proxyUrl);
+        
+        // Kirim permintaan menggunakan proxy
+        fetch(proxyUrl)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Network response was not ok: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            try {
+              // Parse konten yang dikembalikan oleh proxy
+              const responseData = JSON.parse(data.contents);
+              console.log('Respon dari Gateway SMS (via proxy):', responseData);
+              
+              // Cek status respon
+              if (responseData.status === 200) {
+                console.log('SMS berhasil dikirim! Sisa kredit:', responseData.data?.sisa_kredit || 'Tidak diketahui');
+                resolve({ success: true, data: responseData });
+              } else {
+                // Jika gagal, lempar error
+                reject(new Error(`Gagal mengirim SMS. Status: ${responseData.status_message || 'Tidak diketahui'}`));
+              }
+            } catch (parseError) {
+              console.error('Error parsing response from proxy:', parseError);
+              reject(new Error('Format respon tidak valid dari SMS gateway'));
+            }
+          })
+          .catch(error => {
+            console.error('Error mengirim SMS via proxy:', error);
+            reject(error);
+          });
+      });
     }
 
     // Handle login form submission
