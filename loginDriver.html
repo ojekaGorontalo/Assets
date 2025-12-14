@@ -70,26 +70,6 @@
       font-weight: 600;
     }
 
-    .back-btn {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 15px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.85rem;
-      text-decoration: none;
-    }
-
-    .back-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
-
     /* Container Styles */
     .container {
       max-width: 100%;
@@ -390,12 +370,6 @@
       <div class="logo">JG</div>
       <div class="header-title">JeGo - Login Driver</div>
     </div>
-    <a href="list.html" class="back-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      Kembali
-    </a>
   </div>
 
   <!-- Container -->
@@ -427,7 +401,7 @@
         <h2 class="otp-title">Verifikasi OTP</h2>
         
         <div class="otp-info">
-          <p>Kode OTP telah dikirim ke WhatsApp Anda.</p>
+          <p>Kode OTP telah dikirim ke nomor WhatsApp/ SMS Anda.</p>
           <p>Masukkan kode OTP 6 digit untuk melanjutkan.</p>
         </div>
         
@@ -639,6 +613,50 @@
         });
     }
 
+    // Fungsi untuk mengirim SMS OTP
+    function sendSmsOtp(phoneNumber, otp) {
+      // Format nomor telepon: Hilangkan semua karakter non-angka
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
+      
+      // Jika nomor diawali dengan 0, ganti dengan 62
+      let formattedNumber = cleanNumber;
+      if (formattedNumber.startsWith('0')) {
+        formattedNumber = '62' + formattedNumber.substring(1);
+      }
+      
+      // Buat pesan SMS
+      const messageText = `Kode OTP JeGo Anda adalah: ${otp}. Jangan berikan kode ini kepada siapapun.`;
+      
+      // Encode pesan untuk URL
+      const encodedMessage = encodeURIComponent(messageText);
+      
+      // Susun URL untuk SMS gateway (DENGAN PERINGATAN KEAMANAN)
+      // PERHATIAN: Ini mengekspos kredensial di kode client. Hanya untuk testing!
+      const smsGatewayUrl = `https://srv2.soufasms.com/sms_gateway/?user=gsmreload&pass=Jd59dm$jr*dj%5Ehy&no=${formattedNumber}&msg=${encodedMessage}&max=1`;
+      
+      console.log('Mengirim SMS ke:', formattedNumber);
+      
+      // Kirim permintaan ke gateway SMS
+      return fetch(smsGatewayUrl)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Respon dari Gateway SMS:', data);
+          
+          // Cek status respon
+          if (data.status === 200) {
+            console.log('SMS berhasil dikirim! Sisa kredit:', data.data.sisa_kredit);
+            return { success: true, data: data };
+          } else {
+            // Jika gagal, lempar error
+            throw new Error(`Gagal mengirim SMS. Status: ${data.status_message || 'Tidak diketahui'}`);
+          }
+        })
+        .catch(error => {
+          console.error('Error mengirim SMS:', error);
+          throw error;
+        });
+    }
+
     // Handle login form submission
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -668,11 +686,18 @@
             return;
           }
           
-          // Generate and save OTP
+          // Generate OTP
           const otp = generateOTP();
           
+          // 1. Simpan OTP ke Firebase
           saveOTP(driverId, otp)
             .then(() => {
+              // 2. Kirim OTP via SMS
+              return sendSmsOtp(phoneNumber, otp);
+            })
+            .then((smsResult) => {
+              // 3. SMS berhasil dikirim
+              
               // Simpan data driver di localStorage untuk digunakan nanti
               localStorage.setItem('jego_current_driver', JSON.stringify({
                 driverId: driverId,
@@ -681,8 +706,8 @@
               }));
               
               // Tampilkan pesan bahwa OTP telah dikirim
-              showStatus('Kode OTP telah dikirim ke WhatsApp Anda. Silakan periksa pesan Anda.', 'info');
-              showNotification('OTP Dikirim', 'Kode OTP telah dikirim ke WhatsApp Anda. Silakan periksa pesan Anda.', 'info');
+              showStatus('Kode OTP telah dikirim via SMS ke nomor Anda. Silakan periksa pesan Anda.', 'info');
+              showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS. Silakan periksa ponsel Anda.', 'info');
               
               // Sembunyikan form login, tampilkan form OTP
               document.getElementById('loginForm').style.display = 'none';
@@ -692,8 +717,8 @@
               startResendCountdown(60);
             })
             .catch((error) => {
-              console.error('Error saving OTP:', error);
-              showStatus('Terjadi kesalahan saat mengirim OTP. Silakan coba lagi.', 'error');
+              console.error('Error dalam proses OTP:', error);
+              showStatus(`Terjadi kesalahan: ${error.message || 'Silakan coba lagi.'}`, 'error');
             });
         })
         .catch((error) => {
@@ -784,10 +809,15 @@
       // Generate new OTP
       const otp = generateOTP();
       
+      // 1. Simpan OTP baru ke Firebase
       saveOTP(driverId, otp)
         .then(() => {
-          showStatus('Kode OTP baru telah dikirim ke WhatsApp Anda.', 'info');
-          showNotification('OTP Dikirim Ulang', 'Kode OTP baru telah dikirim ke WhatsApp Anda.', 'info');
+          // 2. Kirim SMS OTP baru
+          return sendSmsOtp(phoneNumber, otp);
+        })
+        .then(() => {
+          showStatus('Kode OTP baru telah dikirim ke nomor Anda.', 'info');
+          showNotification('OTP Dikirim Ulang', 'Kode OTP baru telah dikirim via SMS.', 'info');
           
           // Clear OTP inputs
           clearOTPInputs();
