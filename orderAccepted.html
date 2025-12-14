@@ -33,7 +33,7 @@
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: var(--dark);
       height: 100vh;
-      padding: 10px;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -42,15 +42,16 @@
 
     .container {
       width: 100%;
-      max-width: 500px;
+      max-width: 100%;
       background: white;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      border-radius: 0;
+      box-shadow: none;
       overflow: hidden;
       margin-top: 0;
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 20px);
+      height: 100vh;
+      position: relative;
     }
 
     .header {
@@ -60,6 +61,7 @@
       text-align: center;
       position: relative;
       flex-shrink: 0;
+      z-index: 100;
     }
 
     .header h1 {
@@ -71,18 +73,21 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
+      padding-bottom: 120px; /* Space untuk tombol aksi */
     }
 
-    /* Map Section Styles */
+    /* Map Section Styles - Full Width 100% */
     .map-section {
-      padding: 0 10px;
-      margin-bottom: 10px;
+      width: 100%;
+      height: 50vh;
+      flex-shrink: 0;
+      position: relative;
     }
 
     #orderMap {
-      border: 2px solid var(--primary);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      border-radius: 10px;
+      width: 100%;
+      height: 100%;
+      border: none;
     }
 
     .leaflet-control-zoom {
@@ -95,6 +100,7 @@
       padding: 10px 15px;
       border-bottom: 1px solid #eee;
       text-align: center;
+      background: white;
     }
 
     .status-badge {
@@ -142,6 +148,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      background: white;
     }
 
     .customer-avatar {
@@ -222,6 +229,7 @@
     .route-section {
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
+      background: white;
     }
 
     .section-title {
@@ -284,6 +292,7 @@
     .info-section {
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
+      background: white;
     }
 
     .info-grid {
@@ -321,6 +330,7 @@
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
       display: none;
+      background: white;
     }
 
     .promo-badge {
@@ -391,6 +401,7 @@
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
       display: none;
+      background: white;
     }
 
     .delivery-grid {
@@ -422,26 +433,35 @@
       grid-column: 1 / span 2;
     }
 
+    /* Actions Section - Fixed at Bottom */
     .actions-section {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       padding: 12px 15px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      flex-shrink: 0;
+      background: white;
+      border-top: 1px solid #eee;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
     }
 
     .action-btn {
-      padding: 12px;
+      padding: 14px;
       border: none;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      width: 100%;
     }
 
     .on_the_way-btn {
@@ -550,19 +570,17 @@
       display: none;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      z-index: 2000;
     }
 
     .chat-container {
-      width: 90%;
-      max-width: 500px;
-      height: 80%;
+      width: 100%;
+      height: 100%;
       background: white;
-      border-radius: 15px;
+      border-radius: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .chat-header {
@@ -572,6 +590,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     .chat-header-info {
@@ -656,6 +675,7 @@
       padding: 10px;
       background: white;
       border-top: 1px solid #ddd;
+      flex-shrink: 0;
     }
 
     .chat-input {
@@ -680,15 +700,15 @@
 
     .chat-notification {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: 70px;
+      right: 10px;
+      left: 10px;
       background: #25D366;
       color: white;
       padding: 15px;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 1001;
-      max-width: 300px;
+      z-index: 2001;
       cursor: pointer;
       display: none;
     }
@@ -724,17 +744,35 @@
       100% { transform: rotate(360deg); }
     }
 
+    /* Custom scrollbar untuk konten */
+    .content-wrapper::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .content-wrapper::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .content-wrapper::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 10px;
+    }
+
+    .content-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary);
+    }
+
     @media (max-width: 480px) {
       body {
-        padding: 5px;
+        padding: 0;
       }
       
       .container {
-        border-radius: 15px;
-        height: calc(100vh - 10px);
+        border-radius: 0;
+        height: 100vh;
       }
       
-      .status-section, .customer-section, .route-section, .info-section, .promo-section, .delivery-section, .actions-section {
+      .status-section, .customer-section, .route-section, .info-section, .promo-section, .delivery-section {
         padding: 10px 12px;
       }
       
@@ -769,15 +807,23 @@
         font-size: 0.75rem;
       }
 
+      .actions-section {
+        padding: 10px 12px;
+      }
+
+      .action-btn {
+        padding: 12px;
+        font-size: 14px;
+      }
+
       .chat-container {
-        width: 95%;
-        height: 85%;
+        width: 100%;
+        height: 100%;
       }
 
       .chat-notification {
         right: 10px;
         left: 10px;
-        max-width: none;
       }
     }
   </style>
@@ -801,12 +847,12 @@
     </div>
 
     <div id="content" style="display: none;">
-      <div class="content-wrapper">
-        <!-- Map Section -->
-        <div class="map-section" id="mapSection" style="display: none;">
-          <div id="orderMap" style="height: 50vh; border-radius: 10px; margin: 10px;"></div>
-        </div>
+      <!-- Map Section - Full Width 100%, Height 50% -->
+      <div class="map-section" id="mapSection" style="display: none;">
+        <div id="orderMap"></div>
+      </div>
 
+      <div class="content-wrapper">
         <div class="status-section">
           <div class="status-badge" id="statusBadge">-</div>
         </div>
@@ -923,39 +969,40 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="actions-section">
-        <!-- Tombol Menuju Lokasi - muncul saat status accepted -->
-        <button class="action-btn on_the_way-btn" onclick="startToPickup()" id="onTheWayBtn" style="display: none;">
-          <span>🚗</span> Menuju Lokasi
-        </button>
+    <!-- Actions Section - Fixed at Bottom -->
+    <div class="actions-section" id="actionsSection" style="display: none;">
+      <!-- Tombol Menuju Lokasi - muncul saat status accepted -->
+      <button class="action-btn on_the_way-btn" onclick="startToPickup()" id="onTheWayBtn" style="display: none;">
+        <span>🚗</span> Menuju Lokasi
+      </button>
 
-        <!-- Tombol Saya Sudah Tiba - muncul saat status on_the_way -->
-        <button class="action-btn arrived-btn" onclick="arrivedAtPickup()" id="arrivedBtn" style="display: none;">
-          <span>📍</span> Saya Sudah Tiba
-        </button>
+      <!-- Tombol Saya Sudah Tiba - muncul saat status on_the_way -->
+      <button class="action-btn arrived-btn" onclick="arrivedAtPickup()" id="arrivedBtn" style="display: none;">
+        <span>📍</span> Saya Sudah Tiba
+      </button>
 
-        <!-- Tombol Mulai Perjalanan - muncul saat status arrived -->
-        <button class="action-btn antar-btn" onclick="startTrip()" id="startTripBtn" style="display: none;">
-          <span>📦</span> Mulai Perjalanan
-        </button>
+      <!-- Tombol Mulai Perjalanan - muncul saat status arrived -->
+      <button class="action-btn antar-btn" onclick="startTrip()" id="startTripBtn" style="display: none;">
+        <span>📦</span> Mulai Perjalanan
+      </button>
 
-        <!-- Tombol Selesaikan Perjalanan - muncul saat status on_trip -->
-        <button class="action-btn complete-btn" onclick="completeOrder()" id="completeBtn" style="display: none;">
-          <span>✅</span> Selesaikan Perjalanan
-        </button>
+      <!-- Tombol Selesaikan Perjalanan - muncul saat status on_trip -->
+      <button class="action-btn complete-btn" onclick="completeOrder()" id="completeBtn" style="display: none;">
+        <span>✅</span> Selesaikan Perjalanan
+      </button>
 
-        <!-- Tombol Chat Customer - selalu muncul kecuali order selesai/dibatalkan -->
-        <button class="action-btn contact-btn" onclick="openChat()" id="contactBtn" style="display: none; position: relative;">
-          <span>💬</span> Chat Customer
-          <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
-        </button>
+      <!-- Tombol Chat Customer - selalu muncul kecuali order selesai/dibatalkan -->
+      <button class="action-btn contact-btn" onclick="openChat()" id="contactBtn" style="display: none; position: relative;">
+        <span>💬</span> Chat Customer
+        <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
+      </button>
 
-        <!-- Tombol Batalkan Order - muncul kecuali order selesai/dibatalkan -->
-        <button class="action-btn cancel-btn" onclick="cancelOrder()" id="cancelBtn" style="display: none;">
-          <span>✖</span> Batalkan Order
-        </button>
-      </div>
+      <!-- Tombol Batalkan Order - muncul kecuali order selesai/dibatalkan -->
+      <button class="action-btn cancel-btn" onclick="cancelOrder()" id="cancelBtn" style="display: none;">
+        <span>✖</span> Batalkan Order
+      </button>
     </div>
   </div>
 
@@ -1035,6 +1082,7 @@
     let driverMarker = null;
     let pickupMarker = null;
     let destinationMarker = null;
+    let routePolyline = null;
     let driverLocationInterval = null;
     let driverOfferListener = null;
     let currentDriverLocation = null;
@@ -1061,10 +1109,10 @@
       } else {
         pickupMarker = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">A</div>',
-            iconSize: [30, 30]
+            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">A</div>',
+            iconSize: [40, 40]
           })
-        }).addTo(orderMap).bindPopup(`<b>Penjemputan</b><br>${address}`);
+        }).addTo(orderMap).bindPopup(`<b>📍 Penjemputan</b><br>${address}`);
       }
     }
 
@@ -1074,10 +1122,10 @@
       } else {
         destinationMarker = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">B</div>',
-            iconSize: [30, 30]
+            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">B</div>',
+            iconSize: [40, 40]
           })
-        }).addTo(orderMap).bindPopup(`<b>Tujuan</b><br>${address}`);
+        }).addTo(orderMap).bindPopup(`<b>🎯 Tujuan</b><br>${address}`);
       }
     }
 
@@ -1085,13 +1133,84 @@
       if (!driverMarker) {
         driverMarker = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">D</div>',
-            iconSize: [40, 40]
+            html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">🚗</div>',
+            iconSize: [50, 50]
           })
-        }).addTo(orderMap).bindPopup(`<b>Driver</b><br>Posisi Anda`);
+        }).addTo(orderMap).bindPopup(`<b>Driver Anda</b><br>Posisi saat ini`);
       } else {
         driverMarker.setLatLng([lat, lng]);
       }
+    }
+
+    // ==================== FUNGSI RUTE POLYLINE ====================
+
+    async function drawRouteOnMap(startLat, startLng, endLat, endLng) {
+      try {
+        const startCoords = `${startLng},${startLat}`;
+        const endCoords = `${endLng},${endLat}`;
+        
+        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${startCoords}&end=${endCoords}`;
+        
+        console.log('🔄 Mengambil rute dari OpenRouteService...');
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.features && data.features.length > 0) {
+          const coordinates = data.features[0].geometry.coordinates;
+          const latLngCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
+          
+          // Hapus polyline lama jika ada
+          if (routePolyline) {
+            orderMap.removeLayer(routePolyline);
+          }
+          
+          // Buat polyline baru
+          routePolyline = L.polyline(latLngCoordinates, {
+            color: '#289672',
+            weight: 6,
+            opacity: 0.8,
+            lineJoin: 'round',
+            lineCap: 'round'
+          }).addTo(orderMap);
+          
+          // Fit peta ke rute
+          orderMap.fitBounds(routePolyline.getBounds(), {
+            padding: [50, 50]
+          });
+          
+          console.log('✅ Rute berhasil ditampilkan di peta');
+          return true;
+        }
+      } catch (error) {
+        console.error('❌ Error mengambil rute:', error);
+        // Fallback ke garis lurus
+        drawStraightLineRoute(startLat, startLng, endLat, endLng);
+        return false;
+      }
+    }
+
+    function drawStraightLineRoute(startLat, startLng, endLat, endLng) {
+      // Hapus polyline lama jika ada
+      if (routePolyline) {
+        orderMap.removeLayer(routePolyline);
+      }
+      
+      // Buat garis lurus antara titik A dan B
+      routePolyline = L.polyline([[startLat, startLng], [endLat, endLng]], {
+        color: '#289672',
+        weight: 4,
+        opacity: 0.7,
+        lineJoin: 'round',
+        dashArray: '10, 10'
+      }).addTo(orderMap);
+      
+      console.log('✅ Garis lurus ditampilkan sebagai fallback');
     }
 
     // ==================== FUNGSI MENGIRIM LOKASI DRIVER ====================
@@ -1142,6 +1261,10 @@
           });
         }, (error) => {
           console.error('Error getting location:', error);
+        }, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
         });
       } else {
         console.error('Geolocation not supported');
@@ -1171,50 +1294,6 @@
       };
       
       database.ref('driver_offers/' + orderId).on('value', driverOfferListener);
-    }
-
-    // ==================== FUNGSI MENAMPILKAN RUTE ====================
-
-    async function showRouteOnMap(startLat, startLng, endLat, endLng) {
-      try {
-        const startCoords = `${startLng},${startLat}`;
-        const endCoords = `${endLng},${endLat}`;
-        
-        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${startCoords}&end=${endCoords}`;
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.features && data.features.length > 0) {
-          const coordinates = data.features[0].geometry.coordinates;
-          const latLngCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
-          
-          // Buat polyline dari koordinat rute
-          L.polyline(latLngCoordinates, {
-            color: '#289672',
-            weight: 4,
-            opacity: 0.7,
-            lineJoin: 'round'
-          }).addTo(orderMap);
-          
-          console.log('✅ Rute berhasil ditampilkan di peta');
-        }
-      } catch (error) {
-        console.error('❌ Error mengambil rute dari OpenRouteService:', error);
-        // Fallback ke garis lurus
-        L.polyline([[startLat, startLng], [endLat, endLng]], {
-          color: '#289672',
-          weight: 4,
-          opacity: 0.7,
-          lineJoin: 'round',
-          dashArray: '10, 10'
-        }).addTo(orderMap);
-      }
     }
 
     // ==================== FUNGSI LOCALSTORAGE ====================
@@ -1745,7 +1824,6 @@
             initializeChatSystem(orderId);
           } else {
             // Untuk update selanjutnya, hanya update status dan data yang perlu diupdate
-            // TIDAK memanggil displayOrderData() untuk mencegah perubahan teks yang tidak perlu
             updateOrderStatus(orderData.status);
             
             // Update data lain yang mungkin berubah
@@ -1797,6 +1875,7 @@
     function displayOrderData(order) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
+      document.getElementById('actionsSection').style.display = 'flex';
       
       // Set data hanya sekali saat pertama kali dimuat
       document.getElementById('pickupAddress').textContent = order.alamat_a || '-';
@@ -1887,9 +1966,9 @@
         addPickupMarker(order.from_lat, order.from_lng, order.alamat_a);
         addDestinationMarker(order.to_lat, order.to_lng, order.alamat_b);
         
-        // Tampilkan rute jika status on_the_way atau on_trip
+        // Gambar rute jika status on_the_way atau on_trip
         if (order.status === 'on_the_way' || order.status === 'on_trip') {
-          showRouteOnMap(order.from_lat, order.from_lng, order.to_lat, order.to_lng);
+          drawRouteOnMap(order.from_lat, order.from_lng, order.to_lat, order.to_lng);
         }
         
         // Mulai mendengarkan update lokasi driver dari Firebase
@@ -2002,9 +2081,9 @@
           cancelBtn.style.display = 'flex';
           // Mulai kirim lokasi driver
           startSendingDriverLocation(currentOrderId);
-          // Tampilkan rute jika ada peta
+          // Gambar rute jika ada peta
           if (currentOrderData && orderMap) {
-            showRouteOnMap(
+            drawRouteOnMap(
               currentOrderData.from_lat, currentOrderData.from_lng,
               currentOrderData.to_lat, currentOrderData.to_lng
             );
@@ -2062,6 +2141,7 @@
       
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'none';
+      document.getElementById('actionsSection').style.display = 'none';
       document.getElementById('error').style.display = 'flex';
       document.getElementById('errorMessage').textContent = message;
       
@@ -2088,6 +2168,14 @@
         
         // Mulai kirim lokasi driver
         startSendingDriverLocation(currentOrderId);
+        
+        // Gambar rute
+        if (orderMap && currentOrderData) {
+          drawRouteOnMap(
+            currentOrderData.from_lat, currentOrderData.from_lng,
+            currentOrderData.to_lat, currentOrderData.to_lng
+          );
+        }
         
         sendToKodular({
           action: 'start_to_pickup',
