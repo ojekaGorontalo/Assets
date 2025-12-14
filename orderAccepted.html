@@ -7,6 +7,8 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     /* CSS tetap sama seperti sebelumnya */
     :root {
@@ -69,6 +71,24 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
+    }
+
+    /* Map Section Styles */
+    .map-section {
+      padding: 0 10px;
+      margin-bottom: 10px;
+    }
+
+    #orderMap {
+      border: 2px solid var(--primary);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 10px;
+    }
+
+    .leaflet-control-zoom {
+      border: 1px solid #ddd !important;
+      border-radius: 4px !important;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
     }
 
     .status-section {
@@ -782,6 +802,11 @@
 
     <div id="content" style="display: none;">
       <div class="content-wrapper">
+        <!-- Map Section -->
+        <div class="map-section" id="mapSection" style="display: none;">
+          <div id="orderMap" style="height: 50vh; border-radius: 10px; margin: 10px;"></div>
+        </div>
+
         <div class="status-section">
           <div class="status-badge" id="statusBadge">-</div>
         </div>
@@ -968,6 +993,9 @@
     <small>Klik untuk membalas</small>
   </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
     // Firebase Configuration
     const firebaseConfig = {
@@ -1001,6 +1029,193 @@
     let chatListener = null;
     let unreadMessages = 0;
     let chatOpen = false;
+
+    // ==================== VARIABEL PETA DAN LOKASI ====================
+    let orderMap = null;
+    let driverMarker = null;
+    let pickupMarker = null;
+    let destinationMarker = null;
+    let driverLocationInterval = null;
+    let driverOfferListener = null;
+    let currentDriverLocation = null;
+
+    // OpenRouteService API Key (sama dengan riwayatDriver.html)
+    const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d768e0a852f64697af0';
+
+    // ==================== FUNGSI PETA ====================
+
+    function initMap(centerLat, centerLng) {
+      if (!orderMap) {
+        orderMap = L.map('orderMap').setView([centerLat, centerLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(orderMap);
+      } else {
+        orderMap.setView([centerLat, centerLng], 13);
+      }
+    }
+
+    function addPickupMarker(lat, lng, address) {
+      if (pickupMarker) {
+        pickupMarker.setLatLng([lat, lng]);
+      } else {
+        pickupMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">A</div>',
+            iconSize: [30, 30]
+          })
+        }).addTo(orderMap).bindPopup(`<b>Penjemputan</b><br>${address}`);
+      }
+    }
+
+    function addDestinationMarker(lat, lng, address) {
+      if (destinationMarker) {
+        destinationMarker.setLatLng([lat, lng]);
+      } else {
+        destinationMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">B</div>',
+            iconSize: [30, 30]
+          })
+        }).addTo(orderMap).bindPopup(`<b>Tujuan</b><br>${address}`);
+      }
+    }
+
+    function updateDriverMarker(lat, lng) {
+      if (!driverMarker) {
+        driverMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">D</div>',
+            iconSize: [40, 40]
+          })
+        }).addTo(orderMap).bindPopup(`<b>Driver</b><br>Posisi Anda`);
+      } else {
+        driverMarker.setLatLng([lat, lng]);
+      }
+    }
+
+    // ==================== FUNGSI MENGIRIM LOKASI DRIVER ====================
+
+    function startSendingDriverLocation(orderId) {
+      if (driverLocationInterval) {
+        clearInterval(driverLocationInterval);
+      }
+      
+      // Kirim lokasi pertama kali
+      sendDriverLocationToFirebase(orderId);
+      
+      // Kemudian kirim setiap 5 detik
+      driverLocationInterval = setInterval(() => {
+        sendDriverLocationToFirebase(orderId);
+      }, 5000);
+    }
+
+    function sendDriverLocationToFirebase(orderId) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const { latitude, longitude } = position.coords;
+          currentDriverLocation = { lat: latitude, lng: longitude };
+          
+          // Update marker driver di peta
+          updateDriverMarker(latitude, longitude);
+          
+          // Kirim ke Firebase
+          const driverOfferRef = database.ref('driver_offers/' + orderId);
+          driverOfferRef.set({
+            driver_lat: latitude,
+            driver_lng: longitude,
+            driver_id: currentDriverData.driverId,
+            driver_name: currentDriverData.fullName,
+            timestamp: new Date().toISOString(),
+            order_id: orderId
+          });
+          
+          console.log('📍 Lokasi driver dikirim:', latitude, longitude);
+          
+          // Kirim ke Kodular
+          sendToKodular({
+            action: 'driver_location_updated',
+            order_id: orderId,
+            lat: latitude,
+            lng: longitude,
+            timestamp: new Date().toISOString()
+          });
+        }, (error) => {
+          console.error('Error getting location:', error);
+        });
+      } else {
+        console.error('Geolocation not supported');
+      }
+    }
+
+    function stopSendingDriverLocation() {
+      if (driverLocationInterval) {
+        clearInterval(driverLocationInterval);
+        driverLocationInterval = null;
+        console.log('📍 Berhenti mengirim lokasi driver');
+      }
+    }
+
+    // ==================== FUNGSI MENDENGARKAN LOKASI DRIVER DARI FIREBASE ====================
+
+    function listenToDriverLocation(orderId) {
+      if (driverOfferListener) {
+        database.ref('driver_offers/' + orderId).off('value', driverOfferListener);
+      }
+      
+      driverOfferListener = (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.driver_lat && data.driver_lng) {
+          updateDriverMarker(data.driver_lat, data.driver_lng);
+        }
+      };
+      
+      database.ref('driver_offers/' + orderId).on('value', driverOfferListener);
+    }
+
+    // ==================== FUNGSI MENAMPILKAN RUTE ====================
+
+    async function showRouteOnMap(startLat, startLng, endLat, endLng) {
+      try {
+        const startCoords = `${startLng},${startLat}`;
+        const endCoords = `${endLng},${endLat}`;
+        
+        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${startCoords}&end=${endCoords}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.features && data.features.length > 0) {
+          const coordinates = data.features[0].geometry.coordinates;
+          const latLngCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
+          
+          // Buat polyline dari koordinat rute
+          L.polyline(latLngCoordinates, {
+            color: '#289672',
+            weight: 4,
+            opacity: 0.7,
+            lineJoin: 'round'
+          }).addTo(orderMap);
+          
+          console.log('✅ Rute berhasil ditampilkan di peta');
+        }
+      } catch (error) {
+        console.error('❌ Error mengambil rute dari OpenRouteService:', error);
+        // Fallback ke garis lurus
+        L.polyline([[startLat, startLng], [endLat, endLng]], {
+          color: '#289672',
+          weight: 4,
+          opacity: 0.7,
+          lineJoin: 'round',
+          dashArray: '10, 10'
+        }).addTo(orderMap);
+      }
+    }
 
     // ==================== FUNGSI LOCALSTORAGE ====================
 
@@ -1656,6 +1871,37 @@
       updateCustomerInfo(order);
       updateOrderStatus(order.status);
       updateDeliveryInfo(order);
+      
+      // ==================== TAMPILKAN PETA JIKA ADA KOORDINAT ====================
+      if (order.from_lat && order.from_lng && order.to_lat && order.to_lng) {
+        // Tampilkan section peta
+        document.getElementById('mapSection').style.display = 'block';
+        
+        // Inisialisasi peta dengan titik tengah antara pickup dan destination
+        const centerLat = (parseFloat(order.from_lat) + parseFloat(order.to_lat)) / 2;
+        const centerLng = (parseFloat(order.from_lng) + parseFloat(order.to_lng)) / 2;
+        
+        initMap(centerLat, centerLng);
+        
+        // Tambahkan marker untuk pickup dan destination
+        addPickupMarker(order.from_lat, order.from_lng, order.alamat_a);
+        addDestinationMarker(order.to_lat, order.to_lng, order.alamat_b);
+        
+        // Tampilkan rute jika status on_the_way atau on_trip
+        if (order.status === 'on_the_way' || order.status === 'on_trip') {
+          showRouteOnMap(order.from_lat, order.from_lng, order.to_lat, order.to_lng);
+        }
+        
+        // Mulai mendengarkan update lokasi driver dari Firebase
+        listenToDriverLocation(currentOrderId);
+        
+        // Jika status order adalah on_the_way atau on_trip, mulai kirim lokasi driver
+        if (order.status === 'on_the_way' || order.status === 'on_trip') {
+          startSendingDriverLocation(currentOrderId);
+        }
+      } else {
+        document.getElementById('mapSection').style.display = 'none';
+      }
     }
 
     function updateCustomerInfo(order) {
@@ -1744,6 +1990,8 @@
           onTheWayBtn.style.display = 'flex';
           contactBtn.style.display = 'flex';
           cancelBtn.style.display = 'flex';
+          // Hentikan pengiriman lokasi jika belum menuju
+          stopSendingDriverLocation();
           break;
           
         case 'on_the_way':
@@ -1752,6 +2000,15 @@
           arrivedBtn.style.display = 'flex';
           contactBtn.style.display = 'flex';
           cancelBtn.style.display = 'flex';
+          // Mulai kirim lokasi driver
+          startSendingDriverLocation(currentOrderId);
+          // Tampilkan rute jika ada peta
+          if (currentOrderData && orderMap) {
+            showRouteOnMap(
+              currentOrderData.from_lat, currentOrderData.from_lng,
+              currentOrderData.to_lat, currentOrderData.to_lng
+            );
+          }
           break;
           
         case 'arrived':
@@ -1760,6 +2017,8 @@
           startTripBtn.style.display = 'flex';
           contactBtn.style.display = 'flex';
           cancelBtn.style.display = 'flex';
+          // Lanjutkan kirim lokasi driver
+          startSendingDriverLocation(currentOrderId);
           break;
           
         case 'on_trip':
@@ -1768,16 +2027,22 @@
           completeBtn.style.display = 'flex';
           contactBtn.style.display = 'flex';
           cancelBtn.style.display = 'flex';
+          // Lanjutkan kirim lokasi driver
+          startSendingDriverLocation(currentOrderId);
           break;
           
         case 'completed':
           statusBadge.textContent = 'Selesai';
           statusBadge.classList.add('status-completed');
+          // Hentikan pengiriman lokasi
+          stopSendingDriverLocation();
           break;
           
         case 'cancelled':
           statusBadge.textContent = 'Batal';
           statusBadge.classList.add('status-cancelled');
+          // Hentikan pengiriman lokasi
+          stopSendingDriverLocation();
           break;
           
         default:
@@ -1820,6 +2085,9 @@
         updated_at: new Date().toISOString()
       }).then(() => {
         console.log('Status updated to on_the_way');
+        
+        // Mulai kirim lokasi driver
+        startSendingDriverLocation(currentOrderId);
         
         sendToKodular({
           action: 'start_to_pickup',
@@ -1896,6 +2164,9 @@
       
       console.log('🔄 Menyelesaikan order dan update statistik...');
       
+      // Hentikan pengiriman lokasi
+      stopSendingDriverLocation();
+      
       const orderRef = database.ref('orders/' + currentOrderId);
       orderRef.update({
         status: 'completed',
@@ -1947,6 +2218,9 @@
         return;
       }
       
+      // Hentikan pengiriman lokasi
+      stopSendingDriverLocation();
+      
       const orderRef = database.ref('orders/' + currentOrderId);
       orderRef.update({
         status: 'cancelled',
@@ -1993,14 +2267,26 @@
         }
       }
       
+      // Hentikan pengiriman lokasi driver
+      stopSendingDriverLocation();
+      
+      // Hapus listener lokasi driver
+      if (driverOfferListener) {
+        database.ref('driver_offers/' + currentOrderId).off('value', driverOfferListener);
+      }
+      
+      // Hapus peta
+      if (orderMap) {
+        orderMap.remove();
+        orderMap = null;
+      }
+      
       // Kirim sinyal ke Kodular untuk menutup halaman atau kembali
       sendToKodular({
         action: 'go_back',
         order_id: currentOrderId,
         message: 'Kembali dari detail order'
       });
-      
-      // TIDAK ADA REDIRECT - Kodular yang akan menangani navigasi
     }
 
     function sendToKodular(data) {
@@ -2072,4 +2358,4 @@
     window.receiveDataFromKodular = receiveDataFromKodular;
   </script>
 </body>
-</html>
+  </html>
