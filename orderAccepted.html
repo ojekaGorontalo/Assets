@@ -10,7 +10,7 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    /* CSS tetap sama seperti sebelumnya */
+    /* CSS dengan perbaikan scroll, tampilan, dan peta */
     :root {
       --primary: #1e6f5c;
       --secondary: #289672;
@@ -68,20 +68,26 @@
       display: none;
     }
 
+    /* PERBAIKAN SCROLL: Konten utama bisa discroll */
     .content-wrapper {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       padding-bottom: 120px; /* Space untuk tombol aksi */
+      -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
+      max-height: calc(100vh - 50vh - 60px); /* Batasi tinggi maksimum */
     }
 
     /* Map Section Styles - Full Width 100% */
     .map-section {
       width: 100%;
       height: 50vh;
+      min-height: 300px; /* Minimum height untuk peta */
       flex-shrink: 0;
       position: relative;
+      z-index: 1;
     }
 
     #orderMap {
@@ -199,12 +205,15 @@
       flex-direction: column;
       gap: 5px;
       flex: 1;
+      min-width: 0; /* PERBAIKAN: Agar text tidak overflow */
     }
 
     .customer-name {
       font-weight: 600;
       color: var(--primary);
       font-size: 1rem;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .customer-rating {
@@ -274,6 +283,7 @@
 
     .route-text {
       flex: 1;
+      min-width: 0; /* PERBAIKAN: Agar text tidak overflow */
     }
 
     .route-label {
@@ -287,6 +297,9 @@
       color: var(--dark);
       font-size: 0.8rem;
       line-height: 1.3;
+      word-break: break-word; /* PERBAIKAN: Teks alamat bisa turun baris */
+      overflow-wrap: break-word;
+      white-space: normal;
     }
 
     .info-section {
@@ -317,6 +330,8 @@
       font-weight: 600;
       color: var(--dark);
       font-size: 0.75rem;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .price-highlight {
@@ -371,6 +386,8 @@
     .promo-value {
       font-weight: 600;
       color: var(--dark);
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .original-price {
@@ -427,6 +444,8 @@
       color: var(--dark);
       font-size: 0.75rem;
       word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
     }
 
     .delivery-item-full {
@@ -746,7 +765,7 @@
 
     /* Custom scrollbar untuk konten */
     .content-wrapper::-webkit-scrollbar {
-      width: 5px;
+      width: 6px;
     }
 
     .content-wrapper::-webkit-scrollbar-track {
@@ -824,6 +843,16 @@
       .chat-notification {
         right: 10px;
         left: 10px;
+      }
+      
+      /* PERBAIKAN RESPONSIVE: Tinggi peta disesuaikan */
+      .map-section {
+        height: 40vh;
+        min-height: 250px;
+      }
+      
+      .content-wrapper {
+        max-height: calc(100vh - 40vh - 60px);
       }
     }
   </style>
@@ -1090,14 +1119,22 @@
     // OpenRouteService API Key (sama dengan riwayatDriver.html)
     const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d768e0a852f64697af0';
 
-    // ==================== FUNGSI PETA ====================
+    // ==================== FUNGSI PETA DIPERBAIKI ====================
 
     function initMap(centerLat, centerLng) {
       if (!orderMap) {
         orderMap = L.map('orderMap').setView([centerLat, centerLng], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
         }).addTo(orderMap);
+        
+        // Tambahkan kontrol zoom yang lebih baik untuk mobile
+        L.control.zoom({
+          position: 'bottomright'
+        }).addTo(orderMap);
+        
+        console.log('✅ Peta diinisialisasi dengan view:', centerLat, centerLng);
       } else {
         orderMap.setView([centerLat, centerLng], 13);
       }
@@ -1109,8 +1146,9 @@
       } else {
         pickupMarker = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">A</div>',
-            iconSize: [40, 40]
+            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">A</div>',
+            iconSize: [40, 40],
+            className: 'pickup-marker'
           })
         }).addTo(orderMap).bindPopup(`<b>📍 Penjemputan</b><br>${address}`);
       }
@@ -1122,8 +1160,9 @@
       } else {
         destinationMarker = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px;">B</div>',
-            iconSize: [40, 40]
+            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">B</div>',
+            iconSize: [40, 40],
+            className: 'destination-marker'
           })
         }).addTo(orderMap).bindPopup(`<b>🎯 Tujuan</b><br>${address}`);
       }
@@ -1133,8 +1172,9 @@
       if (!driverMarker) {
         driverMarker = L.marker([lat, lng], {
           icon: L.divIcon({
-            html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">🚗</div>',
-            iconSize: [50, 50]
+            html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">🚗</div>',
+            iconSize: [50, 50],
+            className: 'driver-marker'
           })
         }).addTo(orderMap).bindPopup(`<b>Driver Anda</b><br>Posisi saat ini`);
       } else {
@@ -1142,7 +1182,7 @@
       }
     }
 
-    // ==================== FUNGSI RUTE POLYLINE ====================
+    // ==================== FUNGSI RUTE POLYLINE DIPERBAIKI ====================
 
     async function drawRouteOnMap(startLat, startLng, endLat, endLng) {
       try {
@@ -1152,6 +1192,7 @@
         const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${startCoords}&end=${endCoords}`;
         
         console.log('🔄 Mengambil rute dari OpenRouteService...');
+        console.log('Start:', startCoords, 'End:', endCoords);
         
         const response = await fetch(url);
         
@@ -1170,22 +1211,27 @@
             orderMap.removeLayer(routePolyline);
           }
           
-          // Buat polyline baru
+          // Buat polyline baru dengan style yang lebih jelas
           routePolyline = L.polyline(latLngCoordinates, {
             color: '#289672',
             weight: 6,
-            opacity: 0.8,
+            opacity: 0.9,
             lineJoin: 'round',
-            lineCap: 'round'
+            lineCap: 'round',
+            dashArray: null // Solid line, bukan dashed
           }).addTo(orderMap);
           
-          // Fit peta ke rute
+          // Fit peta ke rute dengan padding yang lebih baik
           orderMap.fitBounds(routePolyline.getBounds(), {
             padding: [50, 50]
           });
           
-          console.log('✅ Rute berhasil ditampilkan di peta');
+          console.log('✅ Rute berhasil ditampilkan di peta, panjang:', latLngCoordinates.length);
           return true;
+        } else {
+          console.warn('⚠️ Tidak ada rute yang ditemukan, menggunakan garis lurus');
+          drawStraightLineRoute(startLat, startLng, endLat, endLng);
+          return false;
         }
       } catch (error) {
         console.error('❌ Error mengambil rute:', error);
@@ -1201,13 +1247,13 @@
         orderMap.removeLayer(routePolyline);
       }
       
-      // Buat garis lurus antara titik A dan B
+      // Buat garis lurus antara titik A dan B dengan style berbeda
       routePolyline = L.polyline([[startLat, startLng], [endLat, endLng]], {
         color: '#289672',
         weight: 4,
         opacity: 0.7,
         lineJoin: 'round',
-        dashArray: '10, 10'
+        dashArray: '10, 10' // Garis putus-putus untuk fallback
       }).addTo(orderMap);
       
       console.log('✅ Garis lurus ditampilkan sebagai fallback');
@@ -1263,7 +1309,7 @@
           console.error('Error getting location:', error);
         }, {
           enableHighAccuracy: true,
-          timeout: 5000,
+          timeout: 10000,
           maximumAge: 0
         });
       } else {
@@ -1774,7 +1820,7 @@
         }
     }
 
-    // ==================== FUNGSI UTAMA ====================
+    // ==================== FUNGSI UTAMA DIPERBAIKI ====================
 
     function receiveDataFromKodular(dataString) {
       try {
@@ -1968,7 +2014,10 @@
         
         // Gambar rute jika status on_the_way atau on_trip
         if (order.status === 'on_the_way' || order.status === 'on_trip') {
-          drawRouteOnMap(order.from_lat, order.from_lng, order.to_lat, order.to_lng);
+          // Beri sedikit delay untuk memastikan peta sudah siap
+          setTimeout(() => {
+            drawRouteOnMap(order.from_lat, order.from_lng, order.to_lat, order.to_lng);
+          }, 500);
         }
         
         // Mulai mendengarkan update lokasi driver dari Firebase
@@ -1981,6 +2030,14 @@
       } else {
         document.getElementById('mapSection').style.display = 'none';
       }
+      
+      // PERBAIKAN: Pastikan konten bisa discroll
+      setTimeout(() => {
+        const contentWrapper = document.querySelector('.content-wrapper');
+        if (contentWrapper) {
+          contentWrapper.style.overflowY = 'auto';
+        }
+      }, 100);
     }
 
     function updateCustomerInfo(order) {
@@ -2083,10 +2140,12 @@
           startSendingDriverLocation(currentOrderId);
           // Gambar rute jika ada peta
           if (currentOrderData && orderMap) {
-            drawRouteOnMap(
-              currentOrderData.from_lat, currentOrderData.from_lng,
-              currentOrderData.to_lat, currentOrderData.to_lng
-            );
+            setTimeout(() => {
+              drawRouteOnMap(
+                currentOrderData.from_lat, currentOrderData.from_lng,
+                currentOrderData.to_lat, currentOrderData.to_lng
+              );
+            }, 300);
           }
           break;
           
@@ -2171,10 +2230,12 @@
         
         // Gambar rute
         if (orderMap && currentOrderData) {
-          drawRouteOnMap(
-            currentOrderData.from_lat, currentOrderData.from_lng,
-            currentOrderData.to_lat, currentOrderData.to_lng
-          );
+          setTimeout(() => {
+            drawRouteOnMap(
+              currentOrderData.from_lat, currentOrderData.from_lng,
+              currentOrderData.to_lat, currentOrderData.to_lng
+            );
+          }, 500);
         }
         
         sendToKodular({
