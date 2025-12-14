@@ -456,18 +456,30 @@
       flex-direction: column;
     }
 
-    .modal-header {
-      padding: 12px 15px;
-      border-bottom: 1px solid #eee;
+    /* MODAL HEADER BARU DENGAN NAMA CUSTOMER */
+    .modal-header-with-customer {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .modal-title-container {
+      flex: 1;
     }
 
     .modal-title {
       font-size: 1rem;
       font-weight: 600;
       color: var(--primary);
+      margin-bottom: 2px;
+    }
+
+    .modal-customer-name {
+      font-size: 0.85rem;
+      color: #666;
+      font-weight: 500;
     }
 
     .close-btn {
@@ -501,8 +513,11 @@
       flex-direction: column;
     }
 
+    /* MAP DIPERBESAR MENJADI 50% TINGGI MODAL */
     .modal-map {
-      height: 150px;
+      height: 50vh;
+      min-height: 200px;
+      max-height: 300px;
       width: 100%;
       border-radius: 0;
     }
@@ -575,9 +590,11 @@
       color: var(--dark);
     }
 
+    /* GRID DURASI, JARAK, HARGA - UKURAN DIPERKECIL */
     .modal-order-details {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
       background-color: #f9f9f9;
       padding: 10px;
       border-radius: 8px;
@@ -589,17 +606,16 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      flex: 1;
     }
 
     .modal-detail-value {
       font-weight: 600;
       color: var(--primary);
-      font-size: 0.9rem;
+      font-size: 0.85rem; /* DIPERKECIL */
     }
 
     .modal-detail-label {
-      font-size: 0.7rem;
+      font-size: 0.7rem; /* DIPERKECIL */
       color: #666;
       margin-top: 2px;
     }
@@ -607,7 +623,7 @@
     .modal-price-highlight {
       color: var(--success);
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 0.85rem; /* DIPERKECIL */
     }
 
     /* MODAL PROMO INFO BARU */
@@ -646,6 +662,24 @@
       font-weight: 600;
       display: inline-block;
       margin-bottom: 8px;
+    }
+
+    /* JARAK DRIVER - BADGE KECIL TANPA TEKS */
+    .distance-badge-container {
+      text-align: center;
+      margin: 8px 0;
+      display: none;
+    }
+
+    .distance-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .countdown-container {
@@ -739,16 +773,19 @@
       max-width: 350px;
     }
 
-    .autobid-modal .modal-header {
+    .autobid-modal .modal-header-with-customer {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
-      text-align: center;
       border-bottom: none;
     }
 
     .autobid-modal .modal-title {
       font-size: 0.9rem;
       color: white;
+    }
+
+    .autobid-modal .modal-customer-name {
+      color: rgba(255, 255, 255, 0.9);
     }
 
     .autobid-modal .modal-body {
@@ -783,18 +820,35 @@
       color: var(--primary);
     }
 
+    /* GRID AUTOBID - DURASI, JARAK, HARGA */
     .autobid-details {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
       margin-bottom: 15px;
     }
 
-    .autobid-price {
-      font-size: 1rem;
-      font-weight: 700;
+    .autobid-detail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .autobid-detail-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .autobid-detail-value {
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .autobid-price-value {
       color: var(--success);
-      margin: 10px 0;
+      font-weight: 700;
     }
 
     /* AUTOBID PROMO INFO */
@@ -815,6 +869,12 @@
       font-weight: 600;
       display: inline-block;
       margin-bottom: 8px;
+    }
+
+    /* POTONGAN KOMISI & SALDO - DISEMBUNYIKAN */
+    #feeInfo,
+    #autobidFeeInfo {
+      display: none !important;
     }
 
     .active-order-notification {
@@ -1356,7 +1416,9 @@
       }
       
       .modal-map {
-        height: 150px;
+        height: 40vh;
+        min-height: 180px;
+        max-height: 250px;
       }
 
       .location-toggle-btn, .autobid-btn, .refresh-btn {
@@ -1416,10 +1478,6 @@
         flex: 0 0 calc(33.333% - 10px);
       }
       
-      .modal-header {
-        padding: 12px 15px;
-      }
-      
       .modal-details {
         padding: 12px 15px;
       }
@@ -1429,8 +1487,9 @@
       }
       
       .modal-order-details {
-        flex-direction: column;
-        gap: 10px;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5px;
+        padding: 8px;
       }
       
       .modal-detail-item {
@@ -1469,7 +1528,9 @@
       }
       
       .modal-map {
-        height: 120px;
+        height: 35vh;
+        min-height: 150px;
+        max-height: 200px;
       }
       
       .modal-details {
@@ -1493,6 +1554,11 @@
       #filterTujuanContainer .input-group {
           width: 100% !important;
           max-width: 100% !important;
+      }
+
+      .autobid-details {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5px;
       }
     }
   </style>
@@ -1646,15 +1712,22 @@
     </div>
   </div>
 
-  <!-- Modal Detail Order (untuk manual) -->
+  <!-- Modal Detail Order (untuk manual) - DIUBAH -->
   <div class="modal" id="orderModal">
     <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">Detail Permintaan</h3>
+      <!-- HEADER DENGAN NAMA CUSTOMER -->
+      <div class="modal-header-with-customer">
+        <div class="modal-title-container">
+          <h3 class="modal-title">Detail Permintaan</h3>
+          <div class="modal-customer-name" id="modalCustomerName">-</div>
+        </div>
         <button class="close-btn" id="closeModal">&times;</button>
       </div>
+      
       <div class="modal-body">
+        <!-- MAP DIPERBESAR -->
         <div class="modal-map" id="modalMap"></div>
+        
         <div class="modal-details">
           <div class="modal-route-info">
             <div class="modal-route-point">
@@ -1681,40 +1754,26 @@
           </div>
           
           <div id="modalDeliveryInfo"></div>
+          
+          <!-- GRID DURASI, JARAK, HARGA -->
           <div class="modal-order-details">
             <div class="modal-detail-item">
               <span class="modal-detail-value" id="modalDuration">-</span>
-              <span class="modal-detail-label">Durasi</span>
+              <span class="modal-detail-label">|</span>
             </div>
             <div class="modal-detail-item">
               <span class="modal-detail-value" id="modalDistance">-</span>
-              <span class="modal-detail-label">Jarak</span>
+              <span class="modal-detail-label">|</span>
             </div>
             <div class="modal-detail-item">
               <span class="modal-detail-value modal-price-highlight" id="modalPrice">-</span>
-              <span class="modal-detail-label">Harga</span>
+              <span class="modal-detail-label">|</span>
             </div>
           </div>
           
-          <!-- INFO BIAYA POTONGAN -->
-          <div class="fee-info" id="feeInfo" style="display: none;">
-            <div class="fee-item">
-              <span class="fee-label">Potongan komisi:</span>
-              <span class="fee-value" id="feeAmount">Rp 0</span>
-            </div>
-            <div class="fee-item">
-              <span class="fee-label">Saldo Anda:</span>
-              <span class="fee-value" id="currentBalanceInfo">Rp 0</span>
-            </div>
-            <div class="fee-item">
-              <span class="fee-label">Sisa saldo setelah potongan:</span>
-              <span class="fee-value" id="remainingBalance">Rp 0</span>
-            </div>
-          </div>
-          
-          <div class="countdown-container" id="driverDistanceContainer" style="display: none;">
-            <div class="countdown-text">Jarak Anda ke lokasi jemput:</div>
-            <div class="countdown-timer" id="driverDistance">-</div>
+          <!-- JARAK DRIVER - BADGE KECIL TANPA TEKS -->
+          <div class="distance-badge-container" id="driverDistanceContainer" style="display: none;">
+            <div class="distance-badge" id="driverDistance">-</div>
           </div>
           
           <div class="countdown-container" id="countdownContainer">
@@ -1729,11 +1788,15 @@
     </div>
   </div>
 
-  <!-- MODAL AUTOBID BARU DENGAN PROGRESS BAR -->
+  <!-- MODAL AUTOBID BARU DENGAN PROGRESS BAR - DIUBAH -->
   <div class="modal autobid-modal" id="autobidModal">
     <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">🤖 AUTOBID - MENGIRIM PENAWARAN</h3>
+      <!-- HEADER DENGAN NAMA CUSTOMER -->
+      <div class="modal-header-with-customer">
+        <div class="modal-title-container">
+          <h3 class="modal-title">🤖 AUTOBID - MENGIRIM PENAWARAN</h3>
+          <div class="modal-customer-name" id="autobidCustomerName">-</div>
+        </div>
         <!-- Tidak ada tombol close untuk modal Autobid -->
       </div>
       <div class="modal-body">
@@ -1752,28 +1815,19 @@
             
             <div id="autobidDeliveryInfo"></div>
             
+            <!-- GRID DURASI, JARAK, HARGA -->
             <div class="autobid-details">
-              <div>
-                <div style="font-size: 0.7rem; color: #666;">Jarak</div>
-                <div style="font-weight: 600;" id="autobidDistance">-</div>
+              <div class="autobid-detail-item">
+                <div class="autobid-detail-label">Jarak</div>
+                <div class="autobid-detail-value" id="autobidDistance">-</div>
               </div>
-              <div>
-                <div style="font-size: 0.7rem; color: #666;">Durasi</div>
-                <div style="font-weight: 600;" id="autobidDuration">-</div>
+              <div class="autobid-detail-item">
+                <div class="autobid-detail-label">Durasi</div>
+                <div class="autobid-detail-value" id="autobidDuration">-</div>
               </div>
-            </div>
-            
-            <div class="autobid-price" id="autobidPrice">-</div>
-
-            <!-- INFO BIAYA POTONGAN AUTOBID -->
-            <div class="fee-info" id="autobidFeeInfo" style="display: none;">
-              <div class="fee-item">
-                <span class="fee-label">Potongan komisi:</span>
-                <span class="fee-value" id="autobidFeeAmount">Rp 0</span>
-              </div>
-              <div class="fee-item">
-                <span class="fee-label">Saldo Anda:</span>
-                <span class="fee-value" id="autobidCurrentBalance">Rp 0</span>
+              <div class="autobid-detail-item">
+                <div class="autobid-detail-label">Harga</div>
+                <div class="autobid-detail-value autobid-price-value" id="autobidPrice">-</div>
               </div>
             </div>
           </div>
@@ -2916,7 +2970,141 @@
       );
     }
 
-    // ==================== FUNGSI MODAL AUTOBID BARU DENGAN PROGRESS BAR ====================
+    // ==================== FUNGSI MODAL DETAIL ORDER MANUAL - DIUBAH ====================
+
+    function showOrderDetail(order) {
+      if (!checkDriverData()) return;
+
+      const orderKey = order.order_id || order.id;
+      const orderRef = database.ref('orders/' + orderKey);
+      
+      orderRef.once('value').then((snapshot) => {
+        const currentOrder = snapshot.val();
+        
+        if (!currentOrder || currentOrder.status !== 'searching') {
+          showInfoPopup('Order ini sudah diambil oleh driver lain.');
+          loadOrders();
+          return;
+        }
+        
+        currentSelectedOrder = currentOrder;
+        currentDriverId = generateDriverId();
+        
+        // 1. TAMBAH NAMA CUSTOMER DI MODAL
+        const customerName = currentOrder.user_data?.nama || 'Tidak diketahui';
+        document.getElementById('modalCustomerName').textContent = customerName;
+        
+        document.getElementById('modalAddressA').textContent = currentOrder.alamat_a || '-';
+        document.getElementById('modalAddressB').textContent = currentOrder.alamat_b || '-';
+        document.getElementById('modalDuration').textContent = currentOrder.durasi || '-';
+        document.getElementById('modalDistance').textContent = currentOrder.jarak || '-';
+        
+        // PERBAIKAN: Gunakan perhitungan diskon di modal
+        const discountedPrice = calculateDiscountedPrice(currentOrder);
+        const hasRealPromo = discountedPrice.hasDiscount;
+        
+        const modalPrice = document.getElementById('modalPrice');
+        const modalPromoInfo = document.getElementById('modalPromoInfo');
+        
+        if (hasRealPromo) {
+          modalPromoInfo.style.display = 'block';
+          document.getElementById('modalPromoCode').textContent = currentOrder.kode_promo || currentOrder.promo_data?.code || '-';
+          document.getElementById('modalPromoDiscount').textContent = currentOrder.diskon_persen ? `${currentOrder.diskon_persen}%` : (currentOrder.promo_data?.discount ? `${currentOrder.promo_data.discount}%` : '-');
+          
+          modalPrice.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span style="text-decoration: line-through; color: #999; font-size: 0.9rem;">
+                Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')}
+              </span>
+              <span style="color: var(--success); font-weight: 700;">
+                Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}
+              </span>
+            </div>
+          `;
+          
+          // TAMBAHAN: Info saldo driver dari selisih diskon
+          const selisihSaldo = discountedPrice.diskonAmount;
+          const infoSaldoHTML = `
+            <div class="fee-info" style="background: #e3f2fd; border-color: #2196f3;">
+              <div class="fee-item">
+                <span class="fee-label">Keuntungan driver:</span>
+                <span class="fee-value" style="color: #1976d2; font-weight: 700;">Rp ${selisihSaldo.toLocaleString('id-ID')}</span>
+              </div>
+              <div class="fee-item">
+                <span class="fee-label">Keterangan:</span>
+                <span class="fee-value" style="color: #1976d2;">
+                  Selisih diskon (Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')} - Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}) akan ditambahkan ke saldo Anda setelah order selesai
+                </span>
+              </div>
+            </div>
+          `;
+          
+          // Tambahkan info saldo setelah info promo
+          modalPromoInfo.insertAdjacentHTML('afterend', infoSaldoHTML);
+          
+        } else {
+          modalPromoInfo.style.display = 'none';
+          modalPrice.textContent = discountedPrice.hargaDiskon ? `Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}` : '-';
+        }
+        
+        // 4. POTONGAN KOMISI & SALDO - DISEMBUNYIKAN (SUDAH DIATUR DI CSS)
+        // updateFeeInfoInModal(discountedPrice.hargaAsal); // DIKOMMENTAR
+        
+        // Tambahkan info pengiriman di modal
+        const modalDeliveryInfo = document.getElementById('modalDeliveryInfo');
+        if (currentOrder.vehicle && currentOrder.vehicle.includes('kurir') && currentOrder.delivery_data) {
+          modalDeliveryInfo.innerHTML = `
+            <div class="modal-delivery-info">
+              <div class="modal-delivery-item">
+                <span class="modal-delivery-label">Jenis Barang:</span>
+                <span class="modal-delivery-value">${currentOrder.delivery_data.itemCategory || '-'}</span>
+              </div>
+              <div class="modal-delivery-item">
+                <span class="modal-delivery-label">Deskripsi:</span>
+                <span class="modal-delivery-value">${currentOrder.delivery_data.description || '-'}</span>
+              </div>
+            </div>
+          `;
+        } else {
+          modalDeliveryInfo.innerHTML = '';
+        }
+        
+        // 6. JARAK DRIVER - HANYA ANGKA + SATUAN
+        const driverDistance = getDriverToPickupDistance(currentOrder);
+        if (driverDistance !== null) {
+          let distanceText;
+          if (driverDistance < 1) {
+            // Konversi ke meter jika kurang dari 1 km
+            distanceText = Math.round(driverDistance * 1000) + ' M';
+          } else {
+            distanceText = driverDistance.toFixed(1) + ' KM';
+          }
+          document.getElementById('driverDistance').textContent = distanceText;
+          document.getElementById('driverDistanceContainer').style.display = 'block';
+        } else {
+          document.getElementById('driverDistanceContainer').style.display = 'none';
+        }
+        
+        document.getElementById('countdownContainer').style.display = 'none';
+        document.getElementById('ambilBtn').disabled = false;
+        document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
+        
+        isAutobidModal = false;
+        document.getElementById('closeModal').classList.remove('disabled');
+        
+        document.getElementById('orderModal').style.display = 'flex';
+        
+        // 5. MAP DIPERBESAR (TELAH DIATUR DI CSS)
+        if (!modalMap) initModalMap();
+        showRouteOnMap(currentOrder);
+        
+      }).catch((error) => {
+        console.error('Error checking order status:', error);
+        showInfoPopup('Gagal memuat detail order. Silakan coba lagi.');
+      });
+    }
+
+    // ==================== FUNGSI MODAL AUTOBID - DIUBAH ====================
 
     function showAutobidOrderModal(order) {
       if (!checkDriverData()) return;
@@ -2935,6 +3123,10 @@
         
         currentSelectedOrder = currentOrder;
         currentDriverId = generateDriverId();
+        
+        // 2. TAMBAH NAMA CUSTOMER DI MODAL AUTOBID
+        const customerName = currentOrder.user_data?.nama || 'Tidak diketahui';
+        document.getElementById('autobidCustomerName').textContent = customerName;
         
         document.getElementById('autobidAddressA').textContent = currentOrder.alamat_a || '-';
         document.getElementById('autobidAddressB').textContent = currentOrder.alamat_b || '-';
@@ -2963,15 +3155,8 @@
           autobidPromoInfo.style.display = 'none';
         }
         
-        // Update info biaya potongan di modal Autobid - gunakan harga asli
-        const hasSufficientBalance = updateFeeInfoInAutobidModal(discountedPrice.hargaAsal);
-        
-        if (!hasSufficientBalance) {
-          console.log(`❌ Autobid: Saldo tidak cukup untuk order ${orderKey}`);
-          isAutobidProcessing = false;
-          processedOrders.delete(orderKey);
-          return;
-        }
+        // 4. POTONGAN KOMISI & SALDO - DISEMBUNYIKAN (SUDAH DIATUR DI CSS)
+        // updateFeeInfoInAutobidModal(discountedPrice.hargaAsal); // DIKOMMENTAR
         
         // Tambahkan info pengiriman untuk autobid modal
         const autobidDeliveryInfo = document.getElementById('autobidDeliveryInfo');
@@ -3612,127 +3797,6 @@
       sendToKodular({
         action: 'connection_error',
         message: 'Tidak terhubung ke server. Periksa koneksi internet.'
-      });
-    }
-
-    // ==================== FUNGSI MODAL DETAIL ORDER MANUAL ====================
-
-    function showOrderDetail(order) {
-      if (!checkDriverData()) return;
-
-      const orderKey = order.order_id || order.id;
-      const orderRef = database.ref('orders/' + orderKey);
-      
-      orderRef.once('value').then((snapshot) => {
-        const currentOrder = snapshot.val();
-        
-        if (!currentOrder || currentOrder.status !== 'searching') {
-          showInfoPopup('Order ini sudah diambil oleh driver lain.');
-          loadOrders();
-          return;
-        }
-        
-        currentSelectedOrder = currentOrder;
-        currentDriverId = generateDriverId();
-        
-        document.getElementById('modalAddressA').textContent = currentOrder.alamat_a || '-';
-        document.getElementById('modalAddressB').textContent = currentOrder.alamat_b || '-';
-        document.getElementById('modalDuration').textContent = currentOrder.durasi || '-';
-        document.getElementById('modalDistance').textContent = currentOrder.jarak || '-';
-        
-        // PERBAIKAN: Gunakan perhitungan diskon konsisten di modal
-        const discountedPrice = calculateDiscountedPrice(currentOrder);
-        const hasRealPromo = discountedPrice.hasDiscount;
-        
-        const modalPrice = document.getElementById('modalPrice');
-        const modalPromoInfo = document.getElementById('modalPromoInfo');
-        
-        if (hasRealPromo) {
-          modalPromoInfo.style.display = 'block';
-          document.getElementById('modalPromoCode').textContent = currentOrder.kode_promo || currentOrder.promo_data?.code || '-';
-          document.getElementById('modalPromoDiscount').textContent = currentOrder.diskon_persen ? `${currentOrder.diskon_persen}%` : (currentOrder.promo_data?.discount ? `${currentOrder.promo_data.discount}%` : '-');
-          
-          modalPrice.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center;">
-              <span style="text-decoration: line-through; color: #999; font-size: 0.9rem;">
-                Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')}
-              </span>
-              <span style="color: var(--success); font-weight: 700;">
-                Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}
-              </span>
-            </div>
-          `;
-          
-          // TAMBAHAN: Info saldo driver dari selisih diskon
-          const selisihSaldo = discountedPrice.diskonAmount;
-          const infoSaldoHTML = `
-            <div class="fee-info" style="background: #e3f2fd; border-color: #2196f3;">
-              <div class="fee-item">
-                <span class="fee-label">Keuntungan driver:</span>
-                <span class="fee-value" style="color: #1976d2; font-weight: 700;">Rp ${selisihSaldo.toLocaleString('id-ID')}</span>
-              </div>
-              <div class="fee-item">
-                <span class="fee-label">Keterangan:</span>
-                <span class="fee-value" style="color: #1976d2;">
-                  Selisih diskon (Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')} - Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}) akan ditambahkan ke saldo Anda setelah order selesai
-                </span>
-              </div>
-            </div>
-          `;
-          
-          // Tambahkan info saldo setelah info promo
-          modalPromoInfo.insertAdjacentHTML('afterend', infoSaldoHTML);
-          
-        } else {
-          modalPromoInfo.style.display = 'none';
-          modalPrice.textContent = discountedPrice.hargaDiskon ? `Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}` : '-';
-        }
-        
-        // UPDATE INFO BIAYA POTONGAN DI MODAL - gunakan harga asli untuk perhitungan fee
-        updateFeeInfoInModal(discountedPrice.hargaAsal);
-        
-        // Tambahkan info pengiriman di modal
-        const modalDeliveryInfo = document.getElementById('modalDeliveryInfo');
-        if (currentOrder.vehicle && currentOrder.vehicle.includes('kurir') && currentOrder.delivery_data) {
-          modalDeliveryInfo.innerHTML = `
-            <div class="modal-delivery-info">
-              <div class="modal-delivery-item">
-                <span class="modal-delivery-label">Jenis Barang:</span>
-                <span class="modal-delivery-value">${currentOrder.delivery_data.itemCategory || '-'}</span>
-              </div>
-              <div class="modal-delivery-item">
-                <span class="modal-delivery-label">Deskripsi:</span>
-                <span class="modal-delivery-value">${currentOrder.delivery_data.description || '-'}</span>
-              </div>
-            </div>
-          `;
-        } else {
-          modalDeliveryInfo.innerHTML = '';
-        }
-        
-        const driverDistance = getDriverToPickupDistance(currentOrder);
-        if (driverDistance !== null) {
-          document.getElementById('driverDistance').textContent = `${driverDistance.toFixed(1)} KM`;
-          document.getElementById('driverDistanceContainer').style.display = 'block';
-        } else {
-          document.getElementById('driverDistanceContainer').style.display = 'none';
-        }
-        
-        document.getElementById('countdownContainer').style.display = 'none';
-        document.getElementById('ambilBtn').disabled = false;
-        document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
-        
-        isAutobidModal = false;
-        document.getElementById('closeModal').classList.remove('disabled');
-        
-        document.getElementById('orderModal').style.display = 'flex';
-        
-        if (!modalMap) initModalMap();
-        showRouteOnMap(currentOrder);
-        
-      }).catch((error) => {
-        console.error('Error checking order status:', error);
-        showInfoPopup('Gagal memuat detail order. Silakan coba lagi.');
       });
     }
 
@@ -4878,6 +4942,4 @@
     });
   </script>
 </body>
-</html>
-
-
+  </html>
