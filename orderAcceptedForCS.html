@@ -7,6 +7,8 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
       --primary: #1e6f5c;
@@ -29,21 +31,75 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: var(--dark);
-      min-height: 100vh;
-      padding: 10px;
+      height: 100vh;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow: hidden;
     }
 
     .container {
       width: 100%;
-      max-width: 500px;
+      max-width: 100%;
       background: white;
-      border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      border-radius: 0;
+      box-shadow: none;
       overflow: hidden;
-      margin-top: 10px;
+      margin-top: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px;
+      text-align: center;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      display: none;
+    }
+
+    /* ==================== STYLE PETA ==================== */
+    .map-section {
+      width: 100%;
+      height: 50vh;
+      min-height: 300px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+      display: none;
+    }
+
+    #orderMap {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .leaflet-control-zoom {
+      border: 1px solid #ddd !important;
+      border-radius: 4px !important;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
+    }
+
+    /* PERBAIKAN SCROLL: Konten utama bisa discroll */
+    .content-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 120px; /* Space untuk tombol aksi */
+      -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
+      max-height: calc(100vh - 50vh - 60px); /* Batasi tinggi maksimum */
     }
 
     .status-section {
@@ -131,6 +187,45 @@
 
     .driver-vehicle {
       font-size: 0.8rem;
+      color: #666;
+    }
+
+    .driver-arrival {
+      background: rgba(40, 150, 114, 0.1);
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arrival-icon {
+      width: 35px;
+      height: 35px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .arrival-text {
+      flex: 1;
+    }
+
+    .arrival-title {
+      font-weight: 600;
+      color: var(--success);
+      margin-bottom: 2px;
+      font-size: 0.85rem;
+    }
+
+    .arrival-subtitle {
+      font-size: 0.75rem;
       color: #666;
     }
 
@@ -254,18 +349,83 @@
       margin-right: 5px;
     }
 
-    .actions-section {
-      padding: 15px 20px;
+    /* ==================== SECTION PROMO ==================== */
+    .promo-section {
+      padding: 12px 20px;
+      border-bottom: 1px solid #eee;
+      display: none;
+      background: white;
+    }
+
+    .promo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(135deg, #ffd700, #ff9800);
+      color: #333;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .promo-details {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 8px;
+      border-left: 4px solid #ffc107;
+    }
+
+    .promo-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .promo-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .promo-value {
+      font-weight: 600;
+      color: var(--dark);
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .final-price {
+      color: var(--success);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    /* Actions Section - Fixed at Bottom */
+    .actions-section {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: white;
+      border-top: 1px solid #eee;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
     }
 
     .action-btn {
       padding: 14px;
       border: none;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
@@ -273,23 +433,24 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      width: 100%;
     }
 
     .chat-btn {
       background: linear-gradient(to right, var(--primary), var(--secondary));
       color: white;
-      box-shadow: 0 4px 12px rgba(40, 150, 114, 0.3);
+      box-shadow: 0 4px 15px rgba(40, 150, 114, 0.3);
     }
 
     .cancel-btn {
       background: linear-gradient(to right, var(--danger), #e74c3c);
       color: white;
-      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+      box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
     }
 
     .action-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     }
 
     .completed-badge {
@@ -304,62 +465,24 @@
       transform: scale(1.05);
     }
 
-    .driver-arrival {
-      background: rgba(40, 150, 114, 0.1);
-      padding: 12px;
-      border-radius: 10px;
-      margin-top: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .arrival-icon {
-      width: 35px;
-      height: 35px;
-      background: var(--success);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    .arrival-text {
-      flex: 1;
-    }
-
-    .arrival-title {
-      font-weight: 600;
-      color: var(--success);
-      margin-bottom: 2px;
-      font-size: 0.85rem;
-    }
-
-    .arrival-subtitle {
-      font-size: 0.75rem;
-      color: #666;
-    }
-
     .loading {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px;
+      padding: 50px;
       text-align: center;
+      flex: 1;
     }
 
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(40, 150, 114, 0.2);
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(40, 150, 114, 0.2);
       border-radius: 50%;
       border-top-color: var(--secondary);
       animation: spin 1s linear infinite;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
 
     .error-message {
@@ -367,33 +490,29 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px;
+      padding: 50px;
       text-align: center;
       color: var(--danger);
+      flex: 1;
     }
 
     .error-icon {
-      font-size: 40px;
-      margin-bottom: 15px;
+      font-size: 48px;
+      margin-bottom: 20px;
     }
 
     .retry-btn {
-      margin-top: 15px;
-      padding: 10px 20px;
+      margin-top: 20px;
+      padding: 12px 24px;
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* ==================== STYLE CHAT INTEGRASI ==================== */
+    /* ==================== STYLE CHAT FULL SCREEN ==================== */
     .chat-overlay {
       position: fixed;
       top: 0;
@@ -404,19 +523,17 @@
       display: none;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
+      z-index: 2000;
     }
 
     .chat-container {
-      width: 90%;
-      max-width: 500px;
-      height: 80%;
+      width: 100%;
+      height: 100%;
       background: white;
-      border-radius: 15px;
+      border-radius: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .chat-header {
@@ -426,6 +543,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     .chat-header-info {
@@ -510,6 +628,7 @@
       padding: 10px;
       background: white;
       border-top: 1px solid #ddd;
+      flex-shrink: 0;
     }
 
     .chat-input {
@@ -534,15 +653,15 @@
 
     .chat-notification {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: 70px;
+      right: 10px;
+      left: 10px;
       background: #25D366;
       color: white;
       padding: 15px;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 1001;
-      max-width: 300px;
+      z-index: 2001;
       cursor: pointer;
       display: none;
     }
@@ -582,7 +701,7 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
+      z-index: 2000;
       align-items: center;
       justify-content: center;
       backdrop-filter: blur(5px);
@@ -694,7 +813,7 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
+      z-index: 2000;
       align-items: center;
       justify-content: center;
       backdrop-filter: blur(5px);
@@ -769,16 +888,40 @@
       background: var(--secondary);
     }
 
+    /* Custom scrollbar untuk konten */
+    .content-wrapper::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .content-wrapper::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .content-wrapper::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 10px;
+    }
+
+    .content-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     @media (max-width: 480px) {
       body {
-        padding: 8px;
+        padding: 0;
       }
       
       .container {
-        border-radius: 12px;
+        border-radius: 0;
+        height: 100vh;
       }
       
-      .status-section, .driver-section, .route-section, .info-section, .actions-section {
+      .status-section, .driver-section, .route-section, .info-section, .promo-section {
         padding: 15px;
       }
       
@@ -809,23 +952,31 @@
       }
 
       .chat-container {
-        width: 95%;
-        height: 85%;
+        width: 100%;
+        height: 100%;
       }
 
       .chat-notification {
         right: 10px;
         left: 10px;
-        max-width: none;
+      }
+      
+      /* PERBAIKAN RESPONSIVE: Tinggi peta disesuaikan */
+      .map-section {
+        height: 40vh;
+        min-height: 250px;
+      }
+      
+      .content-wrapper {
+        max-height: calc(100vh - 40vh - 60px);
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Status Section (menggantikan header) -->
-    <div class="status-section">
-      <div class="status-badge" id="statusBadge" style="display: none;">Menuju Lokasi</div>
+    <div class="header">
+      <h1>Detail Driver</h1>
     </div>
 
     <div id="loading" class="loading">
@@ -841,95 +992,146 @@
     </div>
 
     <div id="content" style="display: none;">
-      <div class="driver-section">
-        <div class="driver-profile">
-          <div class="driver-photo-container">
-            <img id="driverPhoto" src="" alt="Driver Photo" class="driver-photo">
-            <div class="driver-plate" id="driverPlate">-</div>
-          </div>
-          <div class="driver-info">
-            <div class="driver-name" id="driverName">-</div>
-            <div class="driver-rating">
-              <div class="stars">★★★★★</div>
-              <div class="rating-value" id="driverRating">4.9</div>
-            </div>
-            <div class="driver-vehicle">
-              <span id="driverVehicleBrand">-</span> • <span id="driverVehicleType">-</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="driver-arrival">
-          <div class="arrival-icon">🚗</div>
-          <div class="arrival-text">
-            <div class="arrival-title" id="arrivalTitle">Order Diterima</div>
-            <div class="arrival-subtitle" id="arrivalSubtitle">Driver sedang menuju lokasi penjemputan.</div>
-          </div>
-        </div>
+      <!-- Map Section - Full Width 100%, Height 50% -->
+      <div class="map-section" id="mapSection" style="display: none;">
+        <div id="orderMap"></div>
       </div>
 
-      <div class="route-section">
-        <div class="section-title">Detail Perjalanan</div>
-        <div class="route-details">
-          <div class="route-point">
-            <div class="route-icon pickup-icon">A</div>
-            <div class="route-text">
-              <div class="route-label">Penjemputan</div>
-              <div class="route-address" id="pickupAddress">-</div>
+      <div class="content-wrapper">
+        <div class="status-section">
+          <div class="status-badge" id="statusBadge" style="display: none;">Menuju Lokasi</div>
+        </div>
+
+        <div class="driver-section">
+          <div class="driver-profile">
+            <div class="driver-photo-container">
+              <img id="driverPhoto" src="" alt="Driver Photo" class="driver-photo">
+              <div class="driver-plate" id="driverPlate">-</div>
+            </div>
+            <div class="driver-info">
+              <div class="driver-name" id="driverName">-</div>
+              <div class="driver-rating">
+                <div class="stars">★★★★★</div>
+                <div class="rating-value" id="driverRating">4.9</div>
+              </div>
+              <div class="driver-vehicle">
+                <span id="driverVehicleBrand">-</span> • <span id="driverVehicleType">-</span>
+              </div>
             </div>
           </div>
-          <div class="route-point">
-            <div class="route-icon destination-icon">B</div>
-            <div class="route-text">
-              <div class="route-label">Tujuan</div>
-              <div class="route-address" id="destinationAddress">-</div>
+
+          <div class="driver-arrival">
+            <div class="arrival-icon">🚗</div>
+            <div class="arrival-text">
+              <div class="arrival-title" id="arrivalTitle">Order Diterima</div>
+              <div class="arrival-subtitle" id="arrivalSubtitle">Driver sedang menuju lokasi penjemputan.</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="info-section">
-        <div class="section-title">Informasi Perjalanan</div>
-        <div class="info-grid">
-          <!-- Baris 1: Jenis Layanan | Kapasitas | Durasi -->
-          <div class="info-row">
-            <div class="info-item">
-              <div class="info-label">Jenis Layanan</div>
-              <div class="info-value" id="serviceType">-</div>
+        <div class="route-section">
+          <div class="section-title">Detail Perjalanan</div>
+          <div class="route-details">
+            <div class="route-point">
+              <div class="route-icon pickup-icon">A</div>
+              <div class="route-text">
+                <div class="route-label">Penjemputan</div>
+                <div class="route-address" id="pickupAddress">-</div>
+              </div>
             </div>
-            <div class="info-item">
-              <div class="info-label">Kapasitas</div>
-              <div class="info-value" id="serviceCapacity">-</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Durasi</div>
-              <div class="info-value" id="tripDuration">-</div>
+            <div class="route-point">
+              <div class="route-icon destination-icon">B</div>
+              <div class="route-text">
+                <div class="route-label">Tujuan</div>
+                <div class="route-address" id="destinationAddress">-</div>
+              </div>
             </div>
           </div>
-          
-          <!-- Baris 2: Biaya saja -->
-          <div class="info-row">
-            <div class="info-item">
-              <div class="info-label">Biaya</div>
-              <div class="info-value">
-                <div id="priceContainer">
-                  <span class="price-highlight" id="tripPrice">-</span>
+        </div>
+
+        <div class="info-section">
+          <div class="section-title">Informasi Perjalanan</div>
+          <div class="info-grid">
+            <!-- Baris 1: Jenis Layanan | Kapasitas | Durasi -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">Jenis Layanan</div>
+                <div class="info-value" id="serviceType">-</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Kapasitas</div>
+                <div class="info-value" id="serviceCapacity">-</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Durasi</div>
+                <div class="info-value" id="tripDuration">-</div>
+              </div>
+            </div>
+            
+            <!-- Baris 2: Jarak | Waktu Order -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">Jarak</div>
+                <div class="info-value" id="tripDistance">-</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Waktu Order</div>
+                <div class="info-value" id="orderTime">-</div>
+              </div>
+            </div>
+            
+            <!-- Baris 3: Biaya saja -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">Biaya</div>
+                <div class="info-value">
+                  <div id="priceContainer">
+                    <span class="price-highlight" id="tripPrice">-</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="actions-section" id="actionsSection">
-        <button class="action-btn chat-btn" onclick="openChat()" id="contactBtn" style="position: relative;">
-          <span>💬</span> Chat Driver
-          <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
-        </button>
-        <button class="action-btn cancel-btn" onclick="cancelTrip()">
-          <span>✖</span> Batalkan Perjalanan
-        </button>
+        <!-- ==================== SECTION PROMO ==================== -->
+        <div class="promo-section" id="promoSection">
+          <div class="section-title">Promo</div>
+          <div class="promo-details">
+            <div class="promo-item">
+              <span class="promo-label">Kode Promo:</span>
+              <span class="promo-value" id="promoCode">-</span>
+            </div>
+            <div class="promo-item">
+              <span class="promo-label">Harga Asli:</span>
+              <span class="promo-value">
+                <span class="original-price" id="originalPrice">-</span>
+              </span>
+            </div>
+            <div class="promo-item">
+              <span class="promo-label">Diskon:</span>
+              <span class="promo-value">
+                <span class="discount-badge" id="discountPercentage">-</span>
+              </span>
+            </div>
+            <div class="promo-item">
+              <span class="promo-label">Harga Final:</span>
+              <span class="promo-value final-price" id="finalPrice">-</span>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <!-- Actions Section - Fixed at Bottom -->
+    <div class="actions-section" id="actionsSection" style="display: none;">
+      <button class="action-btn chat-btn" onclick="openChat()" id="contactBtn" style="position: relative;">
+        <span>💬</span> Chat Driver
+        <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
+      </button>
+      <button class="action-btn cancel-btn" onclick="cancelTrip()">
+        <span>✖</span> Batalkan Perjalanan
+      </button>
     </div>
   </div>
 
@@ -1017,6 +1219,9 @@
     </div>
   </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
     // Firebase Configuration
     const firebaseConfig = {
@@ -1064,6 +1269,26 @@
     // ==================== VARIABEL UNTUK MENCEGAH BACK ====================
     let currentOrderStatus = '';
     let isBackBlocked = false;
+
+    // ==================== VARIABEL PETA DAN LOKASI ====================
+    let orderMap = null;
+    let driverMarker = null;
+    let pickupMarker = null;
+    let destinationMarker = null;
+    let routePolyline = null;
+    let driverLocationListener = null;
+
+    // ==================== MAPPING ICON KENDARAAN ====================
+    const vehicleIconMap = {
+      'motor': 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+      'bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+      'mobil': 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+      'kurir_motor': 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+      'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
+    };
+
+    // OpenRouteService API Key
+    const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d768e0a852f64697af0';
 
     // ==================== FUNGSI BARU: UPDATE PROMO DI LOCALSTORAGE ====================
 
@@ -1491,6 +1716,11 @@
     function displayPriceWithDiscount() {
       const priceContainer = document.getElementById('priceContainer');
       const tripPrice = document.getElementById('tripPrice');
+      const promoSection = document.getElementById('promoSection');
+      const promoCode = document.getElementById('promoCode');
+      const originalPrice = document.getElementById('originalPrice');
+      const discountPercentage = document.getElementById('discountPercentage');
+      const finalPrice = document.getElementById('finalPrice');
       
       if (!routeData) return;
       
@@ -1501,9 +1731,18 @@
       if (hasDiscount && hasOriginalPrice) {
         // Hitung harga setelah diskon
         const discountAmount = (routeData.harga_asal * routeData.diskon_persen) / 100;
-        const discountedPrice = routeData.harga_asal - discountAmount;
+        const discountedPrice = routeData.harga_total || (routeData.harga_asal - discountAmount);
         
-        // Tampilkan harga asli yang dicoret dan harga setelah diskon
+        // Tampilkan section promo
+        promoSection.style.display = 'block';
+        
+        // Isi data promo
+        promoCode.textContent = routeData.kode_promo || routeData.promo_code_used || 'PROMO';
+        originalPrice.textContent = `Rp ${parseInt(routeData.harga_asal).toLocaleString('id-ID')}`;
+        discountPercentage.textContent = `${routeData.diskon_persen}%`;
+        finalPrice.textContent = `Rp ${parseInt(discountedPrice).toLocaleString('id-ID')}`;
+        
+        // Tampilkan harga asli yang dicoret dan harga setelah diskon di info-grid
         priceContainer.innerHTML = `
           <div style="display: flex; flex-direction: column; align-items: center;">
             <div>
@@ -1528,10 +1767,313 @@
         });
         
       } else {
+        // Sembunyikan section promo
+        promoSection.style.display = 'none';
+        
         // Tampilkan harga normal tanpa diskon
-        tripPrice.textContent = `Rp ${routeData.harga_total.toLocaleString('id-ID')}`;
+        if (routeData.harga_total) {
+          const harga = typeof routeData.harga_total === 'number' ? routeData.harga_total : parseInt(routeData.harga_total);
+          tripPrice.textContent = `Rp ${harga.toLocaleString('id-ID')}`;
+        } else {
+          tripPrice.textContent = '-';
+        }
         console.log('💰 Harga normal ditampilkan:', routeData.harga_total);
       }
+    }
+
+    // ==================== FUNGSI PETA YANG DIPERBAIKI ====================
+
+    // Fungsi untuk mendapatkan icon berdasarkan URL
+    function getVehicleIconByUrl(iconUrl) {
+      return L.icon({
+        iconUrl: iconUrl,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40], // Anchor di tengah bawah icon
+        popupAnchor: [0, -40], // Popup muncul di atas icon
+        className: 'driver-marker'
+      });
+    }
+
+    // Fungsi untuk mendapatkan icon berdasarkan tipe kendaraan
+    function getVehicleIconByType(vehicleType) {
+      // Normalisasi nama vehicle type
+      const normalizedType = vehicleType?.toLowerCase().replace(/ /g, '_') || 'motor';
+      
+      // Ambil URL icon dari mapping
+      const iconUrl = vehicleIconMap[normalizedType] || vehicleIconMap['motor'];
+      
+      return L.icon({
+        iconUrl: iconUrl,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+        className: 'driver-marker'
+      });
+    }
+
+    // ==================== FUNGSI PETA DIPERBAIKI ====================
+
+    function initMap(centerLat, centerLng) {
+      if (!orderMap) {
+        orderMap = L.map('orderMap').setView([centerLat, centerLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
+        }).addTo(orderMap);
+        
+        // Tambahkan kontrol zoom yang lebih baik untuk mobile
+        L.control.zoom({
+          position: 'bottomright'
+        }).addTo(orderMap);
+        
+        console.log('✅ Peta diinisialisasi dengan view:', centerLat, centerLng);
+      } else {
+        orderMap.setView([centerLat, centerLng], 13);
+      }
+    }
+
+    function addPickupMarker(lat, lng, address) {
+      if (pickupMarker) {
+        pickupMarker.setLatLng([lat, lng]);
+      } else {
+        pickupMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">A</div>',
+            iconSize: [40, 40],
+            className: 'pickup-marker'
+          })
+        }).addTo(orderMap).bindPopup(`<b>📍 Penjemputan</b><br>${address}`);
+      }
+    }
+
+    function addDestinationMarker(lat, lng, address) {
+      if (destinationMarker) {
+        destinationMarker.setLatLng([lat, lng]);
+      } else {
+        destinationMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">B</div>',
+            iconSize: [40, 40],
+            className: 'destination-marker'
+          })
+        }).addTo(orderMap).bindPopup(`<b>🎯 Tujuan</b><br>${address}`);
+      }
+    }
+
+    // ==================== FUNGSI MARKER DRIVER DENGAN ICON URL ====================
+
+    function updateDriverMarker(lat, lng, vehicleType, iconUrl = null) {
+      let vehicleIcon;
+      
+      // Prioritaskan iconUrl jika diberikan
+      if (iconUrl) {
+        vehicleIcon = getVehicleIconByUrl(iconUrl);
+      } else {
+        // Gunakan icon berdasarkan tipe kendaraan
+        vehicleIcon = getVehicleIconByType(vehicleType);
+      }
+      
+      if (!driverMarker) {
+        // Buat marker baru dengan icon
+        driverMarker = L.marker([lat, lng], {
+          icon: vehicleIcon,
+          zIndexOffset: 1000 // Pastikan marker driver di atas yang lain
+        }).addTo(orderMap).bindPopup(`
+          <div style="text-align: center;">
+            <b>🚗 Posisi Driver</b><br>
+            ${vehicleType || 'Kendaraan'}<br>
+            <small>${new Date().toLocaleTimeString('id-ID')}</small>
+          </div>
+        `);
+        
+        console.log('✅ Marker driver dibuat dengan icon:', iconUrl || vehicleType);
+      } else {
+        // Update posisi dan icon marker yang sudah ada
+        driverMarker.setLatLng([lat, lng]);
+        driverMarker.setIcon(vehicleIcon);
+        
+        // Update popup dengan info terbaru
+        driverMarker.setPopupContent(`
+          <div style="text-align: center;">
+            <b>🚗 Posisi Driver</b><br>
+            ${vehicleType || 'Kendaraan'}<br>
+            <small>${new Date().toLocaleTimeString('id-ID')}</small>
+          </div>
+        `);
+      }
+    }
+
+    // ==================== FUNGSI RUTE POLYLINE DIPERBAIKI ====================
+
+    async function drawRouteOnMap(startLat, startLng, endLat, endLng) {
+      try {
+        const startCoords = `${startLng},${startLat}`;
+        const endCoords = `${endLng},${endLat}`;
+        
+        // Menggunakan OSRM (Open Source Routing Machine) yang lebih cepat dan reliable
+        const url = `https://router.project-osrm.org/route/v1/driving/${startCoords};${endCoords}?overview=full&geometries=geojson`;
+        
+        console.log('🔄 Mengambil rute dari OSRM...');
+        console.log('Start:', startCoords, 'End:', endCoords);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const coordinates = route.geometry.coordinates;
+          const latLngCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
+          
+          // Hitung jarak dan durasi
+          const distanceKm = (route.distance / 1000).toFixed(1);
+          const durationMin = Math.round(route.duration / 60);
+          
+          // Hapus polyline lama jika ada
+          if (routePolyline) {
+            orderMap.removeLayer(routePolyline);
+          }
+          
+          // Buat polyline baru dengan style yang lebih jelas
+          routePolyline = L.polyline(latLngCoordinates, {
+            color: '#289672',
+            weight: 5,
+            opacity: 0.8,
+            lineJoin: 'round',
+            lineCap: 'round',
+            dashArray: null
+          }).addTo(orderMap);
+          
+          // Fit peta ke rute dengan padding yang lebih baik
+          orderMap.fitBounds(routePolyline.getBounds(), {
+            padding: [50, 50]
+          });
+          
+          console.log(`✅ Rute berhasil ditampilkan di peta: ${distanceKm} km, ${durationMin} menit`);
+          
+          // Update informasi jarak dan durasi di UI
+          updateTripInfo(distanceKm, durationMin);
+          
+          return true;
+        } else {
+          console.warn('⚠️ Tidak ada rute yang ditemukan, menggunakan garis lurus');
+          drawStraightLineRoute(startLat, startLng, endLat, endLng);
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Error mengambil rute dari OSRM:', error);
+        // Fallback ke OpenRouteService jika OSRM gagal
+        return await drawRouteWithOpenRouteService(startLat, startLng, endLat, endLng);
+      }
+    }
+
+    async function drawRouteWithOpenRouteService(startLat, startLng, endLat, endLng) {
+      try {
+        const startCoords = `${startLng},${startLat}`;
+        const endCoords = `${endLng},${endLat}`;
+        
+        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${startCoords}&end=${endCoords}`;
+        
+        console.log('🔄 Mengambil rute dari OpenRouteService...');
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`OpenRouteService error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.features && data.features.length > 0) {
+          const coordinates = data.features[0].geometry.coordinates;
+          const latLngCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
+          
+          if (routePolyline) {
+            orderMap.removeLayer(routePolyline);
+          }
+          
+          routePolyline = L.polyline(latLngCoordinates, {
+            color: '#289672',
+            weight: 5,
+            opacity: 0.8,
+            lineJoin: 'round',
+            lineCap: 'round'
+          }).addTo(orderMap);
+          
+          orderMap.fitBounds(routePolyline.getBounds(), {
+            padding: [50, 50]
+          });
+          
+          console.log('✅ Rute OpenRouteService berhasil ditampilkan');
+          return true;
+        } else {
+          throw new Error('Tidak ada rute dari OpenRouteService');
+        }
+      } catch (error) {
+        console.error('❌ Error OpenRouteService:', error);
+        drawStraightLineRoute(startLat, startLng, endLat, endLng);
+        return false;
+      }
+    }
+
+    function drawStraightLineRoute(startLat, startLng, endLat, endLng) {
+      if (routePolyline) {
+        orderMap.removeLayer(routePolyline);
+      }
+      
+      routePolyline = L.polyline([[startLat, startLng], [endLat, endLng]], {
+        color: '#289672',
+        weight: 4,
+        opacity: 0.7,
+        lineJoin: 'round',
+        dashArray: '10, 10'
+      }).addTo(orderMap);
+      
+      console.log('✅ Garis lurus ditampilkan sebagai fallback');
+    }
+
+    function updateTripInfo(distanceKm, durationMin) {
+      // Update UI dengan informasi rute yang lebih akurat
+      const distanceElement = document.getElementById('tripDistance');
+      const durationElement = document.getElementById('tripDuration');
+      
+      if (distanceElement) {
+        distanceElement.textContent = `${distanceKm} km`;
+      }
+      
+      if (durationElement) {
+        durationElement.textContent = `${durationMin} menit`;
+      }
+    }
+
+    // ==================== FUNGSI MENDENGARKAN LOKASI DRIVER DARI FIREBASE ====================
+
+    function listenToDriverLocation(orderId) {
+      if (driverLocationListener) {
+        database.ref('driver_offers/' + orderId).off('value', driverLocationListener);
+      }
+      
+      driverLocationListener = (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.driver_lat && data.driver_lng) {
+          const vehicleType = data.vehicle_type || driverData?.vehicle_type || 'motor';
+          const vehicleIcon = data.vehicle_icon || vehicleIconMap[vehicleType?.toLowerCase().replace(/ /g, '_')] || vehicleIconMap['motor'];
+          
+          updateDriverMarker(data.driver_lat, data.driver_lng, vehicleType, vehicleIcon);
+          
+          console.log('📍 Posisi driver diperbarui:', {
+            lat: data.driver_lat,
+            lng: data.driver_lng,
+            vehicleType: vehicleType
+          });
+        }
+      };
+      
+      database.ref('driver_offers/' + orderId).on('value', driverLocationListener);
     }
 
     // ==================== SISTEM CHAT INTEGRASI ====================
@@ -1556,8 +2098,8 @@
         }
       });
       
-      // Tidak perlu memuat pesan yang sudah ada di sini
-      // Pesan akan dimuat saat chat dibuka
+      // Muat pesan yang sudah ada
+      loadExistingMessages();
     }
 
     function loadExistingMessages() {
@@ -1684,7 +2226,7 @@
       // Setup UI chat
       setupChatUI();
       
-      // ⭐⭐ PERBAIKAN: Muat ulang pesan setiap kali chat dibuka ⭐⭐
+      // Muat ulang pesan setiap kali chat dibuka
       loadExistingMessages();
       
       // Tampilkan overlay chat
@@ -2214,6 +2756,9 @@
       
       // Inisialisasi sistem chat
       initializeChatSystem(orderId);
+      
+      // Mulai mendengarkan lokasi driver
+      listenToDriverLocation(orderId);
     }
 
     // Fungsi untuk update status driver - DIMODIFIKASI SESUAI PERMINTAAN
@@ -2399,8 +2944,14 @@
         document.getElementById('serviceCapacity').textContent = route.vehicle_capacity;
       }
       
-      if (route.durasi) {
-        document.getElementById('tripDuration').textContent = route.durasi;
+      if (route.created_at) {
+        const orderTime = new Date(route.created_at);
+        document.getElementById('orderTime').textContent = orderTime.toLocaleTimeString('id-ID', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      } else {
+        document.getElementById('orderTime').textContent = '-';
       }
       
       // PERBAIKAN: Tampilkan harga dengan diskon jika ada
@@ -2412,6 +2963,7 @@
       // Sembunyikan loading, tampilkan konten
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
+      document.getElementById('actionsSection').style.display = 'flex';
       
       console.log("Displaying driver data:", driverData);
       console.log("Displaying route data:", routeData);
@@ -2454,10 +3006,29 @@
         document.getElementById('destinationAddress').textContent = routeData.alamat_b || '-';
         document.getElementById('serviceType').textContent = routeData.vehicle_name || '-';
         document.getElementById('serviceCapacity').textContent = routeData.vehicle_capacity || '-';
-        document.getElementById('tripDuration').textContent = routeData.durasi || '-';
         
         // PERBAIKAN: Tampilkan harga dengan diskon jika ada
         displayPriceWithDiscount();
+        
+        // ==================== TAMPILKAN PETA JIKA ADA KOORDINAT ====================
+        if (routeData.from_lat && routeData.from_lng && routeData.to_lat && routeData.to_lng) {
+          document.getElementById('mapSection').style.display = 'block';
+          
+          const centerLat = (parseFloat(routeData.from_lat) + parseFloat(routeData.to_lat)) / 2;
+          const centerLng = (parseFloat(routeData.from_lng) + parseFloat(routeData.to_lng)) / 2;
+          
+          initMap(centerLat, centerLng);
+          
+          addPickupMarker(routeData.from_lat, routeData.from_lng, routeData.alamat_a);
+          addDestinationMarker(routeData.to_lat, routeData.to_lng, routeData.alamat_b);
+          
+          // Gambar rute
+          setTimeout(() => {
+            drawRouteOnMap(routeData.from_lat, routeData.from_lng, routeData.to_lat, routeData.to_lng);
+          }, 1000);
+        } else {
+          document.getElementById('mapSection').style.display = 'none';
+        }
       }
       
       // Update status berdasarkan data aktual
@@ -2466,6 +3037,14 @@
       } else {
         updateArrivalStatus();
       }
+      
+      // PERBAIKAN: Pastikan konten bisa discroll
+      setTimeout(() => {
+        const contentWrapper = document.querySelector('.content-wrapper');
+        if (contentWrapper) {
+          contentWrapper.style.overflowY = 'auto';
+        }
+      }, 100);
     }
 
     // Fungsi untuk memperbarui status kedatangan driver
@@ -2495,6 +3074,7 @@
       // Sembunyikan loading dan content, tampilkan error
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'none';
+      document.getElementById('actionsSection').style.display = 'none';
       document.getElementById('error').style.display = 'flex';
       
       // Kirim error ke Kodular
@@ -2543,10 +3123,21 @@
             chatRef.off('child_added', chatListener);
         }
         
+        // Hentikan driver location listener
+        if (driverLocationListener) {
+            database.ref('driver_offers/' + orderId).off('value', driverLocationListener);
+        }
+        
         // Hentikan timeout jika masih berjalan
         if (dataTimeout) {
             clearTimeout(dataTimeout);
             dataTimeout = null;
+        }
+        
+        // Hapus peta
+        if (orderMap) {
+            orderMap.remove();
+            orderMap = null;
         }
         
         const backData = {
@@ -2611,7 +3202,8 @@
         const orderRef = database.ref('orders/' + orderId);
         orderRef.update({
           status: 'cancelled',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          cancelled_by: 'customer'
         })
         .then(() => {
           console.log('Status order diupdate menjadi cancelled');
@@ -2766,4 +3358,4 @@
     window.receiveDataFromKodular = receiveDataFromKodular;
   </script>
 </body>
-</html>
+  </html>
