@@ -758,11 +758,6 @@
       font-weight: bold;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
     /* Custom scrollbar untuk konten */
     .content-wrapper::-webkit-scrollbar {
       width: 6px;
@@ -1119,6 +1114,45 @@
     // OpenRouteService API Key
     const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d768e0a852f64697af0';
 
+    // ==================== MAPPING ICON KENDARAAN ====================
+    const vehicleIconMap = {
+      'motor': 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+      'bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+      'mobil': 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+      'kurir_motor': 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+      'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
+    };
+
+    // ==================== FUNGSI UNTUK MENDAPATKAN ICON KENDARAAN ====================
+    
+    // Fungsi untuk mendapatkan icon berdasarkan URL
+    function getVehicleIconByUrl(iconUrl) {
+      return L.icon({
+        iconUrl: iconUrl,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40], // Anchor di tengah bawah icon
+        popupAnchor: [0, -40], // Popup muncul di atas icon
+        className: 'driver-marker'
+      });
+    }
+
+    // Fungsi untuk mendapatkan icon berdasarkan tipe kendaraan
+    function getVehicleIconByType(vehicleType) {
+      // Normalisasi nama vehicle type
+      const normalizedType = vehicleType?.toLowerCase().replace(/ /g, '_') || 'motor';
+      
+      // Ambil URL icon dari mapping
+      const iconUrl = vehicleIconMap[normalizedType] || vehicleIconMap['motor'];
+      
+      return L.icon({
+        iconUrl: iconUrl,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+        className: 'driver-marker'
+      });
+    }
+
     // ==================== FUNGSI PETA DIPERBAIKI ====================
 
     function initMap(centerLat, centerLng) {
@@ -1168,50 +1202,46 @@
       }
     }
 
-    // ==================== FUNGSI MARKER SESUAI JENIS KENDARAAN ====================
+    // ==================== FUNGSI MARKER DRIVER DENGAN ICON URL ====================
 
-    function getVehicleIcon(vehicleType) {
-      // Tentukan ikon berdasarkan jenis kendaraan
-      let iconHtml = '';
-      let iconSize = [50, 50];
+    function updateDriverMarker(lat, lng, vehicleType, iconUrl = null) {
+      let vehicleIcon;
       
-      switch(vehicleType?.toLowerCase()) {
-        case 'motor':
-          iconHtml = '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">🏍️</div>';
-          break;
-        case 'bentor':
-          iconHtml = '<div style="background-color: #ff9800; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">🛺</div>';
-          break;
-        case 'mobil':
-          iconHtml = '<div style="background-color: #4caf50; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">🚗</div>';
-          break;
-        case 'kurir_motor':
-          iconHtml = '<div style="background-color: #9c27b0; color: white; border-radius: 50%; width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">📦</div>';
-          iconSize = [55, 55];
-          break;
-        case 'kurir_bentor':
-          iconHtml = '<div style="background-color: #9c27b0; color: white; border-radius: 50%; width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">📦</div>';
-          iconSize = [55, 55];
-          break;
-        default:
-          iconHtml = '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">🚗</div>';
+      // Prioritaskan iconUrl jika diberikan
+      if (iconUrl) {
+        vehicleIcon = getVehicleIconByUrl(iconUrl);
+      } else {
+        // Gunakan icon berdasarkan tipe kendaraan
+        vehicleIcon = getVehicleIconByType(vehicleType);
       }
       
-      return L.divIcon({
-        html: iconHtml,
-        iconSize: iconSize,
-        className: 'driver-marker'
-      });
-    }
-
-    function updateDriverMarker(lat, lng, vehicleType) {
       if (!driverMarker) {
+        // Buat marker baru dengan icon
         driverMarker = L.marker([lat, lng], {
-          icon: getVehicleIcon(vehicleType)
-        }).addTo(orderMap).bindPopup(`<b>Posisi Driver</b><br>${vehicleType || 'Kendaraan'}`);
+          icon: vehicleIcon,
+          zIndexOffset: 1000 // Pastikan marker driver di atas yang lain
+        }).addTo(orderMap).bindPopup(`
+          <div style="text-align: center;">
+            <b>🚗 Posisi Driver</b><br>
+            ${vehicleType || 'Kendaraan'}<br>
+            <small>${new Date().toLocaleTimeString('id-ID')}</small>
+          </div>
+        `);
+        
+        console.log('✅ Marker driver dibuat dengan icon:', iconUrl || vehicleType);
       } else {
+        // Update posisi dan icon marker yang sudah ada
         driverMarker.setLatLng([lat, lng]);
-        driverMarker.setIcon(getVehicleIcon(vehicleType));
+        driverMarker.setIcon(vehicleIcon);
+        
+        // Update popup dengan info terbaru
+        driverMarker.setPopupContent(`
+          <div style="text-align: center;">
+            <b>🚗 Posisi Driver</b><br>
+            ${vehicleType || 'Kendaraan'}<br>
+            <small>${new Date().toLocaleTimeString('id-ID')}</small>
+          </div>
+        `);
       }
     }
 
@@ -1386,13 +1416,20 @@
           const { latitude, longitude } = position.coords;
           currentDriverLocation = { lat: latitude, lng: longitude };
           
-          // Update marker driver di peta dengan jenis kendaraan
+          // Ambil informasi kendaraan
           const vehicleType = currentOrderData?.vehicle_name || 
                              currentOrderData?.vehicle || 
                              currentDriverData?.vehicleType || 
                              'motor';
           
-          updateDriverMarker(latitude, longitude, vehicleType);
+          // Ambil icon URL jika ada
+          const vehicleIcon = currentOrderData?.transport_icon || 
+                             currentDriverData?.vehicleIcon ||
+                             vehicleIconMap[vehicleType?.toLowerCase().replace(/ /g, '_')] ||
+                             vehicleIconMap['motor'];
+          
+          // Update marker driver dengan icon
+          updateDriverMarker(latitude, longitude, vehicleType, vehicleIcon);
           
           // Kirim ke Firebase
           const driverOfferRef = database.ref('driver_offers/' + orderId);
@@ -1402,12 +1439,13 @@
             driver_id: currentDriverData?.driverId || 'unknown',
             driver_name: currentDriverData?.fullName || 'Driver',
             vehicle_type: vehicleType,
+            vehicle_icon: vehicleIcon, // Tambahkan field icon
             timestamp: new Date().toISOString(),
             order_id: orderId,
             accuracy: position.coords.accuracy || 0
           });
           
-          console.log('📍 Lokasi driver dikirim:', latitude, longitude, 'Kendaraan:', vehicleType);
+          console.log('📍 Lokasi driver dikirim dengan icon:', vehicleIcon);
           
           // Kirim ke Kodular
           sendToKodular({
@@ -1416,6 +1454,7 @@
             lat: latitude,
             lng: longitude,
             vehicle_type: vehicleType,
+            vehicle_icon: vehicleIcon,
             timestamp: new Date().toISOString()
           });
           
@@ -1452,7 +1491,9 @@
         const data = snapshot.val();
         if (data && data.driver_lat && data.driver_lng) {
           const vehicleType = data.vehicle_type || currentOrderData?.vehicle_name || 'motor';
-          updateDriverMarker(data.driver_lat, data.driver_lng, vehicleType);
+          const vehicleIcon = data.vehicle_icon || vehicleIconMap[vehicleType?.toLowerCase().replace(/ /g, '_')] || vehicleIconMap['motor'];
+          
+          updateDriverMarker(data.driver_lat, data.driver_lng, vehicleType, vehicleIcon);
         }
       };
       
@@ -2123,6 +2164,12 @@
         // MULAI KIRIM LOKASI DRIVER LANGSUNG SAAT PETA SIAP
         if (currentDriverData && currentDriverData.driverId) {
           console.log('🚗 Mulai mengirim lokasi driver langsung...');
+          
+          // Gunakan icon dari data order jika ada
+          if (order.transport_icon) {
+            console.log('✅ Menggunakan icon kustom dari order:', order.transport_icon);
+          }
+          
           startSendingDriverLocation(currentOrderId);
         }
         
@@ -2592,4 +2639,4 @@
     window.receiveDataFromKodular = receiveDataFromKodular;
   </script>
 </body>
-          </html>
+</html>
