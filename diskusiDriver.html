@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diskusi Driver - JeGo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e6f5c, #289672);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+        
+        .chat-container {
+            width: 100%;
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header Styling */
+        .chat-header {
+            background: linear-gradient(135deg, #1e6f5c, #289672);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .profile-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e6dd3b;
+            background-color: #f0f0f0;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .chat-title {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .chat-subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .online-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+        }
+        
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .date-divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        .date-divider span {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.3s forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .received {
+            align-items: flex-start;
+        }
+        
+        .sent {
+            align-items: flex-end;
+            margin-left: auto;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .message-sender-img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .message-sender-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.4;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+        }
+        
+        .received .message-bubble {
+            background-color: white;
+            border-top-left-radius: 5px;
+            color: #333;
+        }
+        
+        .sent .message-bubble {
+            background-color: #dcf8c6;
+            border-top-right-radius: 5px;
+            color: #333;
+        }
+        
+        .message-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 5px;
+            padding: 0 5px;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .message-status {
+            font-size: 11px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        .message-status i {
+            font-size: 10px;
+        }
+        
+        /* Input Area */
+        .input-area {
+            padding: 12px 15px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-container {
+            flex: 1;
+            display: flex;
+            background-color: #f0f0f0;
+            border-radius: 25px;
+            padding: 8px 15px;
+            align-items: center;
+        }
+        
+        .message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;
+            padding: 5px;
+            color: #333;
+            width: 100%;
+        }
+        
+        .send-button {
+            background: linear-gradient(to right, #1e6f5c, #289672);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            min-width: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 5px;
+        }
+        
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .send-button i {
+            font-size: 18px;
+        }
+        
+        .send-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Loading Animation */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 18px;
+            border-top-left-radius: 5px;
+            margin-bottom: 15px;
+            align-self: flex-start;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+        }
+        
+        /* Scrollbar Styling */
+        .chat-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-area::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .chat-area::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+        
+        /* Welcome Message */
+        .welcome-message {
+            text-align: center;
+            padding: 20px;
+            margin: 20px auto;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+        
+        .welcome-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #1e6f5c;
+        }
+        
+        .welcome-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e6f5c;
+            margin-bottom: 10px;
+        }
+        
+        .welcome-text {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .rules-list {
+            text-align: left;
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .rules-list li {
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        .empty-text {
+            font-size: 16px;
+        }
+        
+        @media (max-width: 600px) {
+            .chat-container {
+                height: 100vh;
+            }
+            
+            .chat-header {
+                padding: 12px 15px;
+            }
+            
+            .input-area {
+                padding: 10px 12px;
+            }
+            
+            .back-btn span {
+                display: none;
+            }
+            
+            .back-btn i {
+                margin-right: 0;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .online-count span {
+                display: none;
+            }
+            
+            .online-count {
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-left">
+                <img src="" alt="Profil Driver" class="profile-img" id="currentUserImage">
+                <div class="profile-info">
+                    <div class="chat-title">Diskusi Driver JeGo</div>
+                    <div class="chat-subtitle" id="chatSubtitle">Grup diskusi semua driver</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="online-count">
+                    <span class="online-dot"></span>
+                    <span id="onlineCount">0</span> online
+                </div>
+                <a href="list.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Kembali</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <!-- Welcome Message -->
+            <div class="welcome-message">
+                <div class="welcome-icon">💬</div>
+                <div class="welcome-title">Selamat Datang di Diskusi Driver JeGo</div>
+                <div class="welcome-text">
+                    Grup ini untuk diskusi antar driver JeGo. Mari saling berbagi pengalaman dan tips!
+                </div>
+                <div style="text-align: left; margin-top: 15px;">
+                    <strong>Aturan Grup:</strong>
+                    <ul class="rules-list">
+                        <li>Gunakan bahasa yang sopan dan santun</li>
+                        <li>Dilarang mengirim konten SARA dan pornografi</li>
+                        <li>Jangan spam atau mengirim pesan berantai</li>
+                        <li>Fokus pada diskusi terkait JeGo dan pengalaman driver</li>
+                        <li>Hormati pendapat driver lain</li>
+                    </ul>
+                </div>
+                <div style="font-size: 12px; color: #888; margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i> Anda login sebagai: <span id="currentUserName">...</span>
+                </div>
+            </div>
+            
+            <!-- Pesan akan ditampilkan di sini -->
+        </div>
+        
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-container">
+                <input type="text" class="message-input" id="messageInput" placeholder="Ketik pesan untuk semua driver..." autocomplete="off">
+            </div>
+            <button class="send-button" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =================== KONFIGURASI FIREBASE ===================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
+            authDomain: "ojeka-ba255.firebaseapp.com",
+            databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+            projectId: "ojeka-ba255",
+            storageBucket: "ojeka-ba255.firebasestorage.app",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // =================== VARIABLES GLOBAL ===================
+        let currentUser = null;
+        let onlineUsers = {};
+        const chatArea = document.getElementById('chatArea');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const currentUserImage = document.getElementById('currentUserImage');
+        const currentUserName = document.getElementById('currentUserName');
+        const chatSubtitle = document.getElementById('chatSubtitle');
+        const onlineCount = document.getElementById('onlineCount');
+
+        // =================== FUNGSI UTILITY ===================
+        function getCurrentTime() {
+            const now = new Date();
+            return now.getTime();
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
+        }
+
+        function showNotification(message, type = 'info') {
+            // Buat notifikasi sementara
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: white;
+                padding: 12px 16px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                border-left: 4px solid #1e6f5c;
+                z-index: 1000;
+                max-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            if (type === 'success') {
+                notification.style.borderLeftColor = '#28a745';
+            } else if (type === 'error') {
+                notification.style.borderLeftColor = '#dc3545';
+            }
+            
+            notification.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 5px; color: #333;">${type === 'success' ? '✓ Berhasil' : type === 'error' ? '✗ Error' : 'Info'}</div>
+                <div style="font-size: 14px; color: #666;">${message}</div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // =================== FUNGSI PESAN ===================
+        function addMessage(messageData, isOwnMessage = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwnMessage ? 'sent' : 'received'}`;
+            
+            const timeString = formatTime(messageData.timestamp);
+            const dateString = formatDate(messageData.timestamp);
+            
+            // Cek apakah perlu menambahkan pembatas tanggal
+            const existingDateDividers = document.querySelectorAll('.date-divider');
+            let showDateDivider = true;
+            
+            if (existingDateDividers.length > 0) {
+                const lastDateDivider = existingDateDividers[existingDateDividers.length - 1];
+                if (lastDateDivider.textContent.includes(dateString)) {
+                    showDateDivider = false;
+                }
+            }
+            
+            if (showDateDivider) {
+                const dateDivider = document.createElement('div');
+                dateDivider.className = 'date-divider';
+                dateDivider.innerHTML = `<span>${dateString}</span>`;
+                chatArea.appendChild(dateDivider);
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <img src="${messageData.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/128/3135/3135715.png'}" 
+                         alt="${messageData.driverName}" 
+                         class="message-sender-img">
+                    <div class="message-sender-name">${messageData.driverName}</div>
+                </div>
+                <div class="message-bubble">${messageData.message}</div>
+                <div class="message-footer">
+                    <div class="message-time">${timeString}</div>
+                    ${isOwnMessage ? '<div class="message-status"><i class="fas fa-check"></i></div>' : ''}
+                </div>
+            `;
+            
+            chatArea.appendChild(messageDiv);
+            
+            // Scroll ke bawah dengan smooth animation
+            setTimeout(() => {
+                chatArea.scrollTo({
+                    top: chatArea.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (!messageText || !currentUser) return;
+            
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            const messageData = {
+                driverId: currentUser.driverId,
+                driverName: currentUser.fullName,
+                profilePhotoUrl: currentUser.profilePhotoUrl || '',
+                message: messageText,
+                timestamp: getCurrentTime(),
+                vehicleType: currentUser.vehicleType || ''
+            };
+            
+            // Generate unique message ID
+            const messageId = database.ref().child('Diskusi_Drivers').push().key;
+            
+            // Simpan ke Firebase
+            database.ref('Diskusi_Drivers/' + messageId).set(messageData)
+                .then(() => {
+                    messageInput.value = '';
+                    showNotification('Pesan terkirim', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error sending message:', error);
+                    showNotification('Gagal mengirim pesan', 'error');
+                })
+                .finally(() => {
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                });
+        }
+
+        function loadMessages() {
+            // Load semua pesan dari Firebase
+            database.ref('Diskusi_Drivers')
+                .orderByChild('timestamp')
+                .limitToLast(50) // Batasi 50 pesan terakhir
+                .on('value', (snapshot) => {
+                    // Hapus semua pesan kecuali welcome message
+                    const messages = chatArea.querySelectorAll('.message, .date-divider');
+                    messages.forEach(msg => {
+                        if (!msg.classList.contains('welcome-message')) {
+                            msg.remove();
+                        }
+                    });
+                    
+                    const messagesData = snapshot.val();
+                    
+                    if (!messagesData) {
+                        // Tampilkan empty state
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'empty-state';
+                        emptyState.innerHTML = `
+                            <div class="empty-icon">💬</div>
+                            <div class="empty-text">Belum ada pesan di diskusi ini</div>
+                        `;
+                        chatArea.appendChild(emptyState);
+                        return;
+                    }
+                    
+                    // Konversi ke array dan urutkan berdasarkan timestamp
+                    const messagesArray = Object.values(messagesData).sort((a, b) => a.timestamp - b.timestamp);
+                    
+                    // Tampilkan pesan
+                    messagesArray.forEach(message => {
+                        const isOwnMessage = currentUser && message.driverId === currentUser.driverId;
+                        addMessage(message, isOwnMessage);
+                    });
+                    
+                    // Scroll ke bawah
+                    setTimeout(() => {
+                        chatArea.scrollTop = chatArea.scrollHeight;
+                    }, 100);
+                });
+        }
+
+        // =================== FUNGSI ONLINE STATUS ===================
+        function updateOnlineStatus() {
+            if (!currentUser) return;
+            
+            const userStatusRef = database.ref('Online_Status/' + currentUser.driverId);
+            
+            // Set status online
+            userStatusRef.set({
+                driverId: currentUser.driverId,
+                driverName: currentUser.fullName,
+                isOnline: true,
+                lastSeen: getCurrentTime(),
+                profilePhotoUrl: currentUser.profilePhotoUrl || ''
+            });
+            
+            // Update setiap 30 detik untuk menunjukkan masih online
+            const keepAliveInterval = setInterval(() => {
+                userStatusRef.update({
+                    lastSeen: getCurrentTime()
+                });
+            }, 30000);
+            
+            // Update status ketika user offline
+            window.addEventListener('beforeunload', () => {
+                userStatusRef.update({
+                    isOnline: false,
+                    lastSeen: getCurrentTime()
+                });
+                clearInterval(keepAliveInterval);
+            });
+            
+            // Update status ketika tab tidak aktif
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    userStatusRef.update({
+                        isOnline: false,
+                        lastSeen: getCurrentTime()
+                    });
+                } else {
+                    userStatusRef.update({
+                        isOnline: true,
+                        lastSeen: getCurrentTime()
+                    });
+                }
+            });
+        }
+
+        function loadOnlineUsers() {
+            database.ref('Online_Status').on('value', (snapshot) => {
+                const users = snapshot.val();
+                onlineUsers = {};
+                let onlineCountNum = 0;
+                
+                if (users) {
+                    Object.values(users).forEach(user => {
+                        // Anggap online jika terakhir aktif dalam 2 menit terakhir
+                        const isRecentlyOnline = user.lastSeen && (getCurrentTime() - user.lastSeen < 120000);
+                        if (user.isOnline || isRecentlyOnline) {
+                            onlineUsers[user.driverId] = user;
+                            onlineCountNum++;
+                        }
+                    });
+                }
+                
+                onlineCount.textContent = onlineCountNum;
+                chatSubtitle.textContent = `${onlineCountNum} driver online`;
+            });
+        }
+
+        // =================== FUNGSI INISIALISASI ===================
+        function initializeApp() {
+            // Cek apakah user sudah login
+            const driverData = localStorage.getItem('jego_driver_data');
+            const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
+            
+            if (!driverData || isLoggedIn !== 'true') {
+                // Redirect ke login jika belum login
+                showNotification('Silakan login terlebih dahulu', 'error');
+                setTimeout(() => {
+                    window.location.href = 'loginDriver.html';
+                }, 2000);
+                return;
+            }
+            
+            currentUser = JSON.parse(driverData);
+            
+            // Update UI dengan data user
+            currentUserName.textContent = currentUser.fullName;
+            
+            if (currentUser.profilePhotoUrl) {
+                currentUserImage.src = currentUser.profilePhotoUrl;
+            } else {
+                currentUserImage.src = 'https://cdn-icons-png.flaticon.com/128/3135/3135715.png';
+            }
+            
+            // Setup event listeners
+            sendButton.addEventListener('click', sendMessage);
+            
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Auto-focus pada input
+            setTimeout(() => {
+                messageInput.focus();
+            }, 500);
+            
+            // Load data
+            loadMessages();
+            updateOnlineStatus();
+            loadOnlineUsers();
+            
+            // Setup notifikasi untuk pesan baru
+            database.ref('Diskusi_Drivers').limitToLast(1).on('child_added', (snapshot) => {
+                const newMessage = snapshot.val();
+                
+                // Hanya tampilkan notifikasi jika bukan pesan kita sendiri
+                if (newMessage.driverId !== currentUser.driverId) {
+                    // Cek apakah tab aktif
+                    if (document.hidden) {
+                        showNotification(`Pesan baru dari ${newMessage.driverName}: ${newMessage.message.substring(0, 50)}...`, 'info');
+                    }
+                }
+            });
+        }
+
+        // =================== EVENT LISTENERS ===================
+        // Profile image fallback
+        currentUserImage.onerror = function() {
+            this.src = 'https://cdn-icons-png.flaticon.com/128/3135/3135715.png';
+        };
+        
+        // Inisialisasi aplikasi
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
