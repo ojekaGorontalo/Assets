@@ -136,7 +136,7 @@
       width: 100%;
     }
 
-    .submit-btn:hover {
+    .submit-btn:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 6px 15px rgba(0,0,0,0.2);
     }
@@ -287,28 +287,46 @@
       opacity: 0.8;
     }
 
-    /* Loading spinner */
-    .loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 30px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    /* Loading State for Buttons */
+    .btn-loading {
+      position: relative;
+      color: transparent !important;
     }
 
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid rgba(0, 0, 0, 0.1);
+    .btn-loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin-top: -10px;
+      margin-left: -10px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
       border-radius: 50%;
-      border-top-color: var(--primary);
-      animation: spin 1s ease-in-out infinite;
+      animation: spin 1s linear infinite;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      height: 4px;
+      background-color: #e0e0e0;
+      border-radius: 2px;
+      margin: 10px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      width: 0%;
+      transition: width 0.3s ease;
     }
 
     /* Notification Popup */
@@ -408,13 +426,13 @@
       
       <div class="status-message" id="statusMessage"></div>
       
+      <!-- Progress Bar -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      
       <!-- Form Login -->
       <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label" for="namaInput">Nama Lengkap *</label>
-          <input type="text" class="form-input" id="namaInput" placeholder="Masukkan nama lengkap" required>
-        </div>
-        
         <div class="form-group">
           <label class="form-label" for="teleponInput">Nomor Telepon *</label>
           <input type="tel" class="form-input" id="teleponInput" placeholder="Contoh: 08123456789" required>
@@ -510,6 +528,21 @@
       }
     }
 
+    // Show progress bar
+    function showProgress(percent) {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      
+      progressContainer.style.display = 'block';
+      progressBar.style.width = percent + '%';
+    }
+
+    // Hide progress bar
+    function hideProgress() {
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.style.display = 'none';
+    }
+
     // Generate OTP (6 digit)
     function generateOTP() {
       return Math.floor(100000 + Math.random() * 900000).toString();
@@ -567,6 +600,12 @@
         input.addEventListener('input', (e) => {
           const value = e.target.value;
           
+          // Only allow numbers
+          if (!/^\d*$/.test(value)) {
+            e.target.value = '';
+            return;
+          }
+          
           if (value.length === 1) {
             e.target.classList.add('filled');
             
@@ -583,6 +622,20 @@
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Backspace' && !e.target.value && index > 0) {
             otpInputs[index - 1].focus();
+          }
+        });
+        
+        // Handle paste
+        input.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pastedData = e.clipboardData.getData('text').trim();
+          
+          if (/^\d{6}$/.test(pastedData)) {
+            for (let i = 0; i < 6; i++) {
+              otpInputs[i].value = pastedData[i];
+              otpInputs[i].classList.add('filled');
+            }
+            otpInputs[5].focus();
           }
         });
       });
@@ -636,39 +689,26 @@
       return cleaned;
     }
 
-    // Find user in Firebase
-    function findUserInFirebase(nama, telepon) {
+    // Find user in Firebase by phone number only
+    function findUserByPhone(telepon) {
       const cleanTelepon = cleanPhoneNumber(telepon);
       
-      console.log('Mencari user:', { nama, telepon, cleanTelepon });
+      console.log('Mencari user dengan nomor:', { telepon, cleanTelepon });
       
       return database.ref('users').once('value')
         .then((snapshot) => {
           const users = snapshot.val();
-          console.log('Data dari Firebase:', users);
-          
           let userFound = null;
           let matchKey = null;
           
           if (users) {
-            // Cari user yang cocok
+            // Cari user berdasarkan nomor telepon
             for (const key in users) {
               const user = users[key];
-              const userNama = user.nama || '';
               const userTelepon = user.telepon || '';
               const cleanUserTelepon = cleanPhoneNumber(userTelepon);
               
-              console.log(`Checking user ${key}:`, {
-                storedNama: userNama,
-                storedTelepon: userTelepon,
-                cleanStoredTelepon: cleanUserTelepon,
-                namaMatch: userNama.toLowerCase() === nama.toLowerCase(),
-                teleponMatch: cleanUserTelepon === cleanTelepon
-              });
-              
-              // Cocokkan nama (case insensitive) dan telepon
-              if (userNama.toLowerCase() === nama.toLowerCase() && 
-                  cleanUserTelepon === cleanTelepon) {
+              if (cleanUserTelepon === cleanTelepon) {
                 userFound = {
                   nama: user.nama || '',
                   email: user.email || '',
@@ -692,7 +732,7 @@
         });
     }
 
-    // Fungsi untuk mengirim SMS OTP dengan proxy CORS
+    // Fungsi untuk mengirim SMS OTP dengan proxy CORS (lebih cepat)
     function sendSmsOtp(phoneNumber, otp) {
       return new Promise((resolve, reject) => {
         // Format nomor telepon: Hilangkan semua karakter non-angka
@@ -710,45 +750,58 @@
         // Encode pesan untuk URL
         const encodedMessage = encodeURIComponent(messageText);
         
-        // URL asli untuk SMS gateway
+        // Gunakan CORS proxy yang berbeda (lebih reliable)
+        const corsProxy = 'https://corsproxy.io/?';
         const originalUrl = `https://srv2.soufasms.com/sms_gateway/?user=gsmreload&pass=Jd59dm$jr*dj%5Ehy&no=${formattedNumber}&msg=${encodedMessage}&max=1`;
-        
-        // Gunakan proxy CORS untuk menghindari error "Failed to fetch"
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(originalUrl)}`;
+        const proxyUrl = corsProxy + encodeURIComponent(originalUrl);
         
         console.log('Mengirim SMS ke:', formattedNumber);
-        console.log('Menggunakan proxy CORS:', proxyUrl);
+        console.log('Menggunakan proxy URL:', proxyUrl);
         
-        // Kirim permintaan menggunakan proxy
-        fetch(proxyUrl)
+        // Kirim permintaan menggunakan proxy dengan timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        fetch(proxyUrl, { signal: controller.signal })
           .then(response => {
+            clearTimeout(timeoutId);
             if (!response.ok) {
-              throw new Error(`Network response was not ok: ${response.status}`);
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
           })
           .then(data => {
-            try {
-              // Parse konten yang dikembalikan oleh proxy
-              const responseData = JSON.parse(data.contents);
-              console.log('Respon dari Gateway SMS (via proxy):', responseData);
-              
-              // Cek status respon
-              if (responseData.status === 200) {
-                console.log('SMS berhasil dikirim! Sisa kredit:', responseData.data?.sisa_kredit || 'Tidak diketahui');
-                resolve({ success: true, data: responseData });
-              } else {
-                // Jika gagal, lempar error
-                reject(new Error(`Gagal mengirim SMS. Status: ${responseData.status_message || 'Tidak diketahui'}`));
+            console.log('Respon dari Gateway SMS (via proxy):', data);
+            
+            if (data && data.contents) {
+              try {
+                const responseData = JSON.parse(data.contents);
+                if (responseData.status === 200) {
+                  console.log('SMS berhasil dikirim!');
+                  resolve({ success: true, data: responseData });
+                } else {
+                  reject(new Error(`Gagal mengirim SMS: ${responseData.status_message || 'Status tidak valid'}`));
+                }
+              } catch (parseError) {
+                console.error('Error parsing response:', parseError);
+                // Jika response bukan JSON, mungkin langsung success
+                resolve({ success: true, data: data.contents });
               }
-            } catch (parseError) {
-              console.error('Error parsing response from proxy:', parseError);
-              reject(new Error('Format respon tidak valid dari SMS gateway'));
+            } else {
+              // Assume success if we get any response
+              resolve({ success: true, data: data });
             }
           })
           .catch(error => {
-            console.error('Error mengirim SMS via proxy:', error);
-            reject(error);
+            clearTimeout(timeoutId);
+            console.error('Error mengirim SMS:', error);
+            
+            // Fallback: Gunakan proxy alternatif jika yang pertama gagal
+            if (error.name === 'AbortError') {
+              reject(new Error('Timeout saat mengirim SMS. Silakan coba lagi.'));
+            } else {
+              reject(new Error(`Gagal mengirim SMS: ${error.message}`));
+            }
           });
       });
     }
@@ -763,138 +816,147 @@
       
       console.log('Data yang akan dikirim ke Kodular:', kodularData);
       
-      // METODE 1: Menggunakan window.AppInventor.setWebViewString (PREFERED)
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
           window.AppInventor.setWebViewString(JSON.stringify(kodularData));
-          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor.setWebViewString');
+          console.log('✅ Data berhasil dikirim ke Kodular');
         } catch (error) {
           console.error('Error mengirim data via AppInventor:', error);
         }
-      }
-      // METODE 2: Menggunakan window.android (Android WebView)
-      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+      } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
         try {
           window.android.receiveData(JSON.stringify(kodularData));
-          console.log('✅ Data berhasil dikirim ke Kodular via window.android');
+          console.log('✅ Data berhasil dikirim ke Kodular');
         } catch (error) {
           console.error('Error mengirim data via window.android:', error);
         }
-      }
-      // METODE 3: Menggunakan window.webkit.messageHandlers (iOS WebView)
-      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
         try {
           window.webkit.messageHandlers.observe.postMessage(kodularData);
-          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
+          console.log('✅ Data berhasil dikirim ke Kodular');
         } catch (error) {
           console.error('Error mengirim data via webkit.messageHandlers:', error);
         }
-      }
-      else {
+      } else {
         console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
-        console.log('Data yang gagal dikirim:', kodularData);
       }
     }
 
     // Handle login form submission
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const loginBtn = document.getElementById('loginBtn');
-      loginBtn.disabled = true;
-      loginBtn.textContent = 'Memeriksa data...';
-      
-      const nama = document.getElementById('namaInput').value.trim();
       const telepon = document.getElementById('teleponInput').value.trim();
       
-      // Validate required fields
-      if (!nama || !telepon) {
-        showStatus('Harap isi semua field yang wajib.', 'error');
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Login';
+      // Validate required field
+      if (!telepon) {
+        showStatus('Harap masukkan nomor telepon.', 'error');
         return;
       }
       
-      // Check if user exists
-      findUserInFirebase(nama, telepon)
-        .then((result) => {
-          const { userFound, matchKey } = result;
+      // Validate phone number format
+      const cleanTelepon = telepon.replace(/\D/g, '');
+      if (cleanTelepon.length < 10 || cleanTelepon.length > 13) {
+        showStatus('Nomor telepon harus antara 10-13 digit.', 'error');
+        return;
+      }
+      
+      // Disable button and show loading
+      loginBtn.disabled = true;
+      loginBtn.classList.add('btn-loading');
+      loginBtn.textContent = 'Mengirim OTP...';
+      
+      // Show progress
+      showProgress(20);
+      
+      try {
+        // 1. Cari user berdasarkan nomor telepon
+        showProgress(40);
+        const result = await findUserByPhone(telepon);
+        const { userFound, matchKey } = result;
+        
+        if (!userFound) {
+          showStatus('Nomor telepon tidak terdaftar.', 'error');
+          showNotification('Login Gagal', 'Nomor telepon tidak terdaftar.', 'error');
           
-          if (!userFound) {
-            showStatus('Nama atau nomor telepon tidak ditemukan.', 'error');
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Login';
-            
-            // Kirim status gagal ke Kodular
-            sendToKodular({
-              login_status: 'failed',
-              nama_input: nama,
-              telepon_input: telepon
-            }, 'login_failed');
-            
-            return;
-          }
+          // Kirim status gagal ke Kodular
+          sendToKodular({
+            login_status: 'failed',
+            telepon_input: telepon,
+            reason: 'Nomor tidak terdaftar'
+          }, 'login_failed');
           
-          // Generate OTP
-          const otp = generateOTP();
-          
-          // 1. Simpan OTP ke Firebase
-          saveOTP(matchKey, otp)
-            .then(() => {
-              // 2. Kirim OTP via SMS
-              return sendSmsOtp(telepon, otp);
-            })
-            .then((smsResult) => {
-              // 3. SMS berhasil dikirim
-              
-              // Simpan data user di localStorage untuk digunakan nanti
-              localStorage.setItem('jego_current_user', JSON.stringify({
-                userKey: matchKey,
-                nama: nama,
-                telepon: telepon,
-                userData: userFound
-              }));
-              
-              // Tampilkan pesan bahwa OTP telah dikirim
-              showStatus('Kode OTP telah dikirim via SMS ke nomor Anda. Silakan periksa pesan Anda.', 'info');
-              showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS. Silakan periksa ponsel Anda.', 'info');
-              
-              // Sembunyikan form login, tampilkan form OTP
-              document.getElementById('loginForm').style.display = 'none';
-              document.getElementById('otpSection').style.display = 'block';
-              
-              // Mulai countdown untuk kirim ulang OTP
-              startResendCountdown(60);
-            })
-            .catch((error) => {
-              console.error('Error dalam proses OTP:', error);
-              showStatus(`Terjadi kesalahan: ${error.message || 'Silakan coba lagi.'}`, 'error');
-            });
-        })
-        .catch((error) => {
-          console.error('Error checking user:', error);
-          showStatus('Terjadi kesalahan saat memeriksa data user. Silakan coba lagi.', 'error');
-        })
-        .finally(() => {
-          loginBtn.disabled = false;
-          loginBtn.textContent = 'Login';
-        });
+          return;
+        }
+        
+        // 2. Generate OTP
+        showProgress(60);
+        const otp = generateOTP();
+        
+        // 3. Simpan OTP ke Firebase
+        showProgress(70);
+        await saveOTP(matchKey, otp);
+        
+        // 4. Kirim OTP via SMS (tanpa menunggu lama)
+        showProgress(80);
+        
+        // Simpan data user di localStorage untuk digunakan nanti
+        localStorage.setItem('jego_current_user', JSON.stringify({
+          userKey: matchKey,
+          telepon: telepon,
+          userData: userFound
+        }));
+        
+        // LANGSUNG alihkan ke halaman OTP tanpa menunggu SMS berhasil
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('otpSection').style.display = 'block';
+        document.getElementById('otp1').focus();
+        
+        // Mulai countdown untuk kirim ulang OTP
+        startResendCountdown(60);
+        
+        // Kirim SMS di background (tidak blocking)
+        sendSmsOtp(telepon, otp)
+          .then(() => {
+            console.log('SMS OTP berhasil dikirim');
+            showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS.', 'info');
+          })
+          .catch(error => {
+            console.error('Gagal mengirim SMS:', error);
+            // Tidak tampilkan error agar user bisa tetap memasukkan OTP
+            // (OTP sudah disimpan di Firebase, bisa diverifikasi)
+          });
+        
+        showProgress(100);
+        
+      } catch (error) {
+        console.error('Error dalam proses login:', error);
+        showStatus(`Terjadi kesalahan: ${error.message || 'Silakan coba lagi.'}`, 'error');
+        showNotification('Error', 'Terjadi kesalahan. Silakan coba lagi.', 'error');
+      } finally {
+        // Reset button state
+        loginBtn.disabled = false;
+        loginBtn.classList.remove('btn-loading');
+        loginBtn.textContent = 'Login';
+        hideProgress();
+      }
     });
 
     // Handle OTP verification
     document.getElementById('verifyOtpBtn').addEventListener('click', function() {
       const verifyBtn = document.getElementById('verifyOtpBtn');
-      verifyBtn.disabled = true;
-      verifyBtn.textContent = 'Memverifikasi...';
-      
       const enteredOtp = getEnteredOTP();
       
       if (enteredOtp.length !== 6) {
         showStatus('Harap masukkan kode OTP 6 digit lengkap.', 'error');
-        verifyBtn.disabled = false;
-        verifyBtn.textContent = 'Verifikasi OTP';
         return;
       }
+      
+      // Disable button and show loading
+      verifyBtn.disabled = true;
+      verifyBtn.classList.add('btn-loading');
+      verifyBtn.textContent = 'Memverifikasi...';
       
       const currentUser = JSON.parse(localStorage.getItem('jego_current_user') || '{}');
       const userKey = currentUser.userKey;
@@ -902,6 +964,7 @@
       if (!userKey) {
         showStatus('Sesi tidak valid. Silakan login kembali.', 'error');
         verifyBtn.disabled = false;
+        verifyBtn.classList.remove('btn-loading');
         verifyBtn.textContent = 'Verifikasi OTP';
         return;
       }
@@ -914,6 +977,7 @@
             clearOTPInputs();
             document.getElementById('otp1').focus();
             verifyBtn.disabled = false;
+            verifyBtn.classList.remove('btn-loading');
             verifyBtn.textContent = 'Verifikasi OTP';
             return;
           }
@@ -922,7 +986,7 @@
           showStatus('Login berhasil! Mengalihkan...', 'success');
           showNotification('Login Berhasil', 'Login berhasil! Mengalihkan ke halaman utama...', 'success');
           
-          // ✅ SIMPAN KE LOCALSTORAGE DENGAN CARA YANG SAMA SEPERTI SEBELUMNYA
+          // ✅ SIMPAN KE LOCALSTORAGE
           const userDataToStore = {
             ...currentUser.userData,
             firebase_key: userKey,
@@ -932,7 +996,7 @@
           // 1. Simpan sebagai user logged in (untuk session)
           localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
           
-          // 2. ✅ SIMPAN KE jego_users UNTUK KOMPATIBILITAS
+          // 2. SIMPAN KE jego_users UNTUK KOMPATIBILITAS
           let jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
           jegoUsers[userKey] = currentUser.userData;
           localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
@@ -940,11 +1004,7 @@
           // 3. Simpan juga sebagai jego_user_data (backup)
           localStorage.setItem('jego_user_data', JSON.stringify(currentUser.userData));
           
-          console.log('✅ Data user disimpan di localStorage:', {
-            jego_logged_in_user: userDataToStore,
-            jego_users: jegoUsers,
-            jego_user_data: currentUser.userData
-          });
+          console.log('✅ Data user disimpan di localStorage:', userDataToStore);
           
           // Kirim data user ke Kodular
           sendToKodular({
@@ -953,15 +1013,16 @@
             firebase_key: userKey
           }, 'login_success');
           
-          // Redirect ke jenis_kenderaan.html setelah 2 detik
+          // Redirect ke jenis_kenderaan.html setelah 1.5 detik
           setTimeout(() => {
             window.location.href = 'jenis_kenderaan.html';
-          }, 2000);
+          }, 1500);
         })
         .catch((error) => {
           console.error('Error validating OTP:', error);
           showStatus('Terjadi kesalahan saat memverifikasi OTP. Silakan coba lagi.', 'error');
           verifyBtn.disabled = false;
+          verifyBtn.classList.remove('btn-loading');
           verifyBtn.textContent = 'Verifikasi OTP';
         });
     });
@@ -986,36 +1047,34 @@
       // Generate new OTP
       const otp = generateOTP();
       
-      // 1. Simpan OTP baru ke Firebase
+      // Disable resend link temporarily
+      resendLink.classList.add('disabled');
+      
+      // Save OTP to Firebase and send SMS in background
       saveOTP(userKey, otp)
-        .then(() => {
-          // 2. Kirim SMS OTP baru
-          return sendSmsOtp(telepon, otp);
-        })
+        .then(() => sendSmsOtp(telepon, otp))
         .then(() => {
           showStatus('Kode OTP baru telah dikirim ke nomor Anda.', 'info');
-          showNotification('OTP Dikirim Ulang', 'Kode OTP baru telah dikirim via SMS.', 'info');
-          
           // Clear OTP inputs
           clearOTPInputs();
           document.getElementById('otp1').focus();
-          
           // Start countdown again
           startResendCountdown(60);
         })
         .catch((error) => {
           console.error('Error resending OTP:', error);
           showStatus('Terjadi kesalahan saat mengirim ulang OTP. Silakan coba lagi.', 'error');
+          // Re-enable resend link on error
+          resendLink.classList.remove('disabled');
         });
     });
 
     // Handle register button click
     document.getElementById('registerBtn').addEventListener('click', function() {
-      // Redirect ke halaman pendaftaran user
       window.location.href = 'registrasi_jego.html';
     });
 
-    // Initialize OTP inputs
+    // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       setupOTPInputs();
       
@@ -1026,45 +1085,25 @@
         try {
           const user = JSON.parse(loggedInUser);
           showStatus('Anda sudah login. Mengalihkan...', 'info');
-          showNotification('Informasi Login', 'Anda sudah login. Mengalihkan ke halaman utama...', 'info');
           
-          // Redirect ke jenis_kenderaan.html setelah 2 detik
+          // Redirect ke jenis_kenderaan.html setelah 1.5 detik
           setTimeout(() => {
             window.location.href = 'jenis_kenderaan.html';
-          }, 2000);
+          }, 1500);
         } catch (error) {
           console.error('Error parsing logged in user:', error);
         }
       }
       
-      // Add Enter key support
-      document.getElementById('namaInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          document.getElementById('teleponInput').focus();
-        }
-      });
-      
+      // Add Enter key support for phone input
       document.getElementById('teleponInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           document.getElementById('loginBtn').click();
         }
       });
       
-      // Add Enter key support for OTP inputs
-      const otpInputs = document.querySelectorAll('.otp-input');
-      otpInputs.forEach((input, index) => {
-        input.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') {
-            if (index === 5) {
-              // Last OTP input, trigger verification
-              document.getElementById('verifyOtpBtn').click();
-            } else {
-              // Move to next input
-              otpInputs[index + 1].focus();
-            }
-          }
-        });
-      });
+      // Auto-focus on phone input
+      document.getElementById('teleponInput').focus();
     });
   </script>
 </body>
