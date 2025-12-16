@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jego Driver Asisten</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #075e54, #128c7e);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            height: 90vh;
+            background-color: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header Styling */
+        .chat-header {
+            background-color: #075e54;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        
+        .profile-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #128c7e;
+            background-color: #f0f0f0;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-name {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .profile-status {
+            font-size: 13px;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background-color: #25D366;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .header-icons {
+            display: flex;
+            gap: 20px;
+            color: #e6f2f0;
+        }
+        
+        .header-icons i {
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #ece5dd;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%2300a884' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.3s forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .received {
+            align-items: flex-start;
+        }
+        
+        .sent {
+            align-items: flex-end;
+            margin-left: auto;
+        }
+        
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.4;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+        }
+        
+        .received .message-bubble {
+            background-color: white;
+            border-top-left-radius: 5px;
+            color: #333;
+        }
+        
+        .sent .message-bubble {
+            background-color: #dcf8c6;
+            border-top-right-radius: 5px;
+            color: #333;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            padding: 0 5px;
+        }
+        
+        .sent .message-time {
+            text-align: right;
+        }
+        
+        .received .message-time {
+            text-align: left;
+        }
+        
+        /* Input Area */
+        .input-area {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-container {
+            flex: 1;
+            display: flex;
+            background-color: #f0f0f0;
+            border-radius: 25px;
+            padding: 8px 15px;
+            align-items: center;
+        }
+        
+        .message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;
+            padding: 5px;
+            color: #333;
+        }
+        
+        .input-icons {
+            display: flex;
+            gap: 10px;
+            color: #666;
+        }
+        
+        .input-icons i {
+            font-size: 22px;
+            cursor: pointer;
+        }
+        
+        .send-button {
+            background-color: #075e54;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .send-button:hover {
+            background-color: #128c7e;
+        }
+        
+        .send-button i {
+            font-size: 18px;
+        }
+        
+        /* Loading Animation */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 18px;
+            border-top-left-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+        }
+        
+        /* Scrollbar Styling */
+        .chat-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-area::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .chat-area::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .chat-container {
+                height: 95vh;
+                border-radius: 15px;
+            }
+            
+            .chat-header {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="Profil Jego Driver" class="profile-img" id="profileImage">
+            <div class="profile-info">
+                <div class="profile-name">Jego Driver Asisten AI</div>
+                <div class="profile-status">
+                    <span class="status-indicator"></span>
+                    <span id="statusText">Online</span>
+                </div>
+            </div>
+            <div class="header-icons">
+                <i class="fas fa-search"></i>
+                <i class="fas fa-ellipsis-v"></i>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <!-- Pesan akan ditampilkan di sini -->
+            <div class="message received">
+                <div class="message-bubble">
+                    Halo! Saya Jego Driver Asisten AI. Silakan tanyakan apa saja tentang aplikasi driver JeGo.
+                </div>
+                <div class="message-time" id="initialTime">10:00</div>
+            </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-container">
+                <i class="far fa-smile" style="margin-right: 10px; color: #666; font-size: 22px;"></i>
+                <input type="text" class="message-input" id="messageInput" placeholder="Tanya tentang JeGo Driver..." autocomplete="off">
+                <div class="input-icons">
+                    <i class="fas fa-paperclip"></i>
+                    <i class="fas fa-camera"></i>
+                </div>
+            </div>
+            <button class="send-button" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =================== KONFIGURASI OPENROUTER ===================
+        const OPENROUTER_API_KEY = "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";
+        const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+        const OPENROUTER_MODEL = "deepseek/deepseek-chat";
+        
+        // =================== GLOBAL VARIABLES ===================
+        let isProcessing = false;
+        
+        // Element references
+        const chatArea = document.getElementById('chatArea');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const profileImage = document.getElementById('profileImage');
+        const statusText = document.getElementById('statusText');
+        
+        // =================== PROMPT LENGKAP JEGo DRIVER ===================
+        const FULL_TRAINING_PROMPT = `Role & Konteks
+
+Anda adalah asisten virtual untuk aplikasi JeGo (Jasa Ekspedisi Gorontalo) khusus untuk DRIVER. Anda akan menjawab pertanyaan seputar:
+
+1. Pendaftaran driver baru
+2. Login driver yang sudah terdaftar
+3. Proses verifikasi dan syarat-syaratnya
+4. Fitur-fitur dalam aplikasi driver (berdasarkan list1.html, riwayatDriver.html, dan akun.html)
+5. Sistem bonus, saldo, dan potongan
+6. Troubleshooting masalah teknis
+7. Fitur Riwayat Order (histori penyelesaian tugas)
+8. Fitur Halaman Akun Driver (profil, saldo, rating, prioritas, pendapatan)
+9. Semua hal terkait operasional driver JeGo
+
+---
+
+ATURAN WAJIB UNTUK ASISTEN:
+
+1. Jawab HANYA berdasarkan pengetahuan yang diberikan di atas.
+2. DILARANG menambah, mengira-ngira, atau mengarang informasi di luar pengetahuan yang diberikan.
+3. Jika pertanyaan tidak ada dalam pengetahuan, jawab: "Maaf, informasi tersebut belum tersedia."
+4. Jawaban harus singkat, jelas, profesional, dan ramah.
+5. Gunakan bahasa Indonesia yang mudah dipahami.
+6. Untuk pertanyaan spesifik, berikan jawaban spesifik sesuai konteks.
+7. Jika perlu langkah-langkah, gunakan poin-poin.
+8. Untuk troubleshooting, berikan solusi praktis.
+9. NOMOR WHATSAPP ADMIN HANYA BOLEH DIBERIKAN JIKA: Pengguna secara eksplisit meminta nomor admin ATAU konteks percakapan adalah tentang verifikasi data pendaftaran driver (setelah semua syarat dan dokumen dijelaskan). Nomor yang diberikan adalah: 083142889149.
+10. LINK DOWNLOAD APLIKASI HANYA BOLEH DIBERIKAN JIKA DIMINTA. Gunakan link yang sesuai dengan konteks pertanyaan (driver atau customer).
+    · Aplikasi Driver: https://drive.usercontent.google.com/download?id=1aUnd-TiGQiVmZ_gJBLKl6wM4sC7t7hYN&export=download&authuser=0&confirm=t
+    · Aplikasi Customer: https://drive.google.com/uc?export=download&id=1dbd2An7GK5nN3GYqcigEiVt6M8gjA4cZ
+
+---
+
+INFORMASI PENTING:
+
+1. PROSES PENDAFTARAN:
+   · 10 Syarat Pendaftaran: SIM berlaku, STNK berlaku, perilaku sopan, tidak menolak order tanpa alasan, patuh lalu lintas, tanggung jawab keamanan, hak JeGo menonaktifkan akun, sanksi penipuan, transaksi via aplikasi, setuju verifikasi data.
+   · Dokumen yang diperlukan: KTP, SIM, STNK, foto kendaraan 3 sisi.
+   · Proses Verifikasi: Setelah mengumpulkan semua dokumen dan syarat dipahami, hubungi Admin via WhatsApp untuk proses verifikasi lebih lanjut.
+   · Bonus driver baru: Saldo awal Rp 25.000, potongan fee 5.1%, rating awal 5.0.
+2. PROSES LOGIN:
+   · Data Login: Driver ID (unik setelah verifikasi) + Nomor Telepon terdaftar.
+   · OTP 6 digit via SMS, berlaku 10 menit.
+   · 6 langkah login: Input data → Login → Verifikasi OTP → Masukkan OTP → Verifikasi → Akses dashboard.
+3. FITUR APLIKASI:
+   · Dashboard Order (list1.html): Order searching, autobid, pengaturan radius (0.1-10 km).
+   · Riwayat Order (riwayatDriver.html): Lihat order selesai/dibatalkan, filter waktu, detail rute.
+   · Halaman Akun (akun.html): Profil, saldo, rating, prioritas, pendapatan hari ini.
+   · Sistem Prioritas: Basic (<3.0), Standard (3.0-3.9), Regular (4.0-4.4), Essential (≥4.5).
+   · Sistem Pendapatan: Dihitung berdasarkan order completed hari ini (WITA).
+4. STATUS DRIVER:
+   · Pending: Menunggu verifikasi.
+   · Accepted: Diterima, bisa login.
+   · Rejected: Ditolak.
+   · Online/Offline: Status tracking.
+   · On Trip: Sedang dalam perjalanan.
+5. TROUBLESHOOTING UMUM:
+   · GPS tidak aktif: Pastikan izin lokasi, restart aplikasi.
+   · Tidak ada order: Periksa radius, status tracking, filter tujuan.
+   · Autobid tidak bekerja: Pastikan GPS aktif, tracking ON, saldo cukup.
+   · Login gagal: Cek status driver, Driver ID, nomor telepon.
+   · Saldo tidak cukup: Tidak bisa kirim penawaran, perlu selesaikan order.
+
+---
+
+CATATAN:
+
+· Aplikasi customer sedang proses upload ke Play Store.
+· Admin WhatsApp (083142889149) dapat dihubungi pada Senin-Minggu, 08:00-22:00 WITA, terutama untuk verifikasi pendaftaran atau masalah yang memerlukan bantuan langsung.
+· Driver dapat bonus saldo awal Rp 25.000 setelah verifikasi.
+· Rating awal driver: 5.0.
+· Potongan fee: 5.1% dari harga order.
+· Versi aplikasi driver: v1.0.`;
+
+        // =================== UTILITY FUNCTIONS ===================
+        function getCurrentTime() {
+            const now = new Date();
+            return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        }
+        
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            chatArea.appendChild(typingDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            
+            return typingDiv;
+        }
+        
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        // =================== MESSAGE FUNCTIONS ===================
+        function addMessage(text, isReceived = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isReceived ? 'received' : 'sent'}`;
+            
+            const timeString = getCurrentTime();
+            
+            messageDiv.innerHTML = `
+                <div class="message-bubble">${text}</div>
+                <div class="message-time">${timeString}</div>
+            `;
+            
+            chatArea.appendChild(messageDiv);
+            
+            // Scroll ke bawah dengan smooth animation
+            setTimeout(() => {
+                chatArea.scrollTo({
+                    top: chatArea.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }
+        
+        // =================== OPENROUTER AI FUNCTIONS ===================
+        async function queryOpenRouter(userMessage) {
+            if (isProcessing) {
+                return "Sedang memproses pesan sebelumnya...";
+            }
+            
+            isProcessing = true;
+            
+            try {
+                const response = await fetch(OPENROUTER_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'Jego Driver Asisten AI'
+                    },
+                    body: JSON.stringify({
+                        model: OPENROUTER_MODEL,
+                        messages: [
+                            {
+                                role: "system",
+                                content: FULL_TRAINING_PROMPT
+                            },
+                            {
+                                role: "user",
+                                content: userMessage
+                            }
+                        ],
+                        temperature: 0,
+                        max_tokens: 800
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    return data.choices[0].message.content;
+                } else {
+                    throw new Error("Format respons tidak valid");
+                }
+                
+            } catch (error) {
+                console.error("Error querying OpenRouter:", error);
+                return "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.";
+            } finally {
+                isProcessing = false;
+            }
+        }
+        
+        async function generateAIResponse(userMessage) {
+            // Tampilkan typing indicator
+            showTypingIndicator();
+            
+            try {
+                const response = await queryOpenRouter(userMessage);
+                hideTypingIndicator();
+                addMessage(response, true);
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage("Maaf, terjadi kesalahan dalam memproses permintaan Anda.", true);
+                console.error("Error generating AI response:", error);
+            }
+        }
+        
+        // =================== EVENT HANDLERS ===================
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (text === "") return;
+            
+            addMessage(text, false);
+            messageInput.value = "";
+            
+            // Generate AI response
+            generateAIResponse(text);
+            
+            // Fokus kembali ke input
+            messageInput.focus();
+        }
+        
+        // =================== INITIALIZATION ===================
+        window.onload = function() {
+            // Set initial time
+            document.getElementById('initialTime').textContent = getCurrentTime();
+            
+            // Auto-focus pada input
+            setTimeout(() => {
+                messageInput.focus();
+            }, 500);
+        };
+        
+        // Event Listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Profile image fallback
+        profileImage.onerror = function() {
+            this.src = "https://cdn-icons-png.flaticon.com/128/3135/3135715.png";
+        };
+        
+        // Simulate online status
+        setInterval(() => {
+            const indicator = document.querySelector('.status-indicator');
+            indicator.style.backgroundColor = '#25D366';
+            statusText.textContent = 'Online';
+        }, 30000);
+    </script>
+</body>
+</html>
