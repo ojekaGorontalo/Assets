@@ -17,19 +17,15 @@
             background: linear-gradient(135deg, #075e54, #128c7e);
             height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            flex-direction: column;
+            padding: 0;
         }
         
         .chat-container {
             width: 100%;
-            max-width: 500px;
-            height: 90vh;
-            background-color: white;
-            border-radius: 20px;
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.95);
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
         }
@@ -43,7 +39,6 @@
             align-items: center;
             gap: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            z-index: 10;
         }
         
         .profile-img {
@@ -78,17 +73,6 @@
             background-color: #25D366;
             border-radius: 50%;
             display: inline-block;
-        }
-        
-        .header-icons {
-            display: flex;
-            gap: 20px;
-            color: #e6f2f0;
-        }
-        
-        .header-icons i {
-            font-size: 20px;
-            cursor: pointer;
         }
         
         /* Chat Area */
@@ -165,7 +149,7 @@
         
         /* Input Area */
         .input-area {
-            padding: 15px;
+            padding: 12px 15px;
             background-color: white;
             border-top: 1px solid #e0e0e0;
             display: flex;
@@ -190,17 +174,7 @@
             font-size: 16px;
             padding: 5px;
             color: #333;
-        }
-        
-        .input-icons {
-            display: flex;
-            gap: 10px;
-            color: #666;
-        }
-        
-        .input-icons i {
-            font-size: 22px;
-            cursor: pointer;
+            width: 100%;
         }
         
         .send-button {
@@ -209,12 +183,14 @@
             border: none;
             width: 45px;
             height: 45px;
+            min-width: 45px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
             transition: background-color 0.2s;
+            margin-left: 5px;
         }
         
         .send-button:hover {
@@ -268,17 +244,16 @@
         }
         
         @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            
             .chat-container {
-                height: 95vh;
-                border-radius: 15px;
+                height: 100vh;
             }
             
             .chat-header {
                 padding: 12px 15px;
+            }
+            
+            .input-area {
+                padding: 10px 12px;
             }
         }
     </style>
@@ -294,10 +269,6 @@
                     <span class="status-indicator"></span>
                     <span id="statusText">Online</span>
                 </div>
-            </div>
-            <div class="header-icons">
-                <i class="fas fa-search"></i>
-                <i class="fas fa-ellipsis-v"></i>
             </div>
         </div>
         
@@ -315,12 +286,7 @@
         <!-- Input Area -->
         <div class="input-area">
             <div class="input-container">
-                <i class="far fa-smile" style="margin-right: 10px; color: #666; font-size: 22px;"></i>
                 <input type="text" class="message-input" id="messageInput" placeholder="Tanya tentang JeGo Driver..." autocomplete="off">
-                <div class="input-icons">
-                    <i class="fas fa-paperclip"></i>
-                    <i class="fas fa-camera"></i>
-                </div>
             </div>
             <button class="send-button" id="sendButton">
                 <i class="fas fa-paper-plane"></i>
@@ -329,13 +295,14 @@
     </div>
 
     <script>
-        // =================== KONFIGURASI OPENROUTER ===================
-        const OPENROUTER_API_KEY = "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";
-        const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-        const OPENROUTER_MODEL = "deepseek/deepseek-chat";
+        // =================== KONFIGURASI FIREBASE ===================
+        const FIREBASE_API_URL = "https://ojeka-ba255-default-rtdb.firebaseio.com/DataJego/ChatBot/Apikey_openRouter.json";
         
         // =================== GLOBAL VARIABLES ===================
         let isProcessing = false;
+        let OPENROUTER_API_KEY = null;
+        const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+        const OPENROUTER_MODEL = "deepseek/deepseek-chat";
         
         // Element references
         const chatArea = document.getElementById('chatArea');
@@ -470,8 +437,30 @@ CATATAN:
             }, 50);
         }
         
+        // =================== FETCH API KEY FROM FIREBASE ===================
+        async function fetchApiKey() {
+            try {
+                const response = await fetch(FIREBASE_API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                OPENROUTER_API_KEY = data;
+                console.log("API Key loaded successfully");
+                return true;
+            } catch (error) {
+                console.error("Error fetching API key:", error);
+                addMessage("Maaf, terjadi kesalahan dalam menghubungkan ke server. Silakan refresh halaman.", true);
+                return false;
+            }
+        }
+        
         // =================== OPENROUTER AI FUNCTIONS ===================
         async function queryOpenRouter(userMessage) {
+            if (!OPENROUTER_API_KEY) {
+                return "Maaf, sistem sedang dalam proses inisialisasi. Silakan coba lagi dalam beberapa detik.";
+            }
+            
             if (isProcessing) {
                 return "Sedang memproses pesan sebelumnya...";
             }
@@ -541,6 +530,11 @@ CATATAN:
         
         // =================== EVENT HANDLERS ===================
         function sendMessage() {
+            if (!OPENROUTER_API_KEY) {
+                addMessage("Sistem masih memuat API key. Silakan tunggu beberapa saat.", true);
+                return;
+            }
+            
             const text = messageInput.value.trim();
             if (text === "") return;
             
@@ -555,15 +549,23 @@ CATATAN:
         }
         
         // =================== INITIALIZATION ===================
-        window.onload = function() {
+        async function initializeApp() {
             // Set initial time
             document.getElementById('initialTime').textContent = getCurrentTime();
             
-            // Auto-focus pada input
-            setTimeout(() => {
-                messageInput.focus();
-            }, 500);
-        };
+            // Fetch API key from Firebase
+            addMessage("Menyiapkan sistem...", true);
+            const apiKeyLoaded = await fetchApiKey();
+            
+            if (apiKeyLoaded) {
+                addMessage("Sistem siap! Silakan bertanya tentang aplikasi JeGo Driver.", true);
+                
+                // Auto-focus pada input
+                setTimeout(() => {
+                    messageInput.focus();
+                }, 500);
+            }
+        }
         
         // Event Listeners
         sendButton.addEventListener('click', sendMessage);
@@ -585,6 +587,9 @@ CATATAN:
             indicator.style.backgroundColor = '#25D366';
             statusText.textContent = 'Online';
         }, 30000);
+        
+        // Initialize the app
+        window.onload = initializeApp;
     </script>
 </body>
 </html>
