@@ -874,18 +874,63 @@
             reason: 'Nomor tidak terdaftar'
           }, 'login_failed');
           
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('btn-loading');
+          loginBtn.textContent = 'Login';
+          hideProgress();
           return;
         }
         
-        // 2. Generate OTP
+        // 2. CEK STATUS AKUN: delete_account atau terblokir
+        const userStatus = userFound.status || 'active';
+        console.log('Status akun ditemukan:', userStatus);
+        
+        if (userStatus === 'delete_account') {
+          showStatus('Akun sudah dihapus. Tidak dapat login.', 'error');
+          showNotification('Login Gagal', 'Akun sudah dihapus. Silakan hubungi admin.', 'error');
+          
+          // Kirim status gagal ke Kodular
+          sendToKodular({
+            login_status: 'failed',
+            telepon_input: telepon,
+            reason: 'Akun sudah dihapus'
+          }, 'login_failed');
+          
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('btn-loading');
+          loginBtn.textContent = 'Login';
+          hideProgress();
+          return;
+        }
+        
+        if (userStatus === 'terblokir') {
+          showStatus('Akun terblokir permanen karena pelanggaran. Tidak dapat login.', 'error');
+          showNotification('Login Gagal', 'Akun terblokir permanen. Hubungi admin untuk info lebih lanjut.', 'error');
+          
+          // Kirim status gagal ke Kodular
+          sendToKodular({
+            login_status: 'failed',
+            telepon_input: telepon,
+            reason: 'Akun terblokir'
+          }, 'login_failed');
+          
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('btn-loading');
+          loginBtn.textContent = 'Login';
+          hideProgress();
+          return;
+        }
+        
+        // 3. Lanjutkan jika status bukan delete_account atau terblokir
+        // (default: active atau status lainnya yang diperbolehkan)
         showProgress(60);
         const otp = generateOTP();
         
-        // 3. Simpan OTP ke Firebase
+        // 4. Simpan OTP ke Firebase
         showProgress(70);
         await saveOTP(matchKey, otp);
         
-        // 4. Kirim OTP via SMS (tanpa menunggu lama)
+        // 5. Kirim OTP via SMS (tanpa menunggu lama)
         showProgress(80);
         
         // Simpan data user di localStorage untuk digunakan nanti
