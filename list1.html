@@ -194,6 +194,17 @@
       align-items: flex-start;
     }
 
+    /* STYLE UNTUK FOTO PROFIL CUSTOMER */
+    .customer-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
     .customer-name {
       font-weight: 600;
       color: var(--primary);
@@ -476,10 +487,40 @@
       margin-bottom: 2px;
     }
 
+    /* Untuk modal customer photo */
+    .modal-customer-photo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
     .modal-customer-name {
       font-size: 0.85rem;
       color: #666;
       font-weight: 500;
+      display: flex;
+      align-items: center;
+    }
+
+    .autobid-customer-photo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .autobid-customer-name {
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.9);
     }
 
     .close-btn {
@@ -1078,11 +1119,12 @@
 
     /* Sidebar Styles */
     /* === SEMBUNYIKAN MENU SIDEBAR === */
-#panduanDriverBtn,
-#laporMasalahBtn,
-#pengaturanLanjutBtn {
-  display: none !important;
-}
+    #panduanDriverBtn,
+    #laporMasalahBtn,
+    #pengaturanLanjutBtn {
+      display: none !important;
+    }
+    
     .sidebar {
       display: none;
       position: fixed;
@@ -1548,6 +1590,21 @@
       .sidebar-nav-button-desc {
         font-size: 0.7rem;
       }
+
+      .customer-photo {
+        width: 28px;
+        height: 28px;
+      }
+      
+      .modal-customer-photo {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .autobid-customer-photo {
+        width: 32px;
+        height: 32px;
+      }
     }
 
     @media (max-width: 576px) {
@@ -1662,6 +1719,21 @@
       
       .sidebar-nav-button-icon {
         font-size: 1rem;
+      }
+
+      .customer-photo {
+        width: 24px;
+        height: 24px;
+      }
+      
+      .modal-customer-photo {
+        width: 28px;
+        height: 28px;
+      }
+      
+      .autobid-customer-photo {
+        width: 28px;
+        height: 28px;
       }
     }
   </style>
@@ -1885,11 +1957,14 @@
   <!-- Modal Detail Order (untuk manual) - DIUBAH -->
   <div class="modal" id="orderModal">
     <div class="modal-content">
-      <!-- HEADER DENGAN NAMA CUSTOMER -->
+      <!-- HEADER DENGAN NAMA DAN FOTO CUSTOMER -->
       <div class="modal-header-with-customer">
         <div class="modal-title-container">
           <h3 class="modal-title">Detail Permintaan</h3>
-          <div class="modal-customer-name" id="modalCustomerName">-</div>
+          <div class="modal-customer-name" id="modalCustomerName">
+            <img class="modal-customer-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Customer">
+            <span id="modalCustomerNameText">-</span>
+          </div>
         </div>
         <button class="close-btn" id="closeModal">&times;</button>
       </div>
@@ -1961,11 +2036,14 @@
   <!-- MODAL AUTOBID BARU DENGAN PROGRESS BAR - DIUBAH -->
   <div class="modal autobid-modal" id="autobidModal">
     <div class="modal-content">
-      <!-- HEADER DENGAN NAMA CUSTOMER -->
+      <!-- HEADER DENGAN NAMA DAN FOTO CUSTOMER -->
       <div class="modal-header-with-customer">
         <div class="modal-title-container">
           <h3 class="modal-title">🤖 AUTOBID - MENGIRIM PENAWARAN</h3>
-          <div class="modal-customer-name" id="autobidCustomerName">-</div>
+          <div class="modal-customer-name" id="autobidCustomerName">
+            <img class="autobid-customer-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Customer">
+            <span id="autobidCustomerNameText">-</span>
+          </div>
         </div>
         <!-- Tidak ada tombol close untuk modal Autobid -->
       </div>
@@ -2135,6 +2213,17 @@
         console.log('🔄 Data yang akan dikirim ke Kodular (browser mode):', data);
         
         return false;
+    }
+
+    // ==================== FUNGSI BARU: Ambil URL foto customer dengan fallback ====================
+    function getCustomerPhoto(order) {
+        if (order.user_foto_profil && order.user_foto_profil !== '') {
+            return order.user_foto_profil;
+        } else if (order.user_data?.fotoProfilURL && order.user_data.fotoProfilURL !== '') {
+            return order.user_data.fotoProfilURL;
+        } else {
+            return 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+        }
     }
 
     // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
@@ -3219,9 +3308,17 @@
         currentSelectedOrder = currentOrder;
         currentDriverId = generateDriverId();
         
-        // 1. TAMBAH NAMA CUSTOMER DI MODAL
+        // 1. TAMBAH NAMA DAN FOTO CUSTOMER DI MODAL
         const customerName = currentOrder.user_data?.nama || 'Tidak diketahui';
-        document.getElementById('modalCustomerName').textContent = customerName;
+        const customerPhoto = getCustomerPhoto(currentOrder);
+        
+        // Update HTML untuk menampilkan foto dan nama
+        const modalCustomerName = document.getElementById('modalCustomerName');
+        modalCustomerName.innerHTML = `
+          <img class="modal-customer-photo" src="${customerPhoto}" alt="${customerName}"
+               onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+          <span>${customerName}</span>
+        `;
         
         document.getElementById('modalAddressA').textContent = currentOrder.alamat_a || '-';
         document.getElementById('modalAddressB').textContent = currentOrder.alamat_b || '-';
@@ -3353,9 +3450,16 @@
         currentSelectedOrder = currentOrder;
         currentDriverId = generateDriverId();
         
-        // 2. TAMBAH NAMA CUSTOMER DI MODAL AUTOBID
+        // 2. TAMBAH NAMA DAN FOTO CUSTOMER DI MODAL AUTOBID
         const customerName = currentOrder.user_data?.nama || 'Tidak diketahui';
-        document.getElementById('autobidCustomerName').textContent = customerName;
+        const customerPhoto = getCustomerPhoto(currentOrder);
+        
+        const autobidCustomerName = document.getElementById('autobidCustomerName');
+        autobidCustomerName.innerHTML = `
+          <img class="autobid-customer-photo" src="${customerPhoto}" alt="${customerName}"
+               onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+          <span>${customerName}</span>
+        `;
         
         document.getElementById('autobidAddressA').textContent = currentOrder.alamat_a || '-';
         document.getElementById('autobidAddressB').textContent = currentOrder.alamat_b || '-';
@@ -3901,6 +4005,7 @@
         orderItem.dataset.orderId = order.id;
         
         const customerName = order.user_data?.nama || 'Tidak diketahui';
+        const customerPhoto = getCustomerPhoto(order);
         const alamatA = order.alamat_a || '-';
         const alamatB = order.alamat_b || '-';
         const durasi = order.durasi || '-';
@@ -3961,13 +4066,20 @@
           `;
         }
 
+        // UPDATE: Tambahkan foto customer di order list
+        const customerNameHTML = `
+          <img class="customer-photo" src="${customerPhoto}" alt="${customerName}" 
+               onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+          <span>${customerName}</span>
+          ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
+          ${promoBadge}
+          ${distanceBadge}
+        `;
+
         orderItem.innerHTML = `
           <div class="order-header">
             <div class="customer-name">
-              ${customerName}
-              ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
-              ${promoBadge}
-              ${distanceBadge}
+              ${customerNameHTML}
             </div>
             <span class="status-badge ${statusClass}">${statusText}</span>
           </div>
@@ -5174,4 +5286,4 @@
     });
   </script>
 </body>
-        </html>
+  </html>
