@@ -4,8 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JeGo - Jasa Ekspedisi Gorontalo</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Firebase SDK v9 -->
+    <script type="module">
+        // Import Firebase SDK v9 modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getStorage } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        
+        // Export to window for use in main script
+        window.firebaseV9 = { initializeApp, getDatabase, getStorage };
+    </script>
+    
     <style>
         :root {
             --primary: #1e6f5c;
@@ -275,6 +285,95 @@
         .header-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
+        }
+        
+        /* Foto Profil Styles */
+        .photo-upload-container {
+            margin-bottom: 20px;
+        }
+        
+        .photo-preview-container {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .photo-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            display: none;
+            margin: 0 auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .photo-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            color: #999;
+            font-size: 0.9rem;
+            border: 2px dashed #ccc;
+        }
+        
+        .photo-upload-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--primary);
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .photo-upload-btn:hover {
+            background-color: #e9ecef;
+        }
+        
+        .photo-info {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+        }
+        
+        /* Progress Bar Styles */
+        .upload-progress-container {
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
         }
         
         /* OTP Section Styles */
@@ -586,6 +685,11 @@
                 height: 40px;
                 font-size: 1rem;
             }
+            
+            .photo-preview, .photo-placeholder {
+                width: 120px;
+                height: 120px;
+            }
         }
     </style>
 </head>
@@ -641,6 +745,28 @@
                     <div class="form-group">
                         <label for="alamat">Alamat Lengkap</label>
                         <textarea id="alamat" name="alamat" rows="3" required></textarea>
+                    </div>
+                    
+                    <!-- Foto Profil Section -->
+                    <div class="form-group photo-upload-container">
+                        <label for="fotoProfil">Foto Profil</label>
+                        <input type="file" id="fotoProfil" name="fotoProfil" accept="image/*" style="display: none;">
+                        <div class="photo-preview-container">
+                            <div id="photoPlaceholder" class="photo-placeholder">
+                                <span>Belum ada foto</span>
+                            </div>
+                            <img id="photoPreview" class="photo-preview" src="#" alt="Preview Foto Profil">
+                        </div>
+                        <button type="button" id="uploadPhotoBtn" class="photo-upload-btn">Pilih Foto Profil</button>
+                        <p class="photo-info">Unggah foto wajah jelas (maks. 2MB). Format: JPG, PNG, JPEG</p>
+                        
+                        <!-- Progress Bar -->
+                        <div class="upload-progress-container" id="uploadProgressContainer">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="progress-text" id="progressText">0%</div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -730,9 +856,39 @@
         </div>
     </div>
 
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
+    <script type="module">
+        // ================================================
+        // IMPORT FIREBASE MODULES (v9)
+        // ================================================
+        import { 
+            initializeApp 
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        
+        import { 
+            getDatabase, 
+            ref as dbRef, 
+            set, 
+            push, 
+            orderByChild, 
+            equalTo, 
+            query, 
+            get,
+            onValue 
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        
+        import { 
+            getStorage, 
+            ref as storageRef, 
+            uploadBytes,
+            getDownloadURL 
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        
+        // ================================================
+        // KONFIGURASI DUA FIREBASE PROJECT
+        // ================================================
+        
+        // 1. Firebase Configuration untuk DATABASE (ojeka-ba255)
+        const firebaseConfigDatabase = {
             apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
             authDomain: "ojeka-ba255.firebaseapp.com",
             databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
@@ -743,15 +899,39 @@
             measurementId: "G-PBP64Z8VQ8"
         };
         
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // 2. Firebase Configuration untuk STORAGE (game-balap-simpel)
+        const firebaseConfigStorage = {
+            apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+            authDomain: "game-balap-simpel.firebaseapp.com",
+            projectId: "game-balap-simpel",
+            storageBucket: "game-balap-simpel.firebasestorage.app",
+            messagingSenderId: "864576853495",
+            appId: "1:864576853495:web:b47664be8dd2eedffb0af2",
+            measurementId: "G-1N476XWKZL"
+        };
+        
+        // ================================================
+        // INISIALISASI DUA FIREBASE APP
+        // ================================================
+        
+        // Inisialisasi Firebase app utama untuk DATABASE
+        const databaseApp = initializeApp(firebaseConfigDatabase, "databaseApp");
+        const database = getDatabase(databaseApp);
+        
+        // Inisialisasi Firebase app kedua untuk STORAGE
+        const storageApp = initializeApp(firebaseConfigStorage, "storageApp");
+        const storage = getStorage(storageApp);
+        
+        console.log("Firebase Database App initialized:", databaseApp.name);
+        console.log("Firebase Storage App initialized:", storageApp.name);
         
         // Referensi ke database
-        const usersRef = database.ref('users');
-        const otpRef = database.ref('otp');
+        const usersRef = dbRef(database, 'users');
+        const otpRef = dbRef(database, 'otp');
         
-        // Elemen DOM
+        // ================================================
+        // ELEMEN DOM
+        // ================================================
         const registrationForm = document.getElementById('registrationForm');
         const submitBtn = document.getElementById('submitBtn');
         const teleponInput = document.getElementById('telepon');
@@ -759,6 +939,15 @@
         const headerLoginBtn = document.getElementById('headerLoginBtn');
         const headerHomeBtn = document.getElementById('headerHomeBtn');
         const formLoginBtn = document.getElementById('formLoginBtn');
+        
+        // Foto Profil Elements
+        const fotoProfilInput = document.getElementById('fotoProfil');
+        const photoPreview = document.getElementById('photoPreview');
+        const photoPlaceholder = document.getElementById('photoPlaceholder');
+        const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+        const uploadProgressContainer = document.getElementById('uploadProgressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
         
         // OTP Elements
         const otpSection = document.getElementById('otpSection');
@@ -781,9 +970,14 @@
 
         // Variables
         let registrationData = null;
+        let fotoProfilFile = null;
         let otpTimer = null;
         let otpCountdown = 60;
 
+        // ================================================
+        // FUNGSI UTILITAS UMUM
+        // ================================================
+        
         // Fungsi untuk menampilkan modal popup
         function showPopup(title, message, type = 'info', options = {}) {
             modalTitleText.textContent = title;
@@ -921,7 +1115,8 @@
         // Fungsi untuk memeriksa apakah nomor telepon sudah terdaftar di Firebase
         async function checkPhoneNumberExists(phoneNumber) {
             try {
-                const snapshot = await usersRef.orderByChild('telepon').equalTo(phoneNumber).once('value');
+                const usersQuery = query(usersRef, orderByChild('telepon'), equalTo(phoneNumber));
+                const snapshot = await get(usersQuery);
                 return snapshot.exists();
             } catch (error) {
                 console.error('Error checking phone number:', error);
@@ -929,13 +1124,109 @@
             }
         }
 
+        // ================================================
+        // FUNGSI UNTUK FOTO PROFIL (Firebase v9) - UPDATED
+        // ================================================
+        
+        // Fungsi untuk mengunggah foto profil ke Firebase Storage (project kedua)
+        async function uploadFotoProfil(file, userId) {
+            return new Promise(async (resolve, reject) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                
+                // Validasi ukuran file (maks 2MB)
+                const maxSize = 2 * 1024 * 1024; // 2MB
+                if (file.size > maxSize) {
+                    reject(new Error('Ukuran file terlalu besar. Maksimal 2MB.'));
+                    return;
+                }
+                
+                // Validasi tipe file
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!validTypes.includes(file.type)) {
+                    reject(new Error('Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.'));
+                    return;
+                }
+                
+                // Generate nama file unik
+                const timestamp = Date.now();
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                const fileName = `profile_${userId}_${timestamp}.${fileExtension}`;
+                
+                // Path di storage: profile_photos/{userId}/{fileName}
+                const storageReference = storageRef(storage, `profile_photos/${userId}/${fileName}`);
+                
+                // Metadata untuk file
+                const metadata = {
+                    contentType: file.type,
+                    customMetadata: {
+                        userId: userId,
+                        uploadedAt: timestamp.toString(),
+                        originalName: file.name,
+                        appName: "JeGo"
+                    }
+                };
+                
+                // Tampilkan progress bar dengan 30% (simulasi UX)
+                progressFill.style.width = '30%';
+                progressText.textContent = 'Mengunggah...';
+                uploadProgressContainer.style.display = 'block';
+                
+                try {
+                    // Upload file ke Firebase Storage menggunakan uploadBytes (lebih stabil)
+                    await uploadBytes(storageReference, file, metadata);
+                    
+                    // Set progress 100% setelah upload selesai
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '100%';
+                    
+                    // Dapatkan URL download
+                    const downloadURL = await getDownloadURL(storageReference);
+                    console.log('File available at (v9 - uploadBytes):', downloadURL);
+                    
+                    // Sembunyikan progress bar setelah 500ms
+                    setTimeout(() => {
+                        uploadProgressContainer.style.display = 'none';
+                    }, 500);
+                    
+                    resolve(downloadURL);
+                    
+                } catch (error) {
+                    console.error('Upload error (v9 - uploadBytes):', error);
+                    uploadProgressContainer.style.display = 'none';
+                    reject(new Error('Gagal mengunggah foto profil: ' + error.message));
+                }
+            });
+        }
+
+        // Fungsi untuk menampilkan preview foto
+        function previewFotoProfil(file) {
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    photoPreview.src = e.target.result;
+                    photoPreview.style.display = 'block';
+                    photoPlaceholder.style.display = 'none';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // ================================================
+        // FUNGSI OTP (Firebase v9)
+        // ================================================
+        
         // Generate OTP (6 digit)
         function generateOTP() {
             return Math.floor(100000 + Math.random() * 900000).toString();
         }
 
-        // Save OTP to Firebase
-        function saveOTP(phoneNumber, otp) {
+        // Save OTP to Firebase (project pertama)
+        async function saveOTP(phoneNumber, otp) {
             const otpExpiry = Date.now() + (10 * 60 * 1000); // 10 minutes from now
             
             const otpData = {
@@ -945,29 +1236,39 @@
                 createdAt: Date.now()
             };
             
-            return otpRef.child(phoneNumber.replace('+', '')).set(otpData);
+            const otpKey = phoneNumber.replace('+', '');
+            const otpRefPath = dbRef(database, `otp/${otpKey}`);
+            
+            await set(otpRefPath, otpData);
+            return otpKey;
         }
 
-        // Validate OTP
-        function validateOTP(phoneNumber, enteredOtp) {
-            return otpRef.child(phoneNumber.replace('+', '')).once('value')
-                .then((snapshot) => {
-                    const otpData = snapshot.val();
-                    
-                    if (!otpData) {
-                        return { isValid: false, message: 'OTP tidak ditemukan. Silakan minta OTP baru.' };
-                    }
-                    
-                    if (Date.now() > otpData.otpExpiry) {
-                        return { isValid: false, message: 'OTP telah kedaluwarsa. Silakan minta OTP baru.' };
-                    }
-                    
-                    if (otpData.otp !== enteredOtp) {
-                        return { isValid: false, message: 'Kode OTP tidak sesuai. Silakan coba lagi.' };
-                    }
-                    
-                    return { isValid: true };
-                });
+        // Validate OTP (project pertama)
+        async function validateOTP(phoneNumber, enteredOtp) {
+            const otpKey = phoneNumber.replace('+', '');
+            const otpRefPath = dbRef(database, `otp/${otpKey}`);
+            
+            try {
+                const snapshot = await get(otpRefPath);
+                const otpData = snapshot.val();
+                
+                if (!otpData) {
+                    return { isValid: false, message: 'OTP tidak ditemukan. Silakan minta OTP baru.' };
+                }
+                
+                if (Date.now() > otpData.otpExpiry) {
+                    return { isValid: false, message: 'OTP telah kedaluwarsa. Silakan minta OTP baru.' };
+                }
+                
+                if (otpData.otp !== enteredOtp) {
+                    return { isValid: false, message: 'Kode OTP tidak sesuai. Silakan coba lagi.' };
+                }
+                
+                return { isValid: true };
+            } catch (error) {
+                console.error('Error validating OTP:', error);
+                return { isValid: false, message: 'Terjadi kesalahan saat memvalidasi OTP.' };
+            }
         }
 
         // Clear OTP inputs
@@ -1155,6 +1456,10 @@
             }
         }
 
+        // ================================================
+        // EVENT HANDLERS
+        // ================================================
+
         // Handle form registration submission
         registrationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1189,10 +1494,29 @@
                 return;
             }
             
+            // Validasi foto profil (opsional)
+            if (fotoProfilFile) {
+                const maxSize = 2 * 1024 * 1024; // 2MB
+                if (fotoProfilFile.size > maxSize) {
+                    showErrorMessage('Ukuran file foto profil terlalu besar. Maksimal 2MB.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Daftar Sekarang';
+                    return;
+                }
+                
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!validTypes.includes(fotoProfilFile.type)) {
+                    showErrorMessage('Format file foto tidak didukung. Gunakan JPG, JPEG, atau PNG.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Daftar Sekarang';
+                    return;
+                }
+            }
+            
             // Tampilkan loading
             showLoading('Memeriksa nomor telepon...');
             
-            // Cek apakah nomor telepon sudah terdaftar
+            // Cek apakah nomor telepon sudah terdaftar di Firebase (project pertama)
             const phoneExists = await checkPhoneNumberExists(telepon);
             
             if (phoneExists) {
@@ -1210,6 +1534,9 @@
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + 30);
             
+            // Generate user ID sementara untuk upload foto
+            const tempUserId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
             // Simpan data registrasi untuk nanti
             registrationData = {
                 nama: nama,
@@ -1219,6 +1546,9 @@
                 jenisKelamin: jenisKelamin,
                 tanggalDaftar: new Date().toISOString(),
                 status: "active",
+                // Data foto profil (akan diupdate setelah upload ke project kedua)
+                fotoProfilURL: null,
+                fotoProfilStorage: "game-balap-simpel", // Menandakan foto disimpan di project kedua
                 // Data promo
                 promo_code: promoCode,
                 promo_discount: 20,
@@ -1236,7 +1566,7 @@
             const otp = generateOTP();
             
             try {
-                // Simpan OTP ke Firebase
+                // Simpan OTP ke Firebase (project pertama)
                 await saveOTP(telepon, otp);
                 
                 // Kirim SMS OTP
@@ -1283,7 +1613,7 @@
             showLoading('Memverifikasi OTP...');
             
             try {
-                // Validasi OTP
+                // Validasi OTP di Firebase (project pertama)
                 const otpResult = await validateOTP(registrationData.telepon, enteredOtp);
                 
                 if (!otpResult.isValid) {
@@ -1300,16 +1630,57 @@
                 hideLoading();
                 showLoading('Menyelesaikan pendaftaran...');
                 
-                // Simpan ke Firebase
-                const newUserRef = usersRef.push();
-                await newUserRef.set(registrationData);
+                // Generate user ID final
+                const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
-                console.log('Data berhasil disimpan ke Firebase dengan ID:', newUserRef.key);
+                // Upload foto profil ke Firebase Storage (project kedua) jika ada
+                let fotoProfilURL = null;
+                if (fotoProfilFile) {
+                    try {
+                        showLoading('Mengunggah foto profil...');
+                        fotoProfilURL = await uploadFotoProfil(fotoProfilFile, userId);
+                        console.log('Foto profil berhasil diunggah ke project kedua:', fotoProfilURL);
+                    } catch (uploadError) {
+                        console.error('Error uploading foto profil ke project kedua:', uploadError);
+                        // Tanyakan ke user apakah lanjut tanpa foto
+                        hideLoading();
+                        
+                        const continueWithoutPhoto = await new Promise((resolve) => {
+                            showPopup('Upload Foto Gagal', 
+                                `Gagal mengunggah foto profil: ${uploadError.message}<br><br>Apakah Anda ingin melanjutkan pendaftaran tanpa foto profil?`, 
+                                'warning', {
+                                    showCancel: true,
+                                    confirmText: 'Lanjut Tanpa Foto',
+                                    cancelText: 'Ulangi Upload',
+                                    onConfirm: () => resolve(true),
+                                    onCancel: () => resolve(false)
+                                });
+                        });
+                        
+                        if (!continueWithoutPhoto) {
+                            verifyOtpBtn.disabled = false;
+                            verifyOtpBtn.textContent = 'Verifikasi OTP';
+                            return;
+                        }
+                        
+                        showLoading('Menyelesaikan pendaftaran...');
+                    }
+                }
+                
+                // Update registrationData dengan fotoProfilURL dari project kedua
+                registrationData.fotoProfilURL = fotoProfilURL;
+                registrationData.userId = userId;
+                
+                // Simpan ke Firebase Database (project pertama)
+                const userRef = dbRef(database, `users/${userId}`);
+                await set(userRef, registrationData);
+                
+                console.log('Data user berhasil disimpan ke Firebase Database (project pertama) dengan ID:', userId);
                 
                 // Simpan ke localStorage
                 const userDataToStore = {
                     ...registrationData,
-                    firebase_key: newUserRef.key,
+                    firebase_key: userId,
                     last_login: new Date().toISOString(),
                     has_promo: true
                 };
@@ -1324,33 +1695,47 @@
                 
                 // Simpan juga di jego_users untuk kompatibilitas
                 let jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
-                jegoUsers[newUserRef.key] = registrationData;
+                jegoUsers[userId] = registrationData;
                 localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
                 
                 // Kirim data ke Kodular
                 sendToKodular({
                     registration_status: 'success',
                     user_data: registrationData,
-                    firebase_key: newUserRef.key
+                    firebase_key: userId,
+                    foto_profil_url: fotoProfilURL,
+                    foto_storage_project: 'game-balap-simpel'
                 }, 'registration_success');
                 
                 hideLoading();
                 
                 // Tampilkan pesan sukses
-                showPopup('🎉 Pendaftaran Berhasil!', 
+                const successMessage = fotoProfilURL ? 
                     `✅ <strong>Pendaftaran JeGo berhasil!</strong><br><br>
+                     📸 <strong>Foto profil berhasil diunggah</strong><br>
+                     Disimpan di storage terpisah untuk keamanan.<br>
+                     Driver dapat melihat foto Anda untuk verifikasi.<br><br>
                      🎁 <strong>Kode Promo Anda: ${registrationData.promo_code}</strong><br>
                      Dapatkan diskon 20% untuk order pertama Anda.<br><br>
                      📣 <strong>Kode Referral Anda: ${registrationData.referral_code}</strong><br>
                      Bagikan kode ini ke teman untuk dapat bonus!<br><br>
-                     Anda akan dialihkan ke halaman utama...`, 
-                    'success', {
-                        confirmText: 'Lanjutkan ke Aplikasi',
-                        autoHide: false,
-                        onConfirm: function() {
-                            window.location.href = 'jenis_kenderaan.html';
-                        }
-                    });
+                     Anda akan dialihkan ke halaman utama...` :
+                    `✅ <strong>Pendaftaran JeGo berhasil!</strong><br><br>
+                     ⚠️ <strong>Foto profil tidak diunggah</strong><br>
+                     Anda dapat menambahkan foto nanti di pengaturan.<br><br>
+                     🎁 <strong>Kode Promo Anda: ${registrationData.promo_code}</strong><br>
+                     Dapatkan diskon 20% untuk order pertama Anda.<br><br>
+                     📣 <strong>Kode Referral Anda: ${registrationData.referral_code}</strong><br>
+                     Bagikan kode ini ke teman untuk dapat bonus!<br><br>
+                     Anda akan dialihkan ke halaman utama...`;
+                
+                showPopup('🎉 Pendaftaran Berhasil!', successMessage, 'success', {
+                    confirmText: 'Lanjutkan ke Aplikasi',
+                    autoHide: false,
+                    onConfirm: function() {
+                        window.location.href = 'jenis_kenderaan.html';
+                    }
+                });
                 
                 // Update tombol header
                 headerLoginBtn.style.display = 'none';
@@ -1382,7 +1767,7 @@
             resendOtpLink.classList.add('disabled');
             
             try {
-                // Simpan OTP ke Firebase
+                // Simpan OTP ke Firebase (project pertama)
                 await saveOTP(registrationData.telepon, otp);
                 
                 // Kirim SMS OTP
@@ -1404,6 +1789,10 @@
             }
         });
 
+        // ================================================
+        // INITIALIZATION
+        // ================================================
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Setup event listeners untuk modal
@@ -1416,6 +1805,21 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
                     hidePopup();
+                }
+            });
+            
+            // Setup foto profil upload
+            uploadPhotoBtn.addEventListener('click', function() {
+                fotoProfilInput.click();
+            });
+            
+            fotoProfilInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    fotoProfilFile = e.target.files[0];
+                    previewFotoProfil(fotoProfilFile);
+                    
+                    // Reset progress bar jika file baru dipilih
+                    uploadProgressContainer.style.display = 'none';
                 }
             });
             
@@ -1442,4 +1846,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
