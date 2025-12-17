@@ -147,18 +147,42 @@
             margin-bottom: 15px;
         }
         
+        .avatar-container {
+            width: 70px;
+            height: 70px;
+            margin-right: 15px;
+            position: relative;
+        }
+        
         .avatar {
-            width: 65px;
-            height: 65px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
-            margin-right: 15px;
+            overflow: hidden;
+            border: 3px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
+        .avatar-initials {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
         }
         
         .profile-info h3 {
@@ -435,6 +459,23 @@
             color: white;
         }
         
+        /* Photo upload button */
+        .photo-upload-btn {
+            margin-top: 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .photo-upload-btn:hover {
+            background: var(--secondary);
+        }
+        
         @media (max-width: 768px) {
             .content {
                 flex-direction: column;
@@ -455,7 +496,7 @@
                 text-align: center;
             }
             
-            .avatar {
+            .avatar-container {
                 margin-right: 0;
                 margin-bottom: 12px;
             }
@@ -499,8 +540,13 @@
                 <h2>Profil Saya</h2>
                 
                 <div class="profile-header">
-                    <div class="avatar" id="userAvatar">
-                        <!-- Avatar akan diisi dengan inisial nama -->
+                    <div class="avatar-container" id="avatarContainer">
+                        <div class="avatar">
+                            <img id="userAvatarImg" class="avatar-img" src="" alt="Foto Profil">
+                            <div id="userAvatarInitials" class="avatar-initials">
+                                <!-- Inisial akan diisi dengan JavaScript -->
+                            </div>
+                        </div>
                     </div>
                     <div class="profile-info">
                         <h3 id="userName">-</h3>
@@ -529,6 +575,10 @@
                 <div class="detail-item">
                     <div class="detail-label">Tanggal Bergabung</div>
                     <div class="detail-value" id="joinDate">-</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="changePhotoBtn" style="display: none;">Ganti Foto Profil</button>
                 </div>
             </section>
             
@@ -632,7 +682,9 @@
         const userGender = document.getElementById('userGender');
         const userStatus = document.getElementById('userStatus');
         const joinDate = document.getElementById('joinDate');
-        const userAvatar = document.getElementById('userAvatar');
+        const userAvatarImg = document.getElementById('userAvatarImg');
+        const userAvatarInitials = document.getElementById('userAvatarInitials');
+        const changePhotoBtn = document.getElementById('changePhotoBtn');
         const promoCodeText = document.getElementById('promoCodeText');
         const referralCodeText = document.getElementById('referralCodeText');
         const promoExpiry = document.getElementById('promoExpiry');
@@ -649,17 +701,74 @@
 
         // Fungsi untuk mendapatkan inisial nama
         function getInitials(name) {
+            if (!name || name === '-') return 'U';
             return name.split(' ').map(word => word[0]).join('').toUpperCase();
         }
 
         // Fungsi untuk memformat tanggal
         function formatDate(dateString) {
-            const options = { 
-                day: 'numeric', 
-                month: 'long', 
-                year: 'numeric'
-            };
-            return new Date(dateString).toLocaleDateString('id-ID', options);
+            if (!dateString || dateString === '-') return '-';
+            try {
+                const options = { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric'
+                };
+                return new Date(dateString).toLocaleDateString('id-ID', options);
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return dateString;
+            }
+        }
+
+        // Fungsi untuk menampilkan foto profil
+        function displayProfilePhoto(userData) {
+            const avatarImg = userAvatarImg;
+            const avatarInitials = userAvatarInitials;
+            
+            // Cek apakah ada foto profil di localStorage
+            let fotoProfilURL = null;
+            const localUser = localStorage.getItem('jego_logged_in_user');
+            
+            if (localUser) {
+                try {
+                    const localUserData = JSON.parse(localUser);
+                    fotoProfilURL = localUserData.fotoProfilURL;
+                } catch (e) {
+                    console.error('Error parsing local user data:', e);
+                }
+            }
+            
+            // Jika tidak ada di localStorage, coba ambil dari data Firebase
+            if (!fotoProfilURL && userData && userData.fotoProfilURL) {
+                fotoProfilURL = userData.fotoProfilURL;
+                
+                // Simpan ke localStorage untuk akses lebih cepat next time
+                if (localUser) {
+                    try {
+                        const localUserData = JSON.parse(localUser);
+                        localUserData.fotoProfilURL = fotoProfilURL;
+                        localStorage.setItem('jego_logged_in_user', JSON.stringify(localUserData));
+                    } catch (e) {
+                        console.error('Error updating local user data with photo:', e);
+                    }
+                }
+            }
+            
+            if (fotoProfilURL) {
+                // Tampilkan gambar
+                avatarImg.src = fotoProfilURL;
+                avatarImg.style.display = 'block';
+                avatarInitials.style.display = 'none';
+                changePhotoBtn.style.display = 'block';
+            } else {
+                // Tampilkan inisial
+                const initials = getInitials(userData.nama || 'U');
+                avatarInitials.textContent = initials;
+                avatarInitials.style.display = 'flex';
+                avatarImg.style.display = 'none';
+                changePhotoBtn.style.display = 'none';
+            }
         }
 
         // Fungsi untuk menampilkan data user
@@ -676,7 +785,7 @@
             let statusText = 'MENUNGGU VERIFIKASI';
             let statusClass = 'status-pending';
             
-            if (status === 'success') {
+            if (status === 'active' || status === 'success') {
                 statusText = 'AKTIF';
                 statusClass = 'status-success';
             } else if (status === 'delete_account') {
@@ -687,9 +796,8 @@
             userStatus.textContent = statusText;
             userStatus.className = `status-badge ${statusClass}`;
             
-            // Set avatar
-            const initials = getInitials(userData.nama || 'U');
-            userAvatar.textContent = initials;
+            // Tampilkan foto profil
+            displayProfilePhoto(userData);
             
             // Tampilkan promo jika ada
             if (userData.promo_code && status !== 'delete_account') {
@@ -713,6 +821,7 @@
             // Sembunyikan tombol hapus akun jika status sudah delete_account
             if (status === 'delete_account') {
                 deleteAccountBtn.style.display = 'none';
+                changePhotoBtn.style.display = 'none';
             }
         }
 
@@ -785,6 +894,11 @@
                     return false;
                 });
         }
+
+        // Event listener untuk tombol ganti foto profil
+        changePhotoBtn.addEventListener('click', function() {
+            showAlert(successAlert, 'Fitur ganti foto profil akan segera tersedia!');
+        });
 
         // Event listener untuk tombol logout
         logoutBtn.addEventListener('click', function(e) {
@@ -909,4 +1023,4 @@
         });
     </script>
 </body>
-</html>
+                        </html>
