@@ -11,9 +11,11 @@
     th { background: #f2f2f2; }
     .loading { text-align: center; color: #666; padding: 20px; }
     .error { text-align: center; color: red; padding: 20px; }
-    .pending { background-color: #fff3cd; }
-    .success { background-color: #d1ecf1; }
-    .blokir { background-color: #f8d7da; }
+    /* WARNA STATUS SESUAI PERMINTAAN */
+    .active { background-color: #ffffff; } /* PUTIH - untuk status active */
+    .pending { background-color: #d1ecf1; } /* BIRU MUDA - untuk status pending */
+    .terblokir { background-color: #ffcccc; } /* MERAH - untuk status terblokir */
+    .delete_account { background-color: #ff9999; } /* MERAH - untuk status delete_account */
     .user-id { font-size: 12px; color: #666; }
     .btn-edit { background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin: 2px; }
     .btn-delete { background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin: 2px; }
@@ -43,16 +45,20 @@
         <div class="stat-label">Total Users</div>
     </div>
     <div class="stat-card">
+        <div class="stat-value" id="activeUsers">0</div>
+        <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card">
         <div class="stat-value" id="pendingUsers">0</div>
         <div class="stat-label">Pending</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value" id="successUsers">0</div>
-        <div class="stat-label">Success</div>
+        <div class="stat-value" id="terblokirUsers">0</div>
+        <div class="stat-label">Terblokir</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value" id="blokirUsers">0</div>
-        <div class="stat-label">Diblokir</div>
+        <div class="stat-value" id="deleteAccountUsers">0</div>
+        <div class="stat-label">Delete Account</div>
     </div>
 </div>
 
@@ -114,9 +120,10 @@
             <div class="form-group">
                 <label>Status:</label>
                 <select id="editStatus" required>
+                    <option value="active">Active</option>
                     <option value="pending">Pending</option>
-                    <option value="success">Success</option>
-                    <option value="blokir">Blokir</option>
+                    <option value="terblokir">Terblokir</option>
+                    <option value="delete_account">Delete Account</option>
                 </select>
             </div>
             
@@ -142,7 +149,7 @@ async function loadUsers() {
         
         if (!data) {
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Tidak ada data users</td></tr>';
-            updateStats(0, 0, 0, 0);
+            updateStats(0, 0, 0, 0, 0);
             return;
         }
         
@@ -160,7 +167,13 @@ async function loadUsers() {
         
         // Hitung statistik
         const stats = calculateStats(usersArray);
-        updateStats(usersArray.length, stats.pending, stats.success, stats.blokir);
+        updateStats(
+            usersArray.length, 
+            stats.active, 
+            stats.pending, 
+            stats.terblokir, 
+            stats.delete_account
+        );
         
         if (usersArray.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="loading">Tidak ada data users</td></tr>';
@@ -178,7 +191,8 @@ async function loadUsers() {
             const formattedDate = registerDate.toLocaleString('id-ID');
             
             // Tentukan class berdasarkan status
-            row.className = user.status || 'pending';
+            const status = user.status || 'active';
+            row.className = status;
             
             row.innerHTML = `
                 <td><span class="user-id">${user.user_id || "-"}</span></td>
@@ -187,7 +201,7 @@ async function loadUsers() {
                 <td>${user.telepon || "-"}</td>
                 <td>${user.alamat || "-"}</td>
                 <td>${user.jenisKelamin || "-"}</td>
-                <td><span class="status-${user.status}">${getStatusText(user.status)}</span></td>
+                <td><span class="status-${status}">${getStatusText(status)}</span></td>
                 <td>${formattedDate}</td>
                 <td>
                     <button class="btn-edit" onclick="editUser('${user.user_key}')">Edit</button>
@@ -210,37 +224,41 @@ async function loadUsers() {
 // Fungsi untuk menghitung statistik
 function calculateStats(usersArray) {
     const stats = {
+        active: 0,
         pending: 0,
-        success: 0,
-        blokir: 0
+        terblokir: 0,
+        delete_account: 0
     };
     
     usersArray.forEach(user => {
-        if (user.status === 'pending') stats.pending++;
-        else if (user.status === 'success') stats.success++;
-        else if (user.status === 'blokir') stats.blokir++;
-        else stats.pending++; // Default jika status tidak ada
+        const status = user.status || 'active';
+        if (status === 'active') stats.active++;
+        else if (status === 'pending') stats.pending++;
+        else if (status === 'terblokir') stats.terblokir++;
+        else if (status === 'delete_account') stats.delete_account++;
     });
     
     return stats;
 }
 
 // Fungsi untuk update statistik
-function updateStats(total, pending, success, blokir) {
+function updateStats(total, active, pending, terblokir, delete_account) {
     document.getElementById("totalUsers").textContent = total;
+    document.getElementById("activeUsers").textContent = active;
     document.getElementById("pendingUsers").textContent = pending;
-    document.getElementById("successUsers").textContent = success;
-    document.getElementById("blokirUsers").textContent = blokir;
+    document.getElementById("terblokirUsers").textContent = terblokir;
+    document.getElementById("deleteAccountUsers").textContent = delete_account || 0;
 }
 
 // Fungsi untuk mendapatkan teks status
 function getStatusText(status) {
     const statusMap = {
+        'active': 'Active',
         'pending': 'Pending',
-        'success': 'Success', 
-        'blokir': 'Diblokir'
+        'terblokir': 'Terblokir',
+        'delete_account': 'Delete Account'
     };
-    return statusMap[status] || 'Pending';
+    return statusMap[status] || 'Active';
 }
 
 // Function untuk setup pencarian
@@ -290,7 +308,7 @@ function editUser(userKey) {
     document.getElementById("editTelepon").value = user.telepon || '';
     document.getElementById("editAlamat").value = user.alamat || '';
     document.getElementById("editJenisKelamin").value = user.jenisKelamin || 'Laki-laki';
-    document.getElementById("editStatus").value = user.status || 'pending';
+    document.getElementById("editStatus").value = user.status || 'active';
     
     modal.style.display = "block";
 }
