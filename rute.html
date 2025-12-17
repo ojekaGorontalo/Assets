@@ -2264,7 +2264,7 @@
 
     // ==================== FUNGSI UTAMA ====================
 
-    // PERBAIKAN: Ambil data user dari localStorage dengan mencari firebase_key
+    // PERBAIKAN: Ambil data user dari localStorage dengan mencari firebase_key DAN FOTO PROFIL
     function getUserData() {
       try {
         // Cek user yang sedang login
@@ -2272,6 +2272,20 @@
         if (loggedInUser) {
           const userData = JSON.parse(loggedInUser);
           console.log("✅ User data ditemukan dari logged_in_user:", userData);
+          
+          // ✅ PERUBAHAN: Pastikan ada field fotoProfilURL
+          if (userData && !userData.fotoProfilURL) {
+            // Coba ambil dari storage yang lain
+            const jegoUsers = JSON.parse(localStorage.getItem('jego_users'));
+            if (jegoUsers && userData.firebase_key) {
+              const userFromStorage = jegoUsers[userData.firebase_key];
+              if (userFromStorage && userFromStorage.fotoProfilURL) {
+                userData.fotoProfilURL = userFromStorage.fotoProfilURL;
+                console.log("✅ Foto profil ditemukan dari jego_users:", userData.fotoProfilURL);
+              }
+            }
+          }
+          
           return userData;
         }
         
@@ -2284,6 +2298,12 @@
             const userData = jegoUsers[latestKey];
             userData.firebase_key = latestKey; // Tambahkan firebase_key
             console.log("✅ User data ditemukan dari jego_users:", userData);
+            
+            // ✅ PERUBAHAN: Log foto profil
+            if (userData.fotoProfilURL) {
+              console.log("📸 Foto profil user:", userData.fotoProfilURL);
+            }
+            
             return userData;
           }
         }
@@ -2305,7 +2325,7 @@
 
     // ==================== FUNGSI CHECK ACTIVE ORDER ====================
 
-    // PERBAIKAN: Fungsi untuk mengecek order aktif dengan user_key
+    // PERBAIKAN: Fungsi untuk mengecek order aktif dengan user_key DAN FOTO PROFIL
     function checkActiveOrder() {
         if (!userData) {
             console.log('❌ Tidak ada user yang login');
@@ -2338,12 +2358,18 @@
                            (order.status === 'searching' || order.status === 'accepted' || order.status === 'driver_selected')) {
                             activeOrder = order;
                             activeOrder.orderId = orderId;
+                            
+                            // ✅ PERUBAHAN: Pastikan data user mencakup foto profil
+                            if (!activeOrder.user_data.fotoProfilURL && userData.fotoProfilURL) {
+                                activeOrder.user_data.fotoProfilURL = userData.fotoProfilURL;
+                            }
                         }
                     });
                 }
 
                 if (activeOrder) {
                     console.log('✅ Order aktif ditemukan untuk user:', userData.telepon || userData.email);
+                    console.log('📸 Foto profil user untuk order:', activeOrder.user_data.fotoProfilURL || 'Tidak ada');
                     currentOrderId = activeOrder.orderId;
 
                     // Isi currentRouteData dengan data dari order
@@ -2368,10 +2394,11 @@
                         user_key: activeOrder.user_key // ✅ SIMPAN USER KEY
                     };
 
-                    // ✅ SIMPAN KE LOCALSTORAGE
+                    // ✅ PERUBAHAN: SIMPAN KE LOCALSTORAGE DENGAN FOTO PROFIL
                     saveActiveOrderToLocalStorage({
                         ...activeOrder,
-                        currentRouteData: currentRouteData
+                        currentRouteData: currentRouteData,
+                        user_foto_profil: activeOrder.user_data.fotoProfilURL || userData.fotoProfilURL
                     });
 
                     // Update vehicle dari order
@@ -2868,12 +2895,16 @@
       });
     }
 
-    // PERBAIKAN: Fungsi untuk mengirim order ke Firebase dengan user_key
+    // PERBAIKAN: Fungsi untuk mengirim order ke Firebase dengan user_key DAN FOTO PROFIL
     function sendOrderToFirebase(orderData) {
       currentOrderId = generateOrderId();
       
       // ✅ DAPATKAN USER KEY DARI USER DATA
       const userKey = userData ? (userData.firebase_key || userData.key || null) : null;
+      
+      // ✅ PERUBAHAN: AMBIL FOTO PROFIL USER JIKA ADA
+      const userFotoProfil = userData ? userData.fotoProfilURL || null : null;
+      const userFotoStorage = userData ? userData.fotoProfilStorage || 'default' : 'default';
       
       // Tambahkan data kurir jika ada
       const orderRecord = {
@@ -2882,7 +2913,15 @@
         status: 'searching',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        user_data: userData,
+        user_data: {
+          ...userData, // ✅ Sertakan SEMUA data user
+          // Pastikan foto profil ada di sini
+          fotoProfilURL: userFotoProfil,
+          fotoProfilStorage: userFotoStorage
+        },
+        // ✅ PERUBAHAN: TAMBAHKAN FOTO PROFIL DI LEVEL ORDER
+        user_foto_profil: userFotoProfil,
+        user_foto_storage: userFotoStorage,
         // ✅ TAMBAHKAN USER KEY UNTUK RELASI
         user_key: userKey,
         user_phone: userData ? userData.telepon : null,
@@ -2905,6 +2944,7 @@
       }
       
       console.log('📤 Mengirim order ke Firebase dengan ID:', currentOrderId);
+      console.log('📸 Foto profil user yang dikirim:', userFotoProfil);
       console.log('📝 Data order lengkap:', orderRecord);
       console.log('👤 User key yang disertakan:', userKey);
       
@@ -2921,7 +2961,7 @@
       orderRef.set(orderRecord)
         .then(() => {
           console.log('✅ Order berhasil disimpan di Firebase:', currentOrderId);
-          console.log('🔑 User key yang tersimpan:', userKey);
+          console.log('📸 Foto profil user tersimpan:', userFotoProfil);
           
           // Kirim notifikasi ke Kodular bahwa order kurir telah dibuat
           if (kurirDeliveryData) {
@@ -2929,9 +2969,19 @@
               action: 'kurir_order_created',
               order_id: currentOrderId,
               delivery_data: kurirDeliveryData,
-              user_key: userKey, // ✅ SERTAKAN USER KEY
+              user_foto_profil: userFotoProfil, // ✅ PERUBAHAN: KIRIM FOTO PROFIL
+              user_key: userKey,
               ...orderData
             }, 'kurir_order_created');
+          } else {
+            // Kirim notifikasi order biasa
+            sendToKodular({
+              action: 'order_created',
+              order_id: currentOrderId,
+              user_foto_profil: userFotoProfil, // ✅ PERUBAHAN: KIRIM FOTO PROFIL
+              user_key: userKey,
+              ...orderData
+            }, 'order_created');
           }
           
           // Kirim notifikasi jika menggunakan promo
@@ -2940,7 +2990,8 @@
               action: 'promo_applied',
               order_id: currentOrderId,
               promo_data: activePromo,
-              user_key: userKey, // ✅ SERTAKAN USER KEY
+              user_foto_profil: userFotoProfil, // ✅ PERUBAHAN: KIRIM FOTO PROFIL
+              user_key: userKey,
               original_price: orderData.harga_asal,
               discounted_price: orderData.harga_diskon
             }, 'promo_applied');
@@ -3343,7 +3394,7 @@
       closePriceOfferPopup();
     }
 
-    // PERBAIKAN: Fungsi confirmRoute dengan validasi user login
+    // PERBAIKAN: Fungsi confirmRoute dengan validasi user login DAN FOTO PROFIL
     function confirmRoute() {
       if (!currentRouteData) {
         showPopup("Silakan pilih rute terlebih dahulu", "Peringatan", "warning");
@@ -3361,16 +3412,24 @@
         return;
       }
       
+      // ✅ PERUBAHAN: Cek apakah user memiliki foto profil
+      if (!userData.fotoProfilURL) {
+        console.log("⚠️ User tidak memiliki foto profil, akan melanjutkan tanpa foto");
+      } else {
+        console.log("📸 User memiliki foto profil:", userData.fotoProfilURL);
+      }
+      
       // Nonaktifkan tombol sementara
       document.getElementById('confirmBtn').disabled = true;
       
       // Simpan ke localStorage (sebagai konfirmasi tambahan)
       saveToLocalStorage(currentRouteData, 'confirmed');
       
-      // Kirim ke Kodular dengan status konfirmasi
+      // Kirim ke Kodular dengan status konfirmasi DAN FOTO PROFIL
       sendToKodular({
         ...currentRouteData,
         user_key: userData.firebase_key || userData.key, // ✅ SERTAKAN USER KEY
+        user_foto_profil: userData.fotoProfilURL || null, // ✅ PERUBAHAN: KIRIM FOTO PROFIL
         action: 'route_confirmed'
       }, 'route_confirmed');
       
@@ -3391,7 +3450,7 @@
       document.getElementById('cancelBtn').style.display = 'block';
       isSearching = true;
       
-      // Kirim order ke Firebase
+      // Kirim order ke Firebase dengan foto profil
       sendOrderToFirebase(currentRouteData);
     }
 
@@ -3587,14 +3646,22 @@
     }
 
     function sendToKodular(data, action = 'route_calculated') {
+      // ✅ PERUBAHAN: AMBIL FOTO PROFIL USER JIKA ADA
+      const userFotoProfil = userData ? userData.fotoProfilURL || null : null;
+      
       const kodularData = {
         action: action,
         timestamp: new Date().toISOString(),
         user_data: userData, // ✅ Sertakan data user dari registrasi
+        user_foto_profil: userFotoProfil, // ✅ PERUBAHAN: SELALU KIRIM FOTO PROFIL
         ...data
       };
       
-      console.log('Data yang akan dikirim ke Kodular:', kodularData);
+      console.log('📸 Data yang akan dikirim ke Kodular (dengan foto profil):', {
+        action: action,
+        user_foto_profil: userFotoProfil,
+        user_nama: userData ? userData.nama : 'Tidak diketahui'
+      });
       
       // METODE 1: Menggunakan window.AppInventor.setWebViewString (PREFERED)
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
@@ -3960,6 +4027,7 @@
         } else {
           console.log("✅ User berhasil diidentifikasi:", userData.nama || userData.telepon);
           console.log("🔑 User key:", userData.firebase_key || userData.key);
+          console.log("📸 User foto profil:", userData.fotoProfilURL || "Tidak ada");
         }
         
         // Muat data tarif dari Firebase terlebih dahulu
@@ -4082,4 +4150,3 @@
   </script>
 </body>
 </html>
-
