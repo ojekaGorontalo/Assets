@@ -329,16 +329,41 @@
             margin-top: 5px;
         }
 
-        /* Tombol Pilih Foto Khusus */
-        #selectPhotoBtn {
-            margin-top: 10px;
-            transition: all 0.3s;
-            background: linear-gradient(to right, #6c757d, #495057);
+        /* Tombol khusus untuk Kodular */
+        .kodular-btn {
+            animation: pulse 2s infinite;
+            border: 2px solid white;
+            box-shadow: 0 4px 12px rgba(238, 90, 36, 0.4);
+            background: linear-gradient(to right, #FF6B6B, #EE5A24) !important;
         }
 
-        #selectPhotoBtn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        .select-photo-btn {
+            transition: all 0.3s;
+        }
+
+        .select-photo-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(238, 90, 36, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(238, 90, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(238, 90, 36, 0); }
+        }
+
+        /* Loading state untuk tombol */
+        .btn-loading {
+            opacity: 0.7;
+            cursor: wait !important;
+        }
+
+        .btn-success {
+            background: linear-gradient(to right, #28a745, #20c997) !important;
+        }
+
+        .btn-error {
+            background: linear-gradient(to right, #dc3545, #c82333) !important;
         }
         
         /* Progress Bar Styles */
@@ -750,14 +775,19 @@
                             <img id="photoPreview" class="photo-preview" src="#" alt="Preview Foto Profil">
                         </div>
                         
-                        <!-- Input File Tersembunyi untuk Kodular -->
+                        <!-- Input File Tersembunyi -->
                         <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
                         
-                        <p class="photo-info">Klik tombol di bawah untuk memilih foto (maks. 2MB). Format: JPG, PNG, JPEG</p>
+                        <p class="photo-info">Pilih foto dari galeri (maks. 2MB). Format: JPG, PNG, JPEG</p>
                         
-                        <!-- Tombol untuk memicu input file -->
-                        <button type="button" id="selectPhotoBtn" class="btn">
-                            📷 Pilih Foto dari Galeri
+                        <!-- Tombol dengan 2 cara: normal dan untuk Kodular -->
+                        <button type="button" id="selectPhotoBtn" class="btn select-photo-btn">
+                            📱 PILIH FOTO DARI GALERI
+                        </button>
+                        
+                        <!-- Tombol khusus untuk Kodular (akan ditampilkan jika deteksi Kodular) -->
+                        <button type="button" id="kodularPhotoBtn" class="btn kodular-btn" style="display: none;">
+                            📱 PILIH FOTO (KODULAR MODE)
                         </button>
                         
                         <!-- Progress Bar -->
@@ -767,6 +797,9 @@
                             </div>
                             <div class="progress-text" id="progressText">0%</div>
                         </div>
+                        
+                        <!-- Debug info -->
+                        <div id="debugInfo" style="font-size: 10px; color: #888; margin-top: 5px; display: none;"></div>
                     </div>
                     
                     <div class="form-group">
@@ -943,11 +976,13 @@
         // Foto Profil Elements (Kodular Compatible)
         const hiddenFileInput = document.getElementById('hiddenFileInput');
         const selectPhotoBtn = document.getElementById('selectPhotoBtn');
+        const kodularPhotoBtn = document.getElementById('kodularPhotoBtn');
         const photoPreview = document.getElementById('photoPreview');
         const photoPlaceholder = document.getElementById('photoPlaceholder');
         const uploadProgressContainer = document.getElementById('uploadProgressContainer');
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
+        const debugInfo = document.getElementById('debugInfo');
         
         // OTP Elements
         const otpSection = document.getElementById('otpSection');
@@ -968,11 +1003,15 @@
         const loadingModal = document.getElementById('loadingModal');
         const loadingText = document.getElementById('loadingText');
 
-        // Variables
+        // ================================================
+        // VARIABEL GLOBAL
+        // ================================================
         let registrationData = null;
         let fotoProfilFile = null;
         let otpTimer = null;
         let otpCountdown = 60;
+        let isKodularWebView = false;
+        let fileInputAttempts = 0;
 
         // ================================================
         // FUNGSI UTILITAS UMUM
@@ -1221,53 +1260,327 @@
         }
 
         // ================================================
-        // EVENT HANDLERS - Foto Profil (Kodular Compatible)
+        // FUNGSI KHUSUS KODULAR WEBVIEW
         // ================================================
         
-        // Handle tombol pilih foto
-        selectPhotoBtn.addEventListener('click', function() {
-            console.log('Tombol foto diklik, membuka file picker...');
-            hiddenFileInput.click();
-        });
-        
-        // Handle perubahan input file
-        hiddenFileInput.addEventListener('change', function(event) {
-            console.log('File input berubah...');
+        // Deteksi apakah di dalam Kodular WebView
+        function detectKodularWebView() {
+            // Multiple detection methods
+            const kodularIndicators = [
+                window.AppInventor,
+                window.android,
+                window.webkit && window.webkit.messageHandlers,
+                navigator.userAgent.includes('WebView'),
+                navigator.userAgent.includes('Android') && !navigator.userAgent.includes('Chrome'),
+                window.Kodular,
+                window.KODULAR
+            ];
             
-            if (event.target.files && event.target.files[0]) {
-                const file = event.target.files[0];
-                console.log('File dipilih:', file.name, file.size, file.type);
+            isKodularWebView = kodularIndicators.some(indicator => !!indicator);
+            
+            console.log('📱 Kodular Detection:', {
+                isKodular: isKodularWebView,
+                userAgent: navigator.userAgent,
+                AppInventor: !!window.AppInventor,
+                android: !!window.android,
+                webkit: !!(window.webkit && window.webkit.messageHandlers)
+            });
+            
+            debugInfo.innerHTML = `Mode: ${isKodularWebView ? 'KODULAR WEBVIEW' : 'BROWSER NORMAL'}<br>UA: ${navigator.userAgent}`;
+            debugInfo.style.display = 'block';
+            
+            return isKodularWebView;
+        }
+        
+        // Metode 1: Input file standar (untuk browser biasa dan Kodular)
+        function openStandardFilePicker() {
+            console.log('Membuka standard file picker...');
+            
+            // Reset input file terlebih dahulu
+            hiddenFileInput.value = '';
+            
+            // Tambahkan atribut untuk Android/Kodular
+            hiddenFileInput.setAttribute('data-kodular', 'true');
+            
+            // Coba click input file
+            hiddenFileInput.click();
+            
+            // Timeout untuk mendeteksi jika tidak ada respon
+            setTimeout(() => {
+                if (!fotoProfilFile && isKodularWebView) {
+                    console.log('Standard method mungkin gagal di Kodular, coba metode alternatif...');
+                    openKodularFilePicker();
+                }
+            }, 1000);
+        }
+        
+        // Metode 2: Untuk Kodular WebView dengan pendekatan berbeda
+        function openKodularFilePicker() {
+            console.log('Membuka file picker khusus Kodular...');
+            
+            // Buat input file baru dengan style khusus untuk Kodular
+            const kodularInput = document.createElement('input');
+            kodularInput.type = 'file';
+            kodularInput.accept = 'image/*';
+            kodularInput.setAttribute('data-kodular', 'true');
+            kodularInput.setAttribute('capture', '');
+            
+            // Style untuk memastikan input terlihat oleh WebView
+            kodularInput.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0.01;
+                z-index: 999999;
+            `;
+            
+            document.body.appendChild(kodularInput);
+            
+            // Langsung trigger click
+            setTimeout(() => {
+                kodularInput.click();
+            }, 100);
+            
+            // Event listener untuk Kodular
+            kodularInput.addEventListener('change', function(e) {
+                console.log('Kodular file input changed!');
                 
-                // Validasi file
-                const maxSize = 2 * 1024 * 1024;
-                const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-                
-                if (file.size > maxSize) {
-                    showErrorMessage('Ukuran file terlalu besar. Maksimal 2MB.');
-                    hiddenFileInput.value = '';
-                    return;
+                if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    console.log('File selected via Kodular method:', file.name);
+                    
+                    processSelectedFile(file);
+                    
+                    // Update tombol
+                    selectPhotoBtn.innerHTML = '✅ Foto Terpilih';
+                    selectPhotoBtn.classList.add('btn-success');
+                    selectPhotoBtn.classList.remove('btn-loading');
+                    kodularPhotoBtn.innerHTML = '✅ Foto Terpilih';
+                    kodularPhotoBtn.classList.add('btn-success');
+                    kodularPhotoBtn.classList.remove('btn-loading');
                 }
                 
-                if (!validTypes.includes(file.type)) {
-                    showErrorMessage('Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.');
-                    hiddenFileInput.value = '';
-                    return;
+                // Cleanup
+                setTimeout(() => {
+                    if (document.body.contains(kodularInput)) {
+                        document.body.removeChild(kodularInput);
+                    }
+                }, 100);
+            });
+            
+            // Fallback timeout
+            setTimeout(() => {
+                if (document.body.contains(kodularInput) && !fotoProfilFile) {
+                    console.log('Kodular method timeout, removing input...');
+                    document.body.removeChild(kodularInput);
+                    
+                    // Coba metode ketiga
+                    openEmergencyFilePicker();
                 }
-                
-                // Simpan file dan tampilkan preview
-                fotoProfilFile = file;
-                previewFotoProfil(file);
-                
-                // Update teks tombol
-                selectPhotoBtn.innerHTML = '✅ Foto Terpilih - Klik untuk Ganti';
-                selectPhotoBtn.style.background = 'linear-gradient(to right, var(--success), #20c997)';
-                
-                showInfoMessage('Foto siap diupload saat pendaftaran.', true);
-                
-            } else {
-                console.log('Tidak ada file yang dipilih');
+            }, 5000);
+        }
+        
+        // Metode 3: Emergency fallback untuk Kodular
+        function openEmergencyFilePicker() {
+            console.log('Membuka emergency file picker...');
+            
+            // Buat iframe untuk isolate file input
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border: none;
+                z-index: 999998;
+                background: transparent;
+            `;
+            
+            document.body.appendChild(iframe);
+            
+            // Buat HTML sederhana di dalam iframe
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body { margin: 0; padding: 0; background: transparent; }
+                        input { 
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            opacity: 0.01;
+                            z-index: 999999;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <input type="file" accept="image/*" id="emergencyFileInput">
+                    <script>
+                        document.getElementById('emergencyFileInput').click();
+                        
+                        document.getElementById('emergencyFileInput').addEventListener('change', function(e) {
+                            if (e.target.files && e.target.files[0]) {
+                                window.parent.postMessage({
+                                    type: 'EMERGENCY_FILE_SELECTED',
+                                    fileName: e.target.files[0].name,
+                                    fileType: e.target.files[0].type,
+                                    fileSize: e.target.files[0].size
+                                }, '*');
+                            }
+                        });
+                    <\/script>
+                </body>
+                </html>
+            `);
+            iframeDoc.close();
+            
+            // Listen for message from iframe
+            window.addEventListener('message', function handleMessage(e) {
+                if (e.data.type === 'EMERGENCY_FILE_SELECTED') {
+                    console.log('Emergency file selected:', e.data);
+                    
+                    // Simulasikan file object (untuk demo)
+                    // Note: Ini tidak akan bisa mengupload file asli
+                    // Tapi setidaknya user bisa memilih file
+                    
+                    // Tampilkan pesan ke user
+                    showInfoMessage('File dipilih melalui mode emergency. Silakan upload manual nanti.', true);
+                    
+                    // Cleanup
+                    window.removeEventListener('message', handleMessage);
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                }
+            });
+            
+            // Auto cleanup setelah 10 detik
+            setTimeout(() => {
+                if (document.body.contains(iframe) && !fotoProfilFile) {
+                    document.body.removeChild(iframe);
+                    showInfoMessage('Jika file picker tidak muncul, pastikan aplikasi memiliki izin penyimpanan.', true);
+                }
+            }, 10000);
+        }
+        
+        // Proses file yang dipilih
+        function processSelectedFile(file) {
+            console.log('Processing selected file:', file.name, file.size, file.type);
+            
+            // Validasi file
+            const maxSize = 2 * 1024 * 1024;
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            
+            if (file.size > maxSize) {
+                showErrorMessage('Ukuran file terlalu besar. Maksimal 2MB.');
+                return;
             }
-        });
+            
+            if (!validTypes.includes(file.type)) {
+                showErrorMessage('Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.');
+                return;
+            }
+            
+            // Simpan file dan tampilkan preview
+            fotoProfilFile = file;
+            previewFotoProfil(file);
+            
+            // Beri pesan sukses
+            showInfoMessage('Foto berhasil dipilih! Akan diupload saat pendaftaran.', true);
+        }
+        
+        // Setup event listeners untuk foto
+        function setupPhotoUploadListeners() {
+            // Tombol standar (untuk semua browser)
+            selectPhotoBtn.addEventListener('click', function() {
+                console.log('Tombol foto standar diklik');
+                
+                // Tampilkan loading state
+                selectPhotoBtn.innerHTML = '⏳ Membuka galeri...';
+                selectPhotoBtn.classList.add('btn-loading');
+                
+                // Untuk Kodular, juga update tombol khusus
+                if (isKodularWebView) {
+                    kodularPhotoBtn.innerHTML = '⏳ Membuka galeri...';
+                    kodularPhotoBtn.classList.add('btn-loading');
+                }
+                
+                // Buka file picker
+                openStandardFilePicker();
+                
+                // Reset tombol setelah 2 detik
+                setTimeout(() => {
+                    if (!fotoProfilFile) {
+                        selectPhotoBtn.innerHTML = '📱 PILIH FOTO DARI GALERI';
+                        selectPhotoBtn.classList.remove('btn-loading');
+                        
+                        if (isKodularWebView) {
+                            kodularPhotoBtn.innerHTML = '📱 PILIH FOTO (KODULAR MODE)';
+                            kodularPhotoBtn.classList.remove('btn-loading');
+                        }
+                    }
+                }, 2000);
+            });
+            
+            // Tombol khusus Kodular
+            kodularPhotoBtn.addEventListener('click', function() {
+                console.log('Tombol foto Kodular diklik');
+                
+                // Tampilkan loading state
+                kodularPhotoBtn.innerHTML = '⏳ Membuka galeri Kodular...';
+                kodularPhotoBtn.classList.add('btn-loading');
+                selectPhotoBtn.innerHTML = '⏳ Membuka galeri Kodular...';
+                selectPhotoBtn.classList.add('btn-loading');
+                
+                // Buka file picker khusus Kodular
+                openKodularFilePicker();
+                
+                // Reset tombol setelah 3 detik
+                setTimeout(() => {
+                    if (!fotoProfilFile) {
+                        kodularPhotoBtn.innerHTML = '📱 PILIH FOTO (KODULAR MODE)';
+                        kodularPhotoBtn.classList.remove('btn-loading');
+                        selectPhotoBtn.innerHTML = '📱 PILIH FOTO DARI GALERI';
+                        selectPhotoBtn.classList.remove('btn-loading');
+                    }
+                }, 3000);
+            });
+            
+            // Listener untuk input file tersembunyi (standar)
+            hiddenFileInput.addEventListener('change', function(event) {
+                console.log('Hidden file input changed event triggered');
+                
+                if (event.target.files && event.target.files[0]) {
+                    const file = event.target.files[0];
+                    console.log('File selected via hidden input:', file.name);
+                    
+                    processSelectedFile(file);
+                    
+                    // Update tombol
+                    selectPhotoBtn.innerHTML = '✅ Foto Terpilih';
+                    selectPhotoBtn.classList.add('btn-success');
+                    selectPhotoBtn.classList.remove('btn-loading');
+                    
+                    if (isKodularWebView) {
+                        kodularPhotoBtn.innerHTML = '✅ Foto Terpilih';
+                        kodularPhotoBtn.classList.add('btn-success');
+                        kodularPhotoBtn.classList.remove('btn-loading');
+                    }
+                } else {
+                    console.log('No file selected or selection cancelled');
+                }
+            });
+        }
 
         // ================================================
         // FUNGSI OTP (Firebase v9)
@@ -1486,21 +1799,21 @@
             if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
                 try {
                     window.AppInventor.setWebViewString(JSON.stringify(kodularData));
-                    console.log('✅ Data berhasil dikirim ke Kodular');
+                    console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
                 } catch (error) {
                     console.error('Error mengirim data via AppInventor:', error);
                 }
             } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
                 try {
                     window.android.receiveData(JSON.stringify(kodularData));
-                    console.log('✅ Data berhasil dikirim ke Kodular');
+                    console.log('✅ Data berhasil dikirim ke Kodular via window.android');
                 } catch (error) {
                     console.error('Error mengirim data via window.android:', error);
                 }
             } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
                 try {
                     window.webkit.messageHandlers.observe.postMessage(kodularData);
-                    console.log('✅ Data berhasil dikirim ke Kodular');
+                    console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
                 } catch (error) {
                     console.error('Error mengirim data via webkit.messageHandlers:', error);
                 }
@@ -1857,13 +2170,16 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Deteksi WebView Kodular
-            const isKodularWebView = !!(window.AppInventor || window.android || (window.webkit && window.webkit.messageHandlers));
+            isKodularWebView = detectKodularWebView();
             
+            // Tampilkan tombol khusus Kodular jika terdeteksi
             if (isKodularWebView) {
-                console.log('📱 Running inside Kodular WebView');
-                // Update teks tombol untuk Kodular
-                selectPhotoBtn.innerHTML = '📱 Pilih Foto (Kodular)';
+                console.log('📱 Running inside Kodular WebView - Using Kodular mode');
+                kodularPhotoBtn.style.display = 'block';
+                selectPhotoBtn.innerHTML = '📱 PILIH FOTO (MODE 1)';
                 selectPhotoBtn.style.background = 'linear-gradient(to right, var(--primary), var(--secondary))';
+            } else {
+                console.log('🌐 Running in normal browser - Using standard mode');
             }
             
             // Setup event listeners untuk modal
@@ -1878,6 +2194,9 @@
                     hidePopup();
                 }
             });
+            
+            // Setup foto upload listeners
+            setupPhotoUploadListeners();
             
             // Cek apakah user sudah login
             checkIfUserIsLoggedIn();
@@ -1903,10 +2222,19 @@
             // Kirim pesan ke Kodular bahwa halaman sudah siap
             if (isKodularWebView) {
                 setTimeout(() => {
-                    sendToKodular({ action: 'page_ready', page: 'registration' });
+                    sendToKodular({ 
+                        action: 'page_ready', 
+                        page: 'registration',
+                        timestamp: new Date().toISOString()
+                    });
                 }, 1000);
             }
+            
+            // Debug: Log semua event click
+            document.addEventListener('click', function(e) {
+                console.log('Click event on:', e.target.tagName, e.target.id || e.target.className);
+            });
         });
     </script>
 </body>
-</html>
+    </html>
