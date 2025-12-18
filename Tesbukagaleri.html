@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Tes Pilih Foto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    img {
+      margin-top: 20px;
+      max-width: 200px;
+      border-radius: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Tes Pilih Foto (Kodular)</h2>
+
+  <!-- Input file (disembunyikan) -->
+  <input 
+    type="file" 
+    id="foto" 
+    accept="image/*" 
+    style="display:none"
+  >
+
+  <!-- Tombol -->
+  <button onclick="pilihFoto()">Pilih Foto dari Galeri</button>
+
+  <br>
+
+  <!-- Preview -->
+  <img id="preview">
+
+  <script>
+    function pilihFoto() {
+      document.getElementById('foto').click();
+    }
+
+    document.getElementById('foto').addEventListener('change', function (e) {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          const img = document.getElementById('preview');
+          img.src = ev.target.result;
+          img.style.display = 'block';
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+  </script>
+
+</body>
+</html>
