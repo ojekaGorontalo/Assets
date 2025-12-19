@@ -217,15 +217,47 @@
       transform: scale(1.05);
     }
 
+    /* PERKECIL NAMA CUSTOMER */
     .customer-name-left {
-      font-size: 0.72rem;
+      font-size: 0.60rem;
       font-weight: 600;
       color: var(--primary);
       text-align: center;
       word-break: break-word;
       max-width: 100%;
-      line-height : 1.2;
-      padding: 0 2px
+      line-height : 1.1;
+      padding: 0 2px;
+      margin-bottom: 2px;
+    }
+
+    /* RATING CUSTOMER */
+    .customer-rating {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 0.55rem;
+      margin-bottom: 2px;
+    }
+
+    .rating-stars {
+      color: #ffc107;
+      display: flex;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .trip-count {
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* WAKTU ORDER */
+    .order-time {
+      font-size: 0.50rem;
+      color: #666;
+      text-align: center;
+      font-style: italic;
     }
 
     .customer-name {
@@ -258,32 +290,7 @@
     }
 
     .status-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .status-searching {
-      background-color: #fff3cd;
-      color: #856404;
-    }
-
-    .status-accepted {
-      background-color: #d1ecf1;
-      color: #0c5460;
-    }
-
-    .status-completed {
-      background-color: #d4edda;
-      color: #155724;
-    }
-
-    .status-cancelled {
-      background-color: #f8d7da;
-      color: #721c24;
+      display: none !important; /* SEMBUNYIKAN STATUS BADGE */
     }
 
     /* STYLE BARU UNTUK LAYOUT FOTO DAN NAMA DI SEBELAH KIRI ALAMAT */
@@ -300,7 +307,7 @@
       align-items: center;
       width: 55px;
       flex-shrink: 0;
-      margin-left: -5
+      margin-left: -5px;
     }
 
     .route-addresses-right {
@@ -374,9 +381,11 @@
       color: var(--dark);
     }
 
+    /* ORDER DETAILS - UBAH MENJADI 4 KOLOM */
     .order-details {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
       border-top: 1px solid #eee;
       padding-top: 8px;
       font-size: 0.8rem;
@@ -387,16 +396,16 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      flex: 1;
     }
 
     .detail-value {
       font-weight: 600;
       color: var(--primary);
+      font-size: 0.75rem;
     }
 
     .detail-label {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: #666;
       margin-top: 2px;
     }
@@ -433,16 +442,6 @@
       font-size: 0.7rem;
       font-weight: 600;
       margin-left: 5px;
-    }
-
-    .distance-badge {
-      background: #e3f2fd;
-      color: #1565c0;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-size: 0.5rem;
-      font-weight: 600;
-      margin-left: 4px;
     }
 
     .empty-state {
@@ -1623,6 +1622,15 @@
       
       .order-details {
         font-size: 0.75rem;
+        grid-template-columns: repeat(4, 1fr);
+      }
+      
+      .detail-value {
+        font-size: 0.7rem;
+      }
+      
+      .detail-label {
+        font-size: 0.6rem;
       }
       
       .modal-content {
@@ -1709,6 +1717,18 @@
       .large-customer-photo {
         max-width: 250px;
       }
+      
+      .customer-name-left {
+        font-size: 0.58rem;
+      }
+      
+      .customer-rating {
+        font-size: 0.53rem;
+      }
+      
+      .order-time {
+        font-size: 0.48rem;
+      }
     }
 
     @media (max-width: 576px) {
@@ -1717,12 +1737,17 @@
       }
       
       .order-details {
-        flex-wrap: wrap;
-        gap: 5px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        font-size: 0.7rem;
       }
       
-      .detail-item {
-        flex: 0 0 calc(33.333% - 10px);
+      .detail-value {
+        font-size: 0.65rem;
+      }
+      
+      .detail-label {
+        font-size: 0.55rem;
       }
       
       .modal-details {
@@ -1836,7 +1861,7 @@
       }
       
       .customer-name-left {
-        font-size: 0.68rem;
+        font-size: 0.56rem;
       }
       
       .modal-customer-photo {
@@ -1851,6 +1876,14 @@
 
       .large-customer-photo {
         max-width: 200px;
+      }
+      
+      .customer-rating {
+        font-size: 0.52rem;
+      }
+      
+      .order-time {
+        font-size: 0.48rem;
       }
     }
   </style>
@@ -2352,6 +2385,28 @@
         } else {
             return 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
         }
+    }
+
+    // ==================== FUNGSI UNTUK FORMAT WAKTU ORDER ====================
+    function formatTimeAgo(created_at) {
+      if (!created_at) return 'Baru saja';
+      
+      const orderTime = new Date(created_at);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - orderTime) / 1000);
+      
+      if (diffInSeconds < 60) {
+        return 'Baru saja';
+      } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} menit`;
+      } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `${hours} jam`;
+      } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `${days} hari`;
+      }
     }
 
     // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
@@ -2947,12 +3002,6 @@
                 }
             });
         });
-    }
-
-    // ==================== FUNGSI INISIALISASI NAVIGASI ====================
-    function initializeSidebarNavigation() {
-        console.log('🔧 Menginisialisasi navigasi sidebar...');
-        setupSidebarNavigation();
     }
 
     // ==================== UPDATE FUNGSI FILTER ORDER ====================
@@ -4180,8 +4229,6 @@
         const discountedPrice = calculateDiscountedPrice(order);
         const hasPromo = discountedPrice.hasDiscount || order.promo_data || order.kode_promo;
         const isKurir = order.vehicle && order.vehicle.includes('kurir');
-        const statusText = '🔂';
-        const statusClass = 'status-searching';
         
         // UPDATE: Filter kurir jika acceptKurirEnabled = false
         if (!acceptKurirEnabled && isKurir) {
@@ -4203,16 +4250,27 @@
         } else {
           hargaDisplay = `<span class="detail-value price-highlight">Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}</span>`;
         }
-        
-        let distanceBadge = '';
+
+        // Hitung jarak driver ke titik jemput
+        let driverDistanceDisplay = '-';
         if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
           const distance = getDriverToPickupDistance(order);
           if (distance !== null) {
-            distanceBadge = `<span class="distance-badge">${distance.toFixed(1)} km</span>`;
+            // Tampilkan dalam km dengan 1 desimal, atau dalam meter jika < 1 km
+            if (distance < 1) {
+              driverDistanceDisplay = Math.round(distance * 1000) + ' M';
+            } else {
+              driverDistanceDisplay = distance.toFixed(1) + ' KM';
+            }
           }
         }
 
-        const priorityData = getDriverPriorityData();
+        // Data rating dan trip count
+        const rating = order.user_data?.rating || 0;
+        const tripCount = order.user_data?.trip_count || 0;
+        
+        // Format waktu order
+        const timeAgo = formatTimeAgo(order.created_at);
 
         // Tambahkan info pengiriman untuk kurir
         let deliveryInfoHTML = '';
@@ -4237,9 +4295,8 @@
             <div class="order-badges">
               ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
               ${promoBadge}
-              ${distanceBadge}
             </div>
-            <span class="status-badge ${statusClass}">${statusText}</span>
+            <!-- HAPUS STATUS BADGE -->
           </div>
           <div class="route-info-with-photo">
             <div class="customer-info-left">
@@ -4247,6 +4304,11 @@
                    data-customer-name="${customerName}"
                    onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
               <div class="customer-name-left">${customerName}</div>
+              <div class="customer-rating">
+                <span class="rating-stars">⭐ ${rating.toFixed(1)}</span>
+                <span class="trip-count">(${tripCount})</span>
+              </div>
+              <div class="order-time">${timeAgo}</div>
             </div>
             <div class="route-addresses-right">
               <div class="route-point">
@@ -4272,6 +4334,10 @@
             <div class="detail-item">
               ${hargaDisplay}
               <span class="detail-label">Harga</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-value">${driverDistanceDisplay}</span>
+              <span class="detail-label">Jarak Driver</span>
             </div>
           </div>
         `;
@@ -5427,7 +5493,9 @@
       });
       
       // INISIALISASI NAVIGASI SIDEBAR
-      initializeSidebarNavigation();
+      setTimeout(() => {
+        setupSidebarNavigation();
+      }, 500);
 
       const acceptedOrder = getAcceptedOrderFromLocalStorage();
       if (acceptedOrder) {
@@ -5471,4 +5539,4 @@
     });
   </script>
 </body>
-                    </html>
+</html>
