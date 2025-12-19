@@ -1100,23 +1100,23 @@
           <div class="promo-details">
             <div class="promo-item">
               <span class="promo-label">Kode Promo:</span>
-              <span class="promo-value" id="promoCode">-</span>
+              <span class="promo-value" id="promoCode">  </span>
             </div>
             <div class="promo-item">
               <span class="promo-label">Harga Asli:</span>
               <span class="promo-value">
-                <span class="original-price" id="originalPrice">-</span>
+                <span class="original-price" id="originalPrice">  </span>
               </span>
             </div>
             <div class="promo-item">
               <span class="promo-label">Diskon:</span>
               <span class="promo-value">
-                <span class="discount-badge" id="discountPercentage">-</span>
+                <span class="discount-badge" id="discountPercentage">  </span>
               </span>
             </div>
             <div class="promo-item">
               <span class="promo-label">Harga Final:</span>
-              <span class="promo-value final-price" id="finalPrice">-</span>
+              <span class="promo-value final-price" id="finalPrice">  </span>
             </div>
           </div>
         </div>
@@ -1277,6 +1277,9 @@
     let destinationMarker = null;
     let routePolyline = null;
     let driverLocationListener = null;
+
+    // ==================== VARIABEL UNTUK TRIP INCREMENT ====================
+    let tripAlreadyIncremented = false;
 
     // ==================== MAPPING ICON KENDARAAN ====================
     const vehicleIconMap = {
@@ -2663,6 +2666,225 @@
       console.log('✅ Modal rating ditutup');
     }
 
+    // ==================== FUNGSI MENAMBAH PERJALANAN USER ====================
+
+    // Fungsi untuk menambah jumlah perjalanan user di Firebase dan localStorage
+    function incrementTripCount() {
+        console.log('🔄 Memulai incrementTripCount untuk user...');
+        
+        if (!userData) {
+            console.error('❌ userData tidak tersedia:', userData);
+            
+            // Coba ambil dari localStorage
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            if (loggedInUser) {
+                userData = JSON.parse(loggedInUser);
+                console.log('✅ userData diambil dari localStorage:', userData);
+            } else {
+                console.error('❌ Tidak dapat menemukan data user');
+                return;
+            }
+        }
+
+        // Dapatkan user ID dari berbagai kemungkinan field
+        const userId = userData.firebase_key || 
+                       userData.user_key || 
+                       userData.id || 
+                       (userData.userId ? userData.userId.toString() : null);
+        
+        if (!userId) {
+            console.error('❌ User ID tidak ditemukan di userData:', userData);
+            
+            // Fallback: cari user berdasarkan nomor telepon
+            const userPhone = userData.telepon || userData.phone;
+            if (userPhone) {
+                console.log('🔍 Mencari user berdasarkan telepon:', userPhone);
+                searchUserByPhoneAndIncrementTrip(userPhone);
+            }
+            return;
+        }
+
+        console.log('👤 User ID untuk increment trip:', userId);
+        
+        // Reference ke user di Firebase
+        const userRef = database.ref('users/' + userId);
+        
+        userRef.once('value')
+            .then((snapshot) => {
+                const user = snapshot.val();
+                
+                if (!user) {
+                    throw new Error('Data user tidak ditemukan di Firebase');
+                }
+                
+                // Ambil jumlah perjalanan saat ini (default 0 jika tidak ada)
+                let currentTrips = user.Perjalanan || 0;
+                
+                // PERBAIKAN: Pastikan currentTrips adalah number
+                if (typeof currentTrips === 'string') {
+                    currentTrips = parseInt(currentTrips) || 0;
+                }
+                
+                console.log(`📊 Perjalanan saat ini: ${currentTrips}`);
+                
+                // Tambah 1 perjalanan
+                const newTripCount = currentTrips + 1;
+                
+                console.log(`➕ Menambah perjalanan: ${currentTrips} → ${newTripCount}`);
+                
+                // Update di Firebase
+                return userRef.update({ 
+                    Perjalanan: newTripCount,
+                    last_trip_update: new Date().toISOString(),
+                    last_trip_order: orderId,
+                    updated_at: new Date().toISOString()
+                });
+            })
+            .then(() => {
+                console.log('✅ Jumlah perjalanan berhasil ditambahkan di Firebase');
+                
+                // Update di localStorage
+                updateTripCountInLocalStorage();
+                
+                // Set flag untuk mencegah duplikasi
+                tripAlreadyIncremented = true;
+                const incrementKey = `trip_incremented_${orderId}`;
+                localStorage.setItem(incrementKey, 'true');
+                
+                // Kirim notifikasi ke Kodular
+                sendToKodular({
+                    action: 'trip_incremented',
+                    order_id: orderId,
+                    user_id: userId,
+                    trip_count: 'incremented',
+                    message: `Perjalanan ditambahkan untuk user ${userId}`,
+                    timestamp: new Date().toISOString()
+                });
+                
+                return true;
+            })
+            .catch((error) => {
+                console.error('❌ Gagal menambah jumlah perjalanan di Firebase:', error);
+                
+                // Fallback: update localStorage saja
+                console.log('🔄 Mencoba fallback ke localStorage...');
+                updateTripCountInLocalStorage();
+                
+                return false;
+            });
+    }
+
+    // Fungsi untuk mencari user berdasarkan telepon dan menambah perjalanan
+    function searchUserByPhoneAndIncrementTrip(userPhone) {
+        console.log('🔍 Mencari user dengan nomor telepon:', userPhone);
+        
+        const usersRef = database.ref('users');
+        const formattedPhone = formatPhoneNumber(userPhone);
+        
+        usersRef.orderByChild('telepon').equalTo(formattedPhone).once('value')
+            .then((snapshot) => {
+                if (snapshot.exists()) {
+                    const userKeys = Object.keys(snapshot.val());
+                    if (userKeys.length > 0) {
+                        const userId = userKeys[0];
+                        console.log('✅ User ditemukan dengan key:', userId);
+                        
+                        // Update userData dengan ID yang ditemukan
+                        userData = { ...userData, firebase_key: userId };
+                        
+                        // Panggil kembali incrementTripCount
+                        incrementTripCount();
+                    } else {
+                        console.error('❌ User tidak ditemukan dengan nomor telepon tersebut');
+                    }
+                } else {
+                    console.error('❌ User tidak ditemukan di database');
+                }
+            })
+            .catch((error) => {
+                console.error('❌ Gagal mencari user berdasarkan telepon:', error);
+            });
+    }
+
+    // Fungsi untuk memperbarui jumlah perjalanan di localStorage
+    function updateTripCountInLocalStorage() {
+        try {
+            console.log('💾 Memperbarui jumlah perjalanan di localStorage...');
+            
+            // 1. Update di jego_logged_in_user
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            if (loggedInUser) {
+                const user = JSON.parse(loggedInUser);
+                const currentTrips = user.Perjalanan || 0;
+                const newTripCount = currentTrips + 1;
+                
+                user.Perjalanan = newTripCount;
+                user.last_trip_update = new Date().toISOString();
+                user.last_trip_order = orderId;
+                
+                localStorage.setItem('jego_logged_in_user', JSON.stringify(user));
+                console.log(`✅ Perjalanan diupdate di jego_logged_in_user: ${currentTrips} → ${newTripCount}`);
+            }
+            
+            // 2. Update di jego_users (data registrasi)
+            const jegoUsers = localStorage.getItem('jego_users');
+            if (jegoUsers) {
+                const users = JSON.parse(jegoUsers);
+                const userId = userData?.firebase_key || userData?.user_key;
+                
+                if (userId && users[userId]) {
+                    const currentTrips = users[userId].Perjalanan || 0;
+                    const newTripCount = currentTrips + 1;
+                    
+                    users[userId].Perjalanan = newTripCount;
+                    users[userId].last_trip_update = new Date().toISOString();
+                    users[userId].last_trip_order = orderId;
+                    
+                    localStorage.setItem('jego_users', JSON.stringify(users));
+                    console.log(`✅ Perjalanan diupdate di jego_users: ${currentTrips} → ${newTripCount}`);
+                }
+            }
+            
+            // 3. Update di jego_active_order
+            const activeOrder = localStorage.getItem('jego_active_order');
+            if (activeOrder) {
+                const order = JSON.parse(activeOrder);
+                order.trip_count_updated = true;
+                order.trip_update_time = new Date().toISOString();
+                localStorage.setItem('jego_active_order', JSON.stringify(order));
+                console.log('✅ Flag trip_count_updated ditambahkan di jego_active_order');
+            }
+            
+            console.log('✅ LocalStorage berhasil diperbarui');
+            
+        } catch (error) {
+            console.error('❌ Gagal update jumlah perjalanan di localStorage:', error);
+        }
+    }
+
+    // Fungsi untuk mencegah duplikasi penambahan perjalanan
+    function checkIfTripAlreadyIncremented() {
+        const incrementKey = `trip_incremented_${orderId}`;
+        return localStorage.getItem(incrementKey) === 'true' || tripAlreadyIncremented;
+    }
+
+    // Fungsi untuk memformat nomor telepon ke format +62
+    function formatPhoneNumber(phone) {
+        if (!phone) return '';
+        
+        let cleaned = phone.replace(/\D/g, '');
+        
+        if (cleaned.startsWith('0')) {
+            cleaned = '+62' + cleaned.substring(1);
+        } else if (cleaned.startsWith('62')) {
+            cleaned = '+' + cleaned;
+        } else if (!cleaned.startsWith('+')) {
+            cleaned = '+62' + cleaned;
+        }
+        
+        return cleaned;
+    }
+
     // ==================== FUNGSI UTAMA YANG DIMODIFIKASI ====================
 
     // Fungsi untuk mendapatkan pesan status - FUNGSI BARU
@@ -2761,7 +2983,7 @@
       listenToDriverLocation(orderId);
     }
 
-    // Fungsi untuk update status driver - DIMODIFIKASI SESUAI PERMINTAAN
+    // Fungsi untuk update status driver - DIMODIFIKASI DENGAN PERJALANAN
     function updateDriverStatus(status, driverData = null) {
       const statusBadge = document.getElementById('statusBadge');
       const arrivalTitle = document.getElementById('arrivalTitle');
@@ -2846,6 +3068,15 @@
             timestamp: new Date().toISOString()
           });
           
+          // ========== PERBAIKAN UTAMA: TAMBAH JUMLAH PERJALANAN USER ==========
+          // Cek dulu apakah perjalanan sudah pernah ditambahkan untuk order ini
+          if (!checkIfTripAlreadyIncremented()) {
+              console.log('🚗 Menambahkan 1 perjalanan untuk user...');
+              incrementTripCount();
+          } else {
+              console.log('ℹ️ Perjalanan sudah pernah ditambahkan untuk order ini');
+          }
+          
           // Tampilkan modal rating jika belum dikirim
           if (!isRatingSubmitted) {
             setTimeout(() => {
@@ -2862,6 +3093,10 @@
           arrivalTitle.textContent = 'Perjalanan Dibatalkan';
           arrivalSubtitle.innerHTML = 'Perjalanan telah dibatalkan.<br>Silakan pesan ulang jika diperlukan.';
           actionsSection.style.display = 'none';
+          
+          // ========== PERBAIKAN: HAPUS FLAG TRIP INCREMENT ==========
+          const incrementKey = `trip_incremented_${orderId}`;
+          localStorage.removeItem(incrementKey);
           
           // Kirim status cancelled ke Kodular - DIMODIFIKASI
           sendToKodular({
@@ -3140,11 +3375,20 @@
             orderMap = null;
         }
         
+        // ========== PERBAIKAN: HAPUS FLAG TRIP INCREMENT ==========
+        // Simpan bahwa user sudah kembali dari halaman ini
         const backData = {
-            action: 'go_back'
+            action: 'go_back',
+            order_id: orderId,
+            trip_updated: checkIfTripAlreadyIncremented() // Informasi apakah perjalanan sudah ditambah
         };
         
         sendToKodular(backData);
+        
+        // Hapus active order dari localStorage
+        localStorage.removeItem('jego_active_order');
+        
+        console.log('🔙 Kembali ke halaman sebelumnya');
     }
 
     // Fungsi untuk menangani tombol back fisik (hardware back button)
@@ -3213,9 +3457,13 @@
         });
       }
       
+      // ========== PERBAIKAN: HAPUS FLAG TRIP INCREMENT ==========
+      const incrementKey = `trip_incremented_${orderId}`;
+      localStorage.removeItem(incrementKey);
+      
       showInfoModal('Informasi', 'Perjalanan dibatalkan');
       
-      // Kembali ke halaman sebelumnya setelah beberapa detik (boleh karena sudah cancelled)
+      // Kembali ke halaman sebelumnya setelah beberapa detik
       setTimeout(() => {
         safeGoBack();
       }, 1500);
@@ -3313,6 +3561,12 @@
       
       // ⭐⭐ PERBAIKAN: SETUP HANDLER UNTUK TOMBOL BACK ⭐⭐
       setupBackButtonHandler();
+      
+      // ⭐⭐ PERBAIKAN: CEK TRIP INCREMENT FLAG DARI LOCALSTORAGE ⭐⭐
+      if (orderId) {
+        const incrementKey = `trip_incremented_${orderId}`;
+        tripAlreadyIncremented = localStorage.getItem(incrementKey) === 'true';
+      }
       
       // Cek URL parameters untuk order_id langsung
       const urlParams = new URLSearchParams(window.location.search);
