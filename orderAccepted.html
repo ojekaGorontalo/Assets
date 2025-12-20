@@ -758,6 +758,174 @@
       font-weight: bold;
     }
 
+    /* ==================== STYLE MODAL RATING ==================== */
+    .rating-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      padding: 20px;
+    }
+
+    .rating-container {
+      background: white;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 400px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .rating-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .rating-header h2 {
+      color: var(--primary);
+      margin-bottom: 8px;
+      font-size: 1.5rem;
+    }
+
+    .rating-header p {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .rating-section {
+      text-align: center;
+      margin: 25px 0;
+    }
+
+    .stars-rating {
+      font-size: 48px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      display: inline-flex;
+      gap: 10px;
+    }
+
+    .star {
+      color: #ddd;
+      transition: all 0.2s;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .star:hover {
+      color: #ffd700;
+      transform: scale(1.1);
+    }
+
+    .star.selected {
+      color: #ffc107;
+      text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+    }
+
+    .rating-text {
+      color: #666;
+      font-size: 0.9rem;
+      min-height: 20px;
+    }
+
+    .rating-comment {
+      margin: 20px 0;
+    }
+
+    .rating-comment textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      transition: border 0.3s;
+    }
+
+    .rating-comment textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .rating-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .rating-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .skip-btn {
+      background: #f8f9fa;
+      color: #666;
+      border: 1px solid #ddd;
+    }
+
+    .skip-btn:hover {
+      background: #e9ecef;
+    }
+
+    .submit-btn {
+      background: linear-gradient(to right, var(--success), #20c997);
+      color: white;
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+
+    .submit-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    @media (max-width: 480px) {
+      .rating-container {
+        padding: 20px;
+        margin: 10px;
+      }
+      
+      .stars-rating {
+        font-size: 40px;
+        gap: 8px;
+      }
+      
+      .rating-header h2 {
+        font-size: 1.3rem;
+      }
+    }
+    /* ==================== END MODAL RATING STYLES ==================== */
+
     /* Custom scrollbar untuk konten */
     .content-wrapper::-webkit-scrollbar {
       width: 6px;
@@ -1057,6 +1225,43 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL RATING CUSTOMER ==================== -->
+  <div class="rating-overlay" id="ratingOverlay" style="display: none;">
+    <div class="rating-container">
+      <div class="rating-header">
+        <h2>Rating Customer</h2>
+        <p>Bagaimana pengalaman melayani customer ini?</p>
+      </div>
+      
+      <div class="rating-section">
+        <div class="stars-rating" id="starsRating">
+          <span class="star" data-value="1">☆</span>
+          <span class="star" data-value="2">☆</span>
+          <span class="star" data-value="3">☆</span>
+          <span class="star" data-value="4">☆</span>
+          <span class="star" data-value="5">☆</span>
+        </div>
+        <div class="rating-text" id="ratingText">Pilih bintang 1-5</div>
+      </div>
+      
+      <div class="rating-comment">
+        <textarea 
+          id="ratingComment" 
+          placeholder="Opsional: Tulis komentar untuk customer ini..."
+          rows="3"
+        ></textarea>
+      </div>
+      
+      <div class="rating-actions">
+        <button class="rating-btn skip-btn" onclick="skipRating()">Lewati</button>
+        <button class="rating-btn submit-btn" onclick="submitRating()" id="submitRatingBtn" disabled>
+          Kirim Rating
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- ==================== END MODAL RATING ==================== -->
+
   <!-- Notifikasi Chat -->
   <div class="chat-notification" id="chatNotification">
     <strong>💬 Pesan Baru</strong>
@@ -1110,6 +1315,12 @@
     let driverLocationInterval = null;
     let driverOfferListener = null;
     let currentDriverLocation = null;
+
+    // ==================== VARIABEL RATING SYSTEM ====================
+    let selectedRating = 0;
+    let ratingComment = '';
+    let userToRate = null;
+    let orderCompletedData = null; // Simpan data order yang sudah completed
 
     // OpenRouteService API Key
     const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d768e0a852f64697af0';
@@ -1569,6 +1780,77 @@
       }
     }
 
+    // ==================== FUNGSI PERHITUNGAN POTONGAN ====================
+
+    function calculateFee(orderAmount) {
+      return Math.round(orderAmount * (potonganPercentage / 100));
+    }
+
+    function checkBalanceForOrder(orderAmount) {
+      const requiredFee = calculateFee(orderAmount);
+      const hasSufficientBalance = currentDriverBalance >= requiredFee;
+      
+      console.log(`💰 Cek saldo: ${currentDriverBalance} >= ${requiredFee} = ${hasSufficientBalance}`);
+      
+      return {
+        hasSufficientBalance: hasSufficientBalance,
+        requiredFee: requiredFee,
+        currentBalance: currentDriverBalance,
+        remainingBalance: currentDriverBalance - requiredFee
+      };
+    }
+
+    function deductOrderFee(orderId, orderAmount, driverId) {
+      const feeAmount = calculateFee(orderAmount);
+      
+      const driverRef = database.ref('drivers/' + driverId);
+      
+      // Gunakan transaction untuk menghindari race condition
+      driverRef.transaction((currentData) => {
+        if (currentData) {
+          if (currentData.Balance < feeAmount) {
+            console.error('❌ Saldo tidak cukup untuk potongan');
+            return; // Batalkan transaction
+          }
+          
+          currentData.Balance -= feeAmount;
+          
+          // Catat di riwayat transaksi jika ada field history
+          const transactionId = 'tx_' + Date.now();
+          if (!currentData.balance_history) {
+            currentData.balance_history = {};
+          }
+          currentData.balance_history[transactionId] = {
+            type: 'order_fee',
+            order_id: orderId,
+            amount: -feeAmount,
+            order_amount: orderAmount,
+            fee_percentage: potonganPercentage,
+            description: `Biaya layanan order #${orderId}`,
+            timestamp: new Date().toISOString()
+          };
+        }
+        return currentData;
+      }).then((result) => {
+        if (result.committed) {
+          console.log(`✅ Berhasil memotong saldo: Rp ${feeAmount.toLocaleString('id-ID')}`);
+          
+          sendToKodular({
+            action: 'balance_deducted',
+            order_id: orderId,
+            fee_amount: feeAmount,
+            order_amount: orderAmount,
+            new_balance: result.snapshot.val().Balance,
+            message: `Potongan biaya layanan ${potonganPercentage}% untuk order #${orderId}`
+          });
+        } else {
+          console.error('❌ Transaksi pemotongan saldo dibatalkan');
+        }
+      }).catch((error) => {
+        console.error('❌ Gagal memotong saldo:', error);
+      });
+    }
+
     // ==================== SISTEM CHAT INTEGRASI ====================
 
     function initializeChatSystem(orderId) {
@@ -1797,77 +2079,6 @@
         });
     }
 
-    // ==================== FUNGSI PERHITUNGAN POTONGAN ====================
-
-    function calculateFee(orderAmount) {
-      return Math.round(orderAmount * (potonganPercentage / 100));
-    }
-
-    function checkBalanceForOrder(orderAmount) {
-      const requiredFee = calculateFee(orderAmount);
-      const hasSufficientBalance = currentDriverBalance >= requiredFee;
-      
-      console.log(`💰 Cek saldo: ${currentDriverBalance} >= ${requiredFee} = ${hasSufficientBalance}`);
-      
-      return {
-        hasSufficientBalance: hasSufficientBalance,
-        requiredFee: requiredFee,
-        currentBalance: currentDriverBalance,
-        remainingBalance: currentDriverBalance - requiredFee
-      };
-    }
-
-    function deductOrderFee(orderId, orderAmount, driverId) {
-      const feeAmount = calculateFee(orderAmount);
-      
-      const driverRef = database.ref('drivers/' + driverId);
-      
-      // Gunakan transaction untuk menghindari race condition
-      driverRef.transaction((currentData) => {
-        if (currentData) {
-          if (currentData.Balance < feeAmount) {
-            console.error('❌ Saldo tidak cukup untuk potongan');
-            return; // Batalkan transaction
-          }
-          
-          currentData.Balance -= feeAmount;
-          
-          // Catat di riwayat transaksi jika ada field history
-          const transactionId = 'tx_' + Date.now();
-          if (!currentData.balance_history) {
-            currentData.balance_history = {};
-          }
-          currentData.balance_history[transactionId] = {
-            type: 'order_fee',
-            order_id: orderId,
-            amount: -feeAmount,
-            order_amount: orderAmount,
-            fee_percentage: potonganPercentage,
-            description: `Biaya layanan order #${orderId}`,
-            timestamp: new Date().toISOString()
-          };
-        }
-        return currentData;
-      }).then((result) => {
-        if (result.committed) {
-          console.log(`✅ Berhasil memotong saldo: Rp ${feeAmount.toLocaleString('id-ID')}`);
-          
-          sendToKodular({
-            action: 'balance_deducted',
-            order_id: orderId,
-            fee_amount: feeAmount,
-            order_amount: orderAmount,
-            new_balance: result.snapshot.val().Balance,
-            message: `Potongan biaya layanan ${potonganPercentage}% untuk order #${orderId}`
-          });
-        } else {
-          console.error('❌ Transaksi pemotongan saldo dibatalkan');
-        }
-      }).catch((error) => {
-        console.error('❌ Gagal memotong saldo:', error);
-      });
-    }
-
     // ==================== FUNGSI UPDATE STATISTIK DRIVER ====================
 
     function getDriverDataFromStorage() {
@@ -1976,6 +2187,265 @@
         } catch (error) {
             console.error('❌ Error updating driver stats in localStorage:', error);
         }
+    }
+
+    // ==================== FUNGSI MODAL RATING ====================
+
+    function showRatingModal() {
+      // Reset rating
+      selectedRating = 0;
+      ratingComment = '';
+      
+      // Update UI
+      const stars = document.querySelectorAll('.star');
+      stars.forEach(star => {
+        star.textContent = '☆';
+        star.classList.remove('selected');
+      });
+      
+      document.getElementById('ratingText').textContent = 'Pilih bintang 1-5';
+      document.getElementById('ratingComment').value = '';
+      document.getElementById('submitRatingBtn').disabled = true;
+      
+      // Tampilkan modal
+      document.getElementById('ratingOverlay').style.display = 'flex';
+      
+      // Setup event listeners untuk bintang
+      setupStarRating();
+    }
+
+    function setupStarRating() {
+      const stars = document.querySelectorAll('.star');
+      const ratingText = document.getElementById('ratingText');
+      const submitBtn = document.getElementById('submitRatingBtn');
+      
+      const ratingDescriptions = {
+        1: 'Buruk',
+        2: 'Cukup',
+        3: 'Baik',
+        4: 'Sangat Baik',
+        5: 'Luar Biasa'
+      };
+      
+      stars.forEach(star => {
+        star.addEventListener('click', function() {
+          selectedRating = parseInt(this.getAttribute('data-value'));
+          
+          // Update tampilan bintang
+          stars.forEach(s => {
+            const value = parseInt(s.getAttribute('data-value'));
+            s.textContent = value <= selectedRating ? '★' : '☆';
+            s.classList.toggle('selected', value <= selectedRating);
+          });
+          
+          // Update teks rating
+          ratingText.textContent = ratingDescriptions[selectedRating] || '';
+          ratingText.style.color = '#ffc107';
+          ratingText.style.fontWeight = '600';
+          
+          // Aktifkan tombol submit
+          submitBtn.disabled = false;
+        });
+        
+        // Efek hover
+        star.addEventListener('mouseover', function() {
+          const hoverValue = parseInt(this.getAttribute('data-value'));
+          stars.forEach(s => {
+            const value = parseInt(s.getAttribute('data-value'));
+            s.style.color = value <= hoverValue ? '#ffd700' : '#ddd';
+          });
+        });
+        
+        star.addEventListener('mouseout', function() {
+          stars.forEach(s => {
+            const value = parseInt(s.getAttribute('data-value'));
+            s.style.color = value <= selectedRating ? '#ffc107' : '#ddd';
+          });
+        });
+      });
+      
+      // Update comment saat diketik
+      document.getElementById('ratingComment').addEventListener('input', function() {
+        ratingComment = this.value.trim();
+      });
+    }
+
+    function skipRating() {
+      // Tutup modal
+      document.getElementById('ratingOverlay').style.display = 'none';
+      
+      // Kirim ke Kodular tanpa rating
+      if (orderCompletedData) {
+        sendToKodular({
+          action: 'complete_order',
+          order_id: currentOrderId,
+          order_data: orderCompletedData.order_data,
+          with_rating: false,
+          message: 'Order selesai tanpa rating (dilewati)'
+        });
+      }
+      
+      // UPDATE STATISTIK DRIVER
+      updateDriverStatistics(currentOrderData);
+      
+      // Hapus localStorage
+      localStorage.removeItem('jego_driver_accepted_order');
+      
+      // Navigasi ke list orders
+      sendToKodular({
+        action: 'navigate_to',
+        screen: 'list_orders',
+        order_id: currentOrderId,
+        message: 'Kembali ke list order'
+      });
+      
+      console.log('✅ Order completed dengan skip rating');
+    }
+
+    async function submitRating() {
+      if (!selectedRating) {
+        alert('Silakan pilih rating terlebih dahulu');
+        return;
+      }
+      
+      console.log('⭐ Mengirim rating untuk user:', userToRate.userId, 'Rating:', selectedRating);
+      
+      // Disable tombol saat proses
+      const submitBtn = document.getElementById('submitRatingBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Mengirim...';
+      
+      try {
+        // 1. Update data user di Firebase (Perjalanan dan Ratings)
+        await updateUserRatingInFirebase();
+        
+        // 2. Update order dengan rating di Firebase
+        await updateOrderWithRating();
+        
+        // 3. Tutup modal
+        document.getElementById('ratingOverlay').style.display = 'none';
+        
+        // 4. UPDATE STATISTIK DRIVER
+        updateDriverStatistics(currentOrderData);
+        
+        // 5. Kirim ke Kodular DENGAN RATING
+        sendRatingToKodular();
+        
+        // 6. Hapus localStorage
+        localStorage.removeItem('jego_driver_accepted_order');
+        
+        // 7. Navigasi ke list orders
+        sendToKodular({
+          action: 'navigate_to',
+          screen: 'list_orders',
+          order_id: currentOrderId,
+          message: 'Order selesai dengan rating'
+        });
+        
+        console.log('✅ Rating berhasil dikirim dan order selesai');
+        
+      } catch (error) {
+        console.error('❌ Error dalam submit rating:', error);
+        alert('Gagal mengirim rating. Silakan coba lagi.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Kirim Rating';
+      }
+    }
+
+    async function updateUserRatingInFirebase() {
+      if (!userToRate) return;
+      
+      const userRef = database.ref('users/' + userToRate.userId);
+      
+      // Hitung rating baru
+      const currentPerjalanan = userToRate.currentPerjalanan || 0;
+      const currentRating = parseFloat(userToRate.currentRating) || 0;
+      
+      // Jika ini perjalanan pertama
+      if (currentPerjalanan === 0) {
+        const newData = {
+          Perjalanan: 1,
+          Ratings: selectedRating,
+          last_trip_order: currentOrderId,
+          last_trip_update: new Date().toISOString()
+        };
+        
+        await userRef.update(newData);
+        console.log('✅ Rating pertama untuk user:', newData);
+        
+      } else {
+        // Hitung rating rata-rata baru
+        const totalRatingBefore = currentRating * currentPerjalanan;
+        const newPerjalanan = currentPerjalanan + 1;
+        const newTotalRating = totalRatingBefore + selectedRating;
+        const newAverageRating = parseFloat((newTotalRating / newPerjalanan).toFixed(1));
+        
+        const updateData = {
+          Perjalanan: newPerjalanan,
+          Ratings: newAverageRating,
+          last_trip_order: currentOrderId,
+          last_trip_update: new Date().toISOString()
+        };
+        
+        await userRef.update(updateData);
+        console.log('✅ Rating user diupdate:', updateData);
+      }
+    }
+
+    async function updateOrderWithRating() {
+      const orderRef = database.ref('orders/' + currentOrderId);
+      
+      const updateData = {
+        driver_rating: selectedRating,
+        driver_rating_comment: ratingComment || null,
+        driver_rating_time: new Date().toISOString()
+      };
+      
+      await orderRef.update(updateData);
+      console.log('✅ Order diupdate dengan rating:', updateData);
+    }
+
+    function sendRatingToKodular() {
+      // Hitung rating baru untuk display di Kodular
+      const currentPerjalanan = userToRate.currentPerjalanan || 0;
+      const currentRating = parseFloat(userToRate.currentRating) || 0;
+      
+      let newPerjalanan = currentPerjalanan + 1;
+      let newAverageRating = selectedRating; // Default jika pertama kali
+      
+      if (currentPerjalanan > 0) {
+        const totalRatingBefore = currentRating * currentPerjalanan;
+        const newTotalRating = totalRatingBefore + selectedRating;
+        newAverageRating = parseFloat((newTotalRating / newPerjalanan).toFixed(1));
+      }
+      
+      // Kirim data lengkap ke Kodular
+      sendToKodular({
+        action: 'complete_order_with_rating',
+        order_id: currentOrderId,
+        order_data: orderCompletedData.order_data,
+        user_rating_data: {
+          userId: userToRate.userId,
+          user_name: userToRate.nama,
+          rating_given: selectedRating,
+          rating_comment: ratingComment || '',
+          previous_rating: currentRating,
+          previous_perjalanan: currentPerjalanan,
+          new_perjalanan: newPerjalanan,
+          new_rating: newAverageRating
+        },
+        timestamp: new Date().toISOString(),
+        message: 'Order selesai dengan rating customer'
+      });
+      
+      // Juga kirim popup completion
+      sendToKodular({
+        action: 'order_completed_popup',
+        order_id: currentOrderId,
+        with_rating: true,
+        rating_value: selectedRating,
+        message: `Order berhasil diselesaikan. Rating ${selectedRating} bintang diberikan.`
+      });
     }
 
     // ==================== FUNGSI UTAMA DIPERBAIKI ====================
@@ -2432,54 +2902,77 @@
     function completeOrder() {
       if (!currentOrderData) return;
       
-      console.log('🔄 Menyelesaikan order dan update statistik...');
+      console.log('🔄 Menyelesaikan order dan update Firebase...');
       
       // Hentikan pengiriman lokasi
       stopSendingDriverLocation();
       
       const orderRef = database.ref('orders/' + currentOrderId);
+      
+      // Update status order menjadi completed di Firebase
       orderRef.update({
         status: 'completed',
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }).then(() => {
-        console.log('✅ Order completed di Firebase');
+        console.log('✅ Order status updated to completed in Firebase');
         
-        localStorage.removeItem('jego_driver_accepted_order');
+        // Simpan data untuk nanti dikirim ke Kodular
+        orderCompletedData = {
+          order_id: currentOrderId,
+          order_data: currentOrderData,
+          timestamp: new Date().toISOString()
+        };
         
-        // UPDATE STATISTIK DRIVER
-        updateDriverStatistics(currentOrderData);
+        // Tampilkan modal rating jika ada data user
+        if (currentOrderData.user_data && currentOrderData.user_data.userId) {
+          userToRate = {
+            userId: currentOrderData.user_data.userId,
+            nama: currentOrderData.user_data.nama || 'Customer',
+            currentPerjalanan: currentOrderData.user_data.Perjalanan || 0,
+            currentRating: currentOrderData.user_data.Ratings || 0
+          };
+          
+          // Tampilkan modal rating
+          showRatingModal();
+        } else {
+          // Jika tidak ada user data, langsung selesaikan tanpa rating
+          completeOrderWithoutRating();
+        }
         
+      }).catch((error) => {
+        console.error('❌ Gagal update status order:', error);
+        alert('Gagal menyelesaikan order. Silakan coba lagi.');
+      });
+    }
+
+    function completeOrderWithoutRating() {
+      // Langsung kirim ke Kodular tanpa rating
+      if (orderCompletedData) {
         sendToKodular({
           action: 'complete_order',
           order_id: currentOrderId,
-          order_data: currentOrderData,
-          message: 'Order selesai dan statistik driver akan diupdate'
+          order_data: orderCompletedData.order_data,
+          with_rating: false,
+          message: 'Order selesai tanpa rating'
         });
-
-        sendToKodular({
-          action: 'order_completed_popup',
-          order_id: currentOrderId,
-          message: 'Order berhasil diselesaikan'
-        });
-        
-        // Kirim sinyal untuk navigasi ke Kodular
-        sendToKodular({
-          action: 'navigate_to',
-          screen: 'list_orders',
-          order_id: currentOrderId,
-          message: 'Order selesai, kembali ke list order'
-        });
-
-      }).catch((error) => {
-        console.error('❌ Gagal menyelesaikan order:', error);
-        sendToKodular({
-          action: 'order_complete_failed',
-          order_id: currentOrderId,
-          error: error.message,
-          message: 'Gagal menyelesaikan order'
-        });
+      }
+      
+      // UPDATE STATISTIK DRIVER
+      updateDriverStatistics(currentOrderData);
+      
+      // Hapus localStorage
+      localStorage.removeItem('jego_driver_accepted_order');
+      
+      // Navigasi ke list orders
+      sendToKodular({
+        action: 'navigate_to',
+        screen: 'list_orders',
+        order_id: currentOrderId,
+        message: 'Kembali ke list order'
       });
+      
+      console.log('✅ Order completed tanpa rating');
     }
 
     function cancelOrder() {
@@ -2570,6 +3063,24 @@
         timestamp: new Date().toISOString(),
         page: 'order_details_driver'
       };
+      
+      // Tambahkan data order lengkap jika ada
+      if (currentOrderData && data.action && 
+          (data.action === 'complete_order' || data.action === 'complete_order_with_rating')) {
+        kodularData.order_data = {
+          order_id: currentOrderId,
+          alamat_a: currentOrderData.alamat_a,
+          alamat_b: currentOrderData.alamat_b,
+          harga_total: currentOrderData.harga_total,
+          status: 'completed',
+          user_data: currentOrderData.user_data || {},
+          service_type: currentOrderData.vehicle_name,
+          distance: currentOrderData.distance,
+          duration: currentOrderData.duration,
+          created_at: currentOrderData.created_at,
+          completed_at: new Date().toISOString()
+        };
+      }
       
       console.log('Mengirim data ke Kodular:', kodularData);
       
