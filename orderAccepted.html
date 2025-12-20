@@ -168,6 +168,12 @@
       justify-content: center;
       background-color: #f0f0f0;
       flex-shrink: 0;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .customer-avatar:hover {
+      transform: scale(1.05);
     }
 
     .customer-avatar img {
@@ -284,12 +290,35 @@
     .route-text {
       flex: 1;
       min-width: 0; /* PERBAIKAN: Agar text tidak overflow */
+      cursor: pointer;
+      position: relative;
+    }
+
+    .route-text:hover .copy-indicator {
+      opacity: 1;
     }
 
     .route-label {
       font-size: 0.75rem;
       color: #666;
       margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .copy-indicator {
+      font-size: 0.65rem;
+      color: var(--primary);
+      opacity: 0.7;
+      transition: opacity 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .copy-indicator i {
+      font-size: 0.7rem;
     }
 
     .route-address {
@@ -300,6 +329,16 @@
       word-break: break-word; /* PERBAIKAN: Teks alamat bisa turun baris */
       overflow-wrap: break-word;
       white-space: normal;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid #ddd;
+      transition: all 0.3s;
+    }
+
+    .route-address:hover {
+      background: #e9ecef;
+      border-left-color: var(--primary);
     }
 
     .info-section {
@@ -578,6 +617,96 @@
       cursor: pointer;
     }
 
+    /* ==================== MODAL FOTO PROFIL ==================== */
+    .photo-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      padding: 20px;
+    }
+
+    .photo-modal-container {
+      background: white;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 400px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: slideUp 0.3s ease;
+    }
+
+    .photo-modal-header {
+      padding: 15px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .photo-modal-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .close-photo-modal {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .photo-modal-body {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .photo-modal-image {
+      width: 100%;
+      height: 300px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: #f5f5f5;
+      margin-bottom: 15px;
+    }
+
+    .photo-modal-info {
+      text-align: left;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .photo-info-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+
+    .photo-info-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .photo-info-value {
+      color: var(--dark);
+      font-weight: 600;
+      max-width: 200px;
+      word-break: break-word;
+      text-align: right;
+    }
+
     /* ==================== STYLE CHAT INTEGRASI ==================== */
     .chat-overlay {
       position: fixed;
@@ -624,6 +753,7 @@
       border-radius: 50%;
       overflow: hidden;
       border: 2px solid white;
+      cursor: pointer;
     }
 
     .chat-avatar img {
@@ -909,22 +1039,42 @@
       opacity: 0.6;
     }
 
-    @media (max-width: 480px) {
-      .rating-container {
-        padding: 20px;
-        margin: 10px;
-      }
-      
-      .stars-rating {
-        font-size: 40px;
-        gap: 8px;
-      }
-      
-      .rating-header h2 {
-        font-size: 1.3rem;
-      }
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      z-index: 4000;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      animation: fadeInOut 2s ease-in-out;
     }
-    /* ==================== END MODAL RATING STYLES ==================== */
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    }
+
+    .toast.success {
+      background: rgba(40, 167, 69, 0.9);
+    }
+
+    .toast.info {
+      background: rgba(23, 162, 184, 0.9);
+    }
+
+    .toast.error {
+      background: rgba(220, 53, 69, 0.9);
+    }
 
     /* Custom scrollbar untuk konten */
     .content-wrapper::-webkit-scrollbar {
@@ -1017,6 +1167,23 @@
       .content-wrapper {
         max-height: calc(100vh - 40vh - 60px);
       }
+
+      .photo-modal-container {
+        margin: 10px;
+      }
+
+      .photo-modal-image {
+        height: 250px;
+      }
+
+      .stars-rating {
+        font-size: 40px;
+        gap: 8px;
+      }
+      
+      .rating-header h2 {
+        font-size: 1.3rem;
+      }
     }
   </style>
 </head>
@@ -1050,13 +1217,13 @@
         </div>
 
         <div class="customer-section">
-          <div class="customer-avatar" id="customerAvatar">
+          <div class="customer-avatar" id="customerAvatar" onclick="showPhotoModal()">
             <!-- Avatar akan diisi oleh JavaScript -->
           </div>
           <div class="customer-info">
             <div class="customer-name" id="customerName">-</div>
             <div class="customer-rating">
-              <div class="stars">🌟 4.8</div>
+              <div class="stars" id="customerStars">🌟 4.8</div>
               <div class="trip-count" id="tripCount">(8)</div>
             </div>
           </div>
@@ -1067,15 +1234,21 @@
           <div class="route-details">
             <div class="route-point">
               <div class="route-icon pickup-icon">A</div>
-              <div class="route-text">
-                <div class="route-label">Penjemputan</div>
+              <div class="route-text" onclick="copyAddress('pickupAddress')">
+                <div class="route-label">
+                  Penjemputan
+                  <span class="copy-indicator">📋 <i>klik untuk copy</i></span>
+                </div>
                 <div class="route-address" id="pickupAddress">-</div>
               </div>
             </div>
             <div class="route-point">
               <div class="route-icon destination-icon">B</div>
-              <div class="route-text">
-                <div class="route-label">Tujuan</div>
+              <div class="route-text" onclick="copyAddress('destinationAddress')">
+                <div class="route-label">
+                  Tujuan
+                  <span class="copy-indicator">📋 <i>klik untuk copy</i></span>
+                </div>
                 <div class="route-address" id="destinationAddress">0</div>
               </div>
             </div>
@@ -1198,12 +1371,28 @@
     </div>
   </div>
 
+  <!-- Modal Foto Profil -->
+  <div class="photo-modal-overlay" id="photoModalOverlay">
+    <div class="photo-modal-container">
+      <div class="photo-modal-header">
+        <div class="photo-modal-title" id="photoModalTitle">Foto Profil Customer</div>
+        <button class="close-photo-modal" onclick="closePhotoModal()">✕</button>
+      </div>
+      <div class="photo-modal-body">
+        <img id="photoModalImage" class="photo-modal-image" src="" alt="Foto Profil">
+        <div class="photo-modal-info" id="photoModalInfo">
+          <!-- Info customer akan diisi JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Overlay Chat -->
   <div class="chat-overlay" id="chatOverlay">
     <div class="chat-container">
       <div class="chat-header">
         <div class="chat-header-info">
-          <div class="chat-avatar" id="chatAvatar">
+          <div class="chat-avatar" id="chatAvatar" onclick="showPhotoModal()">
             <!-- Avatar customer akan diisi JavaScript -->
           </div>
           <div>
@@ -1269,6 +1458,11 @@
     <small>Klik untuk membalas</small>
   </div>
 
+  <!-- Toast Notification -->
+  <div class="toast" id="toastNotification">
+    <span id="toastMessage"></span>
+  </div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -1322,6 +1516,10 @@
     let userToRate = null;
     let orderCompletedData = null; // Simpan data order yang sudah completed
 
+    // ==================== VARIABEL FOTO PROFIL ====================
+    let customerPhotoUrl = null;
+    let customerPhotoData = null;
+
     // OpenRouteService API Key
     const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d768e0a852f64697af0';
 
@@ -1362,6 +1560,105 @@
         popupAnchor: [0, -40],
         className: 'driver-marker'
       });
+    }
+
+    // ==================== FUNGSI TOAST NOTIFICATION ====================
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toastNotification');
+      const toastMessage = document.getElementById('toastMessage');
+      
+      toastMessage.textContent = message;
+      toast.className = `toast ${type}`;
+      toast.style.display = 'flex';
+      
+      // Auto hide setelah 2 detik
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2000);
+    }
+
+    // ==================== FUNGSI COPY TO CLIPBOARD ====================
+    async function copyAddress(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.textContent;
+      
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Alamat berhasil disalin ke clipboard', 'success');
+        
+        // Visual feedback
+        element.style.background = '#e8f5e8';
+        element.style.borderLeftColor = '#28a745';
+        
+        setTimeout(() => {
+          element.style.background = '#f8f9fa';
+          element.style.borderLeftColor = '#ddd';
+        }, 1000);
+        
+      } catch (err) {
+        console.error('Gagal menyalin teks: ', err);
+        showToast('Gagal menyalin alamat', 'error');
+      }
+    }
+
+    // ==================== FUNGSI MODAL FOTO PROFIL ====================
+    function showPhotoModal() {
+      if (!customerPhotoUrl) return;
+      
+      const modal = document.getElementById('photoModalOverlay');
+      const image = document.getElementById('photoModalImage');
+      const infoContainer = document.getElementById('photoModalInfo');
+      const title = document.getElementById('photoModalTitle');
+      
+      // Set image source
+      image.src = customerPhotoUrl;
+      
+      // Set modal title
+      title.textContent = `Foto Profil ${currentOrderData?.user_data?.nama || 'Customer'}`;
+      
+      // Build info content
+      if (customerPhotoData) {
+        const user = customerPhotoData;
+        const infoHTML = `
+          <div class="photo-info-item">
+            <span class="photo-info-label">Nama:</span>
+            <span class="photo-info-value">${user.nama || '-'}</span>
+          </div>
+          <div class="photo-info-item">
+            <span class="photo-info-label">Rating:</span>
+            <span class="photo-info-value">${user.Ratings ? user.Ratings.toFixed(1) : '0.0'} ⭐</span>
+          </div>
+          <div class="photo-info-item">
+            <span class="photo-info-label">Perjalanan:</span>
+            <span class="photo-info-value">${user.Perjalanan || 0} kali</span>
+          </div>
+          <div class="photo-info-item">
+            <span class="photo-info-label">Email:</span>
+            <span class="photo-info-value">${user.email || '-'}</span>
+          </div>
+          <div class="photo-info-item">
+            <span class="photo-info-label">Telepon:</span>
+            <span class="photo-info-value">${user.telepon || '-'}</span>
+          </div>
+        `;
+        infoContainer.innerHTML = infoHTML;
+      } else {
+        infoContainer.innerHTML = '<p style="text-align: center; color: #666;">Informasi customer tidak tersedia</p>';
+      }
+      
+      // Show modal
+      modal.style.display = 'flex';
+      
+      // Close modal when clicking outside
+      modal.onclick = function(event) {
+        if (event.target === modal) {
+          closePhotoModal();
+        }
+      };
+    }
+
+    function closePhotoModal() {
+      document.getElementById('photoModalOverlay').style.display = 'none';
     }
 
     // ==================== FUNGSI PETA DIPERBAIKI ====================
@@ -2035,7 +2332,9 @@
       chatName.textContent = customer.nama || 'Customer';
       
       // Setup avatar
-      if (customer.foto) {
+      if (customer.fotoProfilURL) {
+        chatAvatar.innerHTML = `<img src="${customer.fotoProfilURL}" alt="${customer.nama}">`;
+      } else if (customer.foto) {
         chatAvatar.innerHTML = `<img src="${customer.foto}" alt="${customer.nama}">`;
       } else {
         chatAvatar.innerHTML = '';
@@ -2547,7 +2846,7 @@
       document.getElementById('content').style.display = 'block';
       document.getElementById('actionsSection').style.display = 'flex';
       
-      // Set data
+      // Set data alamat
       document.getElementById('pickupAddress').textContent = order.alamat_a || '-';
       document.getElementById('destinationAddress').textContent = order.alamat_b || '-';
       document.getElementById('serviceType').textContent = order.vehicle_name || '-';
@@ -2615,6 +2914,7 @@
         document.getElementById('orderTime').textContent = '-';
       }
       
+      // ==================== UPDATE INFO CUSTOMER DENGAN DATA FIREBASE ====================
       updateCustomerInfo(order);
       updateOrderStatus(order.status);
       updateDeliveryInfo(order);
@@ -2669,37 +2969,96 @@
     function updateCustomerInfo(order) {
       const customerAvatar = document.getElementById('customerAvatar');
       const customerName = document.getElementById('customerName');
+      const customerStars = document.getElementById('customerStars');
+      const tripCountElement = document.getElementById('tripCount');
       
       if (order.user_data) {
         const user = order.user_data;
+        
+        // Simpan data untuk modal foto
+        customerPhotoData = user;
+        
+        // 1. TAMPILKAN NAMA
         customerName.textContent = user.nama || '-';
         
-        let gender = null;
-        if (user.jenisKelamin) {
-          gender = user.jenisKelamin.toLowerCase();
+        // 2. TAMPILKAN RATING DARI FIREBASE
+        let rating = 4.8; // Default fallback
+        
+        // Coba ambil dari berbagai field yang mungkin
+        if (user.Ratings !== undefined) {
+          rating = parseFloat(user.Ratings);
+        } else if (user.rating !== undefined) {
+          rating = parseFloat(user.rating);
+        } else if (user.ratings !== undefined) {
+          rating = parseFloat(user.ratings);
         }
         
-        if (user.foto) {
-          customerAvatar.innerHTML = `<img src="${user.foto}" alt="${user.nama}">`;
+        // Format rating dengan 1 desimal
+        const formattedRating = rating.toFixed(1);
+        customerStars.innerHTML = `🌟 ${formattedRating}`;
+        
+        // 3. TAMPILKAN JUMLAH PERJALANAN DARI FIREBASE
+        let perjalanan = 0; // Default fallback
+        
+        // Coba ambil dari berbagai field yang mungkin
+        if (user.Perjalanan !== undefined) {
+          perjalanan = parseInt(user.Perjalanan);
+        } else if (user.perjalanan !== undefined) {
+          perjalanan = parseInt(user.perjalanan);
+        }
+        
+        tripCountElement.textContent = `(${perjalanan})`;
+        
+        // 4. TAMPILKAN FOTO DARI FIREBASE
+        customerAvatar.innerHTML = '';
+        customerAvatar.className = 'customer-avatar';
+        
+        // Prioritaskan fotoProfilURL, lalu cek field lain
+        let fotoUrl = user.fotoProfilURL || user.foto || user.profile_picture || null;
+        
+        if (fotoUrl) {
+          // Simpan URL foto untuk modal
+          customerPhotoUrl = fotoUrl;
+          
+          // Buat elemen img dengan error handling
+          const img = document.createElement('img');
+          img.src = fotoUrl;
+          img.alt = user.nama || 'Customer';
+          img.onerror = function() {
+            // Jika gambar gagal load, gunakan default avatar
+            console.log('❌ Foto gagal dimuat, menggunakan default avatar');
+            setupDefaultAvatar(customerAvatar, user.jenisKelamin);
+            customerPhotoUrl = null;
+          };
+          customerAvatar.appendChild(img);
         } else {
-          customerAvatar.innerHTML = '';
-          customerAvatar.className = 'customer-avatar';
-          if (gender === 'laki-laki' || gender === 'pria' || gender === 'male') {
-            customerAvatar.classList.add('default-male');
-          } else if (gender === 'perempuan' || gender === 'wanita' || gender === 'female') {
-            customerAvatar.classList.add('default-female');
-          } else {
-            customerAvatar.classList.add('default-unknown');
-          }
+          // Jika tidak ada foto, gunakan default avatar
+          setupDefaultAvatar(customerAvatar, user.jenisKelamin);
+          customerPhotoUrl = null;
         }
         
-        const tripCount = Math.floor(Math.random() * 15) + 1;
-        document.getElementById('tripCount').textContent = `(${tripCount})`;
       } else {
+        // Fallback jika tidak ada user_data
         customerName.textContent = 'Tidak diketahui';
+        customerStars.innerHTML = '🌟 4.8';
+        tripCountElement.textContent = '(0)';
         customerAvatar.className = 'customer-avatar default-unknown';
         customerAvatar.innerHTML = '';
-        document.getElementById('tripCount').textContent = '(0)';
+        customerPhotoUrl = null;
+        customerPhotoData = null;
+      }
+    }
+
+    function setupDefaultAvatar(avatarElement, gender) {
+      avatarElement.innerHTML = '';
+      avatarElement.className = 'customer-avatar';
+      
+      if (gender === 'laki-laki' || gender === 'pria' || gender === 'male') {
+        avatarElement.classList.add('default-male');
+      } else if (gender === 'perempuan' || gender === 'wanita' || gender === 'female') {
+        avatarElement.classList.add('default-female');
+      } else {
+        avatarElement.classList.add('default-unknown');
       }
     }
 
