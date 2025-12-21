@@ -2409,6 +2409,22 @@
       }
     }
 
+    // ==================== FUNGSI VALIDASI PUSAT ====================
+    function canSystemProcessOrder(source) {
+      // source: "manual" (klik user) atau "auto" (sistem otomatis)
+      if (source === "manual") {
+        // Klik manual selalu diizinkan
+        console.log("✅ Validasi: Source MANUAL - diizinkan");
+        return true;
+      } else if (source === "auto") {
+        // Sistem otomatis hanya diizinkan jika tracking ON
+        const isAllowed = locationTrackingEnabled;
+        console.log(`✅ Validasi: Source AUTO - Tracking ${locationTrackingEnabled ? 'ON' : 'OFF'} -> ${isAllowed ? 'diizinkan' : 'ditolak'}`);
+        return isAllowed;
+      }
+      return false;
+    }
+
     // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
     function checkLoginStatus() {
       const driverData = localStorage.getItem('jego_driver_data');
@@ -3098,7 +3114,7 @@
 
       // Cek apakah location tracking aktif
       if (!locationTrackingEnabled) {
-        showInfoPopup('Aktifkan tracking terlebih dahulu');
+        showInfoPopup('Aktifkan tracking terlebih dahulu untuk menggunakan autobid');
         // Reset toggle button di UI
         document.getElementById('autobidToggle').checked = false;
         return;
@@ -3142,6 +3158,12 @@
 
     // ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL ====================
     function checkOrdersForManualPopup() {
+      // GUARD: Sistem otomatis harus tracking ON
+      if (!canSystemProcessOrder("auto")) {
+        console.log("🚫 Manual Popup dihentikan: Tracking OFF");
+        return;
+      }
+      
       if (!locationTrackingEnabled || autobidEnabled || 
           !currentDriverData || isAutobidProcessing || 
           !driverLocation.latitude || !driverLocation.longitude) {
@@ -3157,7 +3179,6 @@
         const orderId = orderItem.dataset.orderId;
         
         if (processedOrders.has(orderId)) {
-          console.log(`⏭️ Manual Popup: Skip order ${orderId} (sudah diproses)`);
           continue;
         }
         
@@ -3166,61 +3187,62 @@
           const order = snapshot.val();
           if (order && order.status === 'searching') {
             
-            // Filter berdasarkan "Terima Kurir"
             const isKurir = order.vehicle && order.vehicle.includes('kurir');
+            
+            // Untuk order kurir, validasi radius
+            if (isKurir) {
+              const isInRadius = checkOrderInRadius(order);
+              if (!isInRadius) {
+                console.log(`⏭️ Manual Popup: Skip order kurir ${orderId} (di luar radius)`);
+                return;
+              }
+              console.log(`🎯 Manual Popup: Order KURIR ${orderId} dalam radius, menampilkan modal...`);
+            }
+            
+            // Filter lainnya
             if (!acceptKurirEnabled && isKurir) {
-              console.log(`⏭️ Manual Popup: Skip order ${orderId} (order kurir - tidak diterima)`);
               return;
             }
             
-            // Filter berdasarkan radius
-            const isInRadius = checkOrderInRadius(order);
-            if (!isInRadius) {
-              console.log(`⏭️ Manual Popup: Skip order ${orderId} (di luar radius)`);
-              return;
-            }
-            
-            // Filter berdasarkan tujuan (MULTIPLE KEYWORD)
             const matchesTujuan = checkFilterTujuan(order);
             if (!matchesTujuan && filterTujuanText.trim()) {
-              console.log(`⏭️ Manual Popup: Skip order ${orderId} (tidak sesuai filter tujuan: "${filterTujuanText}")`);
               return;
             }
             
-            console.log(`🎯 Manual Popup: Order ${orderId} dalam radius, menampilkan modal manual...`);
             processedOrders.add(orderId);
             foundOrder = true;
             
-            // KIRIM NOTIFIKASI KE KODULAR UNTUK MEMBUNYIKAN NOTIFIKASI
+            // KIRIM NOTIFIKASI KE KODULAR
             sendToKodular({
               action: 'manual_order_found',
               order_id: orderId,
-              order_data: order,
-              message: `Order terdekat ditemukan. Silakan buka aplikasi untuk melihat detail.`
+              order_type: isKurir ? 'kurir' : 'penumpang',
+              in_radius: true,
+              message: `Order ${isKurir ? 'kurir' : 'penumpang'} terdekat ditemukan.`
             });
             
             // Tampilkan modal manual
             showOrderDetail(order);
             return;
           }
-        }).catch(error => {
-          console.error('❌ Error checking order for manual popup:', error);
         });
-      }
-      
-      if (!foundOrder) {
-        console.log('🔍 Manual Popup: Tidak ada order baru dalam radius');
       }
     }
 
     // ==================== FUNGSI AUTOBID YANG DIPERBARUI ====================
     function checkOrdersForAutobid() {
+      // GUARD 1: Validasi sistem otomatis
+      if (!canSystemProcessOrder("auto")) {
+        console.log("🚫 Autobid dihentikan: Tracking OFF");
+        return;
+      }
+      
       if (!autobidEnabled || !currentDriverData || isAutobidProcessing || 
           !driverLocation.latitude || !driverLocation.longitude) {
         return;
       }
       
-      console.log(`🔍 Autobid: Mencari order dalam radius ${customRadius}KM...`);
+      console.log(`🔍 Autobid: Mencari order NON-KURIR dalam radius ${customRadius}KM...`);
       
       const ordersList = document.querySelectorAll('.order-item');
       
@@ -3228,7 +3250,6 @@
         const orderId = orderItem.dataset.orderId;
         
         if (processedOrders.has(orderId)) {
-          console.log(`⏭️ Autobid: Skip order ${orderId} (sudah diproses)`);
           continue;
         }
         
@@ -3237,36 +3258,29 @@
           const order = snapshot.val();
           if (order && order.status === 'searching') {
             
-            // Filter berdasarkan "Terima Kurir"
+            // GUARD 2: Filter order kurir untuk autobid
             const isKurir = order.vehicle && order.vehicle.includes('kurir');
-            if (!acceptKurirEnabled && isKurir) {
-              console.log(`⏭️ Autobid: Skip order ${orderId} (order kurir - tidak diterima)`);
+            if (isKurir) {
+              console.log(`⏭️ Autobid: Skip order ${orderId} (order kurir - tidak boleh autobid)`);
               return;
             }
             
-            // Filter berdasarkan radius
+            // Filter lainnya tetap berjalan
+            if (!acceptKurirEnabled && isKurir) {
+              return;
+            }
+            
             const isInRadius = checkOrderInRadius(order);
             if (!isInRadius) {
-              console.log(`⏭️ Autobid: Skip order ${orderId} (di luar radius)`);
               return;
             }
             
-            // Filter berdasarkan tujuan (MULTIPLE KEYWORD)
             const matchesTujuan = checkFilterTujuan(order);
             if (!matchesTujuan && filterTujuanText.trim()) {
-              console.log(`⏭️ Autobid: Skip order ${orderId} (tidak sesuai filter tujuan: "${filterTujuanText}")`);
               return;
             }
             
-            // Cek saldo
-            const discountedPrice = calculateDiscountedPrice(order);
-            const balanceCheck = checkBalanceForOrder(discountedPrice.hargaAsal);
-            if (!balanceCheck.hasSufficientBalance) {
-              console.log(`⏭️ Autobid: Skip order ${orderId} (saldo tidak cukup)`);
-              return;
-            }
-            
-            console.log(`🎯 Autobid: Order ${orderId} memenuhi semua filter, menampilkan modal...`);
+            console.log(`🎯 Autobid: Order ${orderId} (NON-KURIR) memenuhi semua filter, menampilkan modal...`);
             isAutobidProcessing = true;
             processedOrders.add(orderId);
             showAutobidOrderModal(order);
@@ -3485,6 +3499,28 @@
     // ==================== FUNGSI MODAL DETAIL ORDER MANUAL - DIUBAH ====================
 
     function showOrderDetail(order) {
+      // Cek apakah order kurir
+      const isKurir = order.vehicle && order.vehicle.includes('kurir');
+      
+      // Jika order kurir, validasi tracking dan radius
+      if (isKurir) {
+        // Cek tracking status
+        if (!locationTrackingEnabled) {
+          showInfoPopup('Untuk mengambil order kurir, aktifkan tracking lokasi terlebih dahulu.');
+          return;
+        }
+        
+        // Cek jarak untuk order kurir
+        const isInRadius = checkOrderInRadius(order);
+        if (!isInRadius) {
+          showInfoPopup(`Order kurir berada di luar radius (${customRadius}km). Aktifkan tracking untuk melihat order dalam radius.`);
+          return;
+        }
+        
+        console.log(`✅ Order kurir memenuhi syarat: tracking ON dan dalam radius`);
+      }
+      
+      // Lanjutkan proses normal
       if (!checkDriverData()) return;
 
       const orderKey = order.order_id || order.id;
@@ -4720,7 +4756,25 @@
       if (!currentSelectedOrder || !currentDriverId) return;
       
       if (!checkDriverData()) return;
-
+      
+      // GUARD: Validasi untuk order kurir
+      const isKurir = currentSelectedOrder.vehicle && currentSelectedOrder.vehicle.includes('kurir');
+      if (isKurir) {
+        // Untuk order kurir, pastikan tracking ON
+        if (!locationTrackingEnabled) {
+          showInfoPopup('Untuk mengambil order kurir, aktifkan tracking lokasi terlebih dahulu.');
+          return;
+        }
+        
+        // Pastikan dalam radius
+        const isInRadius = checkOrderInRadius(currentSelectedOrder);
+        if (!isInRadius) {
+          showInfoPopup(`Order kurir berada di luar radius (${customRadius}km).`);
+          return;
+        }
+      }
+      
+      // Lanjutkan proses normal...
       const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
       const driverId = currentDriverId;
       const ambilBtn = document.getElementById('ambilBtn');
@@ -5502,16 +5556,12 @@
         console.log('✅ Order yang diterima ditemukan di localStorage');
       }
       
-      console.log('🔧 Status Inisialisasi:');
-      console.log('- Firebase:', database ? '✅ Terhubung' : '❌ Gagal');
-      console.log('- Driver Data:', currentDriverData ? '✅ Ada' : '❌ Tidak Ada');
-      console.log('- GPS:', driverLocation.latitude ? '✅ Aktif' : '❌ Tidak Aktif');
-      console.log('- Location Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
+      console.log('🔧 STATUS SISTEM FINAL:');
+      console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
       console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
       console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
       console.log('- Radius:', customRadius + ' km');
-      console.log('- Filter Tujuan:', filterTujuanEnabled ? '✅ Aktif' : '❌ Tidak Aktif');
-      console.log('- Manual Check Interval:', manualCheckInterval ? '✅ Aktif' : '❌ Tidak Aktif');
+      console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
     });
 
     window.addEventListener('beforeunload', () => {
@@ -5540,4 +5590,3 @@
   </script>
 </body>
 </html>
-
