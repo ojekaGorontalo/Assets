@@ -2160,6 +2160,12 @@
         const message = snapshot.val();
         console.log('💬 Pesan baru diterima:', message);
         
+        // Skip pesan otomatis untuk notifikasi
+        if (message.is_auto_message) {
+          console.log('💬 Pesan otomatis, skip notifikasi');
+          return;
+        }
+        
         // Jika chat terbuka, tampilkan pesan langsung
         if (chatOpen) {
           displayMessage(message);
@@ -2172,6 +2178,66 @@
       
       // Muat pesan yang sudah ada
       loadExistingMessages();
+      
+      // Kirim pesan otomatis jika diperlukan
+      sendAutoWelcomeMessage();
+    }
+
+    // ==================== FUNGSI PESAN OTOMATIS ====================
+    async function sendAutoWelcomeMessage() {
+      if (!currentOrderId || !currentOrderData || !currentDriverData) return;
+      
+      // Cek apakah pesan otomatis sudah pernah dikirim
+      const autoMessageKey = `auto_message_sent_${currentOrderId}`;
+      const hasAutoMessageSent = localStorage.getItem(autoMessageKey);
+      
+      if (hasAutoMessageSent) {
+        console.log('✅ Pesan otomatis sudah pernah dikirim sebelumnya');
+        return;
+      }
+      
+      // Cek apakah status order adalah 'accepted' dan ini pertama kali diterima
+      if (currentOrderData.status !== 'accepted') {
+        console.log('❌ Status order bukan "accepted", tidak mengirim pesan otomatis');
+        return;
+      }
+      
+      // Delay 2 detik agar chat system siap
+      setTimeout(async () => {
+        try {
+          // Pesan otomatis
+          const autoMessage = {
+            sender: 'driver',
+            sender_id: currentDriverData.driverId,
+            sender_name: currentDriverData.fullName || 'Driver',
+            message: 'Terima kasih telah mempercayakan perjalanan Anda kepada kami. Saya akan segera menuju lokasi penjemputan.',
+            timestamp: Date.now(),
+            is_auto_message: true
+          };
+          
+          // Kirim ke Firebase
+          await chatRef.push(autoMessage);
+          
+          // Tandai di localStorage bahwa pesan otomatis sudah dikirim
+          localStorage.setItem(autoMessageKey, 'true');
+          
+          console.log('✅ Pesan otomatis berhasil dikirim ke customer');
+          
+          // Tampilkan toast notification
+          showToast('Pesan otomatis terkirim ke customer', 'success');
+          
+          // Kirim notifikasi ke Kodular
+          sendToKodular({
+            action: 'auto_message_sent',
+            order_id: currentOrderId,
+            message: autoMessage.message,
+            timestamp: new Date().toISOString()
+          });
+          
+        } catch (error) {
+          console.error('❌ Gagal mengirim pesan otomatis:', error);
+        }
+      }, 2000);
     }
 
     function loadExistingMessages() {
@@ -2221,8 +2287,8 @@
     }
 
     function handleNewMessageNotification(message) {
-      // Hanya tampilkan notifikasi untuk pesan dari customer
-      if (message.sender !== 'driver') {
+      // Hanya tampilkan notifikasi untuk pesan dari customer (bukan driver dan bukan otomatis)
+      if (message.sender !== 'driver' && !message.is_auto_message) {
         unreadMessages++;
         updateChatBadge();
         
