@@ -2562,10 +2562,9 @@
     let autobidProgressInterval = null;
     let autobidProgressTimeLeft = 30;
 
-    // ==================== VARIABEL UNTUK SISTEM SALDO ====================
+    // ==================== VARIABEL UNTUK SISTEM SALDO (TANPA PEMOTONGAN) ====================
     let currentDriverBalance = 0;
     let balanceListener = null;
-    let potonganPercentage = 5.1; // Default potongan
 
     // ==================== VARIABEL BARU UNTUK MANUAL CHECK INTERVAL ====================
     let manualCheckInterval = null;
@@ -3588,33 +3587,10 @@
             </div>
           `;
           
-          // TAMBAHAN: Info saldo driver dari selisih diskon
-          const selisihSaldo = discountedPrice.diskonAmount;
-          const infoSaldoHTML = `
-            <div class="fee-info" style="background: #e3f2fd; border-color: #2196f3;">
-              <div class="fee-item">
-                <span class="fee-label">Keuntungan driver:</span>
-                <span class="fee-value" style="color: #1976d2; font-weight: 700;">Rp ${selisihSaldo.toLocaleString('id-ID')}</span>
-              </div>
-              <div class="fee-item">
-                <span class="fee-label">Keterangan:</span>
-                <span class="fee-value" style="color: #1976d2;">
-                  Selisih diskon (Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')} - Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}) akan ditambahkan ke saldo Anda setelah order selesai
-                </span>
-              </div>
-            </div>
-          `;
-          
-          // Tambahkan info saldo setelah info promo
-          modalPromoInfo.insertAdjacentHTML('afterend', infoSaldoHTML);
-          
         } else {
           modalPromoInfo.style.display = 'none';
           modalPrice.textContent = discountedPrice.hargaDiskon ? `Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}` : '-';
         }
-        
-        // 4. POTONGAN KOMISI & SALDO - DISEMBUNYIKAN (SUDAH DIATUR DI CSS)
-        // updateFeeInfoInModal(discountedPrice.hargaAsal); // DIKOMMENTAR
         
         // Tambahkan info pengiriman di modal
         const modalDeliveryInfo = document.getElementById('modalDeliveryInfo');
@@ -3730,16 +3706,10 @@
               Harga asli: Rp ${discountedPrice.hargaAsal.toLocaleString('id-ID')} → 
               Harga diskon: Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}
             </div>
-            <div style="font-size: 0.7rem; color: #856404; margin-top: 4px;">
-              💰 Bonus driver: Rp ${discountedPrice.diskonAmount.toLocaleString('id-ID')}
-            </div>
           `;
         } else {
           autobidPromoInfo.style.display = 'none';
         }
-        
-        // 4. POTONGAN KOMISI & SALDO - DISEMBUNYIKAN (SUDAH DIATUR DI CSS)
-        // updateFeeInfoInAutobidModal(discountedPrice.hargaAsal); // DIKOMMENTAR
         
         // Tambahkan info pengiriman untuk autobid modal
         const autobidDeliveryInfo = document.getElementById('autobidDeliveryInfo');
@@ -3863,18 +3833,6 @@
           return;
         }
         
-        // PERBAIKAN: Gunakan harga asli untuk perhitungan saldo
-        const discountedPrice = calculateDiscountedPrice(currentOrder);
-        const balanceCheck = checkBalanceForOrder(discountedPrice.hargaAsal);
-        
-        if (!balanceCheck.hasSufficientBalance) {
-          showInfoPopup(`Saldo tidak cukup untuk order ini. Dibutuhkan: Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`);
-          closeAutobidModal();
-          isAutobidProcessing = false;
-          processedOrders.delete(orderId);
-          return;
-        }
-        
         const priorityData = getDriverPriorityData();
         const driverDistance = getDriverToPickupDistance(currentOrder);
         const priorityScore = calculatePriorityScore(
@@ -3975,13 +3933,12 @@
           return;
         }
         
-        // CEK PEMBATALAN ORDER DAN REFUND JIKA DIPERLUKAN
+        // CEK PEMBATALAN ORDER
         if (order.status === 'cancelled_by_user' || order.status === 'cancelled_by_system') {
-          console.log(`🔄 Order dibatalkan dengan status: ${order.status}, refund saldo...`);
-          refundOrderFee(orderId, order.harga_total, currentDriverData.driverId, order.status);
+          console.log(`🔄 Order dibatalkan dengan status: ${order.status}`);
           
           stopAutobidProgressBar();
-          document.getElementById('autobidProgressText').textContent = 'Order dibatalkan - Saldo dikembalikan';
+          document.getElementById('autobidProgressText').textContent = 'Order dibatalkan';
           document.getElementById('autobidProgressBar').style.background = '#ffc107';
           
           setTimeout(() => {
@@ -3994,7 +3951,7 @@
         }
         
         if (order.status === 'cancelled_by_driver') {
-          console.log(`🔄 Order dibatalkan oleh driver: ${order.status}, tidak ada refund`);
+          console.log(`🔄 Order dibatalkan oleh driver: ${order.status}`);
           
           stopAutobidProgressBar();
           document.getElementById('autobidProgressText').textContent = 'Order dibatalkan oleh driver';
@@ -4020,11 +3977,6 @@
             document.getElementById('autobidProgressBar').style.width = '100%';
             
             const saveSuccess = saveAcceptedOrderToLocalStorage(order, selectedDriver);
-            
-            // POTONG SALDO SETELAH ORDER DITERIMA
-            setTimeout(() => {
-              deductOrderFee(orderId, order.harga_total, currentDriverData.driverId);
-            }, 1000);
             
             // PUTAR SUARA ORDER DITERIMA DAN KIRIM EVENT KE KODULAR
             playOrderAcceptedSound();
@@ -4445,7 +4397,7 @@
           
           updateDriverPhoto();
           
-          // INISIALISASI SISTEM SALDO
+          // INISIALISASI SISTEM SALDO (TANPA PEMOTONGAN)
           initializeBalanceSystem();
           
           const savedAutobid = localStorage.getItem('jego_autobid_enabled');
@@ -4684,20 +4636,19 @@
           return;
         }
         
-        // CEK PEMBATALAN ORDER DAN REFUND JIKA DIPERLUKAN
+        // CEK PEMBATALAN ORDER
         if (order.status === 'cancelled_by_user' || order.status === 'cancelled_by_system') {
-          console.log(`🔄 Order dibatalkan dengan status: ${order.status}, refund saldo...`);
-          refundOrderFee(orderId, order.harga_total, currentDriverData.driverId, order.status);
+          console.log(`🔄 Order dibatalkan dengan status: ${order.status}`);
           
           closeModalAndRefresh();
-          showInfoPopup(`Order dibatalkan (${order.status}). Saldo telah dikembalikan.`);
+          showInfoPopup(`Order dibatalkan (${order.status}).`);
           isAutobidProcessing = false;
           processedOrders.delete(orderId);
           return;
         }
         
         if (order.status === 'cancelled_by_driver') {
-          console.log(`🔄 Order dibatalkan oleh driver: ${order.status}, tidak ada refund`);
+          console.log(`🔄 Order dibatalkan oleh driver: ${order.status}`);
           
           closeModalAndRefresh();
           showInfoPopup('Order dibatalkan oleh driver.');
@@ -4714,11 +4665,6 @@
             if (countdownInterval) clearInterval(countdownInterval);
             
             const saveSuccess = saveAcceptedOrderToLocalStorage(order, selectedDriver);
-            
-            // POTONG SALDO SETELAH ORDER DITERIMA
-            setTimeout(() => {
-              deductOrderFee(orderId, order.harga_total, currentDriverData.driverId);
-            }, 1000);
             
             // PUTAR SUARA ORDER DITERIMA DAN KIRIM EVENT KE KODULAR
             playOrderAcceptedSound();
@@ -4778,15 +4724,6 @@
       const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
       const driverId = currentDriverId;
       const ambilBtn = document.getElementById('ambilBtn');
-      
-      // PERBAIKAN: Gunakan harga asli untuk perhitungan saldo
-      const discountedPrice = calculateDiscountedPrice(currentSelectedOrder);
-      const balanceCheck = checkBalanceForOrder(discountedPrice.hargaAsal);
-      
-      if (!balanceCheck.hasSufficientBalance) {
-        showInfoPopup(`Saldo tidak cukup untuk order ini. Dibutuhkan: Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`);
-        return;
-      }
       
       ambilBtn.disabled = true;
       ambilBtn.textContent = 'Mengirim...';
@@ -4932,7 +4869,7 @@
       console.log(`📊 Priority Level: ${priorityData.priorityLevel}, Rating: ${priorityData.rating}`);
     }
 
-    // ==================== SISTEM SALDO DRIVER ====================
+    // ==================== SISTEM SALDO DRIVER (TANPA PEMOTONGAN) ====================
 
     function initializeBalanceSystem() {
       if (!currentDriverData || !currentDriverData.driverId) {
@@ -4943,12 +4880,12 @@
       const driverId = currentDriverData.driverId;
       const balanceRef = database.ref('drivers/' + driverId + '/Balance');
 
-      // Setup real-time listener untuk saldo
+      // Setup real-time listener untuk saldo (HANYA UNTUK MENAMPILKAN, BUKAN PEMOTONGAN)
       balanceListener = balanceRef.on('value', (snapshot) => {
         const newBalance = snapshot.val() || 0;
         currentDriverBalance = newBalance;
         
-        console.log(`💰 Saldo diperbarui: Rp ${newBalance.toLocaleString('id-ID')}`);
+        console.log(`💰 Saldo diperbarui (hanya info): Rp ${newBalance.toLocaleString('id-ID')}`);
         
         // Update di localStorage
         if (currentDriverData) {
@@ -4957,195 +4894,6 @@
         }
       }, (error) => {
         console.error('❌ Error listening to balance:', error);
-      });
-
-      // Ambil nilai potongan dari Firebase
-      const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
-      potonganRef.once('value').then((snapshot) => {
-        const potonganValue = snapshot.val();
-        if (potonganValue !== null && potonganValue !== undefined) {
-          potonganPercentage = potonganValue;
-          console.log(`💰 Potongan dari Firebase: ${potonganPercentage}%`);
-        } else {
-          console.log(`💰 Potongan default: ${potonganPercentage}%`);
-        }
-      }).catch((error) => {
-        console.error('❌ Error mengambil data potongan:', error);
-      });
-    }
-
-    // ==================== FUNGSI PERHITUNGAN POTONGAN BARU ====================
-
-    function calculateFee(orderAmount) {
-      // Gunakan potongan dari Firebase, atau default 5.1% jika tidak ada
-      return Math.round(orderAmount * (potonganPercentage / 100));
-    }
-
-    function checkBalanceForOrder(orderAmount) {
-      const requiredFee = calculateFee(orderAmount);
-      const hasSufficientBalance = currentDriverBalance >= requiredFee;
-      
-      console.log(`💰 Cek saldo: ${currentDriverBalance} >= ${requiredFee} = ${hasSufficientBalance}`);
-      
-      return {
-        hasSufficientBalance: hasSufficientBalance,
-        requiredFee: requiredFee,
-        currentBalance: currentDriverBalance,
-        remainingBalance: currentDriverBalance - requiredFee
-      };
-    }
-
-    function updateFeeInfoInModal(orderAmount) {
-      const balanceCheck = checkBalanceForOrder(orderAmount);
-      const feeInfo = document.getElementById('feeInfo');
-      const feeAmount = document.getElementById('feeAmount');
-      const currentBalanceInfo = document.getElementById('currentBalanceInfo');
-      const remainingBalance = document.getElementById('remainingBalance');
-      const ambilBtn = document.getElementById('ambilBtn');
-
-      if (feeInfo && feeAmount && currentBalanceInfo && remainingBalance) {
-        feeInfo.style.display = 'block';
-        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
-        currentBalanceInfo.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
-        remainingBalance.textContent = `Rp ${balanceCheck.remainingBalance.toLocaleString('id-ID')}`;
-
-        // Update tombol berdasarkan ketersediaan saldo
-        if (balanceCheck.hasSufficientBalance) {
-          ambilBtn.disabled = false;
-          ambilBtn.textContent = 'Kirim Penawaran';
-          feeInfo.style.background = '#d4edda';
-          feeInfo.style.borderColor = '#c3e6cb';
-        } else {
-          ambilBtn.disabled = true;
-          ambilBtn.textContent = 'Saldo Tidak Cukup';
-          feeInfo.style.background = '#f8d7da';
-          feeInfo.style.borderColor = '#f5c6cb';
-        }
-      }
-    }
-
-    function updateFeeInfoInAutobidModal(orderAmount) {
-      const balanceCheck = checkBalanceForOrder(orderAmount);
-      const feeInfo = document.getElementById('autobidFeeInfo');
-      const feeAmount = document.getElementById('autobidFeeAmount');
-      const currentBalance = document.getElementById('autobidCurrentBalance');
-
-      if (feeInfo && feeAmount && currentBalance) {
-        feeInfo.style.display = 'block';
-        feeAmount.textContent = `Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`;
-        currentBalance.textContent = `Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}`;
-
-        if (balanceCheck.hasSufficientBalance) {
-          feeInfo.style.background = '#d4edda';
-          feeInfo.style.borderColor = '#c3e6cb';
-          return true;
-        } else {
-          feeInfo.style.background = '#f8d7da';
-          feeInfo.style.borderColor = '#f5c6cb';
-          return false;
-        }
-      }
-      return false;
-    }
-
-    function deductOrderFee(orderId, orderAmount, driverId) {
-      const feeAmount = calculateFee(orderAmount);
-      
-      const driverRef = database.ref('drivers/' + driverId);
-      
-      // Gunakan transaction untuk menghindari race condition
-      driverRef.transaction((currentData) => {
-        if (currentData) {
-          if (currentData.Balance < feeAmount) {
-            console.error('❌ Saldo tidak cukup untuk potongan');
-            return; // Batalkan transaction
-          }
-          
-          currentData.Balance -= feeAmount;
-          
-          // Catat di riwayat transaksi jika ada field history
-          const transactionId = 'tx_' + Date.now();
-          if (!currentData.balance_history) {
-            currentData.balance_history = {};
-          }
-          currentData.balance_history[transactionId] = {
-            type: 'order_fee',
-            order_id: orderId,
-            amount: -feeAmount,
-            order_amount: orderAmount,
-            fee_percentage: potonganPercentage,
-            description: `Biaya layanan order #${orderId}`,
-            timestamp: new Date().toISOString()
-          };
-        }
-        return currentData;
-      }).then((result) => {
-        if (result.committed) {
-          console.log(`✅ Berhasil memotong saldo: Rp ${feeAmount.toLocaleString('id-ID')}`);
-          
-          sendToKodular({
-            action: 'balance_deducted',
-            order_id: orderId,
-            fee_amount: feeAmount,
-            order_amount: orderAmount,
-            new_balance: result.snapshot.val().Balance,
-            message: `Potongan biaya layanan ${potonganPercentage}% untuk order #${orderId}`
-          });
-        } else {
-          console.error('❌ Transaksi pemotongan saldo dibatalkan');
-        }
-      }).catch((error) => {
-        console.error('❌ Gagal memotong saldo:', error);
-      });
-    }
-
-    // ==================== FUNGSI REFUND UNTUK PEMBATALAN ORDER ====================
-
-    function refundOrderFee(orderId, orderAmount, driverId, cancellationReason) {
-      const feeAmount = calculateFee(orderAmount);
-      
-      const driverRef = database.ref('drivers/' + driverId);
-      
-      // Gunakan transaction untuk menghindari race condition
-      driverRef.transaction((currentData) => {
-        if (currentData) {
-          currentData.Balance += feeAmount;
-          
-          // Catat di riwayat transaksi jika ada field history
-          const transactionId = 'refund_' + Date.now();
-          if (!currentData.balance_history) {
-            currentData.balance_history = {};
-          }
-          currentData.balance_history[transactionId] = {
-            type: 'order_fee_refund',
-            order_id: orderId,
-            amount: feeAmount,
-            order_amount: orderAmount,
-            fee_percentage: potonganPercentage,
-            cancellation_reason: cancellationReason,
-            description: `Pengembalian biaya layanan order #${orderId} karena ${cancellationReason}`,
-            timestamp: new Date().toISOString()
-          };
-        }
-        return currentData;
-      }).then((result) => {
-        if (result.committed) {
-          console.log(`✅ Berhasil refund saldo: Rp ${feeAmount.toLocaleString('id-ID')} (${cancellationReason})`);
-          
-          sendToKodular({
-            action: 'balance_refunded',
-            order_id: orderId,
-            refund_amount: feeAmount,
-            order_amount: orderAmount,
-            cancellation_reason: cancellationReason,
-            new_balance: result.snapshot.val().Balance,
-            message: `Pengembalian biaya layanan ${potonganPercentage}% untuk order #${orderId} karena ${cancellationReason}`
-          });
-        } else {
-          console.error('❌ Transaksi refund saldo dibatalkan');
-        }
-      }).catch((error) => {
-        console.error('❌ Gagal refund saldo:', error);
       });
     }
 
