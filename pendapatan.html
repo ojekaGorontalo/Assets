@@ -714,8 +714,14 @@
           <div class="breakdown-list">
       `;
       
-      // Tambahkan setiap order dalam breakdown
-      filteredOrders.forEach(order => {
+      // PERBAIKAN: Urutkan ulang filteredOrders agar yang terbaru (completed_at terbesar) di atas
+      // Buat salinan array agar tidak mengubah original
+      const sortedOrders = [...filteredOrders].sort((a, b) => {
+        return new Date(b.completed_at) - new Date(a.completed_at);
+      });
+      
+      // Tambahkan setiap order dalam breakdown (dari yang terbaru ke terlama)
+      sortedOrders.forEach(order => {
         const orderTime = formatTimeWITA(new Date(order.completed_at));
         // PERBAIKAN: Parsing jarak dengan benar
         const distance = parseFloat((order.jarak_km || '0').replace(',', '.')) || 0;
@@ -758,8 +764,11 @@
         </div>
       `;
     } else {
-      // Tampilkan transaksi untuk tanggal yang dipilih
-      Object.entries(filteredTransactions).forEach(([key, transaction]) => {
+      // Tampilkan transaksi untuk tanggal yang dipilih, urutkan dari yang terbaru
+      const sortedTransactions = Object.entries(filteredTransactions)
+        .sort(([, a], [, b]) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      sortedTransactions.forEach(([key, transaction]) => {
         // PERBAIKAN: Pastikan amount berupa number
         const amount = parseFloat(transaction.amount) || 0;
         const isPositive = amount >= 0;
