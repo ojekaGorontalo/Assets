@@ -449,6 +449,11 @@
         Solusi Transportasi Lokal Terpercaya
       </div>
       
+      <!-- Demo Notice -->
+      <div class="demo-notice" style="background-color: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; display: none;" id="demoNotice">
+        <strong>Mode Demo:</strong> Login langsung tanpa OTP (hanya untuk nomor tertentu)
+      </div>
+      
       <!-- SMS Status Indicator -->
       <div class="sms-status" id="smsStatus"></div>
       
@@ -464,6 +469,8 @@
         <div class="form-group">
           <label class="form-label" for="teleponInput">Nomor Telepon *</label>
           <input type="tel" class="form-input" id="teleponInput" placeholder="Contoh: 08123456789" required inputmode="numeric" pattern="[0-9]*">
+          <small style="color: #666; font-size: 0.8rem; margin-top: 5px; display: block;">
+          </small>
         </div>
         
         <button type="submit" class="submit-btn" id="loginBtn">Login</button>
@@ -523,6 +530,21 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+
+    // Daftar nomor telepon demo yang bisa login tanpa OTP
+    const DEMO_PHONE_NUMBERS = [
+      '081234567890', // Nomor demo utama
+      '081111111111', // Nomor demo cadangan 1
+      '082222222222'  // Nomor demo cadangan 2
+    ];
+
+    // Cek apakah nomor termasuk nomor demo
+    function isDemoPhoneNumber(phone) {
+      const cleanPhone = cleanPhoneNumber(phone);
+      return DEMO_PHONE_NUMBERS.some(demoPhone => 
+        cleanPhoneNumber(demoPhone) === cleanPhone
+      );
+    }
 
     // Show notification popup
     function showNotification(title, message, type = 'info') {
@@ -895,12 +917,58 @@
       }
     }
 
+    // Fungsi untuk login langsung tanpa OTP (untuk nomor demo)
+    function directLogin(userKey, userData, telepon) {
+      console.log('Login langsung untuk nomor demo:', telepon);
+      
+      showStatus('Login berhasil (Mode Demo)! Mengalihkan...', 'success');
+      showNotification('Login Berhasil', 'Login berhasil menggunakan mode demo!', 'success');
+      
+      // ✅ SIMPAN KE LOCALSTORAGE
+      const userDataToStore = {
+        ...userData,
+        firebase_key: userKey,
+        last_login: new Date().toISOString(),
+        is_demo_account: true
+      };
+      
+      // 1. Simpan sebagai user logged in (untuk session)
+      localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
+      
+      // 2. SIMPAN KE jego_users UNTUK KOMPATIBILITAS
+      let jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
+      jegoUsers[userKey] = userData;
+      localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
+      
+      // 3. Simpan juga sebagai jego_user_data (backup)
+      localStorage.setItem('jego_user_data', JSON.stringify(userData));
+      
+      console.log('✅ Data user demo disimpan di localStorage:', userDataToStore);
+      
+      // Kirim data user ke Kodular
+      sendToKodular({
+        login_status: 'success',
+        user_data: userData,
+        firebase_key: userKey,
+        is_demo: true
+      }, 'login_success');
+      
+      // Redirect ke jenis_kenderaan.html setelah 1.5 detik
+      setTimeout(() => {
+        window.location.href = 'jenis_kenderaan.html';
+      }, 1500);
+    }
+
     // Handle login form submission
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const loginBtn = document.getElementById('loginBtn');
       const telepon = document.getElementById('teleponInput').value.trim();
+      const demoNotice = document.getElementById('demoNotice');
+      
+      // Reset demo notice
+      demoNotice.style.display = 'none';
       
       // Validate required field
       if (!telepon) {
@@ -915,10 +983,17 @@
         return;
       }
       
+      // Cek apakah nomor telepon adalah nomor demo
+      const isDemo = isDemoPhoneNumber(telepon);
+      
+      if (isDemo) {
+        demoNotice.style.display = 'block';
+      }
+      
       // Disable button and show loading
       loginBtn.disabled = true;
       loginBtn.classList.add('btn-loading');
-      loginBtn.textContent = 'Mengirim OTP...';
+      loginBtn.textContent = isDemo ? 'Login Demo...' : 'Mengirim OTP...';
       
       // Show progress
       showProgress(20);
@@ -991,13 +1066,31 @@
           return;
         }
         
-        // 3. Lanjutkan jika status bukan delete_account atau terblokir
+        // 3. JIKA NOMOR DEMO: LOGIN LANGSUNG TANPA OTP
+        if (isDemo) {
+          // Simpan data user di localStorage untuk digunakan nanti
+          localStorage.setItem('jego_current_user', JSON.stringify({
+            userKey: matchKey,
+            telepon: telepon,
+            userData: userFound,
+            isDemo: true
+          }));
+          
+          // Login langsung tanpa OTP
+          showProgress(80);
+          directLogin(matchKey, userFound, telepon);
+          
+          showProgress(100);
+          return;
+        }
+        
+        // 4. JIKA BUKAN NOMOR DEMO: LANJUTKAN PROSES OTP BIASA
         showProgress(60);
         const otp = generateOTP();
         
         showSmsStatus('📱 Mengirim OTP via SMS...', 'sending');
         
-        // 4. Kirim OTP via SMS terlebih dahulu
+        // 5. Kirim OTP via SMS terlebih dahulu
         showProgress(70);
         let smsResponse;
         try {
@@ -1013,7 +1106,7 @@
           };
         }
         
-        // 5. Simpan OTP ke Firebase dengan log SMS
+        // 6. Simpan OTP ke Firebase dengan log SMS
         showProgress(80);
         await saveOTPWithLog(matchKey, otp, smsResponse);
         
@@ -1021,10 +1114,11 @@
         localStorage.setItem('jego_current_user', JSON.stringify({
           userKey: matchKey,
           telepon: telepon,
-          userData: userFound
+          userData: userFound,
+          isDemo: false
         }));
         
-        // 6. Alihkan ke halaman OTP
+        // 7. Alihkan ke halaman OTP
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('otpSection').style.display = 'block';
         document.getElementById('otpInput').focus();
