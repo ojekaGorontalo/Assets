@@ -215,32 +215,29 @@
       color: #666;
     }
 
-    .otp-input-container {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .otp-input {
-      width: 50px;
-      height: 50px;
+    /* SINGLE OTP INPUT */
+    .otp-single-input {
+      width: 100%;
+      padding: 15px;
       text-align: center;
-      font-size: 1.2rem;
+      font-size: 1.8rem;
       font-weight: bold;
+      letter-spacing: 10px;
       border: 2px solid #ddd;
-      border-radius: 6px;
+      border-radius: 8px;
       transition: all 0.3s;
+      font-family: 'Courier New', monospace;
     }
 
-    .otp-input:focus {
+    .otp-single-input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.1);
+      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.2);
       outline: none;
     }
 
-    .otp-input.filled {
+    .otp-single-input.filled {
       border-color: var(--primary);
+      background-color: #f8fff9;
     }
 
     .resend-otp {
@@ -366,6 +363,34 @@
       color: #666;
     }
 
+    /* SMS Status Indicator */
+    .sms-status {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      text-align: center;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .sms-status.success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+
+    .sms-status.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+
+    .sms-status.sending {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #bbdefb;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .header-title {
@@ -390,10 +415,10 @@
         font-size: 1.3rem;
       }
       
-      .otp-input {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
+      .otp-single-input {
+        font-size: 1.5rem;
+        letter-spacing: 8px;
+        padding: 12px;
       }
 
       .notification {
@@ -424,6 +449,9 @@
         Solusi Transportasi Lokal Terpercaya
       </div>
       
+      <!-- SMS Status Indicator -->
+      <div class="sms-status" id="smsStatus"></div>
+      
       <div class="status-message" id="statusMessage"></div>
       
       <!-- Progress Bar -->
@@ -435,7 +463,7 @@
       <form id="loginForm">
         <div class="form-group">
           <label class="form-label" for="teleponInput">Nomor Telepon *</label>
-          <input type="tel" class="form-input" id="teleponInput" placeholder="Contoh: 08123456789" required>
+          <input type="tel" class="form-input" id="teleponInput" placeholder="Contoh: 08123456789" required inputmode="numeric" pattern="[0-9]*">
         </div>
         
         <button type="submit" class="submit-btn" id="loginBtn">Login</button>
@@ -452,14 +480,15 @@
           <p>Masukkan kode OTP 6 digit untuk melanjutkan.</p>
         </div>
         
-        <div class="otp-input-container">
-          <input type="text" class="otp-input" id="otp1" maxlength="1" data-index="0">
-          <input type="text" class="otp-input" id="otp2" maxlength="1" data-index="1">
-          <input type="text" class="otp-input" id="otp3" maxlength="1" data-index="2">
-          <input type="text" class="otp-input" id="otp4" maxlength="1" data-index="3">
-          <input type="text" class="otp-input" id="otp5" maxlength="1" data-index="4">
-          <input type="text" class="otp-input" id="otp6" maxlength="1" data-index="5">
-        </div>
+        <!-- SINGLE OTP INPUT -->
+        <input type="text" 
+               class="otp-single-input" 
+               id="otpInput" 
+               maxlength="6" 
+               inputmode="numeric" 
+               pattern="[0-9]*" 
+               placeholder="000000"
+               autocomplete="one-time-code">
         
         <button type="button" class="submit-btn" id="verifyOtpBtn">Verifikasi OTP</button>
         
@@ -528,6 +557,28 @@
       }
     }
 
+    // Show SMS status
+    function showSmsStatus(message, type = 'sending') {
+      const smsStatus = document.getElementById('smsStatus');
+      smsStatus.textContent = message;
+      smsStatus.className = 'sms-status';
+      smsStatus.classList.add(type);
+      smsStatus.style.display = 'block';
+      
+      // Auto hide after 5 seconds if success
+      if (type === 'success') {
+        setTimeout(() => {
+          smsStatus.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Hide SMS status
+    function hideSmsStatus() {
+      const smsStatus = document.getElementById('smsStatus');
+      smsStatus.style.display = 'none';
+    }
+
     // Show progress bar
     function showProgress(percent) {
       const progressContainer = document.getElementById('progressContainer');
@@ -548,17 +599,32 @@
       return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // Save OTP to Firebase
-    function saveOTP(userKey, otp) {
+    // Save OTP to Firebase dengan log SMS
+    function saveOTPWithLog(userKey, otp, smsResponse = null) {
       const otpExpiry = Date.now() + (10 * 60 * 1000); // 10 minutes from now
       
       const otpData = {
         otp: otp,
         otpExpiry: otpExpiry,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        phone: document.getElementById('teleponInput').value,
+        smsGateway: {
+          sentAt: Date.now(),
+          status: smsResponse ? 'success' : 'pending',
+          response: smsResponse || null
+        }
       };
       
       return database.ref('userOTP/' + userKey).set(otpData);
+    }
+
+    // Update SMS log in Firebase
+    function updateSmsLog(userKey, smsResponse, status = 'success') {
+      return database.ref('userOTP/' + userKey + '/smsGateway').update({
+        status: status,
+        response: smsResponse,
+        deliveredAt: Date.now()
+      });
     }
 
     // Validate OTP
@@ -583,71 +649,60 @@
         });
     }
 
-    // Clear OTP inputs
-    function clearOTPInputs() {
-      for (let i = 1; i <= 6; i++) {
-        document.getElementById(`otp${i}`).value = '';
-        document.getElementById(`otp${i}`).classList.remove('filled');
-      }
+    // Clear OTP input
+    function clearOTPInput() {
+      document.getElementById('otpInput').value = '';
+      document.getElementById('otpInput').classList.remove('filled');
     }
 
-    // Handle OTP input navigation
-    function setupOTPInputs() {
-      const otpInputs = document.querySelectorAll('.otp-input');
+    // Setup OTP input (single input)
+    function setupOTPInput() {
+      const otpInput = document.getElementById('otpInput');
       
-      otpInputs.forEach((input, index) => {
-        // Handle input
-        input.addEventListener('input', (e) => {
-          const value = e.target.value;
-          
-          // Only allow numbers
-          if (!/^\d*$/.test(value)) {
-            e.target.value = '';
-            return;
-          }
-          
-          if (value.length === 1) {
-            e.target.classList.add('filled');
-            
-            // Move to next input if available
-            if (index < otpInputs.length - 1) {
-              otpInputs[index + 1].focus();
-            }
-          } else {
-            e.target.classList.remove('filled');
-          }
-        });
+      otpInput.addEventListener('input', function(e) {
+        // Hanya izinkan angka
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
         
-        // Handle backspace
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Backspace' && !e.target.value && index > 0) {
-            otpInputs[index - 1].focus();
-          }
-        });
+        // Batasi 6 digit
+        if (e.target.value.length > 6) {
+          e.target.value = e.target.value.substring(0, 6);
+        }
         
-        // Handle paste
-        input.addEventListener('paste', (e) => {
-          e.preventDefault();
-          const pastedData = e.clipboardData.getData('text').trim();
-          
-          if (/^\d{6}$/.test(pastedData)) {
-            for (let i = 0; i < 6; i++) {
-              otpInputs[i].value = pastedData[i];
-              otpInputs[i].classList.add('filled');
-            }
-            otpInputs[5].focus();
-          }
-        });
+        // Tandai jika sudah 6 digit
+        if (e.target.value.length === 6) {
+          e.target.classList.add('filled');
+        } else {
+          e.target.classList.remove('filled');
+        }
       });
+      
+      // Handle paste
+      otpInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const numbersOnly = pastedText.replace(/[^0-9]/g, '');
+        
+        if (numbersOnly.length >= 6) {
+          e.target.value = numbersOnly.substring(0, 6);
+          e.target.classList.add('filled');
+          // Otomatis verifikasi setelah paste jika sudah 6 digit
+          setTimeout(() => {
+            if (e.target.value.length === 6) {
+              document.getElementById('verifyOtpBtn').click();
+            }
+          }, 100);
+        }
+      });
+      
+      // Auto focus ketika halaman OTP muncul
+      if (document.getElementById('otpSection').style.display === 'block') {
+        otpInput.focus();
+      }
     }
 
     // Get entered OTP
     function getEnteredOTP() {
-      let otp = '';
-      for (let i = 1; i <= 6; i++) {
-        otp += document.getElementById(`otp${i}`).value;
-      }
-      return otp;
+      return document.getElementById('otpInput').value;
     }
 
     // Start countdown for resend OTP
@@ -759,6 +814,8 @@
         console.log('Mengirim SMS ke:', formattedNumber);
         console.log('Menggunakan proxy CORS:', proxyUrl);
         
+        showSmsStatus('🔄 Mengirim OTP via SMS...', 'sending');
+        
         // Kirim permintaan menggunakan proxy
         fetch(proxyUrl)
           .then(response => {
@@ -776,18 +833,27 @@
               // Cek status respon
               if (responseData.status === 200) {
                 console.log('SMS berhasil dikirim! Sisa kredit:', responseData.data?.sisa_kredit || 'Tidak diketahui');
-                resolve({ success: true, data: responseData });
+                showSmsStatus('✅ OTP berhasil dikirim via SMS', 'success');
+                resolve({ 
+                  success: true, 
+                  data: responseData,
+                  timestamp: Date.now()
+                });
               } else {
                 // Jika gagal, lempar error
-                reject(new Error(`Gagal mengirim SMS. Status: ${responseData.status_message || 'Tidak diketahui'}`));
+                const errorMsg = `Gagal mengirim SMS. Status: ${responseData.status_message || 'Tidak diketahui'}`;
+                showSmsStatus('❌ ' + errorMsg, 'error');
+                reject(new Error(errorMsg));
               }
             } catch (parseError) {
               console.error('Error parsing response from proxy:', parseError);
+              showSmsStatus('❌ Format respon tidak valid', 'error');
               reject(new Error('Format respon tidak valid dari SMS gateway'));
             }
           })
           .catch(error => {
             console.error('Error mengirim SMS via proxy:', error);
+            showSmsStatus('❌ Gagal mengirim SMS: ' + error.message, 'error');
             reject(error);
           });
       });
@@ -856,6 +922,7 @@
       
       // Show progress
       showProgress(20);
+      showSmsStatus('🔍 Mencari data pengguna...', 'sending');
       
       try {
         // 1. Cari user berdasarkan nomor telepon
@@ -866,6 +933,7 @@
         if (!userFound) {
           showStatus('Nomor telepon tidak terdaftar.', 'error');
           showNotification('Login Gagal', 'Nomor telepon tidak terdaftar.', 'error');
+          hideSmsStatus();
           
           // Kirim status gagal ke Kodular
           sendToKodular({
@@ -888,6 +956,7 @@
         if (userStatus === 'delete_account') {
           showStatus('Akun sudah dihapus. Tidak dapat login.', 'error');
           showNotification('Login Gagal', 'Akun sudah dihapus. Silakan hubungi admin.', 'error');
+          hideSmsStatus();
           
           // Kirim status gagal ke Kodular
           sendToKodular({
@@ -906,6 +975,7 @@
         if (userStatus === 'terblokir') {
           showStatus('Akun terblokir permanen karena pelanggaran. Tidak dapat login.', 'error');
           showNotification('Login Gagal', 'Akun terblokir permanen. Hubungi admin untuk info lebih lanjut.', 'error');
+          hideSmsStatus();
           
           // Kirim status gagal ke Kodular
           sendToKodular({
@@ -922,16 +992,30 @@
         }
         
         // 3. Lanjutkan jika status bukan delete_account atau terblokir
-        // (default: active atau status lainnya yang diperbolehkan)
         showProgress(60);
         const otp = generateOTP();
         
-        // 4. Simpan OTP ke Firebase
-        showProgress(70);
-        await saveOTP(matchKey, otp);
+        showSmsStatus('📱 Mengirim OTP via SMS...', 'sending');
         
-        // 5. Kirim OTP via SMS (tanpa menunggu lama)
+        // 4. Kirim OTP via SMS terlebih dahulu
+        showProgress(70);
+        let smsResponse;
+        try {
+          smsResponse = await sendSmsOtp(telepon, otp);
+          console.log('SMS berhasil dikirim:', smsResponse);
+        } catch (smsError) {
+          console.error('Gagal mengirim SMS:', smsError);
+          // Tapi tetap lanjut karena OTP masih bisa diverifikasi via Firebase
+          smsResponse = {
+            success: false,
+            error: smsError.message,
+            timestamp: Date.now()
+          };
+        }
+        
+        // 5. Simpan OTP ke Firebase dengan log SMS
         showProgress(80);
+        await saveOTPWithLog(matchKey, otp, smsResponse);
         
         // Simpan data user di localStorage untuk digunakan nanti
         localStorage.setItem('jego_current_user', JSON.stringify({
@@ -940,38 +1024,30 @@
           userData: userFound
         }));
         
-        // LANGSUNG alihkan ke halaman OTP tanpa menunggu SMS berhasil
+        // 6. Alihkan ke halaman OTP
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('otpSection').style.display = 'block';
-        document.getElementById('otp1').focus();
+        document.getElementById('otpInput').focus();
         
         // Mulai countdown untuk kirim ulang OTP
         startResendCountdown(60);
         
-        // Kirim SMS di background (tidak blocking)
-        sendSmsOtp(telepon, otp)
-          .then(() => {
-            console.log('SMS OTP berhasil dikirim');
-            showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS.', 'info');
-          })
-          .catch(error => {
-            console.error('Gagal mengirim SMS:', error);
-            // Tidak tampilkan error agar user bisa tetap memasukkan OTP
-            // (OTP sudah disimpan di Firebase, bisa diverifikasi)
-          });
-        
         showProgress(100);
+        showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS.', 'info');
         
       } catch (error) {
         console.error('Error dalam proses login:', error);
         showStatus(`Terjadi kesalahan: ${error.message || 'Silakan coba lagi.'}`, 'error');
         showNotification('Error', 'Terjadi kesalahan. Silakan coba lagi.', 'error');
+        hideSmsStatus();
       } finally {
         // Reset button state
-        loginBtn.disabled = false;
-        loginBtn.classList.remove('btn-loading');
-        loginBtn.textContent = 'Login';
-        hideProgress();
+        setTimeout(() => {
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('btn-loading');
+          loginBtn.textContent = 'Login';
+          hideProgress();
+        }, 1000);
       }
     });
 
@@ -1006,8 +1082,8 @@
         .then((result) => {
           if (!result.isValid) {
             showStatus(result.message, 'error');
-            clearOTPInputs();
-            document.getElementById('otp1').focus();
+            clearOTPInput();
+            document.getElementById('otpInput').focus();
             verifyBtn.disabled = false;
             verifyBtn.classList.remove('btn-loading');
             verifyBtn.textContent = 'Verifikasi OTP';
@@ -1082,22 +1158,30 @@
       // Disable resend link temporarily
       resendLink.classList.add('disabled');
       
-      // Save OTP to Firebase and send SMS in background
-      saveOTP(userKey, otp)
-        .then(() => sendSmsOtp(telepon, otp))
+      // Tampilkan status pengiriman
+      showSmsStatus('🔄 Mengirim ulang OTP...', 'sending');
+      
+      // Kirim SMS dan simpan OTP
+      sendSmsOtp(telepon, otp)
+        .then((smsResponse) => {
+          // Simpan OTP dengan log SMS ke Firebase
+          return saveOTPWithLog(userKey, otp, smsResponse);
+        })
         .then(() => {
           showStatus('Kode OTP baru telah dikirim ke nomor Anda.', 'info');
           // Clear OTP inputs
-          clearOTPInputs();
-          document.getElementById('otp1').focus();
+          clearOTPInput();
+          document.getElementById('otpInput').focus();
           // Start countdown again
           startResendCountdown(60);
+          showSmsStatus('✅ OTP berhasil dikirim ulang', 'success');
         })
         .catch((error) => {
           console.error('Error resending OTP:', error);
           showStatus('Terjadi kesalahan saat mengirim ulang OTP. Silakan coba lagi.', 'error');
           // Re-enable resend link on error
           resendLink.classList.remove('disabled');
+          hideSmsStatus();
         });
     });
 
@@ -1108,7 +1192,7 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
-      setupOTPInputs();
+      setupOTPInput();
       
       // Check if already logged in
       const loggedInUser = localStorage.getItem('jego_logged_in_user');
@@ -1131,6 +1215,13 @@
       document.getElementById('teleponInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           document.getElementById('loginBtn').click();
+        }
+      });
+      
+      // Add Enter key support for OTP input
+      document.getElementById('otpInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          document.getElementById('verifyOtpBtn').click();
         }
       });
       
