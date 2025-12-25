@@ -147,6 +147,7 @@
         
         .form-group {
             margin-bottom: 20px;
+            position: relative;
         }
         
         label {
@@ -559,78 +560,68 @@
             100% { opacity: 0; visibility: hidden; }
         }
         
-        /* Status info styles */
-        .status-info {
-            padding: 15px;
+        /* Phone status message */
+        .phone-status {
+            padding: 10px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-top: 8px;
+            font-size: 0.9rem;
             display: none;
         }
-
-        .status-info.active {
+        
+        .phone-status.available {
             background-color: rgba(40, 167, 69, 0.1);
-            border-left: 4px solid var(--success);
+            color: var(--success);
+            border-left: 3px solid var(--success);
             display: block;
         }
-
-        .status-info.pending {
+        
+        .phone-status.registered {
             background-color: rgba(255, 193, 7, 0.1);
-            border-left: 4px solid var(--warning);
+            color: var(--warning);
+            border-left: 3px solid var(--warning);
             display: block;
         }
-
-        .status-info.blocked {
+        
+        .phone-status.error {
             background-color: rgba(220, 53, 69, 0.1);
-            border-left: 4px solid var(--danger);
+            color: var(--danger);
+            border-left: 3px solid var(--danger);
             display: block;
         }
-
-        .status-info.deleted {
-            background-color: rgba(108, 117, 125, 0.1);
-            border-left: 4px solid #6c757d;
-            display: block;
-        }
-
-        .status-title {
-            font-weight: 600;
-            margin-bottom: 5px;
+        
+        .phone-status-message {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-
-        .status-icon {
-            font-size: 1.2rem;
+        
+        .phone-status-icon {
+            font-size: 1.1rem;
         }
-
-        .status-message {
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-
-        .status-actions {
-            margin-top: 10px;
+        
+        .phone-status-actions {
+            margin-top: 8px;
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
         }
-
-        .status-btn {
-            padding: 8px 16px;
+        
+        .phone-status-btn {
+            padding: 6px 12px;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
             transition: all 0.3s;
         }
-
-        .status-btn.primary {
+        
+        .phone-status-btn.primary {
             background-color: var(--primary);
             color: white;
         }
-
-        .status-btn.secondary {
+        
+        .phone-status-btn.secondary {
             background-color: #6c757d;
             color: white;
         }
@@ -668,6 +659,10 @@
                 height: 40px;
                 font-size: 1rem;
             }
+            
+            .phone-status-actions {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -696,16 +691,6 @@
             Anda sudah login, mengarahkan ke halaman utama...
         </div>
 
-        <!-- Status Info Container -->
-        <div id="statusInfo" class="status-info">
-            <div class="status-title">
-                <span id="statusIcon" class="status-icon">ℹ️</span>
-                <span id="statusTitle">Status Akun</span>
-            </div>
-            <p id="statusMessage" class="status-message"></p>
-            <div id="statusActions" class="status-actions"></div>
-        </div>
-
         <div class="content">
             <section class="form-section">
                 <h2>Formulir Pendaftaran JeGo</h2>
@@ -727,6 +712,15 @@
                         <input type="tel" id="telepon" name="telepon" placeholder="+6281234567890" required>
                         <div class="phone-format">
                             Format: <span class="example">+6281234567890</span> (gunakan kode negara +62)
+                        </div>
+                        
+                        <!-- Status message untuk nomor telepon -->
+                        <div id="phoneStatus" class="phone-status">
+                            <div class="phone-status-message">
+                                <span id="phoneStatusIcon" class="phone-status-icon">ℹ️</span>
+                                <span id="phoneStatusText"></span>
+                            </div>
+                            <div id="phoneStatusActions" class="phone-status-actions"></div>
                         </div>
                     </div>
                     
@@ -827,7 +821,7 @@
         // IMPORT FIREBASE MODULES (v9) - HANYA DATABASE
         // ================================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref as dbRef, set, orderByChild, equalTo, query, get, child, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref as dbRef, set, orderByChild, equalTo, query, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
         
         // ================================================
         // KONFIGURASI FIREBASE PROJECT UNTUK DATABASE SAJA
@@ -879,17 +873,16 @@
         const loadingModal = document.getElementById('loadingModal');
         const loadingText = document.getElementById('loadingText');
         
-        // Elemen untuk status info
-        const statusInfo = document.getElementById('statusInfo');
-        const statusIcon = document.getElementById('statusIcon');
-        const statusTitle = document.getElementById('statusTitle');
-        const statusMessage = document.getElementById('statusMessage');
-        const statusActions = document.getElementById('statusActions');
+        // Elemen untuk status telepon
+        const phoneStatus = document.getElementById('phoneStatus');
+        const phoneStatusIcon = document.getElementById('phoneStatusIcon');
+        const phoneStatusText = document.getElementById('phoneStatusText');
+        const phoneStatusActions = document.getElementById('phoneStatusActions');
         
         let registrationData = null;
         let otpTimer = null;
         let otpCountdown = 60;
-        let currentPhoneNumber = '';
+        let phoneCheckTimeout = null;
 
         // ================================================
         // FUNGSI UTILITAS UMUM
@@ -997,213 +990,96 @@
         }
         
         // ================================================
-        // FUNGSI CEK STATUS NOMOR TELEPON - DIPERBAIKI
+        // FUNGSI CEK NOMOR TELEPON
         // ================================================
-        async function checkPhoneNumberAndStatus(phoneNumber) {
+        async function checkPhoneNumberExists(phoneNumber) {
             try {
-                console.log('Memeriksa nomor:', phoneNumber);
-                
-                // Query untuk mencari user dengan nomor telepon yang sesuai
+                const usersQuery = query(usersRef, orderByChild('telepon'), equalTo(phoneNumber));
+                const snapshot = await get(usersQuery);
+                return snapshot.exists();
+            } catch (error) {
+                console.error('Error checking phone number:', error);
+                return false;
+            }
+        }
+        
+        async function getPhoneNumberInfo(phoneNumber) {
+            try {
                 const usersQuery = query(usersRef, orderByChild('telepon'), equalTo(phoneNumber));
                 const snapshot = await get(usersQuery);
                 
-                console.log('Hasil query:', snapshot.exists(), snapshot.val());
-                
                 if (!snapshot.exists()) {
-                    console.log('Nomor tidak ditemukan di database');
                     return { exists: false };
                 }
                 
                 let userData = null;
-                let userKey = null;
-                
-                // Ambil data pertama yang ditemukan
                 snapshot.forEach((childSnapshot) => {
                     userData = childSnapshot.val();
-                    userKey = childSnapshot.key;
-                    console.log('User ditemukan:', userData);
-                    console.log('Key user:', userKey);
                 });
-                
-                if (!userData) {
-                    return { exists: false };
-                }
-                
-                // Ambil status dari data user
-                // Default ke 'active' jika tidak ada field status
-                const status = userData.status || 'active';
-                console.log('Status user:', status);
                 
                 return {
                     exists: true,
-                    userData: userData,
-                    userKey: userKey,
-                    status: status,
-                    nama: userData.nama || '',
-                    email: userData.email || '',
-                    alamat: userData.alamat || '',
-                    jenisKelamin: userData.jenisKelamin || ''
+                    userData: userData
                 };
             } catch (error) {
-                console.error('Error checking phone number and status:', error);
+                console.error('Error getting phone number info:', error);
                 return { exists: false, error: error.message };
             }
         }
         
-        // ================================================
-        // FUNGSI UNTUK MENAMPILKAN INFORMASI STATUS
-        // ================================================
-        function showStatusInfo(status, userData = null) {
-            // Reset status info
-            statusInfo.className = 'status-info';
-            statusActions.innerHTML = '';
+        function showPhoneStatus(type, message, userData = null) {
+            // Reset status
+            phoneStatus.className = 'phone-status';
+            phoneStatusActions.innerHTML = '';
             
-            // Simpan nomor telepon saat ini untuk ditampilkan
-            const displayPhone = currentPhoneNumber || (userData ? userData.telepon : '');
-            
-            switch(status) {
-                case 'active':
-                    statusInfo.classList.add('active');
-                    statusIcon.textContent = '✅';
-                    statusTitle.textContent = 'Akun Sudah Terdaftar';
-                    statusMessage.innerHTML = `Nomor telepon <strong>${displayPhone}</strong> sudah terdaftar dengan status <strong>AKTIF</strong>.<br><br>`;
-                    
-                    if (userData && userData.nama) {
-                        statusMessage.innerHTML += `Nama: <strong>${userData.nama}</strong><br>`;
-                    }
-                    if (userData && userData.email) {
-                        statusMessage.innerHTML += `Email: <strong>${userData.email}</strong><br>`;
-                    }
-                    statusMessage.innerHTML += `Anda dapat login menggunakan akun ini.`;
-                    
-                    // Tambahkan tombol aksi
-                    const loginBtn = document.createElement('button');
-                    loginBtn.className = 'status-btn primary';
-                    loginBtn.textContent = 'Login Sekarang';
-                    loginBtn.onclick = () => {
-                        // Simpan data user ke localStorage untuk login otomatis
-                        if (userData) {
-                            localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
-                        }
-                        window.location.href = 'loginUser.html?redirect=home';
-                    };
-                    
-                    const registerNewBtn = document.createElement('button');
-                    registerNewBtn.className = 'status-btn secondary';
-                    registerNewBtn.textContent = 'Daftar dengan Nomor Lain';
-                    registerNewBtn.onclick = () => {
-                        statusInfo.style.display = 'none';
-                        registrationForm.style.display = 'block';
-                        teleponInput.value = '';
-                        teleponInput.focus();
-                    };
-                    
-                    statusActions.appendChild(loginBtn);
-                    statusActions.appendChild(registerNewBtn);
-                    break;
-                    
-                case 'pending':
-                    statusInfo.classList.add('pending');
-                    statusIcon.textContent = '⏳';
-                    statusTitle.textContent = 'Akun Belum Selesai';
-                    statusMessage.innerHTML = `Nomor telepon <strong>${displayPhone}</strong> sudah terdaftar tetapi proses pendaftaran belum selesai.<br><br>Silakan lanjutkan proses pendaftaran.`;
-                    
-                    // Tambahkan tombol aksi
-                    const continueBtn = document.createElement('button');
-                    continueBtn.className = 'status-btn primary';
-                    continueBtn.textContent = 'Lanjutkan Pendaftaran';
-                    continueBtn.onclick = () => {
-                        // Isi form dengan data yang sudah ada
-                        if (userData) {
-                            document.getElementById('nama').value = userData.nama || '';
-                            document.getElementById('email').value = userData.email || '';
-                            document.getElementById('telepon').value = userData.telepon || '';
-                            document.getElementById('alamat').value = userData.alamat || '';
-                            document.getElementById('jenisKelamin').value = userData.jenisKelamin || '';
-                            
-                            // Check checkbox syarat
-                            document.querySelector('input[name="syarat"]').checked = true;
-                        }
-                        statusInfo.style.display = 'none';
-                        registrationForm.style.display = 'block';
-                    };
-                    
-                    const contactAdminBtn = document.createElement('button');
-                    contactAdminBtn.className = 'status-btn secondary';
-                    contactAdminBtn.textContent = 'Hubungi Admin';
-                    contactAdminBtn.onclick = () => {
-                        showInfoMessage('Silakan hubungi admin JeGo di:<br><br>📞 0812-3456-7890<br>✉️ admin@jego.com');
-                    };
-                    
-                    statusActions.appendChild(continueBtn);
-                    statusActions.appendChild(contactAdminBtn);
-                    break;
-                    
-                case 'blocked':
-                    statusInfo.classList.add('blocked');
-                    statusIcon.textContent = '🚫';
-                    statusTitle.textContent = 'Akun Diblokir';
-                    statusMessage.innerHTML = `Nomor telepon <strong>${displayPhone}</strong> telah <strong>DIBLOKIR</strong> karena melanggar ketentuan aplikasi JeGo.<br><br>Alasan: <strong>Pelanggaran Ketentuan Penggunaan</strong><br><br>Akun tidak dapat digunakan untuk mendaftar atau login.`;
-                    
-                    // Tambahkan tombol aksi
-                    const appealBtn = document.createElement('button');
-                    appealBtn.className = 'status-btn primary';
-                    appealBtn.textContent = 'Ajukan Banding';
-                    appealBtn.onclick = () => {
-                        showInfoMessage('Untuk mengajukan banding, silakan:<br><br>1. Kirim email ke: <strong>appeals@jego.com</strong><br>2. Subjek: "BANDING AKUN DIBLOKIR"<br>3. Sertakan: Nomor telepon, nama, dan alasan banding<br><br>Tim kami akan meninjau dalam 3-5 hari kerja.');
-                    };
-                    
-                    const newNumberBtn = document.createElement('button');
-                    newNumberBtn.className = 'status-btn secondary';
-                    newNumberBtn.textContent = 'Daftar dengan Nomor Lain';
-                    newNumberBtn.onclick = () => {
-                        statusInfo.style.display = 'none';
-                        registrationForm.style.display = 'block';
-                        teleponInput.value = '';
-                        teleponInput.focus();
-                    };
-                    
-                    statusActions.appendChild(appealBtn);
-                    statusActions.appendChild(newNumberBtn);
-                    break;
-                    
-                case 'deleted':
-                case 'delete_account':
-                    statusInfo.classList.add('deleted');
-                    statusIcon.textContent = '🗑️';
-                    statusTitle.textContent = 'Akun Telah Dihapus';
-                    statusMessage.innerHTML = `Nomor telepon <strong>${displayPhone}</strong> tidak dapat digunakan karena akun telah <strong>DIHAPUS</strong>.<br><br>Silakan gunakan nomor telepon lain untuk mendaftar akun baru.`;
-                    
-                    // Tambahkan tombol aksi
-                    const useOtherBtn = document.createElement('button');
-                    useOtherBtn.className = 'status-btn primary';
-                    useOtherBtn.textContent = 'Gunakan Nomor Lain';
-                    useOtherBtn.onclick = () => {
-                        statusInfo.style.display = 'none';
-                        registrationForm.style.display = 'block';
-                        teleponInput.value = '';
-                        teleponInput.focus();
-                    };
-                    
-                    const contactSupportBtn = document.createElement('button');
-                    contactSupportBtn.className = 'status-btn secondary';
-                    contactSupportBtn.textContent = 'Hubungi Support';
-                    contactSupportBtn.onclick = () => {
-                        showInfoMessage('Untuk bantuan lebih lanjut, hubungi:<br><br>📞 0812-3456-7890<br>✉️ support@jego.com');
-                    };
-                    
-                    statusActions.appendChild(useOtherBtn);
-                    statusActions.appendChild(contactSupportBtn);
-                    break;
-                    
-                default:
-                    // Status tidak dikenal, sembunyikan status info
-                    statusInfo.style.display = 'none';
-                    console.warn('Status tidak dikenali:', status);
+            if (type === 'available') {
+                phoneStatus.classList.add('available');
+                phoneStatusIcon.textContent = '✅';
+                phoneStatusText.textContent = message;
+                
+                // Kosongkan tombol aksi
+                phoneStatusActions.innerHTML = '';
+            } 
+            else if (type === 'registered') {
+                phoneStatus.classList.add('registered');
+                phoneStatusIcon.textContent = 'ℹ️';
+                phoneStatusText.textContent = message;
+                
+                // Tambahkan tombol aksi
+                const loginBtn = document.createElement('button');
+                loginBtn.className = 'phone-status-btn primary';
+                loginBtn.textContent = 'Login';
+                loginBtn.onclick = () => {
+                    window.location.href = 'loginUser.html';
+                };
+                
+                const clearBtn = document.createElement('button');
+                clearBtn.className = 'phone-status-btn secondary';
+                clearBtn.textContent = 'Ganti Nomor';
+                clearBtn.onclick = () => {
+                    teleponInput.value = '';
+                    teleponInput.focus();
+                    phoneStatus.style.display = 'none';
+                };
+                
+                phoneStatusActions.appendChild(loginBtn);
+                phoneStatusActions.appendChild(clearBtn);
+            }
+            else if (type === 'error') {
+                phoneStatus.classList.add('error');
+                phoneStatusIcon.textContent = '❌';
+                phoneStatusText.textContent = message;
+                
+                // Kosongkan tombol aksi
+                phoneStatusActions.innerHTML = '';
             }
             
-            // Tampilkan status info
-            statusInfo.style.display = 'block';
+            // Tampilkan status
+            phoneStatus.style.display = 'block';
+        }
+        
+        function hidePhoneStatus() {
+            phoneStatus.style.display = 'none';
         }
 
         // ================================================
@@ -1374,8 +1250,43 @@
         }
 
         // ================================================
-        // EVENT HANDLERS - DIPERBAIKI
+        // EVENT HANDLERS
         // ================================================
+        
+        // Event untuk cek nomor telepon saat user mengetik
+        teleponInput.addEventListener('input', function() {
+            // Clear timeout sebelumnya
+            clearTimeout(phoneCheckTimeout);
+            
+            // Sembunyikan status sementara
+            hidePhoneStatus();
+            
+            // Format nomor telepon
+            const rawPhone = this.value.trim();
+            if (!rawPhone) return;
+            
+            const formattedPhone = formatPhoneNumber(rawPhone);
+            
+            // Cek apakah format sudah benar
+            if (!validatePhoneFormat(formattedPhone)) {
+                return;
+            }
+            
+            // Set timeout untuk menghindari terlalu banyak request
+            phoneCheckTimeout = setTimeout(async () => {
+                showLoading('Memeriksa nomor telepon...');
+                const phoneInfo = await getPhoneNumberInfo(formattedPhone);
+                hideLoading();
+                
+                if (phoneInfo.exists) {
+                    const nama = phoneInfo.userData?.nama || 'Pengguna';
+                    showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar atas nama ${nama}. Silakan login atau gunakan nomor lain.`, phoneInfo.userData);
+                } else {
+                    showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran.`);
+                }
+            }, 800); // Delay 800ms setelah user berhenti mengetik
+        });
+        
         registrationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             submitBtn.disabled = true;
@@ -1387,7 +1298,6 @@
             const alamat = document.getElementById('alamat').value.trim();
             const jenisKelamin = document.getElementById('jenisKelamin').value;
             
-            // Validasi form
             if (!nama || !email || !telepon || !alamat || !jenisKelamin) {
                 showErrorMessage('Harap isi semua field yang wajib diisi.');
                 submitBtn.disabled = false;
@@ -1403,7 +1313,6 @@
                 return;
             }
             
-            // Format dan validasi nomor telepon
             telepon = formatPhoneNumber(telepon);
             if (!validatePhoneFormat(telepon)) {
                 showErrorMessage('Format nomor telepon tidak valid. Gunakan format: +6281234567890');
@@ -1413,42 +1322,24 @@
                 return;
             }
             
-            // Simpan nomor telepon saat ini untuk digunakan nanti
-            currentPhoneNumber = telepon;
+            // Cek apakah nomor sudah terdaftar
+            showLoading('Memeriksa nomor telepon...');
+            const phoneExists = await checkPhoneNumberExists(telepon);
             
-            // Langkah 1: Cek nomor dan status di Firebase
-            showLoading('Memeriksa status nomor telepon...');
-            const phoneCheckResult = await checkPhoneNumberAndStatus(telepon);
-            console.log('Hasil pengecekan nomor:', phoneCheckResult);
-            hideLoading();
-            
-            // Jika nomor sudah ada, tampilkan status info sesuai dengan status akun
-            if (phoneCheckResult.exists) {
-                console.log('Nomor ditemukan, status:', phoneCheckResult.status);
-                
-                // Sembunyikan form registrasi
-                registrationForm.style.display = 'none';
-                
-                // Tampilkan informasi status
-                showStatusInfo(phoneCheckResult.status, phoneCheckResult.userData);
-                
-                // Reset tombol submit
+            if (phoneExists) {
+                hideLoading();
+                showPhoneStatus('registered', `Nomor ${telepon} sudah terdaftar. Silakan login atau gunakan nomor lain.`);
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Daftar Sekarang';
                 return;
             }
             
-            // Jika nomor belum terdaftar, lanjutkan dengan proses registrasi normal
-            console.log('Nomor belum terdaftar, melanjutkan registrasi...');
-            showLoading('Mempersiapkan registrasi...');
-            
-            // Generate promo dan referral code
+            // Jika nomor belum terdaftar, lanjutkan registrasi
             const promoCode = generatePromoCode(nama, telepon);
             const referralCode = generateReferralCode(nama, telepon);
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + 30);
             
-            // Siapkan data registrasi
             registrationData = {
                 nama: nama,
                 email: email,
@@ -1470,7 +1361,6 @@
                 referral_count: 0
             };
             
-            // Generate dan kirim OTP
             const otp = generateOTP();
             try {
                 await saveOTP(telepon, otp);
@@ -1480,7 +1370,7 @@
                 otpSection.style.display = 'block';
                 document.getElementById('otp1').focus();
                 startResendCountdown(60);
-                showInfoMessage('Kode OTP telah dikirim via SMS ke nomor ' + telepon + '. Silakan periksa pesan SMS Anda.', true);
+                showInfoMessage('Kode OTP telah dikirim via SMS. Silakan periksa pesan SMS Anda.', true);
             } catch (error) {
                 hideLoading();
                 console.error('Error dalam proses OTP:', error);
@@ -1569,36 +1459,6 @@
         });
 
         // ================================================
-        // CEK STATUS SAAT INPUT NOMOR TELEPON BERUBAH
-        // ================================================
-        let checkPhoneTimeout;
-        teleponInput.addEventListener('input', function() {
-            // Clear timeout sebelumnya
-            clearTimeout(checkPhoneTimeout);
-            
-            // Set timeout baru untuk menghindari terlalu banyak request
-            checkPhoneTimeout = setTimeout(async () => {
-                let telepon = formatPhoneNumber(this.value.trim());
-                
-                if (validatePhoneFormat(telepon)) {
-                    showLoading('Memeriksa status nomor...');
-                    const phoneCheckResult = await checkPhoneNumberAndStatus(telepon);
-                    hideLoading();
-                    
-                    if (phoneCheckResult.exists) {
-                        currentPhoneNumber = telepon;
-                        registrationForm.style.display = 'none';
-                        showStatusInfo(phoneCheckResult.status, phoneCheckResult.userData);
-                    } else {
-                        // Jika nomor tidak ditemukan, pastikan form ditampilkan
-                        registrationForm.style.display = 'block';
-                        statusInfo.style.display = 'none';
-                    }
-                }
-            }, 1000); // Delay 1 detik setelah user berhenti mengetik
-        });
-
-        // ================================================
         // INITIALIZATION
         // ================================================
         document.addEventListener('DOMContentLoaded', function() {
@@ -1617,16 +1477,6 @@
                 });
             });
             teleponInput.placeholder = '+6281234567890';
-            
-            // Tambahkan event untuk tombol "Gunakan Nomor Lain"
-            document.addEventListener('click', function(e) {
-                if (e.target && e.target.classList.contains('use-other-number')) {
-                    statusInfo.style.display = 'none';
-                    registrationForm.style.display = 'block';
-                    teleponInput.value = '';
-                    teleponInput.focus();
-                }
-            });
             
             console.log('Aplikasi JeGo Registrasi siap digunakan');
         });
