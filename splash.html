@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     :root {
@@ -389,7 +390,7 @@
     <p class="app-subtitle fade-in delay-2">Transportasi online terdepan untuk masyarakat Gorontalo</p>
     
     <div class="location-badge fade-in delay-2">
-      <span></span>
+      <span>📍</span>
       <span>Gorontalo bisa olo</span>
     </div>
     
@@ -401,7 +402,7 @@
     </div>
     
     <div class="driver-badge fade-in delay-4">
-      <span>—</span>
+      <span>🚗—</span>
       <span>Driver Mode - Siap Melayani</span>
     </div>
 
@@ -418,6 +419,18 @@
         <button class="action-btn secondary-btn" id="registerAgainBtn">Daftar Ulang</button>
       </div>
     </div>
+
+    <!-- Status Message untuk user biasa -->
+    <div class="status-message" id="userMessage" style="background-color: rgba(30, 111, 92, 0.2); border: 1px solid rgba(30, 111, 92, 0.4);">
+      <div class="status-title">Mode Pengguna Biasa</div>
+      <div class="status-desc">
+        Anda login sebagai pengguna biasa. Silakan pilih opsi di bawah ini:
+      </div>
+      <div class="action-buttons">
+        <button class="action-btn primary-btn" id="goToUserAppBtn">Masuk sebagai User</button>
+        <button class="action-btn secondary-btn" id="goToDriverBtn">Login sebagai Driver</button>
+      </div>
+    </div>
   </div>
 
   <div class="splash-footer fade-in delay-4">
@@ -425,19 +438,21 @@
   </div>
 
   <script>
-    // Firebase Configuration
+    // Firebase Configuration - KONSISTEN dengan yang baru
     const firebaseConfig = {
-      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
-      authDomain: "ojeka-ba255.firebaseapp.com",
-      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-      projectId: "ojeka-ba255",
-      storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
     };
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const database = firebase.database();
 
     // Simulasi proses loading yang lebih realistis
@@ -445,6 +460,7 @@
     const progressBar = document.getElementById('loadingProgress');
     const loadingText = document.getElementById('loadingText');
     const rejectedMessage = document.getElementById('rejectedMessage');
+    const userMessage = document.getElementById('userMessage');
     
     // Daftar pesan loading yang relevan dengan Gorontalo
     const loadingMessages = [
@@ -493,21 +509,66 @@
       // Check driver status setelah loading selesai
       if (progress >= 100) {
         clearInterval(loadingInterval);
-        checkDriverStatus();
+        checkUserOrDriverStatus();
       }
     }, 300);
     
-    // Fungsi untuk memeriksa status driver langsung ke Firebase
-    function checkDriverStatus() {
-      // Cek apakah user sudah login sebelumnya
+    // Fungsi untuk memeriksa apakah user login sebagai driver atau user biasa
+    function checkUserOrDriverStatus() {
+      // Sembunyikan loading container
+      document.querySelector('.loading-container').style.display = 'none';
+      
+      // Cek apakah ada user yang login (melalui Firebase Auth)
+      auth.onAuthStateChanged((firebaseUser) => {
+        if (firebaseUser) {
+          // User login dengan Google (Firebase Auth)
+          console.log('User Firebase Auth ditemukan:', firebaseUser.email);
+          checkFirebaseUserStatus(firebaseUser);
+        } else {
+          // Cek apakah ada user di localStorage (sistem lama)
+          const loggedInUser = localStorage.getItem('jego_logged_in_user');
+          const driverData = localStorage.getItem('jego_driver_data');
+          
+          if (driverData && driverData !== '{}') {
+            // Ada data driver di localStorage
+            console.log('Driver data found in localStorage');
+            checkDriverStatusFromLocalStorage();
+          } else if (loggedInUser && loggedInUser !== '{}') {
+            // Ada data user biasa di localStorage
+            console.log('User data found in localStorage');
+            showUserModeOptions();
+          } else {
+            // Tidak ada user atau driver yang login
+            console.log('No user or driver logged in');
+            showUserModeOptions();
+          }
+        }
+      });
+    }
+
+    // Fungsi untuk memeriksa status user Firebase Auth
+    function checkFirebaseUserStatus(firebaseUser) {
+      // Cek apakah user ini adalah driver atau user biasa
       const driverData = localStorage.getItem('jego_driver_data');
       
       if (driverData && driverData !== '{}') {
-        // Jika sudah login, cek status di Firebase
+        // User memiliki data driver, cek status driver
+        checkDriverStatusFromLocalStorage();
+      } else {
+        // User biasa, tampilkan opsi
+        showUserModeOptions();
+      }
+    }
+
+    // Fungsi untuk memeriksa status driver dari localStorage
+    function checkDriverStatusFromLocalStorage() {
+      const driverData = localStorage.getItem('jego_driver_data');
+      
+      if (driverData && driverData !== '{}') {
         const driverObj = JSON.parse(driverData);
         const driverId = driverObj.driverId;
         
-        loadingText.textContent = "Memeriksa status akun...";
+        loadingText.textContent = "Memeriksa status driver...";
         
         const driversRef = database.ref('drivers/' + driverId);
         driversRef.once('value')
@@ -522,7 +583,7 @@
               // Tentukan redirect berdasarkan status langsung dari Firebase
               if (currentData.status === 'accepted') {
                 // Jika status accepted, redirect ke list.html
-                redirectToPage('list.html', 'Status akun diterima. Mengalihkan...');
+                redirectToPage('list.html', 'Status akun driver diterima. Mengalihkan...');
               } else if (currentData.status === 'rejected') {
                 // Jika status rejected, tampilkan pesan penolakan
                 showRejectedMessage();
@@ -531,21 +592,31 @@
                 redirectToPage('DaftarDriver.html', 'Status akun pending. Mengalihkan...');
               }
             } else {
-              // Jika data tidak ditemukan di Firebase, arahkan ke login
-              redirectToPage('loginDriver.html', 'Data tidak ditemukan. Mengalihkan...');
+              // Jika data tidak ditemukan di Firebase, tampilkan opsi
+              showUserModeOptions();
             }
           })
           .catch((error) => {
             console.error('Error checking driver status:', error);
-            // Jika terjadi error, arahkan ke login
-            redirectToPage('loginDriver.html', 'Terjadi kesalahan. Mengalihkan...');
+            // Jika terjadi error, tampilkan opsi
+            showUserModeOptions();
           });
       } else {
-        // Jika belum login, ke halaman login driver
-        redirectToPage('loginDriver.html', 'Mengalihkan ke halaman login...');
+        // Tidak ada data driver, tampilkan opsi
+        showUserModeOptions();
       }
     }
-    
+
+    // Fungsi untuk menampilkan opsi mode user
+    function showUserModeOptions() {
+      // Sembunyikan elemen driver badge
+      document.querySelector('.driver-badge').style.display = 'none';
+      
+      // Tampilkan pesan user
+      userMessage.style.display = 'block';
+      userMessage.classList.add('fade-in');
+    }
+
     // Fungsi untuk mengarahkan ke halaman tertentu
     function redirectToPage(page, message) {
       loadingText.textContent = message;
@@ -554,11 +625,12 @@
       }, 1000);
     }
     
-    // Fungsi untuk menampilkan pesan akun ditolak - DIPERBAIKI
+    // Fungsi untuk menampilkan pesan akun ditolak
     function showRejectedMessage() {
       // Sembunyikan elemen loading
       document.querySelector('.loading-container').style.display = 'none';
       document.querySelector('.driver-badge').style.display = 'none';
+      userMessage.style.display = 'none';
       
       // Tampilkan pesan rejected
       rejectedMessage.style.display = 'block';
@@ -587,19 +659,40 @@
       // Redirect ke halaman pendaftaran
       redirectToPage('DaftarDriver.html', 'Mengalihkan ke halaman pendaftaran...');
     });
+
+    // Event listener untuk tombol masuk sebagai user
+    document.getElementById('goToUserAppBtn').addEventListener('click', function() {
+      // Cek apakah user sudah login
+      auth.onAuthStateChanged((firebaseUser) => {
+        if (firebaseUser) {
+          // User sudah login dengan Google
+          redirectToPage('jenis_kenderaan.html', 'Mengalihkan ke aplikasi user...');
+        } else {
+          // User belum login, arahkan ke login
+          redirectToPage('loginReg.html', 'Mengalihkan ke halaman login...');
+        }
+      });
+    });
+
+    // Event listener untuk tombol login sebagai driver
+    document.getElementById('goToDriverBtn').addEventListener('click', function() {
+      // Arahkan ke login driver
+      redirectToPage('loginDriver.html', 'Mengalihkan ke halaman login driver...');
+    });
     
-    // Fallback: redirect otomatis setelah 8 detik - DIPERBAIKI
+    // Fallback: redirect otomatis setelah 10 detik
     let fallbackTimeout = setTimeout(() => {
       // Cek apakah pesan rejected sedang ditampilkan
-      if (rejectedMessage.style.display !== 'block') {
+      if (rejectedMessage.style.display !== 'block' && userMessage.style.display !== 'block') {
         const driverData = localStorage.getItem('jego_driver_data');
         if (driverData && driverData !== '{}') {
           window.location.href = 'list.html';
         } else {
-          window.location.href = 'loginDriver.html';
+          // Default ke halaman login user
+          window.location.href = 'loginReg.html';
         }
       }
-    }, 8000);
+    }, 10000);
     
     // Fungsi untuk mengirim data ke Kodular (jika diperlukan)
     function sendToKodular(data) {
