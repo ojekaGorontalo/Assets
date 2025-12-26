@@ -8,7 +8,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- FirebaseUI untuk WebView -->
+  <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
+  
   <style>
+    /* KEEP YOUR EXISTING STYLES */
     :root {
       --primary: #1e6f5c;
       --secondary: #289672;
@@ -96,68 +101,26 @@
       text-align: center;
     }
 
-    /* Google Login Button */
-    .google-login-btn {
-      background-color: white;
-      color: #757575;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px 25px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 20px 0;
+    /* Customize FirebaseUI */
+    .firebaseui-container {
+      max-width: 100% !important;
+      margin: 0 auto;
     }
-
-    .google-login-btn:hover {
-      background-color: #f8f9fa;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-      transform: translateY(-2px);
+    
+    .firebaseui-card-content {
+      padding: 0 !important;
     }
-
-    .google-login-btn:disabled {
-      background: #cccccc;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
+    
+    .firebaseui-idp-button {
+      max-width: 100% !important;
+      border-radius: 8px !important;
+      height: auto !important;
+      min-height: 48px !important;
     }
-
-    .google-icon {
-      width: 24px;
-      height: 24px;
-      margin-right: 12px;
-    }
-
-    /* Status Messages */
-    .status-message {
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 15px;
-      display: none;
-    }
-
-    .status-success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .status-error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .status-info {
-      background-color: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
+    
+    .firebaseui-idp-text {
+      font-size: 1rem !important;
+      font-weight: 600 !important;
     }
 
     /* Badge Lokal */
@@ -182,83 +145,9 @@
       opacity: 0.8;
     }
 
-    /* Loading State for Buttons */
-    .btn-loading {
-      position: relative;
-      color: transparent !important;
-    }
-
-    .btn-loading::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 20px;
-      height: 20px;
-      margin-top: -10px;
-      margin-left: -10px;
-      border: 2px solid rgba(0, 0, 0, 0.3);
-      border-top-color: #757575;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Progress Bar */
-    .progress-container {
-      height: 4px;
-      background-color: #e0e0e0;
-      border-radius: 2px;
-      margin: 10px 0;
-      overflow: hidden;
-      display: none;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    /* Notification Popup */
-    .notification {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      border-left: 4px solid var(--primary);
-      z-index: 1000;
-      display: none;
-      max-width: 300px;
-    }
-
-    .notification.success {
-      border-left-color: var(--success);
-    }
-
-    .notification.error {
-      border-left-color: var(--danger);
-    }
-
-    .notification.info {
-      border-left-color: var(--primary);
-    }
-
-    .notification-title {
-      font-weight: 600;
-      margin-bottom: 5px;
-    }
-
-    .notification-message {
-      font-size: 0.85rem;
-      color: #666;
+    /* FirebaseUI container */
+    #firebaseui-auth-container {
+      margin: 20px 0;
     }
 
     /* User Info */
@@ -293,6 +182,77 @@
       margin-bottom: 15px;
     }
 
+    .submit-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Status Messages */
+    .status-message {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .status-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    /* Loading State */
+    .loading {
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Fallback Options */
+    .fallback-options {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+    }
+
+    .fallback-btn {
+      display: inline-block;
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .fallback-btn:hover {
+      background: rgba(30, 111, 92, 0.05);
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .header-title {
@@ -305,23 +265,6 @@
       
       .form-container {
         padding: 15px;
-      }
-    }
-
-    @media (max-width: 576px) {
-      .container {
-        padding: 10px;
-      }
-      
-      .form-title {
-        font-size: 1.3rem;
-      }
-
-      .notification {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
       }
     }
   </style>
@@ -338,7 +281,7 @@
   <!-- Container -->
   <div class="container">
     <div class="form-container">
-      <h1 class="form-title">Login User</h1>
+      <h1 class="form-title">Login/Daftar User</h1>
       <div class="local-badge">APLIKASI LOKAL BUATAN ANAK GORONTALO</div>
       <div class="app-info">
         JeGo - Jasa Ekspedisi Gorontalo<br>
@@ -348,21 +291,13 @@
       <!-- Status Message -->
       <div class="status-message" id="statusMessage"></div>
       
-      <!-- Progress Bar -->
-      <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
+      <!-- FirebaseUI Auth Container -->
+      <div id="firebaseui-auth-container"></div>
       
-      <!-- Login with Google Button -->
-      <button type="button" class="google-login-btn" id="googleLoginBtn">
-        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        Login dengan Google
-      </button>
+      <!-- Loading -->
+      <div class="loading" id="loading" style="display: none;">
+        <p>Memproses login...</p>
+      </div>
       
       <!-- User Info (After Login) -->
       <div class="user-info" id="userInfo">
@@ -372,17 +307,18 @@
         <button type="button" class="submit-btn" id="continueBtn">Lanjutkan ke Aplikasi</button>
       </div>
       
+      <!-- Fallback Options -->
+      <div class="fallback-options" id="fallbackOptions" style="display: none;">
+        <p style="margin-bottom: 10px; color: #666;">Login dengan Google tidak tersedia di browser ini.</p>
+        <p><a href="https://jego-gorontalo.firebaseapp.com/login" class="fallback-btn" target="_blank">Buka di Browser Eksternal</a></p>
+        <p style="margin-top: 15px; color: #999; font-size: 0.8rem;">Setelah login di browser, kembali ke aplikasi.</p>
+      </div>
+      
       <!-- Terms and Conditions -->
       <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #666;">
         Dengan melanjutkan, Anda menyetujui <a href="#" style="color: var(--primary);">Syarat & Ketentuan</a> dan <a href="#" style="color: var(--primary);">Kebijakan Privasi</a> JeGo.
       </div>
     </div>
-  </div>
-
-  <!-- Notification Popup -->
-  <div class="notification" id="notificationPopup">
-    <div class="notification-title" id="notificationTitle">Informasi</div>
-    <div class="notification-message" id="notificationMessage"></div>
   </div>
 
   <script>
@@ -403,21 +339,13 @@
     const auth = firebase.auth();
     const database = firebase.database();
 
-    // Show notification popup
-    function showNotification(title, message, type = 'info') {
-      const notification = document.getElementById('notificationPopup');
-      const notificationTitle = document.getElementById('notificationTitle');
-      const notificationMessage = document.getElementById('notificationMessage');
-      
-      notificationTitle.textContent = title;
-      notificationMessage.textContent = message;
-      notification.className = `notification ${type}`;
-      notification.style.display = 'block';
-      
-      // Auto hide after 5 seconds
-      setTimeout(() => {
-        notification.style.display = 'none';
-      }, 5000);
+    // Deteksi jika di WebView AppGeyser
+    function isAppGeyserWebView() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return userAgent.includes('appgeyser') || 
+             userAgent.includes('webview') || 
+             userAgent.includes('wv') ||
+             /android.*wv/.test(userAgent);
     }
 
     // Show status message
@@ -427,37 +355,30 @@
       statusElement.className = 'status-message';
       statusElement.classList.add(`status-${type}`);
       statusElement.style.display = 'block';
-      
-      // Auto hide success messages after 5 seconds
-      if (type === 'success') {
-        setTimeout(() => {
-          statusElement.style.display = 'none';
-        }, 5000);
-      }
     }
 
-    // Show progress bar
-    function showProgress(percent) {
-      const progressContainer = document.getElementById('progressContainer');
-      const progressBar = document.getElementById('progressBar');
-      
-      progressContainer.style.display = 'block';
-      progressBar.style.width = percent + '%';
+    // Hide status message
+    function hideStatus() {
+      document.getElementById('statusMessage').style.display = 'none';
     }
 
-    // Hide progress bar
-    function hideProgress() {
-      const progressContainer = document.getElementById('progressContainer');
-      progressContainer.style.display = 'none';
+    // Show loading
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('firebaseui-auth-container').style.display = 'none';
+    }
+
+    // Hide loading
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
     }
 
     // Show user info after login
-    function showUserInfo(user) {
+    function showUserInfo(user, isNewUser = false) {
       const userInfo = document.getElementById('userInfo');
       const userAvatar = document.getElementById('userAvatar');
       const userName = document.getElementById('userName');
       const userEmail = document.getElementById('userEmail');
-      const googleLoginBtn = document.getElementById('googleLoginBtn');
       
       // Update user info
       if (user.photoURL) {
@@ -471,54 +392,72 @@
       userName.textContent = user.displayName || 'User';
       userEmail.textContent = user.email;
       
-      // Hide login button, show user info
-      googleLoginBtn.style.display = 'none';
+      // Hide auth container, show user info
+      document.getElementById('firebaseui-auth-container').style.display = 'none';
       userInfo.style.display = 'block';
+      
+      // Show welcome message
+      if (isNewUser) {
+        showStatus(`Selamat bergabung, ${user.displayName || 'User'}!`, 'success');
+      } else {
+        showStatus(`Selamat datang kembali, ${user.displayName || 'User'}!`, 'success');
+      }
+    }
+
+    // Check if user exists in database
+    function checkUserExists(userId) {
+      return database.ref('users/' + userId).once('value')
+        .then((snapshot) => {
+          return snapshot.exists();
+        })
+        .catch((error) => {
+          console.error('Error checking user existence:', error);
+          return false;
+        });
     }
 
     // Save user data to Firebase
-    function saveUserToFirebase(user) {
+    async function saveUserToFirebase(user, isNewRegistration = false) {
       const userData = {
         uid: user.uid,
         nama: user.displayName || '',
         email: user.email || '',
-        telepon: user.phoneNumber || '',
         foto: user.photoURL || '',
         provider: user.providerData && user.providerData[0] ? user.providerData[0].providerId : 'google',
         tanggalDaftar: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        status: 'active'
+        status: 'active',
+        isNewRegistration: isNewRegistration
       };
       
-      // Save to Firebase
-      return database.ref('users/' + user.uid).set(userData)
-        .then(() => {
-          console.log('User data saved to Firebase');
-          return userData;
-        })
-        .catch(error => {
-          console.error('Error saving user data:', error);
-          throw error;
-        });
+      try {
+        await database.ref('users/' + user.uid).set(userData);
+        console.log('User data saved to Firebase');
+        return { userData, isNewRegistration };
+      } catch (error) {
+        console.error('Error saving user data:', error);
+        throw error;
+      }
     }
 
     // Save user data to localStorage
-    function saveUserToLocalStorage(user, userData) {
+    function saveUserToLocalStorage(user, userData, isNewUser = false) {
       const userDataToStore = {
         ...userData,
         firebase_key: user.uid,
-        last_login: new Date().toISOString()
+        last_login: new Date().toISOString(),
+        is_new_user: isNewUser
       };
       
-      // 1. Simpan sebagai user logged in (untuk session)
+      // Simpan data user
       localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
       
-      // 2. SIMPAN KE jego_users UNTUK KOMPATIBILITAS
+      // Simpan untuk kompatibilitas
       let jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
       jegoUsers[user.uid] = userData;
       localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
       
-      // 3. Simpan juga sebagai jego_user_data (backup)
+      // Backup
       localStorage.setItem('jego_user_data', JSON.stringify(userData));
       
       console.log('✅ Data user disimpan di localStorage:', userDataToStore);
@@ -560,87 +499,95 @@
       }
     }
 
-    // Handle Google Login
-    document.getElementById('googleLoginBtn').addEventListener('click', function() {
-      const googleLoginBtn = document.getElementById('googleLoginBtn');
+    // Initialize FirebaseUI
+    function initFirebaseUI() {
+      // Cek jika di WebView AppGeyser
+      if (isAppGeyserWebView()) {
+        console.log('Detected AppGeyser WebView - Using FirebaseUI for WebView');
+        showStatus('Menggunakan mode login khusus untuk AppGeyser...', 'info');
+      }
       
-      // Disable button and show loading
-      googleLoginBtn.disabled = true;
-      googleLoginBtn.classList.add('btn-loading');
-      
-      showProgress(20);
-      showStatus('Menginisialisasi login Google...', 'info');
-      
-      // Configure Google provider
-      const provider = new firebase.auth.GoogleAuthProvider();
-      provider.addScope('profile');
-      provider.addScope('email');
-      
-      showProgress(40);
-      
-      // Sign in with Google
-      auth.signInWithPopup(provider)
-        .then((result) => {
-          showProgress(60);
-          const user = result.user;
-          
-          showStatus('Login berhasil! Menyimpan data...', 'success');
-          showProgress(80);
-          
-          // Save user data to Firebase
-          return saveUserToFirebase(user)
-            .then((userData) => {
-              // Save to localStorage
-              saveUserToLocalStorage(user, userData);
-              
-              // Show user info
-              showUserInfo(user);
-              
-              // Show success notification
-              showNotification('Login Berhasil', `Selamat datang, ${user.displayName || 'User'}!`, 'success');
-              
-              // Kirim data user ke Kodular
-              sendToKodular({
-                login_status: 'success',
-                user_data: userData,
-                firebase_key: user.uid,
-                provider: 'google'
-              }, 'login_success');
-              
-              showProgress(100);
-              showStatus('Login berhasil! Klik "Lanjutkan" untuk masuk aplikasi.', 'success');
-            });
-        })
-        .catch((error) => {
-          console.error('Error during Google login:', error);
-          
-          let errorMessage = 'Terjadi kesalahan saat login. Silakan coba lagi.';
-          
-          if (error.code === 'auth/popup-blocked') {
-            errorMessage = 'Popup login diblokir oleh browser. Izinkan popup untuk situs ini.';
-          } else if (error.code === 'auth/popup-closed-by-user') {
-            errorMessage = 'Popup login ditutup sebelum proses selesai.';
-          } else if (error.code === 'auth/network-request-failed') {
-            errorMessage = 'Koneksi jaringan bermasalah. Periksa koneksi internet Anda.';
+      // Konfigurasi FirebaseUI
+      const uiConfig = {
+        callbacks: {
+          signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+            showLoading();
+            
+            const user = authResult.user;
+            const isNewUser = authResult.additionalUserInfo.isNewUser;
+            
+            // Process user login
+            processUserLogin(user, isNewUser);
+            
+            // Return false untuk mencegah redirect default
+            return false;
+          },
+          uiShown: function() {
+            // Hide loading when UI is shown
+            hideLoading();
+            hideStatus();
           }
-          
-          showStatus(errorMessage, 'error');
-          showNotification('Login Gagal', errorMessage, 'error');
-          
-          // Kirim status gagal ke Kodular
-          sendToKodular({
-            login_status: 'failed',
-            reason: error.code || 'unknown',
-            error_message: error.message
-          }, 'login_failed');
-        })
-        .finally(() => {
-          // Reset button state
-          googleLoginBtn.disabled = false;
-          googleLoginBtn.classList.remove('btn-loading');
-          hideProgress();
-        });
-    });
+        },
+        signInFlow: 'popup', // Gunakan popup untuk AppGeyser
+        signInOptions: [
+          {
+            provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+            clientId: '864576853495-xxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
+            customParameters: {
+              prompt: 'select_account'
+            }
+          }
+        ],
+        // Untuk WebView, gunakan credentialHelper: 'none'
+        credentialHelper: isAppGeyserWebView() ? firebaseui.auth.CredentialHelper.NONE : firebaseui.auth.CredentialHelper.GOOGLE_YOLO,
+        // Terms of service url
+        tosUrl: '#',
+        // Privacy policy url
+        privacyPolicyUrl: '#'
+      };
+      
+      // Initialize FirebaseUI
+      const ui = new firebaseui.auth.AuthUI(firebase.auth());
+      ui.start('#firebaseui-auth-container', uiConfig);
+    }
+
+    // Process user login
+    async function processUserLogin(user, isNewUser) {
+      try {
+        // Check if user exists
+        const userExists = await checkUserExists(user.uid);
+        const isNewRegistration = isNewUser || !userExists;
+        
+        // Save user data
+        const saveResult = await saveUserToFirebase(user, isNewRegistration);
+        const { userData } = saveResult;
+        
+        // Save to localStorage
+        saveUserToLocalStorage(user, userData, isNewRegistration);
+        
+        // Show user info
+        showUserInfo(user, isNewRegistration);
+        
+        // Send to Kodular
+        sendToKodular({
+          login_status: 'success',
+          user_data: userData,
+          firebase_key: user.uid,
+          provider: 'google',
+          is_new_user: isNewRegistration
+        }, isNewRegistration ? 'registration_success' : 'login_success');
+        
+        hideLoading();
+        
+      } catch (error) {
+        console.error('Error processing login:', error);
+        showStatus('Terjadi kesalahan saat memproses login. Silakan coba lagi.', 'error');
+        hideLoading();
+        
+        // Show auth UI again
+        document.getElementById('firebaseui-auth-container').style.display = 'block';
+      }
+    }
 
     // Handle Continue button
     document.getElementById('continueBtn').addEventListener('click', function() {
@@ -657,11 +604,38 @@
       if (user) {
         // User is signed in
         console.log('User already logged in:', user);
-        showUserInfo(user);
-        showStatus('Anda sudah login. Klik "Lanjutkan" untuk masuk aplikasi.', 'info');
+        
+        // Check if this is a new or existing user
+        checkUserExists(user.uid)
+          .then((userExists) => {
+            if (!userExists) {
+              // This shouldn't normally happen, but just in case
+              saveUserToFirebase(user, true)
+                .then((result) => {
+                  saveUserToLocalStorage(user, result.userData, true);
+                  showUserInfo(user, true);
+                });
+            } else {
+              showUserInfo(user, false);
+            }
+          });
       } else {
         // User is not signed in
-        console.log('No user logged in');
+        console.log('No user logged in - Initializing FirebaseUI');
+        
+        // Initialize FirebaseUI
+        initFirebaseUI();
+        
+        // Check if we need to show fallback options
+        if (isAppGeyserWebView()) {
+          // Show fallback options after 3 seconds if FirebaseUI doesn't load
+          setTimeout(() => {
+            if (document.getElementById('firebaseui-auth-container').children.length === 0) {
+              document.getElementById('fallbackOptions').style.display = 'block';
+              showStatus('Login dengan Google tidak tersedia di browser ini. Silakan gunakan opsi di bawah.', 'error');
+            }
+          }, 3000);
+        }
       }
     });
 
