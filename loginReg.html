@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Login - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --info: #17a2b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+    }
+
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      color: var(--primary);
+    }
+
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .form-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    /* Google Login Button */
+    .google-login-btn {
+      background-color: white;
+      color: #757575;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .google-login-btn:hover {
+      background-color: #f8f9fa;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+    }
+
+    .google-login-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .google-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 12px;
+    }
+
+    /* Status Messages */
+    .status-message {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .status-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status-info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    /* Badge Lokal */
+    .local-badge {
+      display: inline-block;
+      background-color: var(--accent);
+      color: var(--dark);
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      text-align: center;
+      width: 100%;
+    }
+
+    .app-info {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 0.85rem;
+      color: var(--dark);
+      opacity: 0.8;
+    }
+
+    /* Loading State for Buttons */
+    .btn-loading {
+      position: relative;
+      color: transparent !important;
+    }
+
+    .btn-loading::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin-top: -10px;
+      margin-left: -10px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+      border-top-color: #757575;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      height: 4px;
+      background-color: #e0e0e0;
+      border-radius: 2px;
+      margin: 10px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* Notification Popup */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-left: 4px solid var(--primary);
+      z-index: 1000;
+      display: none;
+      max-width: 300px;
+    }
+
+    .notification.success {
+      border-left-color: var(--success);
+    }
+
+    .notification.error {
+      border-left-color: var(--danger);
+    }
+
+    .notification.info {
+      border-left-color: var(--primary);
+    }
+
+    .notification-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .notification-message {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    /* User Info */
+    .user-info {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      border: 3px solid var(--primary);
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .user-email {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .header-title {
+        font-size: 1rem;
+      }
+      
+      body {
+        font-size: 0.8rem;
+      }
+      
+      .form-container {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .form-title {
+        font-size: 1.3rem;
+      }
+
+      .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <div class="logo">JG</div>
+      <div class="header-title">JeGo - Login User</div>
+    </div>
+  </div>
+
+  <!-- Container -->
+  <div class="container">
+    <div class="form-container">
+      <h1 class="form-title">Login User</h1>
+      <div class="local-badge">APLIKASI LOKAL BUATAN ANAK GORONTALO</div>
+      <div class="app-info">
+        JeGo - Jasa Ekspedisi Gorontalo<br>
+        Solusi Transportasi Lokal Terpercaya
+      </div>
+      
+      <!-- Status Message -->
+      <div class="status-message" id="statusMessage"></div>
+      
+      <!-- Progress Bar -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      
+      <!-- Login with Google Button -->
+      <button type="button" class="google-login-btn" id="googleLoginBtn">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Login dengan Google
+      </button>
+      
+      <!-- User Info (After Login) -->
+      <div class="user-info" id="userInfo">
+        <img class="user-avatar" id="userAvatar" src="" alt="User Avatar">
+        <div class="user-name" id="userName"></div>
+        <div class="user-email" id="userEmail"></div>
+        <button type="button" class="submit-btn" id="continueBtn">Lanjutkan ke Aplikasi</button>
+      </div>
+      
+      <!-- Terms and Conditions -->
+      <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #666;">
+        Dengan melanjutkan, Anda menyetujui <a href="#" style="color: var(--primary);">Syarat & Ketentuan</a> dan <a href="#" style="color: var(--primary);">Kebijakan Privasi</a> JeGo.
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Popup -->
+  <div class="notification" id="notificationPopup">
+    <div class="notification-title" id="notificationTitle">Informasi</div>
+    <div class="notification-message" id="notificationMessage"></div>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // Show notification popup
+    function showNotification(title, message, type = 'info') {
+      const notification = document.getElementById('notificationPopup');
+      const notificationTitle = document.getElementById('notificationTitle');
+      const notificationMessage = document.getElementById('notificationMessage');
+      
+      notificationTitle.textContent = title;
+      notificationMessage.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.style.display = 'block';
+      
+      // Auto hide after 5 seconds
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 5000);
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusElement = document.getElementById('statusMessage');
+      statusElement.textContent = message;
+      statusElement.className = 'status-message';
+      statusElement.classList.add(`status-${type}`);
+      statusElement.style.display = 'block';
+      
+      // Auto hide success messages after 5 seconds
+      if (type === 'success') {
+        setTimeout(() => {
+          statusElement.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Show progress bar
+    function showProgress(percent) {
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      
+      progressContainer.style.display = 'block';
+      progressBar.style.width = percent + '%';
+    }
+
+    // Hide progress bar
+    function hideProgress() {
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer.style.display = 'none';
+    }
+
+    // Show user info after login
+    function showUserInfo(user) {
+      const userInfo = document.getElementById('userInfo');
+      const userAvatar = document.getElementById('userAvatar');
+      const userName = document.getElementById('userName');
+      const userEmail = document.getElementById('userEmail');
+      const googleLoginBtn = document.getElementById('googleLoginBtn');
+      
+      // Update user info
+      if (user.photoURL) {
+        userAvatar.src = user.photoURL;
+      } else {
+        // Default avatar with initials
+        const initials = user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U';
+        userAvatar.src = `https://ui-avatars.com/api/?name=${initials}&background=${encodeURIComponent('#1e6f5c')}&color=fff&size=80`;
+      }
+      
+      userName.textContent = user.displayName || 'User';
+      userEmail.textContent = user.email;
+      
+      // Hide login button, show user info
+      googleLoginBtn.style.display = 'none';
+      userInfo.style.display = 'block';
+    }
+
+    // Save user data to Firebase
+    function saveUserToFirebase(user) {
+      const userData = {
+        uid: user.uid,
+        nama: user.displayName || '',
+        email: user.email || '',
+        telepon: user.phoneNumber || '',
+        foto: user.photoURL || '',
+        provider: user.providerData && user.providerData[0] ? user.providerData[0].providerId : 'google',
+        tanggalDaftar: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        status: 'active'
+      };
+      
+      // Save to Firebase
+      return database.ref('users/' + user.uid).set(userData)
+        .then(() => {
+          console.log('User data saved to Firebase');
+          return userData;
+        })
+        .catch(error => {
+          console.error('Error saving user data:', error);
+          throw error;
+        });
+    }
+
+    // Save user data to localStorage
+    function saveUserToLocalStorage(user, userData) {
+      const userDataToStore = {
+        ...userData,
+        firebase_key: user.uid,
+        last_login: new Date().toISOString()
+      };
+      
+      // 1. Simpan sebagai user logged in (untuk session)
+      localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
+      
+      // 2. SIMPAN KE jego_users UNTUK KOMPATIBILITAS
+      let jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
+      jegoUsers[user.uid] = userData;
+      localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
+      
+      // 3. Simpan juga sebagai jego_user_data (backup)
+      localStorage.setItem('jego_user_data', JSON.stringify(userData));
+      
+      console.log('✅ Data user disimpan di localStorage:', userDataToStore);
+    }
+
+    // Fungsi untuk mengirim data ke Kodular
+    function sendToKodular(data, action = 'login_success') {
+      const kodularData = {
+        action: action,
+        timestamp: new Date().toISOString(),
+        ...data
+      };
+      
+      console.log('Data yang akan dikirim ke Kodular:', kodularData);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(kodularData));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(kodularData));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(kodularData);
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      } else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+      }
+    }
+
+    // Handle Google Login
+    document.getElementById('googleLoginBtn').addEventListener('click', function() {
+      const googleLoginBtn = document.getElementById('googleLoginBtn');
+      
+      // Disable button and show loading
+      googleLoginBtn.disabled = true;
+      googleLoginBtn.classList.add('btn-loading');
+      
+      showProgress(20);
+      showStatus('Menginisialisasi login Google...', 'info');
+      
+      // Configure Google provider
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      
+      showProgress(40);
+      
+      // Sign in with Google
+      auth.signInWithPopup(provider)
+        .then((result) => {
+          showProgress(60);
+          const user = result.user;
+          
+          showStatus('Login berhasil! Menyimpan data...', 'success');
+          showProgress(80);
+          
+          // Save user data to Firebase
+          return saveUserToFirebase(user)
+            .then((userData) => {
+              // Save to localStorage
+              saveUserToLocalStorage(user, userData);
+              
+              // Show user info
+              showUserInfo(user);
+              
+              // Show success notification
+              showNotification('Login Berhasil', `Selamat datang, ${user.displayName || 'User'}!`, 'success');
+              
+              // Kirim data user ke Kodular
+              sendToKodular({
+                login_status: 'success',
+                user_data: userData,
+                firebase_key: user.uid,
+                provider: 'google'
+              }, 'login_success');
+              
+              showProgress(100);
+              showStatus('Login berhasil! Klik "Lanjutkan" untuk masuk aplikasi.', 'success');
+            });
+        })
+        .catch((error) => {
+          console.error('Error during Google login:', error);
+          
+          let errorMessage = 'Terjadi kesalahan saat login. Silakan coba lagi.';
+          
+          if (error.code === 'auth/popup-blocked') {
+            errorMessage = 'Popup login diblokir oleh browser. Izinkan popup untuk situs ini.';
+          } else if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage = 'Popup login ditutup sebelum proses selesai.';
+          } else if (error.code === 'auth/network-request-failed') {
+            errorMessage = 'Koneksi jaringan bermasalah. Periksa koneksi internet Anda.';
+          }
+          
+          showStatus(errorMessage, 'error');
+          showNotification('Login Gagal', errorMessage, 'error');
+          
+          // Kirim status gagal ke Kodular
+          sendToKodular({
+            login_status: 'failed',
+            reason: error.code || 'unknown',
+            error_message: error.message
+          }, 'login_failed');
+        })
+        .finally(() => {
+          // Reset button state
+          googleLoginBtn.disabled = false;
+          googleLoginBtn.classList.remove('btn-loading');
+          hideProgress();
+        });
+    });
+
+    // Handle Continue button
+    document.getElementById('continueBtn').addEventListener('click', function() {
+      showStatus('Mengalihkan ke halaman utama...', 'info');
+      
+      // Redirect to jenis_kenderaan.html after 1 second
+      setTimeout(() => {
+        window.location.href = 'jenis_kenderaan.html';
+      }, 1000);
+    });
+
+    // Check if user is already logged in
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is signed in
+        console.log('User already logged in:', user);
+        showUserInfo(user);
+        showStatus('Anda sudah login. Klik "Lanjutkan" untuk masuk aplikasi.', 'info');
+      } else {
+        // User is not signed in
+        console.log('No user logged in');
+      }
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if already logged in via localStorage
+      const loggedInUser = localStorage.getItem('jego_logged_in_user');
+      
+      if (loggedInUser) {
+        try {
+          const user = JSON.parse(loggedInUser);
+          showStatus('Anda sudah login. Mengalihkan...', 'info');
+          
+          // Redirect ke jenis_kenderaan.html setelah 1.5 detik
+          setTimeout(() => {
+            window.location.href = 'jenis_kenderaan.html';
+          }, 1500);
+        } catch (error) {
+          console.error('Error parsing logged in user:', error);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
