@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>JeGo - Aplikasi Transportasi Lokal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --info: #17a2b8;
+      --user-color: #1e6f5c;
+      --driver-color: #289672;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e6f5c 0%, #289672 100%);
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Styles */
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--primary);
+      padding: 20px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+      text-align: center;
+      position: relative;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-weight: bold;
+      font-size: 24px;
+      color: var(--primary);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .header-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .header-subtitle {
+      font-size: 1rem;
+      color: var(--dark);
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .welcome-section {
+      margin-bottom: 40px;
+      color: white;
+      max-width: 600px;
+    }
+
+    .welcome-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .welcome-text {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      opacity: 0.9;
+      margin-bottom: 10px;
+    }
+
+    /* Selection Cards */
+    .selection-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 25px;
+      max-width: 900px;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .selection-card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      flex: 1;
+      min-width: 300px;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-top: 8px solid var(--primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .selection-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    }
+
+    .selection-card.user {
+      border-top-color: var(--user-color);
+    }
+
+    .selection-card.driver {
+      border-top-color: var(--driver-color);
+    }
+
+    .card-icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 25px;
+      font-size: 40px;
+      color: white;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+
+    .user .card-icon {
+      background: linear-gradient(135deg, var(--user-color), #289672);
+    }
+
+    .driver .card-icon {
+      background: linear-gradient(135deg, var(--driver-color), #32b48c);
+    }
+
+    .card-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--dark);
+    }
+
+    .card-description {
+      font-size: 1rem;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .selection-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 6px 15px rgba(30, 111, 92, 0.3);
+      width: 100%;
+      max-width: 250px;
+      margin-top: auto;
+    }
+
+    .selection-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(30, 111, 92, 0.4);
+    }
+
+    .user .selection-btn {
+      background: linear-gradient(to right, var(--user-color), #289672);
+    }
+
+    .driver .selection-btn {
+      background: linear-gradient(to right, var(--driver-color), #32b48c);
+    }
+
+    .card-features {
+      text-align: left;
+      width: 100%;
+      margin-top: 20px;
+      margin-bottom: 25px;
+    }
+
+    .card-features li {
+      margin-bottom: 10px;
+      padding-left: 25px;
+      position: relative;
+      font-size: 0.95rem;
+    }
+
+    .card-features li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .user .card-features li:before {
+      color: var(--user-color);
+    }
+
+    .driver .card-features li:before {
+      color: var(--driver-color);
+    }
+
+    /* Footer */
+    .footer {
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--dark);
+      padding: 20px;
+      text-align: center;
+      margin-top: 40px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .local-badge {
+      display: inline-block;
+      background-color: var(--accent);
+      color: var(--dark);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    .footer-text {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 10px;
+    }
+
+    /* Animation for logo */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .logo {
+      animation: pulse 2s infinite;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .selection-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .selection-card {
+        min-width: 100%;
+        max-width: 100%;
+      }
+      
+      .header-title {
+        font-size: 1.5rem;
+      }
+      
+      .welcome-title {
+        font-size: 1.6rem;
+      }
+      
+      .card-title {
+        font-size: 1.5rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .header {
+        padding: 15px;
+      }
+      
+      .main-content {
+        padding: 15px;
+      }
+      
+      .selection-card {
+        padding: 20px;
+      }
+      
+      .card-icon {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <div class="logo">JG</div>
+      <div>
+        <div class="header-title">JeGo</div>
+        <div class="header-subtitle">Jasa Ekspedisi Gorontalo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="welcome-section">
+      <h1 class="welcome-title">Selamat Datang di JeGo</h1>
+      <p class="welcome-text">Solusi transportasi lokal terpercaya dari Gorontalo</p>
+      <p class="welcome-text">Silakan pilih peran Anda untuk melanjutkan</p>
+    </div>
+
+    <div class="selection-container">
+      <!-- User Card -->
+      <div class="selection-card user">
+        <div class="card-icon">
+          👤
+        </div>
+        <h2 class="card-title">Pengguna (User)</h2>
+        <p class="card-description">
+          Login sebagai pengguna untuk memesan layanan transportasi dengan mudah, cepat, dan aman.
+        </p>
+        
+        <div class="card-features">
+          <ul>
+            <li>Pesan kendaraan dengan cepat</li>
+            <li>Lacak perjalanan secara real-time</li>
+            <li>Bayar dengan metode yang aman</li>
+            <li>Beri rating dan ulasan untuk driver</li>
+          </ul>
+        </div>
+        
+        <button class="selection-btn" id="userBtn">Login sebagai User</button>
+      </div>
+
+      <!-- Driver Card -->
+      <div class="selection-card driver">
+        <div class="card-icon">
+          🚗
+        </div>
+        <h2 class="card-title">Pengemudi (Driver)</h2>
+        <p class="card-description">
+          Login sebagai driver untuk menerima pesanan dan mendapatkan penghasilan tambahan.
+        </p>
+        
+        <div class="card-features">
+          <ul>
+            <li>Terima pesanan di area Anda</li>
+            <li>Penghasilan tambahan yang fleksibel</li>
+            <li>Sistem rating untuk meningkatkan reputasi</li>
+            <li>Dukungan 24/7 dari tim JeGo</li>
+          </ul>
+        </div>
+        
+        <button class="selection-btn" id="driverBtn">Login sebagai Driver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="local-badge">APLIKASI LOKAL BUATAN ANAK GORONTALO</div>
+    <div class="footer-text">JeGo - Jasa Ekspedisi Gorontalo © 2023</div>
+    <div class="footer-text">Solusi Transportasi Lokal Terpercaya</div>
+  </div>
+
+  <script>
+    // Fungsi untuk mengirim data ke Kodular
+    function sendToKodular(data, action = 'screen_navigation') {
+      const kodularData = {
+        action: action,
+        timestamp: new Date().toISOString(),
+        ...data
+      };
+      
+      console.log('Data yang akan dikirim ke Kodular:', kodularData);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(kodularData));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(kodularData));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(kodularData);
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      } else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        
+        // Simulasi navigasi untuk pengujian di browser
+        if (data.target === 'user_login') {
+          window.location.href = 'loginUser.html';
+        } else if (data.target === 'driver_login') {
+          window.location.href = 'loginDriver.html';
+        }
+      }
+    }
+
+    // Handle User button click
+    document.getElementById('userBtn').addEventListener('click', function() {
+      console.log('User button clicked');
+      
+      // Kirim data ke Kodular untuk navigasi ke Screen2
+      sendToKodular({
+        target: 'user_login',
+        screen: 'Screen2',
+        message: 'Navigasi ke halaman login user'
+      });
+    });
+
+    // Handle Driver button click
+    document.getElementById('driverBtn').addEventListener('click', function() {
+      console.log('Driver button clicked');
+      
+      // Kirim data ke Kodular untuk navigasi ke Screen3
+      sendToKodular({
+        target: 'driver_login',
+        screen: 'Screen3',
+        message: 'Navigasi ke halaman login driver'
+      });
+    });
+
+    // Cek jika sudah login sebelumnya
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Halaman utama JeGo dimuat');
+      
+      // Cek jika user sudah login
+      const loggedInUser = localStorage.getItem('jego_logged_in_user');
+      if (loggedInUser) {
+        console.log('User sudah login, redirect ke halaman user');
+        // Kirim data ke Kodular untuk navigasi langsung
+        sendToKodular({
+          target: 'user_login',
+          screen: 'Screen2',
+          auto_login: true,
+          message: 'User sudah login sebelumnya'
+        });
+      }
+      
+      // Cek jika driver sudah login
+      const isDriverLoggedIn = localStorage.getItem('jego_driver_logged_in');
+      if (isDriverLoggedIn === 'true') {
+        console.log('Driver sudah login, redirect ke halaman driver');
+        // Kirim data ke Kodular untuk navigasi langsung
+        sendToKodular({
+          target: 'driver_login',
+          screen: 'Screen3',
+          auto_login: true,
+          message: 'Driver sudah login sebelumnya'
+        });
+      }
+    });
+  </script>
+</body>
+</html>
