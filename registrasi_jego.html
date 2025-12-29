@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JeGo - Jasa Ekspedisi Gorontalo</title>
     
-    <!-- Firebase SDK v9 -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
-        window.firebaseV9 = { initializeApp, getDatabase };
-    </script>
-    
     <style>
         :root {
             --primary: #1e6f5c;
@@ -284,80 +277,85 @@
             transform: translateY(-2px);
         }
         
-        /* OTP Section Styles */
-        .otp-section {
-            display: none;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        .otp-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .otp-info {
-            margin-bottom: 20px;
+        /* Phone status message */
+        .phone-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
             font-size: 0.9rem;
-            text-align: center;
-            color: #666;
+            display: none;
         }
-
-        .otp-input-container {
+        
+        .phone-status.available {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success);
+            border-left: 3px solid var(--success);
+            display: block;
+        }
+        
+        .phone-status.registered {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: var(--warning);
+            border-left: 3px solid var(--warning);
+            display: block;
+        }
+        
+        .phone-status.error {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+            border-left: 3px solid var(--danger);
+            display: block;
+        }
+        
+        .phone-status-message {
             display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 8px;
         }
-
-        .otp-input {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border: 2px solid #ddd;
+        
+        .phone-status-icon {
+            font-size: 1.1rem;
+        }
+        
+        .phone-status-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .phone-status-btn {
+            padding: 6px 12px;
             border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
             transition: all 0.3s;
         }
-
-        .otp-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.1);
-            outline: none;
+        
+        .phone-status-btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .phone-status-btn.secondary {
+            background-color: #6c757d;
+            color: white;
         }
 
-        .otp-input.filled {
-            border-color: var(--primary);
+        /* Recaptcha Container */
+        #recaptcha-container {
+            margin: 15px 0;
+            min-height: 78px;
+            display: flex;
+            justify-content: center;
         }
 
-        .resend-otp {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 0.85rem;
+        #recaptcha-container > div {
+            margin: 0 auto;
         }
 
-        .resend-link {
-            color: var(--primary);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        .resend-link:hover {
-            color: var(--secondary);
-        }
-
-        .resend-link.disabled {
-            color: #999;
-            cursor: not-allowed;
-            text-decoration: none;
-        }
-
-        /* Modal Popup Styles */
+        /* Modal Styles */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -545,85 +543,148 @@
             text-align: center;
         }
 
-        /* Auto-hide modal */
-        .modal.auto-hide {
-            animation: fadeOut 0.5s ease 2s forwards;
+        /* OTP Verification Section */
+        .otp-section {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .otp-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .otp-info {
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .otp-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .otp-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.1);
+            outline: none;
+        }
+
+        .otp-input.filled {
+            border-color: var(--primary);
+        }
+
+        .resend-otp {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+
+        .resend-link {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .resend-link:hover {
+            color: var(--secondary);
+        }
+
+        .resend-link.disabled {
+            color: #999;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        /* Auth Steps */
+        .auth-step {
+            display: none;
+        }
+
+        .auth-step.active {
+            display: block;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .step.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .step.completed {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background-color: #e9ecef;
+            align-self: center;
+            max-width: 50px;
+        }
+
+        .step-line.active {
+            background-color: var(--primary);
+        }
+
+        .step-label {
+            position: absolute;
+            top: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .step.active .step-label {
+            color: var(--primary);
+            font-weight: 600;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            100% { opacity: 0; visibility: hidden; }
-        }
-        
-        /* Phone status message */
-        .phone-status {
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 8px;
-            font-size: 0.9rem;
-            display: none;
-        }
-        
-        .phone-status.available {
-            background-color: rgba(40, 167, 69, 0.1);
-            color: var(--success);
-            border-left: 3px solid var(--success);
-            display: block;
-        }
-        
-        .phone-status.registered {
-            background-color: rgba(255, 193, 7, 0.1);
-            color: var(--warning);
-            border-left: 3px solid var(--warning);
-            display: block;
-        }
-        
-        .phone-status.error {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: var(--danger);
-            border-left: 3px solid var(--danger);
-            display: block;
-        }
-        
-        .phone-status-message {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .phone-status-icon {
-            font-size: 1.1rem;
-        }
-        
-        .phone-status-actions {
-            margin-top: 8px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .phone-status-btn {
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s;
-        }
-        
-        .phone-status-btn.primary {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .phone-status-btn.secondary {
-            background-color: #6c757d;
-            color: white;
         }
         
         @media (max-width: 768px) {
@@ -663,6 +724,14 @@
             .phone-status-actions {
                 flex-direction: column;
             }
+
+            .step-label {
+                display: none;
+            }
+
+            .step-line {
+                max-width: 30px;
+            }
         }
     </style>
 </head>
@@ -693,70 +762,98 @@
 
         <div class="content">
             <section class="form-section">
+                <div class="step-indicator">
+                    <div class="step active" id="step1">
+                        1
+                        <span class="step-label">Data Diri</span>
+                    </div>
+                    <div class="step-line" id="line1"></div>
+                    <div class="step" id="step2">
+                        2
+                        <span class="step-label">Verifikasi OTP</span>
+                    </div>
+                    <div class="step-line" id="line2"></div>
+                    <div class="step" id="step3">
+                        3
+                        <span class="step-label">Selesai</span>
+                    </div>
+                </div>
+
                 <h2>Formulir Pendaftaran JeGo</h2>
                 <div class="local-badge">APLIKASI LOKAL BUATAN ANAK GORONTALO</div>
                 
-                <form id="registrationForm">
-                    <div class="form-group">
-                        <label for="nama">Nama Lengkap (Sesuai Identitas)</label>
-                        <input type="text" id="nama" name="nama" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="telepon">Nomor Telepon</label>
-                        <input type="tel" id="telepon" name="telepon" placeholder="+6281234567890" required>
-                        <div class="phone-format">
-                            Format: <span class="example">+6281234567890</span> (gunakan kode negara +62)
+                <!-- Step 1: Data Diri -->
+                <div class="auth-step active" id="step1-content">
+                    <form id="registrationForm">
+                        <div class="form-group">
+                            <label for="nama">Nama Lengkap (Sesuai Identitas)</label>
+                            <input type="text" id="nama" name="nama" required>
                         </div>
                         
-                        <!-- Status message untuk nomor telepon -->
-                        <div id="phoneStatus" class="phone-status">
-                            <div class="phone-status-message">
-                                <span id="phoneStatusIcon" class="phone-status-icon">ℹ️</span>
-                                <span id="phoneStatusText"></span>
-                            </div>
-                            <div id="phoneStatusActions" class="phone-status-actions"></div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
                         </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="alamat">Alamat Lengkap</label>
-                        <textarea id="alamat" name="alamat" rows="3" required></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="jenisKelamin">Jenis Kelamin</label>
-                        <select id="jenisKelamin" name="jenisKelamin" required>
-                            <option value="">Pilih Jenis Kelamin</option>
-                            <option value="Laki-laki">Laki-laki</option>
-                            <option value="Perempuan">Perempuan</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" name="syarat" required>
-                            Saya menyetujui semua syarat dan ketentuan yang berlaku di aplikasi JeGo
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn" id="submitBtn">Daftar Sekarang</button>
-                    
-                    <a href="loginUser.html" class="login-btn" id="formLoginBtn">Sudah Punya Akun? Login</a>
-                </form>
+                        
+                        <div class="form-group">
+                            <label for="telepon">Nomor Telepon</label>
+                            <input type="tel" id="telepon" name="telepon" placeholder="+6281234567890" required>
+                            <div class="phone-format">
+                                Format: <span class="example">+6281234567890</span> (gunakan kode negara +62)
+                            </div>
+                            
+                            <!-- Status message untuk nomor telepon -->
+                            <div id="phoneStatus" class="phone-status">
+                                <div class="phone-status-message">
+                                    <span id="phoneStatusIcon" class="phone-status-icon">ℹ️</span>
+                                    <span id="phoneStatusText"></span>
+                                </div>
+                                <div id="phoneStatusActions" class="phone-status-actions"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="alamat">Alamat Lengkap</label>
+                            <textarea id="alamat" name="alamat" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="jenisKelamin">Jenis Kelamin</label>
+                            <select id="jenisKelamin" name="jenisKelamin" required>
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="syarat" required>
+                                Saya menyetujui semua syarat dan ketentuan yang berlaku di aplikasi JeGo
+                            </label>
+                        </div>
+                        
+                        <!-- Recaptcha Container -->
+                        <div id="recaptcha-container"></div>
+                        
+                        <button type="button" class="btn" id="nextBtn">Lanjutkan ke Verifikasi</button>
+                        
+                        <a href="loginUser.html" class="login-btn" id="formLoginBtn">Sudah Punya Akun? Login</a>
+                    </form>
+                </div>
 
-                <!-- OTP Verification Section -->
-                <div class="otp-section" id="otpSection">
+                <!-- Step 2: Verifikasi OTP -->
+                <div class="auth-step" id="step2-content">
                     <h2 class="otp-title">Verifikasi Nomor Telepon</h2>
                     
                     <div class="otp-info">
-                        <p>Kode OTP telah dikirim via SMS ke nomor Anda.</p>
+                        <p>Kami akan mengirimkan kode OTP via SMS ke nomor Anda.</p>
                         <p>Masukkan kode OTP 6 digit untuk menyelesaikan pendaftaran.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nomor Telepon</label>
+                        <input type="text" id="verifiedPhone" readonly style="background-color: #f8f9fa;">
                     </div>
                     
                     <div class="otp-input-container">
@@ -775,6 +872,27 @@
                         <span class="resend-link" id="resendOtpLink">Kirim ulang OTP</span>
                         <span id="countdownText" style="display: none;"> (Tunggu <span id="countdown">60</span> detik)</span>
                     </div>
+                    
+                    <button type="button" class="login-btn" id="backToStep1Btn">Kembali ke Data Diri</button>
+                </div>
+
+                <!-- Step 3: Pendaftaran Selesai -->
+                <div class="auth-step" id="step3-content">
+                    <h2 class="otp-title">🎉 Pendaftaran Berhasil!</h2>
+                    
+                    <div class="otp-info">
+                        <p id="successMessage">Selamat! Akun Anda telah berhasil dibuat.</p>
+                        <p>Anda akan dialihkan ke halaman utama dalam beberapa detik...</p>
+                    </div>
+                    
+                    <div id="userInfo" style="background-color: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none;">
+                        <p><strong>Informasi Akun:</strong></p>
+                        <p id="userName"></p>
+                        <p id="userPhone"></p>
+                        <p id="userPromo"></p>
+                    </div>
+                    
+                    <button type="button" class="btn" id="goToHomeBtn">Lanjutkan ke Halaman Utama</button>
                 </div>
             </section>
         </div>
@@ -816,49 +934,52 @@
         </div>
     </div>
 
-    <script type="module">
+    <!-- Load Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
         // ================================================
-        // IMPORT FIREBASE MODULES (v9) - HANYA DATABASE
+        // KONFIGURASI
         // ================================================
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref as dbRef, set, orderByChild, equalTo, query, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
         
-        // ================================================
-        // KONFIGURASI FIREBASE PROJECT UNTUK DATABASE SAJA
-        // ================================================
-        const firebaseConfigDatabase = {
-            apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
-            authDomain: "ojeka-ba255.firebaseapp.com",
-            databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-            projectId: "ojeka-ba255",
-            storageBucket: "ojeka-ba255.firebasestorage.app",
-            messagingSenderId: "639980533353",
-            appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
-            measurementId: "G-PBP64Z8VQ8"
+        // Firebase Configuration
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+            authDomain: "game-balap-simpel.firebaseapp.com",
+            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+            projectId: "game-balap-simpel",
+            storageBucket: "game-balap-simpel.firebasestorage.app",
+            messagingSenderId: "864576853495",
+            appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+            measurementId: "G-YWJPK7Y3J4"
         };
-        
-        // ================================================
-        // INISIALISASI FIREBASE APP UNTUK DATABASE
-        // ================================================
-        const databaseApp = initializeApp(firebaseConfigDatabase, "databaseApp");
-        const database = getDatabase(databaseApp);
-        console.log("Firebase Database App initialized:", databaseApp.name);
-        
-        const usersRef = dbRef(database, 'users');
-        const otpRef = dbRef(database, 'otp');
         
         // ================================================
         // ELEMEN DOM
         // ================================================
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const line1 = document.getElementById('line1');
+        const line2 = document.getElementById('line2');
+        
+        const step1Content = document.getElementById('step1-content');
+        const step2Content = document.getElementById('step2-content');
+        const step3Content = document.getElementById('step3-content');
+        
         const registrationForm = document.getElementById('registrationForm');
-        const submitBtn = document.getElementById('submitBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const backToStep1Btn = document.getElementById('backToStep1Btn');
+        const goToHomeBtn = document.getElementById('goToHomeBtn');
         const teleponInput = document.getElementById('telepon');
+        const verifiedPhoneInput = document.getElementById('verifiedPhone');
         const autoRedirectInfo = document.getElementById('autoRedirectInfo');
         const headerLoginBtn = document.getElementById('headerLoginBtn');
         const headerHomeBtn = document.getElementById('headerHomeBtn');
         const formLoginBtn = document.getElementById('formLoginBtn');
-        const otpSection = document.getElementById('otpSection');
-        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
         const resendOtpLink = document.getElementById('resendOtpLink');
         const countdownText = document.getElementById('countdownText');
         const countdownElement = document.getElementById('countdown');
@@ -872,6 +993,12 @@
         const modalCancelBtn = document.getElementById('modalCancelBtn');
         const loadingModal = document.getElementById('loadingModal');
         const loadingText = document.getElementById('loadingText');
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        const userPhone = document.getElementById('userPhone');
+        const userPromo = document.getElementById('userPromo');
+        const successMessage = document.getElementById('successMessage');
         
         // Elemen untuk status telepon
         const phoneStatus = document.getElementById('phoneStatus');
@@ -879,14 +1006,24 @@
         const phoneStatusText = document.getElementById('phoneStatusText');
         const phoneStatusActions = document.getElementById('phoneStatusActions');
         
+        // ================================================
+        // VARIABEL GLOBAL
+        // ================================================
         let registrationData = null;
         let otpTimer = null;
         let otpCountdown = 60;
         let phoneCheckTimeout = null;
-
+        let firebaseApp = null;
+        let firebaseAuth = null;
+        let firebaseDatabase = null; // ✅ Tambahkan Firebase Database
+        let recaptchaVerifier = null;
+        let confirmationResult = null;
+        let currentStep = 1;
+        
         // ================================================
-        // FUNGSI UTILITAS UMUM
+        // FUNGSI UTILITAS
         // ================================================
+        
         function showPopup(title, message, type = 'info', options = {}) {
             modalTitleText.textContent = title;
             modalMessage.innerHTML = message;
@@ -906,18 +1043,20 @@
                 hidePopup();
                 if (options.onConfirm) options.onConfirm();
             };
+            
             modalCancelBtn.onclick = function() {
                 hidePopup();
                 if (options.onCancel) options.onCancel();
             };
+            
             modalCloseBtn.onclick = function() {
                 hidePopup();
                 if (options.onCancel) options.onCancel();
             };
             
             modalOverlay.classList.add('active');
+            
             if (options.autoHide) {
-                modal.classList.add('auto-hide');
                 setTimeout(() => {
                     hidePopup();
                     if (options.onAutoHide) options.onAutoHide();
@@ -927,7 +1066,6 @@
         
         function hidePopup() {
             modalOverlay.classList.remove('active');
-            modal.classList.remove('auto-hide');
         }
         
         function showLoading(message = 'Sedang memproses...') {
@@ -961,8 +1099,12 @@
                     headerHomeBtn.style.display = 'inline-block';
                     formLoginBtn.textContent = 'Lanjutkan ke Halaman Utama';
                     formLoginBtn.href = 'jenis_kenderaan.html';
-                    showInfoMessage('Anda sudah login sebelumnya. Mengarahkan ke halaman utama...', true);
-                    setTimeout(() => { window.location.href = 'jenis_kenderaan.html'; }, 3000);
+                    
+                    // Auto redirect setelah 3 detik
+                    setTimeout(() => {
+                        window.location.href = 'jenis_kenderaan.html';
+                    }, 3000);
+                    
                     return true;
                 } catch (error) {
                     console.error('Error parsing logged in user:', error);
@@ -989,46 +1131,7 @@
             return phoneRegex.test(phone);
         }
         
-        // ================================================
-        // FUNGSI CEK NOMOR TELEPON
-        // ================================================
-        async function checkPhoneNumberExists(phoneNumber) {
-            try {
-                const usersQuery = query(usersRef, orderByChild('telepon'), equalTo(phoneNumber));
-                const snapshot = await get(usersQuery);
-                return snapshot.exists();
-            } catch (error) {
-                console.error('Error checking phone number:', error);
-                return false;
-            }
-        }
-        
-        async function getPhoneNumberInfo(phoneNumber) {
-            try {
-                const usersQuery = query(usersRef, orderByChild('telepon'), equalTo(phoneNumber));
-                const snapshot = await get(usersQuery);
-                
-                if (!snapshot.exists()) {
-                    return { exists: false };
-                }
-                
-                let userData = null;
-                snapshot.forEach((childSnapshot) => {
-                    userData = childSnapshot.val();
-                });
-                
-                return {
-                    exists: true,
-                    userData: userData
-                };
-            } catch (error) {
-                console.error('Error getting phone number info:', error);
-                return { exists: false, error: error.message };
-            }
-        }
-        
         function showPhoneStatus(type, message, userData = null) {
-            // Reset status
             phoneStatus.className = 'phone-status';
             phoneStatusActions.innerHTML = '';
             
@@ -1036,21 +1139,17 @@
                 phoneStatus.classList.add('available');
                 phoneStatusIcon.textContent = '✅';
                 phoneStatusText.textContent = message;
-                
-                // Kosongkan tombol aksi
-                phoneStatusActions.innerHTML = '';
             } 
             else if (type === 'registered') {
                 phoneStatus.classList.add('registered');
                 phoneStatusIcon.textContent = 'ℹ️';
                 phoneStatusText.textContent = message;
                 
-                // Tambahkan tombol aksi
                 const loginBtn = document.createElement('button');
                 loginBtn.className = 'phone-status-btn primary';
                 loginBtn.textContent = 'Login';
                 loginBtn.onclick = () => {
-                    window.location.href = 'loginUser.html';
+                    window.location.href = 'loginUser.html?phone=' + encodeURIComponent(userData?.phone || teleponInput.value);
                 };
                 
                 const clearBtn = document.createElement('button');
@@ -1069,56 +1168,13 @@
                 phoneStatus.classList.add('error');
                 phoneStatusIcon.textContent = '❌';
                 phoneStatusText.textContent = message;
-                
-                // Kosongkan tombol aksi
-                phoneStatusActions.innerHTML = '';
             }
             
-            // Tampilkan status
             phoneStatus.style.display = 'block';
         }
         
         function hidePhoneStatus() {
             phoneStatus.style.display = 'none';
-        }
-
-        // ================================================
-        // FUNGSI OTP (Firebase v9)
-        // ================================================
-        function generateOTP() {
-            return Math.floor(100000 + Math.random() * 900000).toString();
-        }
-        
-        async function saveOTP(phoneNumber, otp) {
-            const otpExpiry = Date.now() + (10 * 60 * 1000);
-            const otpData = { otp: otp, otpExpiry: otpExpiry, phone: phoneNumber, createdAt: Date.now() };
-            const otpKey = phoneNumber.replace('+', '');
-            const otpRefPath = dbRef(database, `otp/${otpKey}`);
-            await set(otpRefPath, otpData);
-            return otpKey;
-        }
-        
-        async function validateOTP(phoneNumber, enteredOtp) {
-            const otpKey = phoneNumber.replace('+', '');
-            const otpRefPath = dbRef(database, `otp/${otpKey}`);
-            try {
-                const snapshot = await get(otpRefPath);
-                const otpData = snapshot.val();
-                if (!otpData) return { isValid: false, message: 'OTP tidak ditemukan. Silakan minta OTP baru.' };
-                if (Date.now() > otpData.otpExpiry) return { isValid: false, message: 'OTP telah kedaluwarsa. Silakan minta OTP baru.' };
-                if (otpData.otp !== enteredOtp) return { isValid: false, message: 'Kode OTP tidak sesuai. Silakan coba lagi.' };
-                return { isValid: true };
-            } catch (error) {
-                console.error('Error validating OTP:', error);
-                return { isValid: false, message: 'Terjadi kesalahan saat memvalidasi OTP.' };
-            }
-        }
-        
-        function clearOTPInputs() {
-            for (let i = 1; i <= 6; i++) {
-                document.getElementById(`otp${i}`).value = '';
-                document.getElementById(`otp${i}`).classList.remove('filled');
-            }
         }
         
         function setupOTPInputs() {
@@ -1137,9 +1193,13 @@
                         e.target.classList.remove('filled');
                     }
                 });
+                
                 input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Backspace' && !e.target.value && index > 0) otpInputs[index - 1].focus();
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
                 });
+                
                 input.addEventListener('paste', (e) => {
                     e.preventDefault();
                     const pastedData = e.clipboardData.getData('text').trim();
@@ -1156,8 +1216,17 @@
         
         function getEnteredOTP() {
             let otp = '';
-            for (let i = 1; i <= 6; i++) otp += document.getElementById(`otp${i}`).value;
+            for (let i = 1; i <= 6; i++) {
+                otp += document.getElementById(`otp${i}`).value;
+            }
             return otp;
+        }
+        
+        function clearOTPInputs() {
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`otp${i}`).value = '';
+                document.getElementById(`otp${i}`).classList.remove('filled');
+            }
         }
         
         function startResendCountdown(seconds) {
@@ -1165,10 +1234,13 @@
             countdownText.style.display = 'inline';
             otpCountdown = seconds;
             countdownElement.textContent = otpCountdown;
+            
             if (otpTimer) clearInterval(otpTimer);
+            
             otpTimer = setInterval(() => {
                 otpCountdown--;
                 countdownElement.textContent = otpCountdown;
+                
                 if (otpCountdown <= 0) {
                     clearInterval(otpTimer);
                     resendOtpLink.classList.remove('disabled');
@@ -1177,121 +1249,309 @@
             }, 1000);
         }
         
-        function sendSmsOtp(phoneNumber, otp) {
-            return new Promise((resolve, reject) => {
-                const cleanNumber = phoneNumber.replace(/\D/g, '');
-                let formattedNumber = cleanNumber;
-                if (formattedNumber.startsWith('0')) formattedNumber = '62' + formattedNumber.substring(1);
-                const messageText = `Kode OTP JeGo Anda adalah: ${otp}. Jangan berikan kode ini kepada siapapun.`;
-                const encodedMessage = encodeURIComponent(messageText);
-                const originalUrl = `https://srv2.soufasms.com/sms_gateway/?user=gsmreload&pass=Jd59dm$jr*dj%5Ehy&no=${formattedNumber}&msg=${encodedMessage}&max=1`;
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(originalUrl)}`;
-                console.log('Mengirim SMS OTP ke:', formattedNumber);
+        // ================================================
+        // FUNGSI NAVIGASI STEP
+        // ================================================
+        
+        function goToStep(step) {
+            // Hide all steps
+            step1Content.classList.remove('active');
+            step2Content.classList.remove('active');
+            step3Content.classList.remove('active');
+            
+            // Reset step indicators
+            step1.classList.remove('active', 'completed');
+            step2.classList.remove('active', 'completed');
+            step3.classList.remove('active', 'completed');
+            line1.classList.remove('active');
+            line2.classList.remove('active');
+            
+            currentStep = step;
+            
+            switch(step) {
+                case 1:
+                    step1Content.classList.add('active');
+                    step1.classList.add('active');
+                    break;
+                    
+                case 2:
+                    step2Content.classList.add('active');
+                    step1.classList.add('completed');
+                    step2.classList.add('active');
+                    line1.classList.add('active');
+                    break;
+                    
+                case 3:
+                    step3Content.classList.add('active');
+                    step1.classList.add('completed');
+                    step2.classList.add('completed');
+                    step3.classList.add('active');
+                    line1.classList.add('active');
+                    line2.classList.add('active');
+                    break;
+            }
+        }
+        
+        // ================================================
+        // FIREBASE FUNCTIONS (100% CLIENT-SIDE)
+        // ================================================
+        
+        async function initializeFirebase() {
+            try {
+                console.log('🔄 Menginisialisasi Firebase...');
                 
-                fetch(proxyUrl).then(response => {
-                    if (!response.ok) throw new Error(`Network response was not ok: ${response.status}`);
-                    return response.json();
-                }).then(data => {
-                    try {
-                        const responseData = JSON.parse(data.contents);
-                        console.log('Respon dari Gateway SMS:', responseData);
-                        if (responseData.status === 200) {
-                            console.log('SMS OTP berhasil dikirim!');
-                            resolve({ success: true, data: responseData });
-                        } else {
-                            reject(new Error(`Gagal mengirim SMS. Status: ${responseData.status_message || 'Tidak diketahui'}`));
-                        }
-                    } catch (parseError) {
-                        console.error('Error parsing response:', parseError);
-                        reject(new Error('Format respon tidak valid dari SMS gateway'));
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK belum dimuat');
+                }
+                
+                // Initialize Firebase
+                firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+                firebaseAuth = firebase.auth();
+                firebaseDatabase = firebase.database(); // ✅ Inisialisasi Database
+                
+                console.log('✅ Firebase diinisialisasi');
+                return true;
+            } catch (error) {
+                console.error('❌ Error menginisialisasi Firebase:', error);
+                showErrorMessage('Gagal menginisialisasi Firebase. Silakan refresh halaman.');
+                return false;
+            }
+        }
+        
+        function setupRecaptcha() {
+            try {
+                recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                    'size': 'normal',
+                    'callback': function(response) {
+                        console.log('✅ reCAPTCHA verified');
+                    },
+                    'expired-callback': function() {
+                        console.log('❌ reCAPTCHA expired');
+                        showErrorMessage('reCAPTCHA telah kadaluarsa. Silakan coba lagi.');
                     }
-                }).catch(error => {
-                    console.error('Error mengirim SMS:', error);
-                    reject(error);
+                });
+                
+                recaptchaVerifier.render();
+                console.log('✅ reCAPTCHA diatur');
+            } catch (error) {
+                console.error('❌ Error setting up reCAPTCHA:', error);
+                showErrorMessage('Gagal mengatur reCAPTCHA. Silakan refresh halaman.');
+            }
+        }
+        
+        async function sendFirebaseOTP(phoneNumber) {
+            try {
+                showLoading('Mengirim kode OTP...');
+                
+                if (!recaptchaVerifier) {
+                    throw new Error('reCAPTCHA belum diatur');
+                }
+                
+                confirmationResult = await firebaseAuth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
+                
+                hideLoading();
+                console.log('✅ Kode OTP dikirim via Firebase');
+                return true;
+            } catch (error) {
+                hideLoading();
+                console.error('❌ Error sending OTP:', error);
+                
+                let errorMessage = 'Gagal mengirim kode OTP. ';
+                switch (error.code) {
+                    case 'auth/invalid-phone-number':
+                        errorMessage += 'Format nomor telepon tidak valid.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage += 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
+                        break;
+                    case 'auth/quota-exceeded':
+                        errorMessage += 'Kuota SMS telah habis. Silakan hubungi administrator.';
+                        break;
+                    default:
+                        errorMessage += error.message || 'Silakan coba lagi.';
+                }
+                
+                showErrorMessage(errorMessage);
+                return false;
+            }
+        }
+        
+        async function verifyFirebaseOTP(code) {
+            try {
+                showLoading('Memverifikasi OTP...');
+                
+                if (!confirmationResult) {
+                    throw new Error('Sesi OTP tidak valid. Silakan minta OTP baru.');
+                }
+                
+                const userCredential = await confirmationResult.confirm(code);
+                const user = userCredential.user;
+                
+                console.log('✅ OTP verified, user:', user.uid);
+                return user;
+            } catch (error) {
+                hideLoading();
+                console.error('❌ Error verifying OTP:', error);
+                
+                let errorMessage = 'Gagal memverifikasi OTP. ';
+                switch (error.code) {
+                    case 'auth/invalid-verification-code':
+                        errorMessage += 'Kode OTP tidak valid.';
+                        break;
+                    case 'auth/code-expired':
+                        errorMessage += 'Kode OTP telah kadaluarsa.';
+                        break;
+                    default:
+                        errorMessage += error.message || 'Silakan coba lagi.';
+                }
+                
+                showErrorMessage(errorMessage);
+                return null;
+            }
+        }
+        
+        // ================================================
+        // FIREBASE REALTIME DATABASE FUNCTIONS (REPLACES BACKEND)
+        // ================================================
+        
+        async function checkPhoneNumberExists(phoneNumber) {
+            try {
+                console.log('🔍 Checking phone in database:', phoneNumber);
+                
+                // Query database untuk mencari user dengan nomor telepon yang sama
+                const snapshot = await firebaseDatabase.ref('users')
+                    .orderByChild('phone')
+                    .equalTo(phoneNumber)
+                    .once('value');
+                
+                const data = snapshot.val();
+                
+                if (data) {
+                    // Ambil user pertama yang ditemukan
+                    const userId = Object.keys(data)[0];
+                    const userData = data[userId];
+                    
+                    return {
+                        exists: true,
+                        user: userData,
+                        userId: userId
+                    };
+                }
+                
+                return {
+                    exists: false,
+                    user: null,
+                    userId: null
+                };
+            } catch (error) {
+                console.error('❌ Error checking phone number:', error);
+                return {
+                    exists: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        async function saveUserToDatabase(uid, userData) {
+            try {
+                console.log('💾 Saving user to database:', uid);
+                
+                // Cek apakah user sudah ada di database
+                const userRef = firebaseDatabase.ref('users/' + uid);
+                const snapshot = await userRef.once('value');
+                
+                if (snapshot.exists()) {
+                    console.log('ℹ️ User already exists in database, skipping save');
+                    return {
+                        success: true,
+                        message: 'User already exists',
+                        isNewUser: false,
+                        userData: snapshot.val()
+                    };
+                }
+                
+                // Buat data user baru dengan struktur yang ditentukan
+                const now = new Date();
+                const userProfile = {
+                    active: true,
+                    status: "active",
+                    role: "penumpang", // Default role
+                    name: userData.name,
+                    gender: userData.gender,
+                    phone: userData.phone,
+                    email: userData.email || "",
+                    address: userData.address || "",
+                    rating: 5, // ✅ Default rating = 5
+                    perjalanan: 0, // ✅ Default perjalanan = 0
+                    createdAt: now.toISOString(),
+                    createdDate: now.toISOString().split('T')[0], // Format YYYY-MM-DD
+                    updatedAt: now.toISOString()
+                };
+                
+                // Simpan ke database
+                await userRef.set(userProfile);
+                
+                console.log('✅ User saved to database');
+                return {
+                    success: true,
+                    message: 'User created successfully',
+                    isNewUser: true,
+                    userData: userProfile
+                };
+            } catch (error) {
+                console.error('❌ Error saving user to database:', error);
+                throw error;
+            }
+        }
+        
+        function getCurrentUserData() {
+            return new Promise((resolve) => {
+                const unsubscribe = firebaseAuth.onAuthStateChanged((user) => {
+                    unsubscribe();
+                    resolve(user);
                 });
             });
         }
         
-        function generatePromoCode(userName, phone) {
-            const prefix = "JEGO";
-            const namePart = userName.substring(0, 3).toUpperCase();
-            const phonePart = phone.slice(-4);
-            const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
-            return `${prefix}${namePart}${phonePart}${randomPart}`;
-        }
-        
-        function generateReferralCode(userName, phone) {
-            const prefix = "REF";
-            const namePart = userName.substring(0, 2).toUpperCase();
-            const phonePart = phone.slice(-3);
-            const randomPart = Math.random().toString(36).substring(2, 4).toUpperCase();
-            return `${prefix}${namePart}${phonePart}${randomPart}`;
-        }
-        
-        function sendToKodular(data, action = 'registration_success') {
-            const kodularData = { action: action, timestamp: new Date().toISOString(), ...data };
-            console.log('Data yang akan dikirim ke Kodular:', kodularData);
-            if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
-                try {
-                    window.AppInventor.setWebViewString(JSON.stringify(kodularData));
-                    console.log('✅ Data berhasil dikirim ke Kodular');
-                } catch (error) { console.error('Error mengirim data via AppInventor:', error); }
-            } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
-                try {
-                    window.android.receiveData(JSON.stringify(kodularData));
-                    console.log('✅ Data berhasil dikirim ke Kodular');
-                } catch (error) { console.error('Error mengirim data via window.android:', error); }
-            } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
-                try {
-                    window.webkit.messageHandlers.observe.postMessage(kodularData);
-                    console.log('✅ Data berhasil dikirim ke Kodular');
-                } catch (error) { console.error('Error mengirim data via webkit.messageHandlers:', error); }
-            } else { console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular'); }
-        }
-
         // ================================================
-        // EVENT HANDLERS
+        // EVENT HANDLERS (UPDATED FOR 100% CLIENT-SIDE)
         // ================================================
         
-        // Event untuk cek nomor telepon saat user mengetik
+        // Event untuk cek nomor telepon
         teleponInput.addEventListener('input', function() {
-            // Clear timeout sebelumnya
             clearTimeout(phoneCheckTimeout);
-            
-            // Sembunyikan status sementara
             hidePhoneStatus();
             
-            // Format nomor telepon
             const rawPhone = this.value.trim();
             if (!rawPhone) return;
             
             const formattedPhone = formatPhoneNumber(rawPhone);
             
-            // Cek apakah format sudah benar
             if (!validatePhoneFormat(formattedPhone)) {
                 return;
             }
             
-            // Set timeout untuk menghindari terlalu banyak request
             phoneCheckTimeout = setTimeout(async () => {
-                showLoading('Memeriksa nomor telepon...');
-                const phoneInfo = await getPhoneNumberInfo(formattedPhone);
-                hideLoading();
+                console.log('🔍 Memeriksa nomor:', formattedPhone);
                 
-                if (phoneInfo.exists) {
-                    const nama = phoneInfo.userData?.nama || 'Pengguna';
-                    showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar atas nama ${nama}. Silakan login atau gunakan nomor lain.`, phoneInfo.userData);
-                } else {
-                    showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran.`);
+                try {
+                    const phoneInfo = await checkPhoneNumberExists(formattedPhone);
+                    
+                    if (phoneInfo.exists) {
+                        const nama = phoneInfo.user?.name || 'Pengguna';
+                        showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar atas nama ${nama}. Silakan login atau gunakan nomor lain.`, phoneInfo.user);
+                    } else {
+                        showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran.`);
+                    }
+                } catch (error) {
+                    console.error('Error checking phone:', error);
+                    showPhoneStatus('error', 'Gagal memeriksa nomor telepon. Silakan coba lagi.');
                 }
-            }, 800); // Delay 800ms setelah user berhenti mengetik
+            }, 1000);
         });
         
-        registrationForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Memeriksa data...';
-            
+        // Next button handler
+        nextBtn.addEventListener('click', async function() {
             const nama = document.getElementById('nama').value.trim();
             const email = document.getElementById('email').value.trim();
             let telepon = document.getElementById('telepon').value.trim();
@@ -1300,185 +1560,289 @@
             
             if (!nama || !email || !telepon || !alamat || !jenisKelamin) {
                 showErrorMessage('Harap isi semua field yang wajib diisi.');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Daftar Sekarang';
                 return;
             }
             
-            // Cek checkbox syarat
             if (!document.querySelector('input[name="syarat"]').checked) {
                 showErrorMessage('Anda harus menyetujui syarat dan ketentuan untuk melanjutkan.');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Daftar Sekarang';
                 return;
             }
             
             telepon = formatPhoneNumber(telepon);
+            
             if (!validatePhoneFormat(telepon)) {
                 showErrorMessage('Format nomor telepon tidak valid. Gunakan format: +6281234567890');
                 teleponInput.style.borderColor = 'var(--danger)';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Daftar Sekarang';
                 return;
             }
             
             // Cek apakah nomor sudah terdaftar
-            showLoading('Memeriksa nomor telepon...');
-            const phoneExists = await checkPhoneNumberExists(telepon);
-            
-            if (phoneExists) {
+            try {
+                showLoading('Memeriksa nomor telepon...');
+                const phoneInfo = await checkPhoneNumberExists(telepon);
                 hideLoading();
-                showPhoneStatus('registered', `Nomor ${telepon} sudah terdaftar. Silakan login atau gunakan nomor lain.`);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Daftar Sekarang';
+                
+                if (phoneInfo.exists) {
+                    showPhoneStatus('registered', `Nomor ${telepon} sudah terdaftar. Silakan login atau gunakan nomor lain.`);
+                    return;
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Error checking phone:', error);
+                showErrorMessage('Gagal memeriksa nomor telepon. Silakan coba lagi.');
                 return;
             }
             
-            // Jika nomor belum terdaftar, lanjutkan registrasi
-            const promoCode = generatePromoCode(nama, telepon);
-            const referralCode = generateReferralCode(nama, telepon);
-            const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + 30);
-            
+            // Simpan data registrasi
             registrationData = {
-                nama: nama,
+                name: nama,
                 email: email,
-                telepon: telepon,
-                alamat: alamat,
-                jenisKelamin: jenisKelamin,
-                tanggalDaftar: new Date().toISOString(),
-                status: "active",
-                Perjalanan: 0,
-                Ratings: 5,
-                promo_code: promoCode,
-                promo_discount: 20,
-                promo_max_usage: 1,
-                promo_used_count: 0,
-                promo_expiry: expiryDate.toISOString(),
-                promo_status: "active",
-                promo_created: new Date().toISOString(),
-                referral_code: referralCode,
-                referral_count: 0
+                phone: telepon,
+                address: alamat,
+                gender: jenisKelamin
             };
             
-            const otp = generateOTP();
-            try {
-                await saveOTP(telepon, otp);
-                await sendSmsOtp(telepon, otp);
-                hideLoading();
-                registrationForm.style.display = 'none';
-                otpSection.style.display = 'block';
+            // Kirim OTP via Firebase
+            const otpSent = await sendFirebaseOTP(telepon);
+            
+            if (otpSent) {
+                verifiedPhoneInput.value = telepon;
+                goToStep(2);
                 document.getElementById('otp1').focus();
                 startResendCountdown(60);
                 showInfoMessage('Kode OTP telah dikirim via SMS. Silakan periksa pesan SMS Anda.', true);
-            } catch (error) {
-                hideLoading();
-                console.error('Error dalam proses OTP:', error);
-                showErrorMessage(`Gagal mengirim OTP: ${error.message || 'Silakan coba lagi.'}`);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Daftar Sekarang';
             }
         });
         
+        // Verify OTP button handler
         verifyOtpBtn.addEventListener('click', async function() {
             const enteredOtp = getEnteredOTP();
+            
             if (enteredOtp.length !== 6) {
                 showErrorMessage('Harap masukkan kode OTP 6 digit lengkap.');
                 return;
             }
+            
             if (!registrationData) {
                 showErrorMessage('Data registrasi tidak ditemukan. Silakan mulai ulang pendaftaran.');
                 return;
             }
+            
             verifyOtpBtn.disabled = true;
             verifyOtpBtn.textContent = 'Memverifikasi...';
-            showLoading('Memverifikasi OTP...');
+            
+            // Verify OTP with Firebase
+            const firebaseUser = await verifyFirebaseOTP(enteredOtp);
+            
+            if (!firebaseUser) {
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.textContent = 'Verifikasi OTP';
+                return;
+            }
+            
             try {
-                const otpResult = await validateOTP(registrationData.telepon, enteredOtp);
-                if (!otpResult.isValid) {
-                    hideLoading();
-                    showErrorMessage(otpResult.message);
-                    clearOTPInputs();
-                    document.getElementById('otp1').focus();
-                    verifyOtpBtn.disabled = false;
-                    verifyOtpBtn.textContent = 'Verifikasi OTP';
-                    return;
+                verifyOtpBtn.textContent = 'Menyimpan data...';
+                
+                // Simpan user ke Firebase Realtime Database
+                const saveResult = await saveUserToDatabase(firebaseUser.uid, registrationData);
+                
+                // Get Firebase token untuk session
+                const firebaseToken = await firebaseUser.getIdToken();
+                
+                // Simpan data user ke localStorage
+                const userData = {
+                    uid: firebaseUser.uid,
+                    phone: registrationData.phone,
+                    name: registrationData.name,
+                    email: registrationData.email,
+                    address: registrationData.address,
+                    gender: registrationData.gender,
+                    role: saveResult.userData?.role || 'penumpang',
+                    status: 'active',
+                    createdAt: Date.now(),
+                    last_login: Date.now(),
+                    firebaseToken: firebaseToken
+                };
+                
+                localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
+                
+                // Tampilkan informasi user di step 3
+                userName.textContent = `Nama: ${registrationData.name}`;
+                userPhone.textContent = `Telepon: ${registrationData.phone}`;
+                
+                // Generate promo code untuk user baru
+                if (saveResult.isNewUser) {
+                    const promoCode = 'JEGO' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    userPromo.textContent = `Kode Promo: ${promoCode} (Diskon 20%)`;
+                    
+                    // Simpan promo ke localStorage
+                    localStorage.setItem('jego_user_promo', JSON.stringify({
+                        code: promoCode,
+                        discount: 20,
+                        max_usage: 1,
+                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 hari
+                    }));
+                } else {
+                    userPromo.textContent = `Selamat datang kembali!`;
                 }
-                hideLoading();
-                showLoading('Menyelesaikan pendaftaran...');
-                const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                registrationData.userId = userId;
-                const userRef = dbRef(database, `users/${userId}`);
-                await set(userRef, registrationData);
-                console.log('Data user berhasil disimpan ke Firebase Database dengan ID:', userId);
-                const userDataToStore = { ...registrationData, firebase_key: userId, last_login: new Date().toISOString(), has_promo: true };
-                localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataToStore));
-                localStorage.setItem('jego_user_promo', JSON.stringify({ code: registrationData.promo_code, discount: registrationData.promo_discount, max_usage: registrationData.promo_max_usage, expiry: registrationData.promo_expiry }));
-                let jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
-                jegoUsers[userId] = registrationData;
-                localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
-                sendToKodular({ registration_status: 'success', user_data: registrationData, firebase_key: userId }, 'registration_success');
-                hideLoading();
-                const successMessage = `✅ <strong>Pendaftaran JeGo berhasil!</strong><br><br>🎁 <strong>Kode Promo Anda: ${registrationData.promo_code}</strong><br>Dapatkan diskon 20% untuk order pertama Anda.<br><br>📣 <strong>Kode Referral Anda: ${registrationData.referral_code}</strong><br>Bagikan kode ini ke teman untuk dapat bonus!<br><br>🚗 <strong>Status Awal:</strong> 0 Perjalanan, Rating 5.0<br><br>Anda akan dialihkan ke halaman utama...`;
-                showPopup('🎉 Pendaftaran Berhasil!', successMessage, 'success', {
-                    confirmText: 'Lanjutkan ke Aplikasi',
-                    autoHide: false,
-                    onConfirm: function() { window.location.href = 'jenis_kenderaan.html'; }
-                });
-                headerLoginBtn.style.display = 'none';
-                headerHomeBtn.style.display = 'inline-block';
+                
+                userInfo.style.display = 'block';
+                
+                // Update success message
+                if (saveResult.isNewUser) {
+                    successMessage.textContent = 'Selamat! Akun Anda telah berhasil dibuat.';
+                } else {
+                    successMessage.textContent = 'Selamat datang kembali! Anda berhasil login.';
+                }
+                
+                goToStep(3);
+                
+                // Auto redirect setelah 5 detik
+                setTimeout(() => {
+                    window.location.href = 'jenis_kenderaan.html';
+                }, 5000);
+                
             } catch (error) {
-                hideLoading();
-                console.error('Error dalam proses verifikasi OTP:', error);
+                console.error('❌ Error dalam proses registrasi:', error);
                 showErrorMessage(`Terjadi kesalahan: ${error.message || 'Silakan coba lagi.'}`);
                 verifyOtpBtn.disabled = false;
                 verifyOtpBtn.textContent = 'Verifikasi OTP';
             }
         });
         
+        // Resend OTP handler
         resendOtpLink.addEventListener('click', async function() {
             if (resendOtpLink.classList.contains('disabled')) return;
+            
             if (!registrationData) {
                 showErrorMessage('Data registrasi tidak ditemukan.');
                 return;
             }
-            const otp = generateOTP();
-            resendOtpLink.classList.add('disabled');
-            try {
-                await saveOTP(registrationData.telepon, otp);
-                await sendSmsOtp(registrationData.telepon, otp);
+            
+            const otpSent = await sendFirebaseOTP(registrationData.phone);
+            
+            if (otpSent) {
                 clearOTPInputs();
                 document.getElementById('otp1').focus();
                 startResendCountdown(60);
                 showInfoMessage('Kode OTP baru telah dikirim ke nomor Anda.', true);
-            } catch (error) {
-                console.error('Error resending OTP:', error);
-                showErrorMessage('Gagal mengirim ulang OTP. Silakan coba lagi.');
-                resendOtpLink.classList.remove('disabled');
             }
         });
-
+        
+        // Back button handler
+        backToStep1Btn.addEventListener('click', function() {
+            goToStep(1);
+        });
+        
+        // Go to home button handler
+        goToHomeBtn.addEventListener('click', function() {
+            window.location.href = 'jenis_kenderaan.html';
+        });
+        
+        // ================================================
+        // AUTH STATE LISTENER (UNTUK AUTO REDIRECT)
+        // ================================================
+        
+        function setupAuthListener() {
+            firebaseAuth.onAuthStateChanged((user) => {
+                if (user) {
+                    // User sudah login
+                    console.log('✅ User already logged in:', user.uid);
+                    
+                    // Cek localStorage untuk data user
+                    const storedUser = localStorage.getItem('jego_logged_in_user');
+                    if (!storedUser) {
+                        // Ambil data dari database
+                        firebaseDatabase.ref('users/' + user.uid).once('value').then((snapshot) => {
+                            if (snapshot.exists()) {
+                                const userData = snapshot.val();
+                                const userToStore = {
+                                    uid: user.uid,
+                                    phone: userData.phone,
+                                    name: userData.name,
+                                    email: userData.email || '',
+                                    address: userData.address || '',
+                                    gender: userData.gender || '',
+                                    role: userData.role || 'penumpang',
+                                    status: 'active',
+                                    createdAt: Date.now(),
+                                    last_login: Date.now()
+                                };
+                                
+                                localStorage.setItem('jego_logged_in_user', JSON.stringify(userToStore));
+                                
+                                // Redirect ke halaman utama
+                                autoRedirectInfo.style.display = 'block';
+                                headerLoginBtn.style.display = 'none';
+                                headerHomeBtn.style.display = 'inline-block';
+                                
+                                setTimeout(() => {
+                                    window.location.href = 'jenis_kenderaan.html';
+                                }, 2000);
+                            }
+                        });
+                    } else {
+                        // User sudah ada di localStorage, langsung redirect
+                        autoRedirectInfo.style.display = 'block';
+                        headerLoginBtn.style.display = 'none';
+                        headerHomeBtn.style.display = 'inline-block';
+                        
+                        setTimeout(() => {
+                            window.location.href = 'jenis_kenderaan.html';
+                        }, 2000);
+                    }
+                } else {
+                    // User belum login, biarkan di halaman registrasi
+                    console.log('ℹ️ User not logged in, showing registration form');
+                }
+            });
+        }
+        
         // ================================================
         // INITIALIZATION
         // ================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            modalOverlay.addEventListener('click', function(e) {
-                if (e.target === modalOverlay) hidePopup();
-            });
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup();
-            });
-            checkIfUserIsLoggedIn();
-            setupOTPInputs();
-            const otpInputs = document.querySelectorAll('.otp-input');
-            otpInputs.forEach((input, index) => {
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter' && index === 5) document.getElementById('verifyOtpBtn').click();
-                });
-            });
-            teleponInput.placeholder = '+6281234567890';
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Aplikasi JeGo Registrasi dimulai...');
             
-            console.log('Aplikasi JeGo Registrasi siap digunakan');
+            try {
+                // Inisialisasi Firebase
+                await initializeFirebase();
+                
+                // Setup auth listener untuk auto redirect
+                setupAuthListener();
+                
+                // Setup reCAPTCHA
+                setupRecaptcha();
+                
+                // Setup OTP inputs
+                setupOTPInputs();
+                
+                // Setup event listeners untuk modal
+                modalOverlay.addEventListener('click', function(e) {
+                    if (e.target === modalOverlay) hidePopup();
+                });
+                
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup();
+                });
+                
+                // Setup OTP enter key
+                const otpInputs = document.querySelectorAll('.otp-input');
+                otpInputs.forEach((input, index) => {
+                    input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter' && index === 5) {
+                            document.getElementById('verifyOtpBtn').click();
+                        }
+                    });
+                });
+                
+                console.log('✅ Aplikasi JeGo Registrasi siap digunakan');
+                
+            } catch (error) {
+                console.error('❌ Error inisialisasi:', error);
+                showErrorMessage('Gagal menginisialisasi aplikasi. Silakan refresh halaman.');
+            }
         });
     </script>
 </body>
