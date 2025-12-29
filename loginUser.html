@@ -447,20 +447,34 @@
         const firebaseUser = await verifyFirebaseOTP(enteredOtp);
         
         if (firebaseUser) {
-          // 2. Dapatkan Firebase token
-          const firebaseToken = await firebaseUser.getIdToken();
+          // 2. AMBIL DATA USER DARI FIREBASE DATABASE
+          const userRef = firebaseDatabase.ref('users/' + firebaseUser.uid);
+          const snapshot = await userRef.once('value');
+          const dbUser = snapshot.val();
           
-          // 3. Update data user dengan Firebase UID
-          const userData = {
-            ...currentUser.userData,
+          if (!dbUser) {
+            showStatus('Data user tidak ditemukan.', 'error');
+            return;
+          }
+          
+          // 3. ✅ BUAT SESSION DENGAN STRUKTUR STANDAR
+          const sessionUser = {
+            userId: firebaseUser.uid,
             uid: firebaseUser.uid,
-            auth_uid: firebaseUser.uid,
-            last_login: new Date().toISOString(),
-            firebaseToken: firebaseToken
+            name: dbUser.name || '',
+            phone: dbUser.phone || '',
+            email: dbUser.email || '',
+            gender: dbUser.gender || '',
+            address: dbUser.address || '',
+            status: dbUser.status || "active",
+            photoURL: dbUser.fotoProfilURL || "",
+            rating: dbUser.rating || 5,
+            perjalanan: dbUser.perjalanan || 0,
+            createdAt: dbUser.createdAt || new Date().toISOString()
           };
           
-          // 4. Simpan ke localStorage
-          localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
+          // 4. ✅ SIMPAN KE LOCALSTORAGE (KEY STANDAR)
+          localStorage.setItem('jego_logged_in_user', JSON.stringify(sessionUser));
           
           // 5. Tampilkan success
           showStatus('Login berhasil! Mengalihkan...', 'success');
@@ -516,7 +530,7 @@
     }
     
     async function checkExistingSession() {
-      // Cek localStorage
+      // Cek localStorage dengan KEY STANDAR
       const localUser = localStorage.getItem('jego_logged_in_user');
       if (localUser) {
         try {
@@ -529,6 +543,8 @@
           return true;
         } catch (error) {
           console.error('Error parsing user:', error);
+          // Hapus session yang corrupt
+          localStorage.removeItem('jego_logged_in_user');
         }
       }
       
