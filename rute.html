@@ -5,8 +5,9 @@
   <title>Rute - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <style>
     :root {
       --primary: #1e6f5c;
@@ -1138,26 +1139,27 @@
   <script>
     // ==================== KONFIGURASI FIREBASE ====================
     const FIREBASE_CONFIG = {
-            apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
-            authDomain: "game-balap-simpel.firebaseapp.com",
-            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
-            projectId: "game-balap-simpel",
-            storageBucket: "game-balap-simpel.firebasestorage.app",
-            messagingSenderId: "864576853495",
-            appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
-            measurementId: "G-YWJPK7Y3J4"
-        };
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
+    };
 
     // Initialize Firebase
+    let firebaseApp, firebaseAuth, database;
     try {
-      firebase.initializeApp(firebaseConfig);
+      firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+      firebaseAuth = firebase.auth();
+      database = firebase.database();
       console.log("Firebase berhasil diinisialisasi");
     } catch (error) {
       console.error("Error inisialisasi Firebase:", error);
     }
     
-    const database = firebase.database();
-
     // ==================== VARIABEL GLOBAL ====================
     let map, directionsService, directionsRenderer;
     let markerA, markerB, circleB;
@@ -1170,7 +1172,7 @@
     let isSearching = false;
     
     // Data user
-    let userData = getUserData();
+    let userData = null;
     console.log("USER DATA LOADED:", userData);
 
     let currentDriverData = null;
@@ -1219,7 +1221,9 @@
         
         console.log("🔍 [DEBUG] Data terbaru dari Firebase:", {
           rating: latestUserData.rating,
-          perjalanan: latestUserData.perjalanan
+          perjalanan: latestUserData.perjalanan,
+          name: latestUserData.name,
+          phone: latestUserData.phone
         });
         
         // Gabungkan data: data Firebase memiliki prioritas tertinggi
@@ -1313,7 +1317,8 @@
       console.log("✅ [DEBUG] Data user divalidasi untuk order:", {
         rating: validatedUserData.rating,
         perjalanan: validatedUserData.perjalanan,
-        nama: validatedUserData.nama,
+        name: validatedUserData.name,
+        phone: validatedUserData.phone,
         firebase_key: validatedUserData.firebase_key
       });
       
@@ -1361,8 +1366,8 @@
           perjalanan: userData.perjalanan || 0,
           
           // Data identitas
-          nama: userData.nama,
-          telepon: userData.telepon,
+          name: userData.name,
+          phone: userData.phone,
           email: userData.email,
           fotoProfilURL: userData.fotoProfilURL,
           fotoProfilStorage: userData.fotoProfilStorage,
@@ -1395,7 +1400,7 @@
           
           // Reference ke user
           user_key: userKey,
-          user_phone: userData.telepon,
+          user_phone: userData.phone,
           user_email: userData.email,
           user_foto_profil: userFotoProfil,
           user_foto_storage: userFotoStorage
@@ -1526,7 +1531,7 @@
         user_snapshot: {
           rating: userData.rating,
           perjalanan: userData.perjalanan,
-          nama: userData.nama
+          name: userData.name
         },
         action: 'route_confirmed'
       }, 'route_confirmed');
@@ -1589,7 +1594,7 @@
                 // ✅ PERBAIKI KONDISI: Gunakan user_key untuk pencocokan
                 const isUserOrder = (
                   (order.user_key && userKey && order.user_key === userKey) ||
-                  (order.user_data && userData.telepon && order.user_data.telepon === userData.telepon) ||
+                  (order.user_data && userData.phone && order.user_data.phone === userData.phone) ||
                   (order.user_data && userData.email && order.user_data.email === userData.email)
                 );
                 
@@ -1616,8 +1621,8 @@
                       'user_snapshot': {
                         rating: userData.rating,
                         perjalanan: userData.perjalanan,
-                        nama: userData.nama,
-                        telepon: userData.telepon,
+                        name: userData.name,
+                        phone: userData.phone,
                         email: userData.email,
                         fotoProfilURL: userData.fotoProfilURL,
                         snapshot_timestamp: new Date().toISOString()
@@ -1637,7 +1642,7 @@
             }
             
             if (activeOrder) {
-              console.log('✅ [DEBUG] Order aktif ditemukan untuk user:', userData.telepon || userData.email);
+              console.log('✅ [DEBUG] Order aktif ditemukan untuk user:', userData.phone || userData.email);
               currentOrderId = activeOrder.orderId;
               
               // Isi currentRouteData dengan data dari order
@@ -1775,7 +1780,7 @@
               }, 'order_restored');
               
             } else {
-              console.log('❌ [DEBUG] Tidak ada order aktif ditemukan untuk user:', userData.telepon || userData.email);
+              console.log('❌ [DEBUG] Tidak ada order aktif ditemukan untuk user:', userData.phone || userData.email);
               // ❌ HAPUS DARI LOCALSTORAGE jika tidak ada order aktif
               removeActiveOrderFromLocalStorage();
               
@@ -3313,8 +3318,8 @@
       const userSnapshot = userData ? {
         rating: userData.rating,
         perjalanan: userData.perjalanan,
-        nama: userData.nama,
-        telepon: userData.telepon,
+        name: userData.name,
+        phone: userData.phone,
         email: userData.email,
         fotoProfilURL: userData.fotoProfilURL
       } : null;
@@ -3330,7 +3335,7 @@
       console.log('📊 Data yang akan dikirim ke Kodular (dengan snapshot):', {
         action: action,
         user_snapshot: userSnapshot,
-        user_nama: userData ? userData.nama : 'Tidak diketahui'
+        user_nama: userData ? userData.name : 'Tidak diketahui'
       });
       
       // METODE 1: Menggunakan window.AppInventor.setWebViewString (PREFERED)
@@ -3765,7 +3770,7 @@
         if (!userData) {
           console.log("⚠️ [DEBUG] Tidak ada user yang login, beberapa fitur mungkin terbatas");
         } else {
-          console.log("✅ [DEBUG] User berhasil diidentifikasi:", userData.nama || userData.telepon);
+          console.log("✅ [DEBUG] User berhasil diidentifikasi:", userData.name || userData.phone);
           console.log("🔑 [DEBUG] User key:", userData.firebase_key || userData.key);
           console.log("📊 [DEBUG] Rating awal:", userData.rating);
           console.log("📈 [DEBUG] Perjalanan awal:", userData.perjalanan);
