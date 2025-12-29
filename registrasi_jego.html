@@ -889,7 +889,6 @@
                         <p><strong>Informasi Akun:</strong></p>
                         <p id="userName"></p>
                         <p id="userPhone"></p>
-                        <p id="userPromo"></p>
                     </div>
                     
                     <button type="button" class="btn" id="goToHomeBtn">Lanjutkan ke Halaman Utama</button>
@@ -997,7 +996,6 @@
         const userInfo = document.getElementById('userInfo');
         const userName = document.getElementById('userName');
         const userPhone = document.getElementById('userPhone');
-        const userPromo = document.getElementById('userPromo');
         const successMessage = document.getElementById('successMessage');
         
         // Elemen untuk status telepon
@@ -1650,62 +1648,38 @@
                 // Simpan user ke Firebase Realtime Database
                 const saveResult = await saveUserToDatabase(firebaseUser.uid, registrationData);
                 
-                // Get Firebase token untuk session
-                const firebaseToken = await firebaseUser.getIdToken();
-                
-                // SIMPAN DATA USER KE LOCALSTORAGE DENGAN STRUKTUR YANG DIMINTA
-                const userDataForLocalStorage = {
-                    firebase_key: firebaseUser.uid,
+                // ✅ BUAT SESSION USER DENGAN STRUKTUR STANDAR
+                const sessionUser = {
+                    userId: firebaseUser.uid,
                     uid: firebaseUser.uid,
                     name: registrationData.name,
                     phone: registrationData.phone,
                     email: registrationData.email,
-                    address: registrationData.address,
                     gender: registrationData.gender,
-                    role: saveResult.userData?.role || 'penumpang',
-                    status: 'active',
-                    rating: saveResult.userData?.rating || 5,
-                    perjalanan: saveResult.userData?.perjalanan || 0,
-                    fotoProfilURL: saveResult.userData?.fotoProfilURL || "",
-                    fotoProfilStorage: saveResult.userData?.fotoProfilStorage || "default",
-                    createdAt: Date.now(),
-                    last_login: Date.now(),
-                    firebaseToken: firebaseToken
+                    address: registrationData.address,
+                    status: "active",
+                    photoURL: "",
+                    rating: 5,
+                    perjalanan: 0,
+                    createdAt: new Date().toISOString()
                 };
                 
-                localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataForLocalStorage));
+                // ✅ SIMPAN KE LOCALSTORAGE (KEY STANDAR)
+                localStorage.setItem('jego_logged_in_user', JSON.stringify(sessionUser));
                 
                 // Tampilkan informasi user di step 3
                 userName.textContent = `Nama: ${registrationData.name}`;
                 userPhone.textContent = `Telepon: ${registrationData.phone}`;
                 
-                // Tampilkan rating dan perjalanan
+                // Update user info display
                 const userInfoHTML = `
                     <p><strong>Informasi Akun:</strong></p>
                     <p>Nama: ${registrationData.name}</p>
                     <p>Telepon: ${registrationData.phone}</p>
-                    <p>Rating: ⭐ ${saveResult.userData?.rating || 5}/5</p>
-                    <p>Perjalanan: ${saveResult.userData?.perjalanan || 0} kali</p>
-                    ${saveResult.isNewUser ? `<p id="userPromo"></p>` : ''}
+                    <p>Email: ${registrationData.email}</p>
+                    <p>Status: <span style="color: var(--success);">Aktif</span></p>
                 `;
                 userInfo.innerHTML = userInfoHTML;
-                
-                // Generate promo code untuk user baru
-                if (saveResult.isNewUser) {
-                    const promoCode = 'JEGO' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                    const promoElement = document.getElementById('userPromo');
-                    if (promoElement) {
-                        promoElement.textContent = `Kode Promo: ${promoCode} (Diskon 20%)`;
-                    }
-                    
-                    // Simpan promo ke localStorage
-                    localStorage.setItem('jego_user_promo', JSON.stringify({
-                        code: promoCode,
-                        discount: 20,
-                        max_usage: 1,
-                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000)
-                    }));
-                }
                 
                 userInfo.style.display = 'block';
                 
@@ -1718,10 +1692,10 @@
                 
                 goToStep(3);
                 
-                // Auto redirect setelah 5 detik
+                // Auto redirect setelah 3 detik
                 setTimeout(() => {
                     window.location.href = 'jenis_kenderaan.html';
-                }, 5000);
+                }, 3000);
                 
             } catch (error) {
                 console.error('❌ Error dalam proses registrasi:', error);
@@ -1777,26 +1751,23 @@
                         firebaseDatabase.ref('users/' + user.uid).once('value').then((snapshot) => {
                             if (snapshot.exists()) {
                                 const userData = snapshot.val();
-                                // SIMPAN KE LOCALSTORAGE DENGAN STRUKTUR YANG DIMINTA
-                                const userToStore = {
-                                    firebase_key: user.uid,
+                                // SIMPAN KE LOCALSTORAGE DENGAN STRUKTUR STANDAR
+                                const sessionUser = {
+                                    userId: user.uid,
                                     uid: user.uid,
-                                    phone: userData.phone,
-                                    name: userData.name,
+                                    name: userData.name || '',
+                                    phone: userData.phone || '',
                                     email: userData.email || '',
-                                    address: userData.address || '',
                                     gender: userData.gender || '',
-                                    role: userData.role || 'penumpang',
+                                    address: userData.address || '',
+                                    status: userData.status || "active",
+                                    photoURL: userData.fotoProfilURL || "",
                                     rating: userData.rating || 5,
                                     perjalanan: userData.perjalanan || 0,
-                                    fotoProfilURL: userData.fotoProfilURL || "",
-                                    fotoProfilStorage: userData.fotoProfilStorage || "default",
-                                    status: 'active',
-                                    createdAt: Date.now(),
-                                    last_login: Date.now()
+                                    createdAt: userData.createdAt || new Date().toISOString()
                                 };
                                 
-                                localStorage.setItem('jego_logged_in_user', JSON.stringify(userToStore));
+                                localStorage.setItem('jego_logged_in_user', JSON.stringify(sessionUser));
                                 
                                 // Redirect ke halaman utama
                                 autoRedirectInfo.style.display = 'block';
