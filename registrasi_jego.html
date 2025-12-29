@@ -1015,7 +1015,7 @@
         let phoneCheckTimeout = null;
         let firebaseApp = null;
         let firebaseAuth = null;
-        let firebaseDatabase = null; // ✅ Tambahkan Firebase Database
+        let firebaseDatabase = null;
         let recaptchaVerifier = null;
         let confirmationResult = null;
         let currentStep = 1;
@@ -1307,7 +1307,7 @@
                 // Initialize Firebase
                 firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
                 firebaseAuth = firebase.auth();
-                firebaseDatabase = firebase.database(); // ✅ Inisialisasi Database
+                firebaseDatabase = firebase.database();
                 
                 console.log('✅ Firebase diinisialisasi');
                 return true;
@@ -1473,18 +1473,22 @@
                 // Buat data user baru dengan struktur yang ditentukan
                 const now = new Date();
                 const userProfile = {
+                    firebase_key: uid,
+                    uid: uid,
                     active: true,
                     status: "active",
-                    role: "penumpang", // Default role
+                    role: "penumpang",
                     name: userData.name,
                     gender: userData.gender,
                     phone: userData.phone,
                     email: userData.email || "",
                     address: userData.address || "",
-                    rating: 5, // ✅ Default rating = 5
-                    perjalanan: 0, // ✅ Default perjalanan = 0
+                    fotoProfilURL: "",
+                    fotoProfilStorage: "default",
+                    rating: 5,
+                    perjalanan: 0,
                     createdAt: now.toISOString(),
-                    createdDate: now.toISOString().split('T')[0], // Format YYYY-MM-DD
+                    createdDate: now.toISOString().split('T')[0],
                     updatedAt: now.toISOString()
                 };
                 
@@ -1649,41 +1653,58 @@
                 // Get Firebase token untuk session
                 const firebaseToken = await firebaseUser.getIdToken();
                 
-                // Simpan data user ke localStorage
-                const userData = {
+                // SIMPAN DATA USER KE LOCALSTORAGE DENGAN STRUKTUR YANG DIMINTA
+                const userDataForLocalStorage = {
+                    firebase_key: firebaseUser.uid,
                     uid: firebaseUser.uid,
-                    phone: registrationData.phone,
                     name: registrationData.name,
+                    phone: registrationData.phone,
                     email: registrationData.email,
                     address: registrationData.address,
                     gender: registrationData.gender,
                     role: saveResult.userData?.role || 'penumpang',
                     status: 'active',
+                    rating: saveResult.userData?.rating || 5,
+                    perjalanan: saveResult.userData?.perjalanan || 0,
+                    fotoProfilURL: saveResult.userData?.fotoProfilURL || "",
+                    fotoProfilStorage: saveResult.userData?.fotoProfilStorage || "default",
                     createdAt: Date.now(),
                     last_login: Date.now(),
                     firebaseToken: firebaseToken
                 };
                 
-                localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
+                localStorage.setItem('jego_logged_in_user', JSON.stringify(userDataForLocalStorage));
                 
                 // Tampilkan informasi user di step 3
                 userName.textContent = `Nama: ${registrationData.name}`;
                 userPhone.textContent = `Telepon: ${registrationData.phone}`;
                 
+                // Tampilkan rating dan perjalanan
+                const userInfoHTML = `
+                    <p><strong>Informasi Akun:</strong></p>
+                    <p>Nama: ${registrationData.name}</p>
+                    <p>Telepon: ${registrationData.phone}</p>
+                    <p>Rating: ⭐ ${saveResult.userData?.rating || 5}/5</p>
+                    <p>Perjalanan: ${saveResult.userData?.perjalanan || 0} kali</p>
+                    ${saveResult.isNewUser ? `<p id="userPromo"></p>` : ''}
+                `;
+                userInfo.innerHTML = userInfoHTML;
+                
                 // Generate promo code untuk user baru
                 if (saveResult.isNewUser) {
                     const promoCode = 'JEGO' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                    userPromo.textContent = `Kode Promo: ${promoCode} (Diskon 20%)`;
+                    const promoElement = document.getElementById('userPromo');
+                    if (promoElement) {
+                        promoElement.textContent = `Kode Promo: ${promoCode} (Diskon 20%)`;
+                    }
                     
                     // Simpan promo ke localStorage
                     localStorage.setItem('jego_user_promo', JSON.stringify({
                         code: promoCode,
                         discount: 20,
                         max_usage: 1,
-                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 hari
+                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000)
                     }));
-                } else {
-                    userPromo.textContent = `Selamat datang kembali!`;
                 }
                 
                 userInfo.style.display = 'block';
@@ -1756,7 +1777,9 @@
                         firebaseDatabase.ref('users/' + user.uid).once('value').then((snapshot) => {
                             if (snapshot.exists()) {
                                 const userData = snapshot.val();
+                                // SIMPAN KE LOCALSTORAGE DENGAN STRUKTUR YANG DIMINTA
                                 const userToStore = {
+                                    firebase_key: user.uid,
                                     uid: user.uid,
                                     phone: userData.phone,
                                     name: userData.name,
@@ -1764,6 +1787,10 @@
                                     address: userData.address || '',
                                     gender: userData.gender || '',
                                     role: userData.role || 'penumpang',
+                                    rating: userData.rating || 5,
+                                    perjalanan: userData.perjalanan || 0,
+                                    fotoProfilURL: userData.fotoProfilURL || "",
+                                    fotoProfilStorage: userData.fotoProfilStorage || "default",
                                     status: 'active',
                                     createdAt: Date.now(),
                                     last_login: Date.now()
