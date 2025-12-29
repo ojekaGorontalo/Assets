@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <title>Rute - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  
   <style>
+    /* STYLE CSS YANG SAMA DENGAN SEBELUMNYA */
     :root {
       --primary: #1e6f5c;
       --secondary: #289672;
@@ -1199,6 +1202,84 @@
     // Variabel untuk user data refresh interval
     let userDataRefreshInterval = null;
 
+    // Ambil parameter vehicle
+    const urlParams = new URLSearchParams(window.location.search);
+    let vehicle = urlParams.get("vehicle");
+
+    // Jika tidak ada parameter vehicle, coba ambil dari localStorage
+    if (!vehicle) {
+      const lastTransport = localStorage.getItem('jego_last_transport');
+      if (lastTransport) {
+        try {
+          const transportData = JSON.parse(lastTransport);
+          vehicle = transportData.type;
+          
+          // Cek apakah ada data pengiriman untuk kurir
+          if (transportData.deliveryData) {
+            kurirDeliveryData = transportData.deliveryData;
+          }
+        } catch (e) {
+          console.error('[DEBUG] Error parsing last transport:', e);
+        }
+      }
+    }
+
+    // Fallback ke motor jika masih tidak ada
+    if (!vehicle) {
+      vehicle = "motor";
+    }
+
+    const fromParam = urlParams.get("from");
+    const toParam = urlParams.get("to");
+    const coordParam = urlParams.get("coord");
+
+    // Data kendaraan akan diambil dari Firebase
+    let vehicleData = {};
+
+    // Fallback data jika Firebase tidak tersedia (untuk emergency)
+    const fallbackVehicleData = {
+      motor: { 
+        name: "Motor", 
+        capacity: "1 Penumpang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+        minDistance: 4,
+        minPrice: 10000,
+        pricePerKm: 2200
+      },
+      bentor: { 
+        name: "Bentor", 
+        capacity: "2 Penumpang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+        minDistance: 4,
+        minPrice: 11000,
+        pricePerKm: 3000
+      },
+      mobil: { 
+        name: "Mobil", 
+        capacity: "4 Penumpang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+        minDistance: 4,
+        minPrice: 15000,
+        pricePerKm: 4000
+      },
+      kurir_motor: { 
+        name: "Kurir Motor", 
+        capacity: "Paket Kecil", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+        minDistance: 4,
+        minPrice: 10000,
+        pricePerKm: 2100
+      },
+      kurir_bentor: { 
+        name: "Kurir Bentor", 
+        capacity: "Paket Sedang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+        minDistance: 4,
+        minPrice: 10000,
+        pricePerKm: 2100
+      }
+    };
+
     // ==================== FUNGSI BARU: USER DATA MANAGEMENT ====================
     
     // FUNGSI BARU 1: Ambil data user TERBARU dari Firebase
@@ -1285,22 +1366,132 @@
       }
     }
 
-    // FUNGSI BARU 3: Ambil dan validasi data user sebelum membuat order
+    // FUNGSI BARU 3: Sync data user dari Firebase berdasarkan auth_uid
+    async function syncUserDataFromFirebase() {
+      const authUid = localStorage.getItem('jego_auth_uid');
+      const jegoLoggedInUser = JSON.parse(localStorage.getItem('jego_logged_in_user') || '{}');
+      
+      if (!authUid) {
+        console.log("⚠️ [DEBUG] Tidak ada auth_uid untuk sync");
+        return null;
+      }
+      
+      try {
+        console.log("🔄 [DEBUG] Mencari user di Firebase dengan auth_uid:", authUid);
+        
+        // Cari user di Firebase berdasarkan auth_uid
+        const usersRef = database.ref('users');
+        const snapshot = await usersRef.orderByChild('auth_uid').equalTo(authUid).once('value');
+        
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+          const userKey = Object.keys(userData)[0];
+          const user = userData[userKey];
+          
+          console.log("✅ [DEBUG] User ditemukan di Firebase:", {
+            userKey: userKey,
+            userData: user
+          });
+          
+          // Gabungkan dengan data lokal
+          const mergedData = {
+            ...jegoLoggedInUser,
+            ...user,
+            firebase_key: userKey,
+            auth_uid: authUid
+          };
+          
+          // Update localStorage
+          localStorage.setItem('jego_logged_in_user', JSON.stringify(mergedData));
+          
+          // Update juga jego_users
+          const jegoUsers = JSON.parse(localStorage.getItem('jego_users') || '{}');
+          jegoUsers[userKey] = mergedData;
+          localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
+          
+          console.log("✅ [DEBUG] Data user disinkronisasi dengan Firebase");
+          return mergedData;
+        } else {
+          console.log("⚠️ [DEBUG] User tidak ditemukan di Firebase dengan auth_uid:", authUid);
+          
+          // Coba cari dengan phone number
+          if (jegoLoggedInUser.phone) {
+            console.log("🔄 [DEBUG] Mencari dengan phone:", jegoLoggedInUser.phone);
+            const phoneSnapshot = await usersRef.orderByChild('phone').equalTo(jegoLoggedInUser.phone).once('value');
+            
+            if (phoneSnapshot.exists()) {
+              const userData = phoneSnapshot.val();
+              const userKey = Object.keys(userData)[0];
+              const user = userData[userKey];
+              
+              const mergedData = {
+                ...jegoLoggedInUser,
+                ...user,
+                firebase_key: userKey,
+                auth_uid: authUid
+              };
+              
+              localStorage.setItem('jego_logged_in_user', JSON.stringify(mergedData));
+              console.log("✅ [DEBUG] User ditemukan dengan phone");
+              return mergedData;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ [DEBUG] Error sync user data:', error);
+      }
+      
+      return null;
+    }
+
+    // FUNGSI BARU 4: Ambil dan validasi data user sebelum membuat order
     async function getValidatedUserDataForOrder() {
       console.log("🔍 [DEBUG] Memulai getValidatedUserDataForOrder");
       
       if (!userData) {
         console.error("❌ [DEBUG] userData tidak ada/null");
-        showPopup("Silakan login terlebih dahulu", "Perhatian", "warning");
-        return null;
+        
+        // Coba ambil ulang dari localStorage
+        userData = getUserData();
+        
+        if (!userData) {
+          showPopup("Silakan login terlebih dahulu", "Perhatian", "warning");
+          
+          // Redirect ke login setelah 2 detik
+          setTimeout(() => {
+            window.location.href = 'loginUser.html?redirect=' + encodeURIComponent(window.location.href);
+          }, 2000);
+          
+          return null;
+        }
       }
       
-      const userKey = userData.firebase_key || userData.key;
+      // Jika tidak ada firebase_key, coba sync dulu
+      if (!userData.firebase_key) {
+        console.log("⚠️ [DEBUG] Tidak ada firebase_key, mencoba sync...");
+        const syncedData = await syncUserDataFromFirebase();
+        if (syncedData) {
+          userData = syncedData;
+        }
+      }
+      
+      const userKey = userData.firebase_key || userData.key || userData.auth_uid;
       console.log("🔑 [DEBUG] User key yang ditemukan:", userKey);
       
       if (!userKey) {
         console.error("❌ [DEBUG] User key tidak ditemukan di userData:", userData);
-        showPopup("User key tidak ditemukan. Silakan login ulang.", "Error", "error");
+        
+        // Tampilkan popup yang lebih informatif
+        showPopup(`
+          Data login tidak lengkap. 
+          Silakan login ulang untuk memperbaiki data.
+          Akan diarahkan ke halaman login...
+        `, "Sesi Tidak Lengkap", "warning");
+        
+        setTimeout(() => {
+          window.location.href = 'loginUser.html?redirect=' + encodeURIComponent(window.location.href);
+        }, 3000);
+        
         return null;
       }
       
@@ -1323,6 +1514,94 @@
       });
       
       return validatedUserData;
+    }
+
+    // FUNGSI YANG DIPERBAIKI: Ambil data user dengan format yang kompatibel
+    function getUserData() {
+      console.log("🔍 [DEBUG] Memulai getUserData");
+      
+      try {
+        // 1. Cek data dari loginUser.html
+        const jegoLoggedInUser = localStorage.getItem('jego_logged_in_user');
+        console.log("📁 [DEBUG] jego_logged_in_user:", jegoLoggedInUser ? "Ada" : "Tidak ada");
+        
+        if (jegoLoggedInUser) {
+          const userData = JSON.parse(jegoLoggedInUser);
+          
+          // ✅ PERUBAHAN: Handle format dari loginUser.html
+          const authUid = localStorage.getItem('jego_auth_uid');
+          const jegoUserData = localStorage.getItem('jego_user_data');
+          
+          // Gabungkan semua data user
+          const mergedUserData = {
+            ...userData,
+            auth_uid: authUid,
+            // Coba dapatkan firebase_key dari berbagai sumber
+            firebase_key: userData.firebase_key || 
+                         userData.userKey || 
+                         userData.uid || 
+                         authUid || 
+                         userData.key,
+            // Pastikan field penting ada
+            rating: userData.rating || 5,
+            perjalanan: userData.perjalanan || 0,
+            name: userData.name || userData.userData?.name || 'User',
+            phone: userData.phone || userData.userData?.phone,
+            email: userData.email || userData.userData?.email,
+            fotoProfilURL: userData.fotoProfilURL || userData.userData?.fotoProfilURL,
+            fotoProfilStorage: userData.fotoProfilStorage || userData.userData?.fotoProfilStorage || 'default'
+          };
+          
+          console.log("✅ [DEBUG] User data ditemukan dari jego_logged_in_user:", {
+            name: mergedUserData.name,
+            phone: mergedUserData.phone,
+            firebase_key: mergedUserData.firebase_key,
+            auth_uid: mergedUserData.auth_uid
+          });
+          
+          return mergedUserData;
+        }
+        
+        // 2. Fallback: cek jego_users
+        const jegoUsers = JSON.parse(localStorage.getItem('jego_users') || '{}');
+        if (jegoUsers && Object.keys(jegoUsers).length > 0) {
+          // Ambil user terbaru
+          const latestKey = Object.keys(jegoUsers).pop();
+          const userData = jegoUsers[latestKey];
+          userData.firebase_key = latestKey;
+          
+          console.log("✅ [DEBUG] User data ditemukan dari jego_users:", userData);
+          return userData;
+        }
+        
+        // 3. Fallback: cek registrasi biasa
+        const userRegData = JSON.parse(localStorage.getItem('jego_user_data') || 'null');
+        if (userRegData) {
+          console.log("✅ [DEBUG] User data ditemukan dari jego_user_data:", userRegData);
+          return userRegData;
+        }
+        
+        // 4. Cek jika ada auth_uid saja
+        const authUid = localStorage.getItem('jego_auth_uid');
+        if (authUid) {
+          console.log("⚠️ [DEBUG] Hanya auth_uid ditemukan, membuat data user minimal");
+          return {
+            auth_uid: authUid,
+            firebase_key: authUid, // Gunakan auth_uid sebagai fallback key
+            name: 'User',
+            rating: 5,
+            perjalanan: 0,
+            phone: '',
+            email: ''
+          };
+        }
+        
+      } catch (error) {
+        console.error('❌ [DEBUG] Error mengambil data user:', error);
+      }
+      
+      console.log("❌ [DEBUG] Tidak ada data user ditemukan di localStorage");
+      return null;
     }
 
     // ==================== FUNGSI YANG DIUBAH: sendOrderToFirebase ====================
@@ -1798,86 +2077,6 @@
       });
     }
 
-    // ==================== FUNGSI YANG TIDAK BERUBAH (Tetap sama seperti sebelumnya) ====================
-    
-    // Ambil parameter vehicle
-    const urlParams = new URLSearchParams(window.location.search);
-    let vehicle = urlParams.get("vehicle");
-
-    // Jika tidak ada parameter vehicle, coba ambil dari localStorage
-    if (!vehicle) {
-      const lastTransport = localStorage.getItem('jego_last_transport');
-      if (lastTransport) {
-        try {
-          const transportData = JSON.parse(lastTransport);
-          vehicle = transportData.type;
-          
-          // Cek apakah ada data pengiriman untuk kurir
-          if (transportData.deliveryData) {
-            kurirDeliveryData = transportData.deliveryData;
-          }
-        } catch (e) {
-          console.error('[DEBUG] Error parsing last transport:', e);
-        }
-      }
-    }
-
-    // Fallback ke motor jika masih tidak ada
-    if (!vehicle) {
-      vehicle = "motor";
-    }
-
-    const fromParam = urlParams.get("from");
-    const toParam = urlParams.get("to");
-    const coordParam = urlParams.get("coord");
-
-    // Data kendaraan akan diambil dari Firebase
-    let vehicleData = {};
-
-    // Fallback data jika Firebase tidak tersedia (untuk emergency)
-    const fallbackVehicleData = {
-      motor: { 
-        name: "Motor", 
-        capacity: "1 Penumpang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
-        minDistance: 4,
-        minPrice: 10000,
-        pricePerKm: 2200
-      },
-      bentor: { 
-        name: "Bentor", 
-        capacity: "2 Penumpang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
-        minDistance: 4,
-        minPrice: 11000,
-        pricePerKm: 3000
-      },
-      mobil: { 
-        name: "Mobil", 
-        capacity: "4 Penumpang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
-        minDistance: 4,
-        minPrice: 15000,
-        pricePerKm: 4000
-      },
-      kurir_motor: { 
-        name: "Kurir Motor", 
-        capacity: "Paket Kecil", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
-        minDistance: 4,
-        minPrice: 10000,
-        pricePerKm: 2100
-      },
-      kurir_bentor: { 
-        name: "Kurir Bentor", 
-        capacity: "Paket Sedang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
-        minDistance: 4,
-        minPrice: 10000,
-        pricePerKm: 2100
-      }
-    };
-
     // ==================== FUNGSI TAMPILKAN DATA KURIR ====================
 
     // Fungsi untuk menampilkan data pengiriman kurir di panel
@@ -2309,78 +2508,6 @@
     }
 
     // ==================== FUNGSI UTAMA ====================
-
-    // PERBAIKAN: Ambil data user dari localStorage
-    function getUserData() {
-      console.log("🔍 [DEBUG] Memulai getUserData");
-      
-      try {
-        // Cek user yang sedang login
-        const loggedInUser = localStorage.getItem('jego_logged_in_user');
-        console.log("📁 [DEBUG] jego_logged_in_user di localStorage:", loggedInUser ? "Ada" : "Tidak ada");
-        
-        if (loggedInUser) {
-          const userData = JSON.parse(loggedInUser);
-          console.log("✅ [DEBUG] User data ditemukan dari jego_logged_in_user:", userData);
-          
-          // ✅ PERUBAHAN: Pastikan ada field fotoProfilURL
-          if (userData && !userData.fotoProfilURL) {
-            // Coba ambil dari storage yang lain
-            const jegoUsers = JSON.parse(localStorage.getItem('jego_users'));
-            if (jegoUsers && userData.firebase_key) {
-              const userFromStorage = jegoUsers[userData.firebase_key];
-              if (userFromStorage && userFromStorage.fotoProfilURL) {
-                userData.fotoProfilURL = userFromStorage.fotoProfilURL;
-                console.log("✅ [DEBUG] Foto profil ditemukan dari jego_users:", userData.fotoProfilURL);
-              }
-            }
-          }
-          
-          // Pastikan ada firebase_key
-          if (userData && !userData.firebase_key && !userData.key) {
-            console.warn("⚠️ [DEBUG] User data tidak memiliki firebase_key atau key!");
-          }
-          
-          return userData;
-        }
-        
-        // Fallback: cek dari jego_users
-        const jegoUsers = JSON.parse(localStorage.getItem('jego_users'));
-        console.log("📁 [DEBUG] jego_users di localStorage:", jegoUsers ? `Ada ${Object.keys(jegoUsers).length} user` : "Tidak ada");
-        
-        if (jegoUsers) {
-          const keys = Object.keys(jegoUsers);
-          if (keys.length > 0) {
-            const latestKey = keys[keys.length - 1];
-            const userData = jegoUsers[latestKey];
-            userData.firebase_key = latestKey; // Tambahkan firebase_key
-            console.log("✅ [DEBUG] User data ditemukan dari jego_users:", userData);
-            
-            // ✅ PERUBAHAN: Log foto profil
-            if (userData.fotoProfilURL) {
-              console.log("📸 [DEBUG] Foto profil user:", userData.fotoProfilURL);
-            }
-            
-            return userData;
-          }
-        }
-        
-        // Fallback: cek dari registrasi biasa
-        const userRegData = JSON.parse(localStorage.getItem('jego_user_data'));
-        console.log("📁 [DEBUG] jego_user_data di localStorage:", userRegData ? "Ada" : "Tidak ada");
-        
-        if (userRegData) {
-          console.log("✅ [DEBUG] User data ditemukan dari user_data:", userRegData);
-          return userRegData;
-        }
-        
-      } catch (error) {
-        console.error('❌ [DEBUG] Error mengambil data user:', error);
-      }
-      
-      console.log("❌ [DEBUG] Tidak ada data user ditemukan di localStorage");
-      return null;
-    }
 
     function clearInput(inputId) {
       document.getElementById(inputId).value = '';
@@ -3759,34 +3886,52 @@
 
     // ==================== INISIALISASI ====================
 
-    function onLoad() {
+    async function onLoad() {
       console.log("🚀 [DEBUG] ========== MEMULAI INISIALISASI APLIKASI ==========");
       
       try {
+        // 🔴 PERUBAHAN PENTING: Sync dulu dengan Firebase
+        const syncedUserData = await syncUserDataFromFirebase();
+        
         // Ambil data user dari localStorage
         userData = getUserData();
-        console.log("👤 [DEBUG] Data user dari registrasi:", userData);
+        
+        // Jika sync berhasil, gunakan data yang disinkronisasi
+        if (syncedUserData) {
+          userData = syncedUserData;
+        }
+        
+        console.log("👤 [DEBUG] Data user setelah sync:", {
+          name: userData?.name,
+          phone: userData?.phone,
+          firebase_key: userData?.firebase_key,
+          auth_uid: userData?.auth_uid
+        });
         
         if (!userData) {
-          console.log("⚠️ [DEBUG] Tidak ada user yang login, beberapa fitur mungkin terbatas");
+          console.log("⚠️ [DEBUG] Tidak ada user yang login");
+          
+          // Cek jika ada minimal auth_uid
+          const authUid = localStorage.getItem('jego_auth_uid');
+          if (authUid) {
+            console.log("⚠️ [DEBUG] Ada auth_uid tapi tidak ada data lengkap");
+            // Redirect ke login jika diperlukan
+            // window.location.href = 'loginUser.html?redirect=' + encodeURIComponent(window.location.href);
+          }
         } else {
           console.log("✅ [DEBUG] User berhasil diidentifikasi:", userData.name || userData.phone);
-          console.log("🔑 [DEBUG] User key:", userData.firebase_key || userData.key);
-          console.log("📊 [DEBUG] Rating awal:", userData.rating);
-          console.log("📈 [DEBUG] Perjalanan awal:", userData.perjalanan);
           
-          // 🔴 PERUBAHAN PENTING: Ambil data TERBARU dari Firebase saat halaman dimuat
+          // 🔴 PERUBAHAN: Ambil data TERBARU dari Firebase
           if (userData.firebase_key) {
-            fetchLatestUserData(userData.firebase_key).then(updatedUserData => {
+            const updatedUserData = await fetchLatestUserData(userData.firebase_key);
+            if (updatedUserData) {
               userData = updatedUserData;
-              console.log("🔄 [DEBUG] User data diperbarui saat load. Rating sekarang:", userData.rating);
-              
-              // Mulai auto-refresh user data
-              startUserDataRefresh();
-            }).catch(error => {
-              console.error("❌ [DEBUG] Gagal refresh user data saat load:", error);
-            });
+              console.log("🔄 [DEBUG] User data diperbarui dari Firebase. Rating:", userData.rating);
+            }
           }
+          
+          // Mulai auto-refresh user data
+          startUserDataRefresh();
         }
         
         // Muat data tarif dari Firebase terlebih dahulu
@@ -3861,4 +4006,3 @@
   ></script>
 </body>
 </html>
-
