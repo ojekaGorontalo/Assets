@@ -4,139 +4,45 @@
   <meta charset="utf-8" />
   <title>Login - JeGo (Integrated)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- FireBase SDK (versi modular) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
-      getAuth, 
-      RecaptchaVerifier, 
-      signInWithPhoneNumber
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { 
-      getDatabase, 
-      ref, 
-      get, 
-      query, 
-      orderByChild, 
-      equalTo 
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  
+  <!-- Load Firebase SDK (Compat version like registrasi_jego.html) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    // ==================== KONFIGURASI ====================
-    const SERVER_URL = 'http://135.181.38.85:7781';
+  <script>
+    // ================================================
+    // KONFIGURASI
+    // ================================================
     
-    // ==================== GLOBAL VARIABLES ====================
-    let app;
-    let auth;
-    let database;
-    let confirmationResult = null;
+    // Firebase Configuration
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
+    };
+    
+    // ================================================
+    // VARIABEL GLOBAL
+    // ================================================
+    let firebaseApp = null;
+    let firebaseAuth = null;
+    let firebaseDatabase = null;
     let recaptchaVerifier = null;
-    let firebaseConfig = null;
-    let recaptchaWidgetId = null;
-
-    // ==================== INITIALIZE FUNCTIONS ====================
-    async function getFirebaseConfigFromServer() {
-      try {
-        console.log('🔧 Mengambil config Firebase dari server...');
-        const response = await fetch(`${SERVER_URL}/config`);
-        
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.config) {
-          console.log('✅ Config Firebase berhasil diambil dari server');
-          return data.config;
-        } else {
-          throw new Error('Format response server tidak valid');
-        }
-      } catch (error) {
-        console.error('❌ Gagal mengambil config dari server:', error);
-        
-        // Fallback ke config default
-        return {
-          apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
-          authDomain: "game-balap-simpel.firebaseapp.com",
-          databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
-          projectId: "game-balap-simpel",
-          storageBucket: "game-balap-simpel.firebasestorage.app",
-          messagingSenderId: "864576853495",
-          appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
-        };
-      }
-    }
-
-    async function initializeFirebase() {
-      try {
-        // Ambil config dari server
-        firebaseConfig = await getFirebaseConfigFromServer();
-        
-        // Initialize Firebase
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        database = getDatabase(app);
-        
-        console.log('🚀 Firebase initialized dengan config dari server');
-        return true;
-      } catch (error) {
-        console.error('❌ Gagal initialize Firebase:', error);
-        showNotification('Error', 'Gagal menghubungkan ke server Firebase', 'error');
-        return false;
-      }
-    }
-
-    // ==================== SERVER API FUNCTIONS ====================
-    async function loginToServer(idToken, phoneNumber) {
-      try {
-        console.log('🔄 Login ke server backend...');
-        
-        const response = await fetch(`${SERVER_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            idToken: idToken,
-            phoneNumber: phoneNumber
-          })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.message || 'Login ke server gagal');
-        }
-        
-        console.log('✅ Login ke server berhasil');
-        return data;
-      } catch (error) {
-        console.error('❌ Server login error:', error);
-        throw error;
-      }
-    }
-
-    async function checkPhoneOnServer(phoneNumber) {
-      try {
-        const response = await fetch(`${SERVER_URL}/api/user/check-phone`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ phone: phoneNumber })
-        });
-        
-        if (response.ok) {
-          return await response.json();
-        }
-        return null;
-      } catch (error) {
-        console.error('Error checking phone on server:', error);
-        return null;
-      }
-    }
-
-    // ==================== UI HELPER FUNCTIONS ====================
+    let confirmationResult = null;
+    let currentUser = null;
+    let otpTimer = null;
+    let otpCountdown = 60;
+    
+    // ================================================
+    // FUNGSI UTILITAS
+    // ================================================
+    
     function showNotification(title, message, type = 'info') {
       const notification = document.getElementById('notificationPopup');
       const notificationTitle = document.getElementById('notificationTitle');
@@ -151,7 +57,7 @@
         notification.style.display = 'none';
       }, 5000);
     }
-
+    
     function showStatus(message, type) {
       const statusElement = document.getElementById('statusMessage');
       statusElement.textContent = message;
@@ -165,7 +71,7 @@
         }, 5000);
       }
     }
-
+    
     function showSmsStatus(message, type = 'sending') {
       const smsStatus = document.getElementById('smsStatus');
       smsStatus.textContent = message;
@@ -173,12 +79,12 @@
       smsStatus.classList.add(type);
       smsStatus.style.display = 'block';
     }
-
+    
     function hideSmsStatus() {
       const smsStatus = document.getElementById('smsStatus');
       smsStatus.style.display = 'none';
     }
-
+    
     function showProgress(percent) {
       const progressContainer = document.getElementById('progressContainer');
       const progressBar = document.getElementById('progressBar');
@@ -186,25 +92,14 @@
       progressContainer.style.display = 'block';
       progressBar.style.width = percent + '%';
     }
-
+    
     function hideProgress() {
       const progressContainer = document.getElementById('progressContainer');
       progressContainer.style.display = 'none';
     }
-
-    // ==================== PHONE NUMBER FUNCTIONS ====================
-    function cleanPhoneNumber(phone) {
-      if (!phone) return '';
-      let cleaned = phone.replace(/[^0-9]/g, '');
-      if (cleaned.startsWith('62')) {
-        cleaned = '0' + cleaned.substring(2);
-      }
-      return cleaned;
-    }
-
-    function formatPhoneForFirebase(phone) {
-      if (!phone) return '';
-      let cleaned = phone.replace(/[^0-9]/g, '');
+    
+    function formatPhoneNumber(phone) {
+      let cleaned = phone.replace(/\D/g, '');
       if (cleaned.startsWith('0')) {
         cleaned = '+62' + cleaned.substring(1);
       } else if (cleaned.startsWith('62')) {
@@ -212,16 +107,14 @@
       } else if (!cleaned.startsWith('+')) {
         cleaned = '+62' + cleaned;
       }
-      
-      // Validasi panjang minimal
-      if (cleaned.length < 10 || cleaned.length > 15) {
-        throw new Error('Nomor telepon harus 10-15 digit');
-      }
-      
       return cleaned;
     }
-
-    // ==================== OTP FUNCTIONS ====================
+    
+    function validatePhoneFormat(phone) {
+      const phoneRegex = /^\+62[0-9]{9,12}$/;
+      return phoneRegex.test(phone);
+    }
+    
     function setupOTPInput() {
       const otpInput = document.getElementById('otpInput');
       
@@ -250,16 +143,16 @@
         }
       });
     }
-
+    
     function getEnteredOTP() {
       return document.getElementById('otpInput').value;
     }
-
+    
     function clearOTPInput() {
       document.getElementById('otpInput').value = '';
       document.getElementById('otpInput').classList.remove('filled');
     }
-
+    
     function startResendCountdown(seconds) {
       const resendLink = document.getElementById('resendOtpLink');
       const countdownText = document.getElementById('countdownText');
@@ -282,233 +175,378 @@
         }
       }, 1000);
     }
-
-    // ==================== FIREBASE AUTH FUNCTIONS (DIPERBAIKI) ====================
-    function initializeRecaptcha() {
+    
+    // ================================================
+    // FIREBASE FUNCTIONS (100% CLIENT-SIDE)
+    // ================================================
+    
+    async function initializeFirebase() {
       try {
-        console.log('🔄 Initializing reCAPTCHA...');
+        console.log('🔄 Menginisialisasi Firebase...');
         
-        // Cek apakah reCAPTCHA sudah diinisialisasi
-        if (recaptchaVerifier) {
-          console.log('✅ reCAPTCHA sudah diinisialisasi sebelumnya');
-          return recaptchaVerifier;
+        if (typeof firebase === 'undefined') {
+          throw new Error('Firebase SDK belum dimuat');
         }
         
-        const container = document.getElementById('recaptcha-container');
+        // Initialize Firebase
+        firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseAuth = firebase.auth();
+        firebaseDatabase = firebase.database();
         
-        // JANGAN hapus container! Cek apakah sudah ada widget
-        if (container.children.length > 0) {
-          console.log('⚠️ reCAPTCHA widget sudah ada, menggunakan yang existing');
-          // Cari verifier yang sudah ada
-          recaptchaVerifier = window.recaptchaVerifier;
-          return recaptchaVerifier;
-        }
-        
-        // Inisialisasi reCAPTCHA sesuai dokumentasi Firebase
-        recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        console.log('✅ Firebase diinisialisasi');
+        return true;
+      } catch (error) {
+        console.error('❌ Error menginisialisasi Firebase:', error);
+        showNotification('Error', 'Gagal menginisialisasi Firebase. Silakan refresh halaman.', 'error');
+        return false;
+      }
+    }
+    
+    function setupRecaptcha() {
+      try {
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
           'size': 'normal',
-          'callback': (response) => {
-            console.log('✅ reCAPTCHA berhasil diselesaikan, response:', response);
-            showNotification('Success', 'Verifikasi keamanan berhasil', 'success');
+          'callback': function(response) {
+            console.log('✅ reCAPTCHA verified');
           },
-          'expired-callback': () => {
-            console.log('⚠️ reCAPTCHA expired, perlu diselesaikan ulang');
-            showNotification('Info', 'Verifikasi keamanan telah kadaluarsa', 'info');
-            
-            // Reset reCAPTCHA jika widget ID tersedia
-            if (recaptchaWidgetId && typeof grecaptcha !== 'undefined') {
-              grecaptcha.reset(recaptchaWidgetId);
-            }
+          'expired-callback': function() {
+            console.log('❌ reCAPTCHA expired');
+            showNotification('Error', 'reCAPTCHA telah kadaluarsa. Silakan coba lagi.', 'error');
           }
         });
         
-        // Render reCAPTCHA
-        recaptchaVerifier.render().then((widgetId) => {
-          console.log('✅ reCAPTCHA widget rendered with ID:', widgetId);
-          recaptchaWidgetId = widgetId;
-          window.recaptchaWidgetId = widgetId;
-          
-          // Simpan verifier di window untuk akses global
-          window.recaptchaVerifier = recaptchaVerifier;
-        }).catch(error => {
-          console.error('❌ Error rendering reCAPTCHA:', error);
-          showNotification('Error', 'Gagal memuat verifikasi keamanan', 'error');
-        });
-        
-        return recaptchaVerifier;
+        recaptchaVerifier.render();
+        console.log('✅ reCAPTCHA diatur');
       } catch (error) {
-        console.error('❌ Error initializing recaptcha:', error);
+        console.error('❌ Error setting up reCAPTCHA:', error);
+        showNotification('Error', 'Gagal mengatur reCAPTCHA. Silakan refresh halaman.', 'error');
+      }
+    }
+    
+    async function checkPhoneNumberInDatabase(phoneNumber) {
+      try {
+        console.log('🔍 Checking phone in database:', phoneNumber);
         
-        // Error handling spesifik
-        let errorMessage = 'Gagal menginisialisasi verifikasi keamanan. ';
+        // Query database untuk mencari user dengan nomor telepon yang sama
+        const snapshot = await firebaseDatabase.ref('users')
+          .orderByChild('phone')
+          .equalTo(phoneNumber)
+          .once('value');
         
-        if (error.code === 'auth/argument-error') {
-          errorMessage += 'Parameter tidak valid.';
-        } else if (error.code === 'auth/recaptcha-not-enabled') {
-          errorMessage += 'reCAPTCHA belum diaktifkan di Firebase Console.';
-        } else {
-          errorMessage += error.message || 'Silakan refresh halaman.';
+        const data = snapshot.val();
+        
+        if (data) {
+          // Ambil user pertama yang ditemukan
+          const userId = Object.keys(data)[0];
+          const userData = data[userId];
+          
+          return {
+            exists: true,
+            user: userData,
+            userId: userId
+          };
         }
         
-        showNotification('Error', errorMessage, 'error');
-        return null;
+        return {
+          exists: false,
+          user: null,
+          userId: null
+        };
+      } catch (error) {
+        console.error('❌ Error checking phone number:', error);
+        return {
+          exists: false,
+          error: error.message
+        };
       }
     }
-
-    // Fungsi untuk reset reCAPTCHA jika diperlukan
-    function resetRecaptcha() {
-      if (recaptchaWidgetId && typeof grecaptcha !== 'undefined') {
-        grecaptcha.reset(recaptchaWidgetId);
-        console.log('🔄 reCAPTCHA direset');
-      }
-    }
-
-    async function sendOtpWithFirebase(phoneNumber) {
+    
+    async function sendFirebaseOTP(phoneNumber) {
       try {
         showSmsStatus('📱 Mengirim OTP...', 'sending');
         
-        const formattedPhone = formatPhoneForFirebase(phoneNumber);
-        console.log('📞 Formatted phone for Firebase:', formattedPhone);
-        
-        // Pastikan reCAPTCHA sudah diinisialisasi
         if (!recaptchaVerifier) {
-          console.log('🔄 reCAPTCHA belum siap, menginisialisasi...');
-          recaptchaVerifier = initializeRecaptcha();
-          
-          if (!recaptchaVerifier) {
-            throw new Error('reCAPTCHA tidak dapat diinisialisasi');
-          }
-          
-          // Tunggu reCAPTCHA siap (minimal 1 detik untuk render)
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          throw new Error('reCAPTCHA belum diatur');
         }
         
-        // Cek apakah reCAPTCHA sudah diselesaikan
-        if (typeof grecaptcha !== 'undefined' && recaptchaWidgetId) {
-          const recaptchaResponse = grecaptcha.getResponse(recaptchaWidgetId);
-          if (!recaptchaResponse) {
-            showSmsStatus('⚠️ Silakan selesaikan verifikasi keamanan terlebih dahulu', 'error');
-            throw new Error('reCAPTCHA belum diselesaikan');
-          }
-        }
+        confirmationResult = await firebaseAuth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
         
-        console.log('🚀 Memanggil signInWithPhoneNumber...');
-        
-        // Kirim OTP sesuai dokumentasi Firebase
-        confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier);
-        
-        console.log('✅ OTP berhasil dikirim, verificationId:', confirmationResult.verificationId);
         showSmsStatus('✅ OTP berhasil dikirim via SMS', 'success');
-        
-        return { 
-          success: true, 
-          message: 'OTP berhasil dikirim',
-          verificationId: confirmationResult.verificationId 
-        };
+        console.log('✅ Kode OTP dikirim via Firebase');
+        return true;
       } catch (error) {
-        console.error('❌ Send OTP error:', error);
+        console.error('❌ Error sending OTP:', error);
         
-        let errorMessage = 'Gagal mengirim OTP. ';
-        let userMessage = 'Gagal mengirim OTP. ';
-        
-        // Error handling lengkap sesuai dokumentasi Firebase
+        let errorMessage = 'Gagal mengirim kode OTP. ';
         switch (error.code) {
           case 'auth/invalid-phone-number':
             errorMessage += 'Format nomor telepon tidak valid.';
-            userMessage = 'Format nomor telepon tidak valid. Contoh: 08123456789';
             break;
-            
-          case 'auth/missing-recaptcha-token':
-            errorMessage += 'Token reCAPTCHA tidak ditemukan.';
-            userMessage = 'Silakan selesaikan verifikasi keamanan terlebih dahulu.';
-            // Reset reCAPTCHA
-            resetRecaptcha();
-            break;
-            
-          case 'auth/invalid-recaptcha-token':
-            errorMessage += 'Token reCAPTCHA tidak valid.';
-            userMessage = 'Verifikasi keamanan gagal. Silakan coba lagi.';
-            resetRecaptcha();
-            break;
-            
-          case 'auth/captcha-check-failed':
-            errorMessage += 'Verifikasi reCAPTCHA gagal.';
-            userMessage = 'Verifikasi keamanan gagal. Silakan refresh halaman.';
-            break;
-            
           case 'auth/too-many-requests':
-            errorMessage += 'Terlalu banyak permintaan.';
-            userMessage = 'Terlalu banyak percobaan. Silakan coba lagi nanti.';
+            errorMessage += 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
             break;
-            
           case 'auth/quota-exceeded':
-            errorMessage += 'Kuota SMS telah habis.';
-            userMessage = 'Kuota SMS telah habis. Silakan hubungi admin.';
+            errorMessage += 'Kuota SMS telah habis. Silakan hubungi administrator.';
             break;
-            
-          case 'auth/app-not-authorized':
-            errorMessage += 'Aplikasi tidak diotorisasi untuk menggunakan Firebase Authentication.';
-            userMessage = 'Konfigurasi aplikasi bermasalah. Hubungi admin.';
+          case 'auth/captcha-check-failed':
+            errorMessage += 'Verifikasi keamanan gagal. Silakan refresh halaman.';
             break;
-            
-          case 'auth/network-request-failed':
-            errorMessage += 'Gagal terhubung ke jaringan.';
-            userMessage = 'Gagal terhubung ke jaringan. Periksa koneksi internet Anda.';
-            break;
-            
           default:
             errorMessage += error.message || 'Silakan coba lagi.';
-            userMessage = 'Terjadi kesalahan. Silakan coba lagi.';
         }
         
-        console.error('Error details:', errorMessage);
-        showSmsStatus('❌ ' + userMessage, 'error');
-        
-        throw new Error(errorMessage);
+        showSmsStatus('❌ ' + errorMessage, 'error');
+        return false;
       }
     }
-
-    async function verifyOtpWithFirebase(otpCode) {
+    
+    async function verifyFirebaseOTP(code) {
       try {
+        showSmsStatus('🔍 Memverifikasi OTP...', 'sending');
+        
         if (!confirmationResult) {
           throw new Error('Sesi OTP tidak valid. Silakan minta OTP baru.');
         }
         
-        console.log('🔍 Memverifikasi OTP...');
+        const userCredential = await confirmationResult.confirm(code);
+        const user = userCredential.user;
         
-        const result = await confirmationResult.confirm(otpCode);
-        const user = result.user;
-        
-        console.log('✅ OTP berhasil diverifikasi, user:', user.uid);
-        return { success: true, user };
+        showSmsStatus('✅ OTP berhasil diverifikasi', 'success');
+        console.log('✅ OTP verified, user:', user.uid);
+        return user;
       } catch (error) {
-        console.error('❌ Verify OTP error:', error);
+        console.error('❌ Error verifying OTP:', error);
         
         let errorMessage = 'Gagal memverifikasi OTP. ';
-        let userMessage = 'Gagal memverifikasi OTP. ';
-        
-        if (error.code === 'auth/invalid-verification-code') {
-          errorMessage += 'Kode OTP tidak valid.';
-          userMessage = 'Kode OTP salah. Silakan cek kembali.';
-        } else if (error.code === 'auth/code-expired') {
-          errorMessage += 'Kode OTP telah kedaluwarsa.';
-          userMessage = 'Kode OTP telah kedaluwarsa. Minta OTP baru.';
-        } else if (error.code === 'auth/credential-already-in-use') {
-          errorMessage += 'Kredensial sudah digunakan.';
-          userMessage = 'Akun sudah digunakan.';
-        } else if (error.code === 'auth/user-disabled') {
-          errorMessage += 'Akun dinonaktifkan.';
-          userMessage = 'Akun dinonaktifkan. Hubungi admin.';
-        } else {
-          errorMessage += error.message || 'Silakan coba lagi.';
-          userMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+        switch (error.code) {
+          case 'auth/invalid-verification-code':
+            errorMessage += 'Kode OTP tidak valid.';
+            break;
+          case 'auth/code-expired':
+            errorMessage += 'Kode OTP telah kadaluarsa.';
+            break;
+          default:
+            errorMessage += error.message || 'Silakan coba lagi.';
         }
         
-        throw new Error(errorMessage);
+        showSmsStatus('❌ ' + errorMessage, 'error');
+        return null;
       }
     }
-
-    // ==================== EVENT LISTENERS ====================
+    
+    // ================================================
+    // EVENT HANDLERS
+    // ================================================
+    
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      
+      const loginBtn = document.getElementById('loginBtn');
+      const telepon = document.getElementById('teleponInput').value.trim();
+      
+      if (!telepon) {
+        showStatus('Harap masukkan nomor telepon.', 'error');
+        return;
+      }
+      
+      // Format nomor telepon
+      const formattedPhone = formatPhoneNumber(telepon);
+      
+      if (!validatePhoneFormat(formattedPhone)) {
+        showStatus('Format nomor telepon tidak valid. Gunakan format: 08123456789', 'error');
+        return;
+      }
+      
+      // Disable button
+      loginBtn.disabled = true;
+      loginBtn.classList.add('btn-loading');
+      loginBtn.textContent = 'Mengecek...';
+      showProgress(20);
+      
+      try {
+        // 1. Cek apakah nomor terdaftar di database
+        showProgress(40);
+        const phoneInfo = await checkPhoneNumberInDatabase(formattedPhone);
+        
+        if (phoneInfo.exists) {
+          const userData = phoneInfo.user;
+          
+          // Cek status akun
+          const userStatus = userData.status || 'active';
+          
+          if (userStatus === 'blocked_permanent' || userStatus === 'banned') {
+            showStatus('Akun diblokir permanen. Tidak dapat login.', 'error');
+            return;
+          }
+          
+          if (userStatus === 'inactive') {
+            showStatus('Akun tidak aktif. Hubungi administrator.', 'error');
+            return;
+          }
+          
+          // Simpan data user sementara
+          currentUser = {
+            userId: phoneInfo.userId,
+            phone: formattedPhone,
+            userData: userData
+          };
+          
+          // 2. Kirim OTP
+          showProgress(60);
+          const otpSent = await sendFirebaseOTP(formattedPhone);
+          
+          if (otpSent) {
+            // 3. Tampilkan OTP section
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('otpSection').style.display = 'block';
+            document.getElementById('otpInput').focus();
+            
+            startResendCountdown(60);
+            showProgress(100);
+            showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS.', 'info');
+          }
+          
+        } else {
+          showStatus('Nomor telepon tidak terdaftar.', 'error');
+          showNotification('Info', 'Nomor tidak terdaftar. Silakan daftar terlebih dahulu.', 'info');
+        }
+        
+      } catch (error) {
+        console.error('Login error:', error);
+        showStatus(`Error: ${error.message}`, 'error');
+      } finally {
+        setTimeout(() => {
+          loginBtn.disabled = false;
+          loginBtn.classList.remove('btn-loading');
+          loginBtn.textContent = 'Kirim Kode OTP';
+          hideProgress();
+        }, 1000);
+      }
+    }
+    
+    async function handleVerifyOtp() {
+      const verifyBtn = document.getElementById('verifyOtpBtn');
+      const enteredOtp = getEnteredOTP();
+      
+      if (enteredOtp.length !== 6) {
+        showStatus('Harap masukkan kode OTP 6 digit lengkap.', 'error');
+        return;
+      }
+      
+      if (!currentUser) {
+        showStatus('Sesi tidak valid.', 'error');
+        return;
+      }
+      
+      verifyBtn.disabled = true;
+      verifyBtn.classList.add('btn-loading');
+      verifyBtn.textContent = 'Memverifikasi...';
+      
+      try {
+        // 1. Verify OTP dengan Firebase
+        const firebaseUser = await verifyFirebaseOTP(enteredOtp);
+        
+        if (firebaseUser) {
+          // 2. Dapatkan Firebase token
+          const firebaseToken = await firebaseUser.getIdToken();
+          
+          // 3. Update data user dengan Firebase UID
+          const userData = {
+            ...currentUser.userData,
+            uid: firebaseUser.uid,
+            auth_uid: firebaseUser.uid,
+            last_login: new Date().toISOString(),
+            firebaseToken: firebaseToken
+          };
+          
+          // 4. Simpan ke localStorage
+          localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
+          
+          // 5. Tampilkan success
+          showStatus('Login berhasil! Mengalihkan...', 'success');
+          showNotification('Login Berhasil', 'Login berhasil!', 'success');
+          
+          // 6. Redirect ke halaman utama
+          setTimeout(() => {
+            window.location.href = 'jenis_kenderaan.html';
+          }, 1500);
+        }
+      } catch (error) {
+        console.error('Verify error:', error);
+        showStatus(`Gagal: ${error.message}`, 'error');
+        clearOTPInput();
+        document.getElementById('otpInput').focus();
+      } finally {
+        setTimeout(() => {
+          verifyBtn.disabled = false;
+          verifyBtn.classList.remove('btn-loading');
+          verifyBtn.textContent = 'Verifikasi OTP';
+        }, 1000);
+      }
+    }
+    
+    async function handleResendOtp() {
+      const resendLink = document.getElementById('resendOtpLink');
+      
+      if (resendLink.classList.contains('disabled')) {
+        return;
+      }
+      
+      if (!currentUser) {
+        showStatus('Sesi tidak valid.', 'error');
+        return;
+      }
+      
+      resendLink.classList.add('disabled');
+      showSmsStatus('🔄 Mengirim ulang OTP...', 'sending');
+      
+      try {
+        await sendFirebaseOTP(currentUser.phone);
+        
+        showStatus('OTP baru telah dikirim.', 'info');
+        clearOTPInput();
+        document.getElementById('otpInput').focus();
+        startResendCountdown(60);
+        
+      } catch (error) {
+        console.error('Resend error:', error);
+        showStatus(`Gagal: ${error.message}`, 'error');
+        resendLink.classList.remove('disabled');
+      }
+    }
+    
+    async function checkExistingSession() {
+      // Cek localStorage
+      const localUser = localStorage.getItem('jego_logged_in_user');
+      if (localUser) {
+        try {
+          const user = JSON.parse(localUser);
+          showStatus(`Selamat datang kembali, ${user.name}`, 'info');
+          
+          setTimeout(() => {
+            window.location.href = 'jenis_kenderaan.html';
+          }, 1500);
+          return true;
+        } catch (error) {
+          console.error('Error parsing user:', error);
+        }
+      }
+      
+      return false;
+    }
+    
+    function setupAuthListener() {
+      firebaseAuth.onAuthStateChanged((user) => {
+        if (user) {
+          console.log('✅ User already logged in via Firebase Auth:', user.uid);
+        }
+      });
+    }
+    
+    // ================================================
+    // INITIALIZATION
+    // ================================================
+    
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('📄 DOM fully loaded, initializing...');
       
@@ -518,11 +556,12 @@
       const firebaseReady = await initializeFirebase();
       
       if (firebaseReady) {
-        console.log('✅ Firebase ready, initializing reCAPTCHA...');
+        console.log('✅ Firebase ready, setting up reCAPTCHA...');
+        setupAuthListener();
         
-        // Inisialisasi reCAPTCHA dengan delay untuk memastikan library siap
+        // Setup reCAPTCHA dengan delay untuk memastikan library siap
         setTimeout(() => {
-          initializeRecaptcha();
+          setupRecaptcha();
         }, 1000);
       }
       
@@ -553,260 +592,6 @@
       // Check if already logged in
       checkExistingSession();
     });
-
-    // ==================== EVENT HANDLERS ====================
-    async function handleLoginSubmit(e) {
-      e.preventDefault();
-      
-      const loginBtn = document.getElementById('loginBtn');
-      const telepon = document.getElementById('teleponInput').value.trim();
-      
-      if (!telepon) {
-        showStatus('Harap masukkan nomor telepon.', 'error');
-        return;
-      }
-      
-      const cleanTelepon = telepon.replace(/\D/g, '');
-      if (cleanTelepon.length < 10 || cleanTelepon.length > 13) {
-        showStatus('Nomor telepon harus antara 10-13 digit.', 'error');
-        return;
-      }
-      
-      // Disable button
-      loginBtn.disabled = true;
-      loginBtn.classList.add('btn-loading');
-      loginBtn.textContent = 'Mengirim OTP...';
-      showProgress(20);
-      
-      try {
-        // 1. Konversi nomor telepon ke format kode negara untuk pengecekan di server
-        const phoneForServer = formatPhoneForFirebase(telepon);
-        
-        // 2. Cek user di server dengan format nomor yang sudah dikonversi
-        showProgress(40);
-        const serverCheck = await checkPhoneOnServer(phoneForServer);
-        
-        if (serverCheck && serverCheck.exists) {
-          const userData = serverCheck.latestUser || serverCheck.users[0];
-          
-          // Cek status akun
-          const userStatus = userData.status || 'active';
-          
-          if (userStatus === 'blocked_permanent' || userStatus === 'banned') {
-            showStatus('Akun diblokir permanen. Tidak dapat login.', 'error');
-            return;
-          }
-          
-          if (userStatus === 'inactive') {
-            showStatus('Akun tidak aktif. Hubungi administrator.', 'error');
-            return;
-          }
-          
-          // 3. Simpan data user
-          localStorage.setItem('jego_current_user', JSON.stringify({
-            userKey: userData.uid,
-            telepon: telepon, // Simpan format asli (08xxx) untuk UI
-            phoneForServer: phoneForServer, // Simpan juga format +62 untuk referensi
-            userData: userData
-          }));
-          
-          // 4. Kirim OTP
-          showProgress(60);
-          const otpResult = await sendOtpWithFirebase(telepon);
-          
-          if (otpResult.success) {
-            // 5. Tampilkan OTP section
-            document.getElementById('loginForm').style.display = 'none';
-            document.getElementById('otpSection').style.display = 'block';
-            document.getElementById('otpInput').focus();
-            
-            startResendCountdown(60);
-            showProgress(100);
-            showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS.', 'info');
-          }
-          
-        } else {
-          showStatus('Nomor telepon tidak terdaftar.', 'error');
-        }
-        
-      } catch (error) {
-        console.error('Login error:', error);
-        showStatus(`Error: ${error.message}`, 'error');
-        resetRecaptcha(); // Reset reCAPTCHA jika terjadi error
-      } finally {
-        setTimeout(() => {
-          loginBtn.disabled = false;
-          loginBtn.classList.remove('btn-loading');
-          loginBtn.textContent = 'Kirim Kode OTP';
-          hideProgress();
-        }, 1000);
-      }
-    }
-
-    async function handleVerifyOtp() {
-      const verifyBtn = document.getElementById('verifyOtpBtn');
-      const enteredOtp = getEnteredOTP();
-      
-      if (enteredOtp.length !== 6) {
-        showStatus('Harap masukkan kode OTP 6 digit lengkap.', 'error');
-        return;
-      }
-      
-      verifyBtn.disabled = true;
-      verifyBtn.classList.add('btn-loading');
-      verifyBtn.textContent = 'Memverifikasi...';
-      
-      const currentUser = JSON.parse(localStorage.getItem('jego_current_user') || '{}');
-      
-      if (!currentUser.userKey) {
-        showStatus('Sesi tidak valid.', 'error');
-        resetVerifyButton();
-        return;
-      }
-      
-      try {
-        // 1. Verify OTP dengan Firebase
-        const verificationResult = await verifyOtpWithFirebase(enteredOtp);
-        
-        if (verificationResult.success && verificationResult.user) {
-          // 2. Dapatkan ID Token
-          const idToken = await verificationResult.user.getIdToken();
-          const phoneNumber = verificationResult.user.phoneNumber;
-          
-          console.log('✅ Firebase auth success, UID:', verificationResult.user.uid);
-          console.log('🔑 ID Token obtained');
-          
-          // 3. Login ke server
-          const serverLogin = await loginToServer(idToken, phoneNumber);
-          
-          if (serverLogin.success) {
-            // 4. Simpan data user
-            const userData = {
-              ...currentUser.userData,
-              ...serverLogin.user,
-              auth_uid: verificationResult.user.uid,
-              last_login: new Date().toISOString()
-            };
-            
-            localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
-            localStorage.setItem('jego_user_data', JSON.stringify(userData));
-            localStorage.setItem('jego_auth_uid', verificationResult.user.uid);
-            
-            if (serverLogin.token) {
-              localStorage.setItem('jego_server_token', serverLogin.token);
-            }
-            
-            // 5. Tampilkan success
-            showStatus('Login berhasil! Mengalihkan...', 'success');
-            showNotification('Login Berhasil', 'Login berhasil!', 'success');
-            
-            // 6. Reset reCAPTCHA untuk sesi berikutnya
-            resetRecaptcha();
-            
-            // 7. Redirect
-            setTimeout(() => {
-              window.location.href = 'jenis_kenderaan.html';
-            }, 1500);
-            
-          } else {
-            throw new Error('Login ke server gagal');
-          }
-        }
-      } catch (error) {
-        console.error('Verify error:', error);
-        showStatus(`Gagal: ${error.message}`, 'error');
-        clearOTPInput();
-        document.getElementById('otpInput').focus();
-        resetVerifyButton();
-      }
-    }
-
-    function resetVerifyButton() {
-      const verifyBtn = document.getElementById('verifyOtpBtn');
-      verifyBtn.disabled = false;
-      verifyBtn.classList.remove('btn-loading');
-      verifyBtn.textContent = 'Verifikasi OTP';
-    }
-
-    async function handleResendOtp() {
-      const resendLink = document.getElementById('resendOtpLink');
-      
-      if (resendLink.classList.contains('disabled')) {
-        return;
-      }
-      
-      const currentUser = JSON.parse(localStorage.getItem('jego_current_user') || '{}');
-      const telepon = currentUser.telepon;
-      
-      if (!telepon) {
-        showStatus('Sesi tidak valid.', 'error');
-        return;
-      }
-      
-      resendLink.classList.add('disabled');
-      showSmsStatus('🔄 Mengirim ulang OTP...', 'sending');
-      
-      try {
-        await sendOtpWithFirebase(telepon);
-        
-        showStatus('OTP baru telah dikirim.', 'info');
-        clearOTPInput();
-        document.getElementById('otpInput').focus();
-        startResendCountdown(60);
-        
-      } catch (error) {
-        console.error('Resend error:', error);
-        showStatus(`Gagal: ${error.message}`, 'error');
-        resendLink.classList.remove('disabled');
-      }
-    }
-
-    async function checkExistingSession() {
-      const token = localStorage.getItem('jego_server_token');
-      
-      if (token) {
-        try {
-          const response = await fetch(`${SERVER_URL}/api/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.success && data.user) {
-              showStatus(`Selamat datang kembali, ${data.user.name}`, 'success');
-              
-              setTimeout(() => {
-                window.location.href = 'jenis_kenderaan.html';
-              }, 1000);
-              
-              return true;
-            }
-          }
-        } catch (error) {
-          console.log('Session check failed:', error);
-        }
-      }
-      
-      // Cek localStorage
-      const localUser = localStorage.getItem('jego_logged_in_user');
-      if (localUser) {
-        try {
-          const user = JSON.parse(localUser);
-          showStatus(`Selamat datang kembali, ${user.name}`, 'info');
-          
-          setTimeout(() => {
-            window.location.href = 'jenis_kenderaan.html';
-          }, 1500);
-        } catch (error) {
-          console.error('Error parsing user:', error);
-        }
-      }
-      
-      return false;
-    }
   </script>
 
   <style>
@@ -1229,7 +1014,7 @@
   <div class="header">
     <div class="logo-container">
       <div class="logo">JG</div>
-      <div class="header-title">JeGo - Login (Integrated)</div>
+      <div class="header-title">JeGo</div>
     </div>
   </div>
 
@@ -1237,7 +1022,7 @@
   <div class="container">
     <div class="form-container">
       <h1 class="form-title">Login User</h1>
-      <div class="local-badge">TERINTEGRASI DENGAN SERVER BACKEND</div>
+      <div class="local-badge">100% CLIENT-SIDE DENGAN FIREBASE</div>
       <div class="app-info">
         JeGo - Jasa Ekspedisi Gorontalo
       </div>
