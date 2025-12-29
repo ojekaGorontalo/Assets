@@ -4,14 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Akun Saya - JeGo</title>
-    
-    <!-- Gunakan Firebase SDK versi yang sama dengan registrasi_jego.html -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        /* STYLE CSS YANG SAMA DENGAN SEBELUMNYA */
         :root {
             --primary: #1e6f5c;
             --secondary: #289672;
@@ -481,23 +476,6 @@
             background: var(--secondary);
         }
         
-        /* Loading Spinner */
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(40, 150, 114, 0.1);
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
         @media (max-width: 768px) {
             .content {
                 flex-direction: column;
@@ -557,10 +535,7 @@
             ❌ Terjadi kesalahan. Silakan coba lagi.
         </div>
         
-        <!-- Loading Spinner -->
-        <div id="loadingSpinner" class="loading-spinner"></div>
-        
-        <div class="content" id="contentArea" style="display: none;">
+        <div class="content">
             <section class="profile-section">
                 <h2>Profil Saya</h2>
                 
@@ -598,18 +573,13 @@
                 </div>
                 
                 <div class="detail-item">
-                    <div class="detail-label">Peran</div>
-                    <div class="detail-value" id="userRole">-</div>
-                </div>
-                
-                <div class="detail-item">
                     <div class="detail-label">Rating</div>
                     <div class="detail-value" id="userRating">-</div>
                 </div>
                 
                 <div class="detail-item">
-                    <div class="detail-label">Jumlah Perjalanan</div>
-                    <div class="detail-value" id="userTrips">-</div>
+                    <div class="detail-label">Perjalanan</div>
+                    <div class="detail-value" id="userPerjalanan">-</div>
                 </div>
                 
                 <div class="detail-item">
@@ -619,7 +589,6 @@
                 
                 <div class="action-buttons">
                     <button class="btn btn-primary" id="changePhotoBtn" style="display: none;">Ganti Foto Profil</button>
-                    <button class="btn btn-primary" id="editProfileBtn">Edit Profil</button>
                 </div>
             </section>
             
@@ -688,7 +657,7 @@
             </div>
         </div>
     </div>
-
+    
     <footer>
         <div class="container">
             <p>&copy; 2025 JeGo - Jasa Ekspedisi Gorontalo. Aplikasi Lokal Buatan Anak Gorontalo.</p>
@@ -696,11 +665,8 @@
     </footer>
 
     <script>
-        // ================================================
-        // KONFIGURASI (SESUAI DENGAN registrasi_jego.html)
-        // ================================================
-        
-        const FIREBASE_CONFIG = {
+        // Firebase configuration - DIUBAH MENJADI SAMA DENGAN registrasi_jego.html
+        const firebaseConfig = {
             apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
             authDomain: "game-balap-simpel.firebaseapp.com",
             databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
@@ -711,23 +677,26 @@
             measurementId: "G-YWJPK7Y3J4"
         };
         
-        // ================================================
-        // ELEMEN DOM
-        // ================================================
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Referensi ke database
+        const usersRef = database.ref('users');
+        
+        // Elemen DOM
         const userName = document.getElementById('userName');
         const userEmail = document.getElementById('userEmail');
         const userPhone = document.getElementById('userPhone');
         const userAddress = document.getElementById('userAddress');
         const userGender = document.getElementById('userGender');
-        const userRole = document.getElementById('userRole');
         const userRating = document.getElementById('userRating');
-        const userTrips = document.getElementById('userTrips');
+        const userPerjalanan = document.getElementById('userPerjalanan');
         const userStatus = document.getElementById('userStatus');
         const joinDate = document.getElementById('joinDate');
         const userAvatarImg = document.getElementById('userAvatarImg');
         const userAvatarInitials = document.getElementById('userAvatarInitials');
         const changePhotoBtn = document.getElementById('changePhotoBtn');
-        const editProfileBtn = document.getElementById('editProfileBtn');
         const promoCodeText = document.getElementById('promoCodeText');
         const referralCodeText = document.getElementById('referralCodeText');
         const promoExpiry = document.getElementById('promoExpiry');
@@ -741,121 +710,115 @@
         const closeModal = document.getElementById('closeModal');
         const cancelDelete = document.getElementById('cancelDelete');
         const confirmDelete = document.getElementById('confirmDelete');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const contentArea = document.getElementById('contentArea');
-        
-        // ================================================
-        // VARIABEL GLOBAL
-        // ================================================
-        let firebaseApp = null;
-        let firebaseAuth = null;
-        let firebaseDatabase = null;
-        let currentUserId = null;
-        
-        // ================================================
-        // FUNGSI UTILITAS
-        // ================================================
-        
-        function showLoading() {
-            loadingSpinner.style.display = 'block';
-            contentArea.style.display = 'none';
-        }
-        
-        function hideLoading() {
-            loadingSpinner.style.display = 'none';
-            contentArea.style.display = 'flex';
-        }
-        
-        function showAlert(alertElement, message) {
-            alertElement.textContent = message;
-            alertElement.style.display = 'block';
-            setTimeout(() => {
-                alertElement.style.display = 'none';
-            }, 5000);
-        }
-        
+
+        // Fungsi untuk mendapatkan inisial nama
         function getInitials(name) {
             if (!name || name === '-') return 'U';
-            return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+            return name.split(' ').map(word => word[0]).join('').toUpperCase();
         }
-        
+
+        // Fungsi untuk memformat tanggal
         function formatDate(dateString) {
             if (!dateString || dateString === '-') return '-';
             try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return dateString;
-                
                 const options = { 
                     day: 'numeric', 
                     month: 'long', 
-                    year: 'numeric'
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
                 };
-                return date.toLocaleDateString('id-ID', options);
+                return new Date(dateString).toLocaleDateString('id-ID', options);
             } catch (error) {
                 console.error('Error formatting date:', error);
                 return dateString;
             }
         }
-        
-        function formatPhoneNumber(phone) {
-            if (!phone) return '-';
-            // Tampilkan format yang lebih user-friendly
-            if (phone.startsWith('+62')) {
-                return phone.replace('+62', '0');
-            }
-            return phone;
-        }
-        
+
+        // Fungsi untuk menampilkan foto profil - DIUPDATE sesuai struktur baru
         function displayProfilePhoto(userData) {
             const avatarImg = userAvatarImg;
             const avatarInitials = userAvatarInitials;
             
-            // Jika ada foto profil di data user
-            if (userData.photoURL) {
-                avatarImg.src = userData.photoURL;
+            // Cek apakah ada foto profil di localStorage
+            let fotoProfilURL = null;
+            const localUser = localStorage.getItem('jego_logged_in_user');
+            
+            if (localUser) {
+                try {
+                    const localUserData = JSON.parse(localUser);
+                    fotoProfilURL = localUserData.fotoProfilURL;
+                } catch (e) {
+                    console.error('Error parsing local user data:', e);
+                }
+            }
+            
+            // Jika tidak ada di localStorage, coba ambil dari data Firebase
+            if (!fotoProfilURL && userData && userData.fotoProfilURL) {
+                fotoProfilURL = userData.fotoProfilURL;
+                
+                // Simpan ke localStorage untuk akses lebih cepat next time
+                if (localUser) {
+                    try {
+                        const localUserData = JSON.parse(localUser);
+                        localUserData.fotoProfilURL = fotoProfilURL;
+                        localStorage.setItem('jego_logged_in_user', JSON.stringify(localUserData));
+                    } catch (e) {
+                        console.error('Error updating local user data with photo:', e);
+                    }
+                }
+            }
+            
+            if (fotoProfilURL && fotoProfilURL.trim() !== "") {
+                // Tampilkan gambar
+                avatarImg.src = fotoProfilURL;
                 avatarImg.style.display = 'block';
                 avatarInitials.style.display = 'none';
                 changePhotoBtn.style.display = 'block';
             } else {
                 // Tampilkan inisial
-                const initials = getInitials(userData.name || 'U');
+                const name = userData.name || userData.nama || 'User';
+                const initials = getInitials(name);
                 avatarInitials.textContent = initials;
                 avatarInitials.style.display = 'flex';
                 avatarImg.style.display = 'none';
                 changePhotoBtn.style.display = 'none';
             }
         }
-        
-        // Fungsi untuk menampilkan data user
+
+        // Fungsi untuk menampilkan data user - DIUPDATE sesuai struktur baru
         function displayUserData(userData) {
-            // Gunakan field yang sesuai dengan registrasi_jego.html
-            userName.textContent = userData.name || '-';
+            // Gunakan field yang sesuai dengan struktur baru
+            userName.textContent = userData.name || userData.nama || '-';
             userEmail.textContent = userData.email || '-';
-            userPhone.textContent = formatPhoneNumber(userData.phone || '-');
-            userAddress.textContent = userData.address || '-';
-            userGender.textContent = userData.gender || '-';
-            userRole.textContent = userData.role === 'penumpang' ? 'Penumpang' : 
-                                 userData.role === 'driver' ? 'Driver' : 
-                                 userData.role || 'Penumpang';
-            userRating.textContent = userData.rating ? `${userData.rating}/5` : '5/5';
-            userTrips.textContent = userData.perjalanan || '0';
+            userPhone.textContent = userData.phone || userData.telepon || '-';
+            userAddress.textContent = userData.address || userData.alamat || '-';
+            userGender.textContent = userData.gender || userData.jenisKelamin || '-';
+            userRating.textContent = (userData.rating || userData.rating === 0) ? `${userData.rating} ⭐` : '-';
+            userPerjalanan.textContent = (userData.perjalanan || userData.perjalanan === 0) ? `${userData.perjalanan} kali` : '-';
             
             // Format tanggal bergabung
-            const joinDateValue = userData.createdAt || userData.createdDate || '-';
-            joinDate.textContent = formatDate(joinDateValue);
+            let joinDateValue = '-';
+            if (userData.createdAt) {
+                joinDateValue = formatDate(userData.createdAt);
+            } else if (userData.createdDate) {
+                joinDateValue = formatDate(userData.createdDate);
+            } else if (userData.tanggalDaftar) {
+                joinDateValue = formatDate(userData.tanggalDaftar);
+            }
+            joinDate.textContent = joinDateValue;
             
             // Set status
-            const status = userData.status || 'active';
-            let statusText = 'AKTIF';
-            let statusClass = 'status-success';
+            const status = userData.status || 'pending';
+            let statusText = 'MENUNGGU VERIFIKASI';
+            let statusClass = 'status-pending';
             
-            if (status === 'inactive' || status === 'pending') {
-                statusText = 'MENUNGGU VERIFIKASI';
-                statusClass = 'status-pending';
+            if (status === 'active' || status === 'success') {
+                statusText = 'AKTIF';
+                statusClass = 'status-success';
             } else if (status === 'delete_account') {
                 statusText = 'AKUN DIHAPUS';
                 statusClass = 'status-deleted';
-                deleteAccountBtn.style.display = 'none';
             }
             
             userStatus.textContent = statusText;
@@ -864,15 +827,21 @@
             // Tampilkan foto profil
             displayProfilePhoto(userData);
             
-            // Tampilkan promo dari localStorage (sesuai registrasi_jego.html)
+            // Cek promo dari localStorage (karena di registrasi disimpan di localStorage)
             const localPromo = localStorage.getItem('jego_user_promo');
+            
             if (localPromo && status !== 'delete_account') {
                 try {
                     const promoData = JSON.parse(localPromo);
-                    promoCodeText.textContent = promoData.code || '-';
-                    promoExpiry.textContent = promoData.expiry ? formatDate(promoData.expiry) : '-';
-                    promoContent.style.display = 'block';
-                    noPromoMessage.style.display = 'none';
+                    if (promoData.code) {
+                        promoCodeText.textContent = promoData.code;
+                        promoExpiry.textContent = promoData.expiry ? formatDate(new Date(promoData.expiry)) : '-';
+                        promoContent.style.display = 'block';
+                        noPromoMessage.style.display = 'none';
+                    } else {
+                        promoContent.style.display = 'none';
+                        noPromoMessage.style.display = 'block';
+                    }
                 } catch (e) {
                     console.error('Error parsing promo data:', e);
                     promoContent.style.display = 'none';
@@ -883,22 +852,32 @@
                 noPromoMessage.style.display = 'block';
             }
             
-            // Generate referral code dari UID
-            if (currentUserId && status !== 'delete_account') {
-                const referralCode = 'JEGO-' + currentUserId.substring(0, 8).toUpperCase();
+            // Tampilkan referral code jika ada (contoh: generate dari phone number)
+            if (userData.phone && status !== 'delete_account') {
+                const phone = userData.phone.replace('+62', '');
+                const referralCode = 'JEGO' + phone.slice(-6);
                 referralCodeText.textContent = referralCode;
                 document.getElementById('referralCodeDisplay').style.display = 'block';
             } else {
                 document.getElementById('referralCodeDisplay').style.display = 'none';
             }
+            
+            // Sembunyikan tombol hapus akun jika status sudah delete_account
+            if (status === 'delete_account') {
+                deleteAccountBtn.style.display = 'none';
+                changePhotoBtn.style.display = 'none';
+            } else {
+                deleteAccountBtn.style.display = 'block';
+            }
         }
-        
+
         // Fungsi untuk copy promo code
         function copyPromoCode() {
             const promoCode = promoCodeText.textContent;
             navigator.clipboard.writeText(promoCode).then(() => {
                 showAlert(successAlert, 'Kode promo berhasil disalin!');
             }).catch(() => {
+                // Fallback untuk browser lama
                 const textArea = document.createElement('textarea');
                 textArea.value = promoCode;
                 document.body.appendChild(textArea);
@@ -915,6 +894,7 @@
             navigator.clipboard.writeText(referralCode).then(() => {
                 showAlert(successAlert, 'Kode referral berhasil disalin!');
             }).catch(() => {
+                // Fallback untuk browser lama
                 const textArea = document.createElement('textarea');
                 textArea.value = referralCode;
                 document.body.appendChild(textArea);
@@ -924,210 +904,187 @@
                 showAlert(successAlert, 'Kode referral berhasil disalin!');
             });
         }
-        
+
+        // Fungsi untuk menampilkan alert
+        function showAlert(alertElement, customMessage) {
+            if (customMessage) {
+                alertElement.textContent = customMessage;
+            }
+            alertElement.style.display = 'block';
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+
         // Fungsi untuk logout
         function logout() {
-            if (firebaseAuth) {
-                firebaseAuth.signOut().then(() => {
-                    localStorage.removeItem('jego_logged_in_user');
-                    localStorage.removeItem('jego_user_promo');
-                    window.location.href = 'loginUser.html';
-                }).catch(error => {
-                    console.error('Logout error:', error);
-                    localStorage.removeItem('jego_logged_in_user');
-                    localStorage.removeItem('jego_user_promo');
-                    window.location.href = 'loginUser.html';
+            localStorage.removeItem('jego_logged_in_user');
+            localStorage.removeItem('jego_user_promo');
+            window.location.href = 'loginUser.html';
+        }
+
+        // Fungsi untuk mengupdate status akun menjadi delete_account di Firebase
+        function updateAccountStatus(userKey) {
+            const updates = {
+                status: 'delete_account',
+                active: false,
+                updatedAt: new Date().toISOString(),
+                deletedAt: new Date().toISOString()
+            };
+            
+            return usersRef.child(userKey).update(updates)
+                .then(() => {
+                    console.log('Status akun berhasil diubah menjadi delete_account');
+                    return true;
+                })
+                .catch(error => {
+                    console.error('Error mengupdate status akun:', error);
+                    return false;
                 });
-            } else {
-                localStorage.removeItem('jego_logged_in_user');
-                localStorage.removeItem('jego_user_promo');
-                window.location.href = 'loginUser.html';
-            }
         }
-        
-        // Fungsi untuk mengupdate status akun menjadi delete_account
-        async function updateAccountStatus(uid) {
-            try {
-                const updates = {
-                    status: 'delete_account',
-                    updatedAt: new Date().toISOString(),
-                    deletedAt: new Date().toISOString()
-                };
-                
-                await firebaseDatabase.ref('users/' + uid).update(updates);
-                console.log('✅ Status akun berhasil diubah menjadi delete_account');
-                return true;
-            } catch (error) {
-                console.error('❌ Error mengupdate status akun:', error);
-                return false;
-            }
-        }
-        
-        // ================================================
-        // FIREBASE FUNCTIONS
-        // ================================================
-        
-        async function initializeFirebase() {
-            try {
-                console.log('🔄 Menginisialisasi Firebase...');
-                
-                if (typeof firebase === 'undefined') {
-                    throw new Error('Firebase SDK belum dimuat');
-                }
-                
-                // Initialize Firebase
-                firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-                firebaseAuth = firebase.auth();
-                firebaseDatabase = firebase.database();
-                
-                console.log('✅ Firebase diinisialisasi');
-                return true;
-            } catch (error) {
-                console.error('❌ Error menginisialisasi Firebase:', error);
-                return false;
-            }
-        }
-        
-        // ================================================
-        // EVENT LISTENERS
-        // ================================================
-        
+
+        // Event listener untuk tombol ganti foto profil
         changePhotoBtn.addEventListener('click', function() {
             showAlert(successAlert, 'Fitur ganti foto profil akan segera tersedia!');
         });
-        
-        editProfileBtn.addEventListener('click', function() {
-            showAlert(successAlert, 'Fitur edit profil akan segera tersedia!');
-        });
-        
+
+        // Event listener untuk tombol logout
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
             if (confirm('Apakah Anda yakin ingin logout?')) {
                 logout();
             }
         });
-        
+
+        // Event listener untuk tombol hapus akun
         deleteAccountBtn.addEventListener('click', function() {
             deleteAccountModal.style.display = 'flex';
         });
-        
+
+        // Event listener untuk tombol tutup modal
         closeModal.addEventListener('click', function() {
             deleteAccountModal.style.display = 'none';
         });
-        
+
+        // Event listener untuk tombol batal di modal
         cancelDelete.addEventListener('click', function() {
             deleteAccountModal.style.display = 'none';
         });
-        
-        confirmDelete.addEventListener('click', async function() {
-            if (!currentUserId) {
+
+        // Event listener untuk tombol konfirmasi hapus akun
+        confirmDelete.addEventListener('click', function() {
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            
+            if (!loggedInUser) {
                 showAlert(errorAlert, 'Tidak dapat menemukan data pengguna');
                 deleteAccountModal.style.display = 'none';
                 return;
             }
             
-            // Update status di Firebase
-            const success = await updateAccountStatus(currentUserId);
-            
-            if (success) {
-                // Logout dan hapus data lokal
-                if (firebaseAuth) {
-                    await firebaseAuth.signOut();
-                }
-                localStorage.removeItem('jego_logged_in_user');
-                localStorage.removeItem('jego_user_promo');
-                
-                showAlert(successAlert, 'Akun berhasil dihapus. Anda akan diarahkan ke halaman login.');
-                
-                setTimeout(() => {
-                    window.location.href = 'loginUser.html';
-                }, 3000);
-            } else {
-                showAlert(errorAlert, 'Gagal menghapus akun. Silakan coba lagi.');
-            }
-            
-            deleteAccountModal.style.display = 'none';
-        });
-        
-        // ================================================
-        // INITIALIZATION
-        // ================================================
-        
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Halaman Akun Saya dimuat...');
-            showLoading();
-            
             try {
-                // Inisialisasi Firebase
-                await initializeFirebase();
+                const userData = JSON.parse(loggedInUser);
+                const userKey = userData.firebase_key || userData.uid;
                 
-                // Cek apakah user sudah login
-                const loggedInUser = localStorage.getItem('jego_logged_in_user');
-                
-                if (!loggedInUser) {
-                    // Jika tidak ada user yang login, redirect ke halaman login
-                    window.location.href = 'loginUser.html';
+                if (!userKey) {
+                    showAlert(errorAlert, 'Tidak dapat menemukan kunci akun di database.');
+                    deleteAccountModal.style.display = 'none';
                     return;
                 }
                 
-                try {
-                    const userData = JSON.parse(loggedInUser);
-                    currentUserId = userData.uid;
-                    
-                    // Ambil data terbaru dari Firebase
-                    if (currentUserId && firebaseDatabase) {
-                        const userRef = firebaseDatabase.ref('users/' + currentUserId);
-                        
-                        userRef.on('value', (snapshot) => {
-                            const firebaseUserData = snapshot.val();
+                // Update status di Firebase
+                updateAccountStatus(userKey)
+                    .then(success => {
+                        if (success) {
+                            // Update localStorage dengan status delete_account
+                            userData.status = 'delete_account';
+                            userData.active = false;
+                            localStorage.setItem('jego_logged_in_user', JSON.stringify(userData));
                             
-                            if (firebaseUserData) {
-                                // Gabungkan data dari localStorage dan Firebase
-                                const combinedData = {
+                            showAlert(successAlert, 'Akun berhasil dihapus. Anda akan diarahkan ke halaman login.');
+                            
+                            setTimeout(() => {
+                                window.location.href = 'loginUser.html';
+                            }, 3000);
+                        } else {
+                            showAlert(errorAlert, 'Gagal menghapus akun. Silakan coba lagi.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting account:', error);
+                        showAlert(errorAlert, 'Terjadi kesalahan. Silakan coba lagi.');
+                    });
+                
+                deleteAccountModal.style.display = 'none';
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                showAlert(errorAlert, 'Terjadi kesalahan. Silakan coba lagi.');
+                deleteAccountModal.style.display = 'none';
+            }
+        });
+
+        // Muat data user saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            
+            if (!loggedInUser) {
+                // Jika tidak ada user yang login, redirect ke halaman login
+                window.location.href = 'loginUser.html';
+                return;
+            }
+            
+            try {
+                const userData = JSON.parse(loggedInUser);
+                
+                // Jika status sudah delete_account, redirect ke login
+                if (userData.status === 'delete_account') {
+                    alert('Akun Anda telah dihapus. Tidak dapat mengakses halaman ini.');
+                    logout();
+                    return;
+                }
+                
+                // Tampilkan data dari localStorage terlebih dahulu
+                displayUserData(userData);
+                
+                // Ambil data terbaru dari Firebase untuk memastikan data yang ditampilkan up-to-date
+                const userKey = userData.firebase_key || userData.uid;
+                
+                if (userKey) {
+                    usersRef.child(userKey).once('value')
+                        .then(snapshot => {
+                            const updatedUserData = snapshot.val();
+                            if (updatedUserData) {
+                                // Gabungkan data dari localStorage dengan data dari Firebase
+                                const mergedData = {
                                     ...userData,
-                                    ...firebaseUserData
+                                    ...updatedUserData
                                 };
                                 
-                                // Simpan data gabungan ke localStorage
-                                localStorage.setItem('jego_logged_in_user', JSON.stringify(combinedData));
+                                // Tampilkan data gabungan
+                                displayUserData(mergedData);
                                 
-                                // Tampilkan data
-                                displayUserData(combinedData);
-                                hideLoading();
+                                // Update localStorage dengan data terbaru
+                                localStorage.setItem('jego_logged_in_user', JSON.stringify(mergedData));
                                 
-                                // Jika status delete_account, logout
-                                if (firebaseUserData.status === 'delete_account') {
+                                // Jika status sudah delete_account, redirect ke login
+                                if (mergedData.status === 'delete_account') {
                                     alert('Akun Anda telah dihapus. Tidak dapat mengakses halaman ini.');
                                     logout();
                                     return;
                                 }
-                            } else {
-                                // Gunakan data dari localStorage jika tidak ada di Firebase
-                                displayUserData(userData);
-                                hideLoading();
                             }
-                        }, (error) => {
-                            console.error('Error reading from Firebase:', error);
-                            // Gunakan data dari localStorage sebagai fallback
+                        })
+                        .catch(error => {
+                            console.error('Error fetching user data from Firebase:', error);
+                            // Tetap tampilkan data dari localStorage jika gagal fetch
                             displayUserData(userData);
-                            hideLoading();
                         });
-                    } else {
-                        // Gunakan data dari localStorage jika Firebase tidak tersedia
-                        displayUserData(userData);
-                        hideLoading();
-                    }
-                    
-                } catch (error) {
-                    console.error('Error parsing user data:', error);
-                    showAlert(errorAlert, 'Terjadi kesalahan membaca data pengguna.');
-                    hideLoading();
+                } else {
+                    // Jika tidak ada userKey, tetap tampilkan data dari localStorage
+                    displayUserData(userData);
                 }
-                
             } catch (error) {
-                console.error('Error inisialisasi:', error);
-                showAlert(errorAlert, 'Gagal menginisialisasi aplikasi.');
-                hideLoading();
+                console.error('Error parsing user data:', error);
+                window.location.href = 'loginUser.html';
             }
         });
     </script>
