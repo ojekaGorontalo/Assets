@@ -96,6 +96,32 @@
             opacity: 0.8;
         }
         
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
         .content {
             background: white;
             border-radius: 15px;
@@ -206,6 +232,8 @@
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 15px;
+            text-decoration: none;
+            text-align: center;
         }
         
         .btn:hover {
@@ -233,6 +261,8 @@
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 8px;
+            text-decoration: none;
+            text-align: center;
         }
         
         .card-btn:hover {
@@ -612,6 +642,15 @@
                 min-height: 220px;
                 padding: 15px;
             }
+
+            .header-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header-btn {
+                width: 100%;
+            }
         }
 
         @media (max-width: 480px) {
@@ -641,6 +680,13 @@
                 </div>
             </div>
             <p class="tagline">Pilih Jenis Transportasi</p>
+            
+            <div class="header-actions">
+                <a href="registrasi_jego.html" class="header-btn" id="headerRegisterBtn">Daftar</a>
+                <a href="loginUser.html" class="header-btn" id="headerLoginBtn">Login</a>
+                <a href="jenis_kenderaan.html" class="header-btn" id="headerHomeBtn" style="display: none;">Halaman Utama</a>
+            </div>
+            
             <div class="user-info" id="userInfo">
                 <!-- Informasi user akan diisi oleh JavaScript -->
             </div>
@@ -806,10 +852,37 @@
         const mainContent = document.getElementById('mainContent');
         const loginRequiredContent = document.getElementById('loginRequiredContent');
         const userInfo = document.getElementById('userInfo');
+        const headerRegisterBtn = document.getElementById('headerRegisterBtn');
+        const headerLoginBtn = document.getElementById('headerLoginBtn');
+        const headerHomeBtn = document.getElementById('headerHomeBtn');
         
         let selectedTransport = null;
         let selectedCategory = null;
         let currentContactField = null; // Untuk menyimpan field kontak yang sedang dipilih
+        
+        // Firebase Configuration
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+            authDomain: "game-balap-simpel.firebaseapp.com",
+            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+            projectId: "game-balap-simpel",
+            storageBucket: "game-balap-simpel.firebasestorage.app",
+            messagingSenderId: "864576853495",
+            appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+            measurementId: "G-YWJPK7Y3J4"
+        };
+
+        // Firebase Database Path
+        const TRANSPORT_PATH = '/Tarif.json';
+        
+        // Mapping nama transportasi dari Firebase ke format internal
+        const transportNameMapping = {
+            'Bentor': 'bentor',
+            'Kurir Bentor': 'kurir_bentor',
+            'Kurir Motor': 'kurir_motor',
+            'Mobil': 'mobil',
+            'Motor': 'motor'
+        };
         
         // Fungsi untuk cek login
         function checkLogin() {
@@ -823,8 +896,13 @@
                     mainContent.style.display = 'block';
                     loginRequiredContent.style.display = 'none';
                     
+                    // Update header tombol
+                    headerRegisterBtn.style.display = 'none';
+                    headerLoginBtn.style.display = 'none';
+                    headerHomeBtn.style.display = 'inline-block';
+                    
                     // Update info user
-                    userInfo.innerHTML = `Halo, <strong>${currentUser.nama}</strong>`;
+                    userInfo.innerHTML = `Halo, <strong>${currentUser.name}</strong>`;
                     
                     // Load data transportasi
                     fetchTransportData();
@@ -846,27 +924,20 @@
             mainContent.style.display = 'none';
             loginRequiredContent.style.display = 'block';
             userInfo.innerHTML = '';
+            
+            // Update header tombol
+            headerRegisterBtn.style.display = 'inline-block';
+            headerLoginBtn.style.display = 'inline-block';
+            headerHomeBtn.style.display = 'none';
         }
-        
-        // Firebase Configuration
-        const FIREBASE_URL = 'https://ojeka-ba255-default-rtdb.firebaseio.com';
-        const TRANSPORT_PATH = '/Tarif.json';
-        
-        // Mapping nama transportasi dari Firebase ke format internal
-        const transportNameMapping = {
-            'Bentor': 'bentor',
-            'Kurir Bentor': 'kurir_bentor',
-            'Kurir Motor': 'kurir_motor',
-            'Mobil': 'mobil',
-            'Motor': 'motor'
-        };
         
         // Fungsi untuk mengambil data transportasi dari Firebase
         async function fetchTransportData() {
             try {
                 showLoading(true);
                 
-                const response = await fetch(`${FIREBASE_URL}${TRANSPORT_PATH}`);
+                // Perbaiki URL Firebase
+                const response = await fetch(`https://game-balap-simpel-default-rtdb.firebaseio.com${TRANSPORT_PATH}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -881,17 +952,17 @@
                 for (const [firebaseName, data] of Object.entries(firebaseData)) {
                     const internalName = transportNameMapping[firebaseName];
                     
-                    if (internalName) {
+                    if (internalName && data) {
                         transportData[internalName] = {
-                            name: data.Nama,
-                            capacity: data.Capacity,
-                            description: data.Deskripsi,
-                            icon: data.Icon,
-                            minimalDistance: data.MinimalDistance,
-                            minimalPrice: data.MinimalPrice
+                            name: data.Nama || firebaseName,
+                            capacity: data.Capacity || "N/A",
+                            description: data.Deskripsi || "Tidak ada deskripsi",
+                            icon: data.Icon || "https://cdn-icons-png.flaticon.com/128/7890/7890227.png",
+                            minimalDistance: data.MinimalDistance || 4,
+                            minimalPrice: data.MinimalPrice || 10000
                         };
                         
-                        tariffRates[internalName] = data.PricePerKm;
+                        tariffRates[internalName] = data.PricePerKm || 2000;
                     }
                 }
                 
@@ -1261,7 +1332,10 @@
                 selectedInfo.style.display = 'none';
                 confirmBtn.disabled = true;
                 selectedTransport = null;
-            }, 3000);
+                
+                // Redirect ke halaman rute
+                window.location.href = "rute.html";
+            }, 2000);
         }
         
         // Fungsi untuk menyimpan data ke localStorage
@@ -1270,6 +1344,7 @@
             
             const transportRecord = {
                 ...transportData,
+                userId: currentUser ? currentUser.uid : 'anonymous',
                 timestamp: new Date().toISOString()
             };
             
@@ -1293,9 +1368,10 @@
                 tariff_per_km: transportData.tariff,
                 minimal_distance: transportData.minimalDistance,
                 minimal_price: transportData.minimalPrice,
+                userId: currentUser ? currentUser.uid : 'anonymous',
+                userName: currentUser ? currentUser.name : 'Guest',
                 timestamp: new Date().toISOString()
             };
-            window.location.href = "rute.html";
             
             // Tambahkan data pengiriman jika ada (untuk kurir)
             if (transportData.deliveryData) {
