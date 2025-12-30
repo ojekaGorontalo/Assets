@@ -1376,7 +1376,7 @@
         loginBtn.className = 'phone-status-btn primary';
         loginBtn.textContent = 'Login';
         loginBtn.onclick = () => {
-          window.location.href = 'loginUser.html?phone=' + encodeURIComponent(userData?.phone || document.getElementById('phoneNumber').value);
+          window.location.href = 'loginDriver.html?phone=' + encodeURIComponent(document.getElementById('phoneNumber').value);
         };
         
         const clearBtn = document.createElement('button');
@@ -1481,12 +1481,10 @@
     // ================================================
     
     function goToStep(step) {
-      // Hide all steps
       step1Content.classList.remove('active');
       step2Content.classList.remove('active');
       step3Content.classList.remove('active');
       
-      // Reset step indicators
       step1.classList.remove('active', 'completed');
       step2.classList.remove('active', 'completed');
       step3.classList.remove('active', 'completed');
@@ -1619,10 +1617,9 @@
     
     async function checkPhoneNumberExists(phoneNumber) {
       try {
-        console.log('🔍 Checking phone in database:', phoneNumber);
+        console.log('🔍 Checking phone in drivers:', phoneNumber);
         
         // USER LOGIC REMOVED - hanya cek di drivers
-        // DRIVER_BY_PHONE REMOVED - hanya cek di drivers
         const driversSnapshot = await database.ref('drivers')
           .orderByChild('phoneNumber')
           .equalTo(phoneNumber)
@@ -1633,26 +1630,21 @@
         if (driversData) {
           const driverId = Object.keys(driversData)[0];
           const driverData = driversData[driverId];
+          const status = driverData.status || 'pending';
+          
           return {
             exists: true,
             user: driverData,
             userId: driverId,
-            type: 'driver'
+            type: 'driver',
+            status: status
           };
         }
         
-        return {
-          exists: false,
-          user: null,
-          userId: null,
-          type: null
-        };
+        return { exists: false };
       } catch (error) {
         console.error('❌ Error checking phone number:', error);
-        return {
-          exists: false,
-          error: error.message
-        };
+        return { exists: false, error: error.message };
       }
     }
 
@@ -1665,11 +1657,9 @@
         const user = auth.currentUser;
         
         if (!user) {
-          // User belum login, tampilkan form pendaftaran normal
           return;
         }
         
-        // Cek apakah driver sudah terdaftar berdasarkan UID
         const driversSnapshot = await database.ref('drivers')
           .orderByChild('uid')
           .equalTo(user.uid)
@@ -1678,43 +1668,53 @@
         const driversData = driversSnapshot.val();
         
         if (!driversData) {
-          // Driver belum terdaftar, tampilkan form pendaftaran
           return;
         }
         
-        // Ambil data driver pertama yang ditemukan
         const driverId = Object.keys(driversData)[0];
         const driverData = driversData[driverId];
+        const status = driverData.status || 'pending';
         
-        // Cek status driver dari Firebase
-        if (driverData.status === 'active' || driverData.status === 'approved') {
-          // Redirect ke dashboard driver
-          window.location.href = 'driverDashboard.html';
-          return;
-        } else if (driverData.status === 'rejected') {
-          // Tampilkan pesan penolakan
-          document.getElementById('step1-content').style.display = 'none';
-          document.getElementById('step2-content').style.display = 'none';
-          document.getElementById('step3-content').style.display = 'none';
-          document.getElementById('successSection').style.display = 'none';
-          
-          showErrorMessage('Pendaftaran Anda ditolak. Silakan hubungi admin untuk informasi lebih lanjut.');
-          return;
-        } else if (driverData.status === 'pending') {
-          // Tampilkan pesan pending
-          document.getElementById('step1-content').style.display = 'none';
-          document.getElementById('step2-content').style.display = 'none';
-          document.getElementById('step3-content').style.display = 'none';
-          document.getElementById('successSection').style.display = 'block';
-          
-          showInfoMessage('Status pendaftaran Anda: Menunggu verifikasi admin.');
-          return;
+        switch(status) {
+          case 'approved':
+          case 'active':
+            window.location.href = 'driverDashboard.html';
+            break;
+            
+          case 'rejected':
+            hideAllForms();
+            showPopup('Pendaftaran Ditolak', 
+              'Pendaftaran Anda telah ditolak oleh admin.<br><br>' +
+              'Alasan: ' + (driverData.rejectionReason || 'Tidak memenuhi syarat') + '<br>' +
+              'Silakan hubungi admin untuk informasi lebih lanjut.',
+              'error');
+            break;
+            
+          case 'blocked':
+            hideAllForms();
+            showPopup('Akun Diblokir',
+              'Akun Anda telah diblokir oleh admin.<br><br>' +
+              'Alasan: ' + (driverData.blockReason || 'Melanggar aturan') + '<br>' +
+              'Hubungi admin untuk mengajukan pembukaan blokir.',
+              'error');
+            break;
+            
+          case 'pending':
+            hideAllForms();
+            document.getElementById('successSection').style.display = 'block';
+            showInfoMessage('Status: Menunggu verifikasi admin.');
+            break;
         }
-        
       } catch (error) {
         console.error('❌ Error checking driver status:', error);
-        // Jika error, tetap tampilkan form pendaftaran
       }
+    }
+    
+    function hideAllForms() {
+      document.getElementById('step1-content').style.display = 'none';
+      document.getElementById('step2-content').style.display = 'none';
+      document.getElementById('step3-content').style.display = 'none';
+      document.getElementById('successSection').style.display = 'none';
     }
     
     // ================================================
@@ -1728,30 +1728,25 @@
       const progress = document.getElementById(progressId);
       const progressBar = document.getElementById(progressBarId);
       
-      // Click container to trigger file input
       uploadContainer.addEventListener('click', () => {
         fileInput.click();
       });
       
-      // Handle file input change
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-          // Validate file size (max 2MB)
           if (file.size > 2 * 1024 * 1024) {
             showErrorMessage('File terlalu besar. Maksimal 2MB');
             fileInput.value = '';
             return;
           }
           
-          // Validate file type
           if (!file.type.startsWith('image/')) {
             showErrorMessage('File harus berupa gambar');
             fileInput.value = '';
             return;
           }
           
-          // Show preview
           const reader = new FileReader();
           reader.onload = (e) => {
             preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
@@ -1761,7 +1756,6 @@
         }
       });
       
-      // Drag and drop functionality
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         uploadContainer.addEventListener(eventName, preventDefaults, false);
       });
@@ -1796,7 +1790,6 @@
         if (files.length > 0) {
           const file = files[0];
           
-          // Validate file
           if (file.size > 2 * 1024 * 1024) {
             showErrorMessage('File terlalu besar. Maksimal 2MB');
             return;
@@ -1937,11 +1930,9 @@
           updatedAt: now.toISOString()
         };
         
-        // Simpan ke database dengan path drivers/{driverId}
         await database.ref('drivers/' + driverId).set(driverProfile);
         
         // DRIVER_BY_PHONE REMOVED - tidak perlu lagi
-        // USER LOGIC REMOVED - tidak perlu lagi
         
         hideLoading();
         console.log('✅ Driver data saved to database');
@@ -1960,7 +1951,6 @@
     // EVENT HANDLERS
     // ================================================
     
-    // Phone number input event
     document.getElementById('phoneNumber').addEventListener('input', function() {
       hidePhoneStatus();
       
@@ -1973,15 +1963,13 @@
         return;
       }
       
-      // Check phone number after delay
       setTimeout(async () => {
         try {
           const phoneInfo = await checkPhoneNumberExists(formattedPhone);
           
           if (phoneInfo.exists) {
-            const nama = phoneInfo.user?.fullName || phoneInfo.user?.name || 'Pengguna';
-            const type = phoneInfo.type === 'driver' ? 'driver' : 'penumpang';
-            showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar sebagai ${type} atas nama ${nama}. Silakan login atau gunakan nomor lain.`, phoneInfo.user);
+            const nama = phoneInfo.user?.fullName || phoneInfo.user?.name || 'Driver';
+            showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar sebagai driver atas nama ${nama}. Silakan login atau gunakan nomor lain.`, phoneInfo.user);
           } else {
             showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran driver.`);
           }
@@ -1992,7 +1980,6 @@
       }, 1000);
     });
     
-    // Send OTP button handler
     document.getElementById('sendOtpBtn').addEventListener('click', async function() {
       const fullName = document.getElementById('fullName').value.trim();
       const email = document.getElementById('email').value.trim();
@@ -2011,14 +1998,27 @@
         return;
       }
       
-      // Cek apakah nomor sudah terdaftar
       try {
         showLoading('Memeriksa nomor telepon...');
         const phoneInfo = await checkPhoneNumberExists(phoneNumber);
         hideLoading();
         
         if (phoneInfo.exists) {
-          showErrorMessage(`Nomor ${phoneNumber} sudah terdaftar. Silakan login atau gunakan nomor lain.`);
+          const status = phoneInfo.status || 'pending';
+          
+          if (status === 'approved' || status === 'active') {
+            showErrorMessage(`Nomor ${phoneNumber} sudah terdaftar sebagai driver aktif. Silakan login di halaman login driver.`, {
+              onConfirm: () => {
+                window.location.href = 'loginDriver.html';
+              }
+            });
+          } else if (status === 'pending') {
+            showErrorMessage(`Nomor ${phoneNumber} sedang menunggu verifikasi admin.`);
+          } else if (status === 'rejected') {
+            showErrorMessage(`Pendaftaran dengan nomor ${phoneNumber} telah ditolak. Hubungi admin untuk informasi lebih lanjut.`);
+          } else if (status === 'blocked') {
+            showErrorMessage(`Akun dengan nomor ${phoneNumber} telah diblokir. Hubungi admin untuk mengajukan pembukaan blokir.`);
+          }
           return;
         }
       } catch (error) {
@@ -2028,7 +2028,6 @@
         return;
       }
       
-      // Simpan data sementara
       driverData = {
         fullName: fullName,
         email: email,
@@ -2036,7 +2035,6 @@
         address: address
       };
       
-      // Kirim OTP via Firebase
       const otpSent = await sendFirebaseOTP(phoneNumber);
       
       if (otpSent) {
@@ -2047,7 +2045,6 @@
       }
     });
     
-    // Verify OTP button handler
     document.getElementById('verifyOtpBtn').addEventListener('click', async function() {
       const enteredOtp = getEnteredOTP();
       
@@ -2064,7 +2061,6 @@
       document.getElementById('verifyOtpBtn').disabled = true;
       document.getElementById('verifyOtpBtn').textContent = 'Memverifikasi...';
       
-      // Verify OTP with Firebase
       const user = await verifyFirebaseOTP(enteredOtp);
       
       if (!user) {
@@ -2080,7 +2076,6 @@
       showSuccessMessage('Verifikasi berhasil! Silakan lengkapi data kendaraan dan dokumen.', true);
     });
     
-    // Resend OTP handler
     resendOtpLink.addEventListener('click', async function() {
       if (resendOtpLink.classList.contains('disabled')) return;
       
@@ -2098,12 +2093,10 @@
       }
     });
     
-    // Back to step 1
     document.getElementById('backToStep1Btn').addEventListener('click', function() {
       goToStep(1);
     });
     
-    // Vehicle selection
     document.querySelectorAll('.vehicle-option').forEach(option => {
       option.addEventListener('click', function() {
         document.querySelectorAll('.vehicle-option').forEach(opt => {
@@ -2115,13 +2108,11 @@
       });
     });
     
-    // Setup file uploads
     const profileUpload = setupFileUpload('profileUploadContainer', 'profileFile', 'profilePreview', 'profileProgress', 'profileProgressBar');
     const ktpUpload = setupFileUpload('ktpUploadContainer', 'ktpFile', 'ktpPreview', 'ktpProgress', 'ktpProgressBar');
     const simUpload = setupFileUpload('simUploadContainer', 'simFile', 'simPreview', 'simProgress', 'simProgressBar');
     const stnkUpload = setupFileUpload('stnkUploadContainer', 'stnkFile', 'stnkPreview', 'stnkProgress', 'stnkProgressBar');
     
-    // Final submission
     document.getElementById('driverFormStep3').addEventListener('submit', async function(e) {
       e.preventDefault();
       
@@ -2130,7 +2121,6 @@
       submitBtn.textContent = 'Mendaftarkan...';
       
       try {
-        // Validate required files
         const requiredFiles = [
           { name: 'Foto Profil', file: profileUpload.fileInput.files[0], upload: profileUpload },
           { name: 'KTP', file: ktpUpload.fileInput.files[0], upload: ktpUpload },
@@ -2147,7 +2137,6 @@
           }
         }
         
-        // Collect form data
         driverId = generateDriverId();
         const formData = {
           ...driverData,
@@ -2161,7 +2150,6 @@
           stnkPhotoUrl: ''
         };
         
-        // Validate form data
         const validationError = validateDriverData(formData);
         if (validationError) {
           showErrorMessage(validationError);
@@ -2170,12 +2158,10 @@
           return;
         }
         
-        // Upload all files
         showLoading('Mengupload foto dan dokumen...');
         
         const uploadPromises = [];
         
-        // Upload Profile Photo
         profileUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
@@ -2185,7 +2171,6 @@
           ).then(url => { formData.profilePhotoUrl = url; })
         );
         
-        // Upload KTP
         ktpUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
@@ -2195,7 +2180,6 @@
           ).then(url => { formData.ktpPhotoUrl = url; })
         );
         
-        // Upload SIM
         simUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
@@ -2205,7 +2189,6 @@
           ).then(url => { formData.simPhotoUrl = url; })
         );
         
-        // Upload STNK
         stnkUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
@@ -2215,16 +2198,10 @@
           ).then(url => { formData.stnkPhotoUrl = url; })
         );
         
-        // Wait for all uploads to complete
         await Promise.all(uploadPromises);
         
-        // Save driver data to database
         await saveDriverToDatabase(driverId, formData, firebaseUser.uid);
         
-        // localStorage TIDAK BOLEH digunakan untuk status - hapus logika ini
-        // localStorage.removeItem('jego_driver_data'); // Hapus data lama jika ada
-        
-        // Kirim data ke Kodular
         sendToKodular({
           action: 'driver_registered',
           driver_id: driverId,
@@ -2236,7 +2213,6 @@
           status: 'pending'
         });
         
-        // Show success section
         document.getElementById('driverFormStep3').style.display = 'none';
         document.getElementById('successSection').style.display = 'block';
         
@@ -2260,7 +2236,6 @@
       }
     });
     
-    // WhatsApp button
     document.getElementById('whatsappBtn').addEventListener('click', function() {
       const message = `Halo Admin JeGo, saya ingin menanyakan status verifikasi pendaftaran driver saya.`;
       const encodedMessage = encodeURIComponent(message);
@@ -2269,7 +2244,6 @@
       window.open(whatsappUrl, '_blank');
     });
     
-    // Kodular integration
     function sendToKodular(data) {
       console.log('Mengirim data ke Kodular:', data);
       
@@ -2310,13 +2284,9 @@
       console.log('🚀 Aplikasi Pendaftaran Driver JeGo dimulai...');
       
       try {
-        // Setup reCAPTCHA
         setupRecaptcha();
-        
-        // Setup OTP inputs
         setupOTPInputs();
         
-        // Setup modal event listeners
         modalOverlay.addEventListener('click', function(e) {
           if (e.target === modalOverlay) hidePopup();
         });
@@ -2325,7 +2295,6 @@
           if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup();
         });
         
-        // Setup OTP enter key
         const otpInputs = document.querySelectorAll('.otp-input');
         otpInputs.forEach((input, index) => {
           input.addEventListener('keypress', function(e) {
@@ -2335,13 +2304,10 @@
           });
         });
         
-        // Set up auth state listener untuk cek status driver
         auth.onAuthStateChanged(async (user) => {
           if (user) {
-            // User sudah login, cek status driver
             await checkDriverStatus();
           }
-          // Jika tidak ada user, biarkan form pendaftaran normal
         });
         
         console.log('✅ Aplikasi Pendaftaran Driver siap digunakan');
