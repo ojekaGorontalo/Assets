@@ -5,17 +5,20 @@
   <title>Daftar Driver - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <style>
     :root {
-      --primary: #1e6f5c;
-      --secondary: #289672;
-      --accent: #e6dd3b;
+      --primary: #FF9800;    /* Orange */
+      --secondary: #FF5722;   /* Red-Orange */
+      --accent: #FFC107;     /* Amber/Yellow */
       --light: #f8f9fa;
       --dark: #343a40;
-      --success: #28a745;
-      --danger: #dc3545;
+      --success: #4CAF50;    /* Green */
+      --danger: #f44336;     /* Red */
+      --gray: #9E9E9E;       /* Gray */
     }
 
     * {
@@ -137,7 +140,7 @@
     .form-input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.1);
+      box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
     }
 
     .form-row {
@@ -171,7 +174,7 @@
 
     .vehicle-option.selected {
       border-color: var(--primary);
-      background-color: rgba(30, 111, 92, 0.05);
+      background-color: rgba(255, 152, 0, 0.05);
     }
 
     .vehicle-icon {
@@ -251,7 +254,7 @@
     }
 
     .submit-btn:disabled {
-      background: #cccccc;
+      background: var(--gray);
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
@@ -266,63 +269,118 @@
     }
 
     .status-success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background-color: rgba(76, 175, 80, 0.1);
+      color: #2e7d32;
+      border: 1px solid #4CAF50;
     }
 
     .status-error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background-color: rgba(244, 67, 54, 0.1);
+      color: #c62828;
+      border: 1px solid #f44336;
     }
 
-    /* Verification Section */
-    .verification-section {
-      background-color: #f0f9ff;
-      border: 1px solid #b3e0ff;
+    .status-info {
+      background-color: rgba(33, 150, 243, 0.1);
+      color: #1565c0;
+      border: 1px solid #2196F3;
+    }
+
+    .status-warning {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: #ff8f00;
+      border: 1px solid #FFC107;
+    }
+
+    /* File Upload Styles */
+    .file-upload-container {
+      background-color: rgba(255, 152, 0, 0.05);
+      border: 2px dashed var(--primary);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 15px;
+    }
+
+    .file-upload-container:hover {
+      background-color: rgba(255, 152, 0, 0.1);
+      border-color: var(--secondary);
+    }
+
+    .file-upload-container.dragover {
+      background-color: rgba(255, 152, 0, 0.2);
+      border-color: var(--accent);
+    }
+
+    .upload-icon {
+      font-size: 2rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .file-preview {
+      margin-top: 15px;
+      max-width: 200px;
+      margin: 15px auto;
+      display: none;
+    }
+
+    .file-preview img {
+      width: 100%;
+      border-radius: 6px;
+      border: 2px solid var(--gray);
+    }
+
+    .upload-progress {
+      margin-top: 10px;
+      height: 6px;
+      background-color: #e0e0e0;
+      border-radius: 3px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .upload-progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, var(--primary), var(--accent));
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    /* Success Section */
+    .success-section {
+      background-color: rgba(76, 175, 80, 0.1);
+      border: 1px solid var(--success);
       border-radius: 8px;
       padding: 20px;
       margin-top: 20px;
       display: none;
-    }
-
-    .verification-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--primary);
-      margin-bottom: 15px;
       text-align: center;
     }
 
-    .verification-steps {
-      margin-bottom: 20px;
+    .success-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: var(--success);
     }
 
-    .verification-step {
-      display: flex;
-      align-items: flex-start;
+    .success-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
       margin-bottom: 10px;
     }
 
-    .step-number {
-      background-color: var(--primary);
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: bold;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-
-    .step-text {
-      flex: 1;
-      font-size: 0.9rem;
+    .success-message {
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      line-height: 1.5;
     }
 
     .whatsapp-btn {
@@ -336,11 +394,12 @@
       cursor: pointer;
       transition: all 0.3s;
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
+      width: 100%;
+      margin-bottom: 10px;
     }
 
     .whatsapp-btn:hover {
@@ -350,54 +409,6 @@
 
     .whatsapp-icon {
       font-size: 1.2rem;
-    }
-
-    /* Profile Photo Section */
-    .profile-photo-section {
-      background-color: #f0fff0;
-      border: 1px solid #b3e6b3;
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 20px;
-      display: none;
-    }
-
-    .profile-photo-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--primary);
-      margin-bottom: 15px;
-      text-align: center;
-    }
-
-    .profile-photo-info {
-      margin-bottom: 20px;
-      font-size: 0.9rem;
-      text-align: center;
-    }
-
-    .profile-photo-form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .profile-photo-btn {
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 25px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-
-    .profile-photo-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
     }
 
     /* Loading spinner */
@@ -414,7 +425,7 @@
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid rgba(0, 0, 0, 0.1);
+      border: 4px solid rgba(255, 152, 0, 0.1);
       border-radius: 50%;
       border-top-color: var(--primary);
       animation: spin 1s ease-in-out infinite;
@@ -454,7 +465,7 @@
       }
       
       .form-title {
-        fontSize: 1.3rem;
+        font-size: 1.3rem;
       }
       
       .vehicle-options {
@@ -546,6 +557,74 @@
           <input type="text" class="form-input" id="idCardNumber" placeholder="Masukkan nomor KTP" required>
         </div>
         
+        <!-- Profile Photo Upload -->
+        <div class="form-group">
+          <label class="form-label">Foto Profil *</label>
+          <p style="font-size: 0.8rem; color: var(--gray); margin-bottom: 10px;">
+            Upload foto profil (wajah jelas, latar belakang netral). Maksimal 2MB.
+          </p>
+          
+          <div class="file-upload-container" id="profileUploadContainer">
+            <div class="upload-icon">📷</div>
+            <p>Klik atau drag foto profil ke sini</p>
+            <input type="file" class="file-input" id="profileFile" accept="image/*" required>
+            <div class="upload-progress" id="profileProgress">
+              <div class="upload-progress-bar" id="profileProgressBar"></div>
+            </div>
+          </div>
+          <div class="file-preview" id="profilePreview"></div>
+        </div>
+        
+        <!-- Document Upload Section -->
+        <div class="form-group">
+          <label class="form-label">Dokumen Pendukung *</label>
+          <p style="font-size: 0.8rem; color: var(--gray); margin-bottom: 10px;">
+            Upload foto KTP, SIM, dan STNK. Maksimal 2MB per file.
+          </p>
+          
+          <!-- KTP Upload -->
+          <div class="form-group">
+            <label class="form-label">Foto KTP *</label>
+            <div class="file-upload-container" id="ktpUploadContainer">
+              <div class="upload-icon">📄</div>
+              <p>Klik atau drag file KTP ke sini</p>
+              <input type="file" class="file-input" id="ktpFile" accept="image/*" required>
+              <div class="upload-progress" id="ktpProgress">
+                <div class="upload-progress-bar" id="ktpProgressBar"></div>
+              </div>
+            </div>
+            <div class="file-preview" id="ktpPreview"></div>
+          </div>
+          
+          <!-- SIM Upload -->
+          <div class="form-group">
+            <label class="form-label">Foto SIM *</label>
+            <div class="file-upload-container" id="simUploadContainer">
+              <div class="upload-icon">📄</div>
+              <p>Klik atau drag file SIM ke sini</p>
+              <input type="file" class="file-input" id="simFile" accept="image/*" required>
+              <div class="upload-progress" id="simProgress">
+                <div class="upload-progress-bar" id="simProgressBar"></div>
+              </div>
+            </div>
+            <div class="file-preview" id="simPreview"></div>
+          </div>
+          
+          <!-- STNK Upload -->
+          <div class="form-group">
+            <label class="form-label">Foto STNK *</label>
+            <div class="file-upload-container" id="stnkUploadContainer">
+              <div class="upload-icon">📄</div>
+              <p>Klik atau drag file STNK ke sini</p>
+              <input type="file" class="file-input" id="stnkFile" accept="image/*" required>
+              <div class="upload-progress" id="stnkProgress">
+                <div class="upload-progress-bar" id="stnkProgressBar"></div>
+              </div>
+            </div>
+            <div class="file-preview" id="stnkPreview"></div>
+          </div>
+        </div>
+        
         <div class="terms-container">
           <div class="terms-title">Syarat dan Ketentuan JeGo Driver</div>
           <div class="terms-content">
@@ -570,97 +649,83 @@
         <button type="submit" class="submit-btn" id="submitBtn">Daftar sebagai Driver</button>
       </form>
       
-      <!-- Verification Section (akan muncul setelah pendaftaran berhasil) -->
-      <div class="verification-section" id="verificationSection">
-        <h2 class="verification-title">Verifikasi Data Driver</h2>
+      <!-- Success Section -->
+      <div class="success-section" id="successSection">
+        <div class="success-icon">✅</div>
+        <h2 class="success-title">Pendaftaran Berhasil!</h2>
         
-        <div class="verification-steps">
-          <div class="verification-step">
-            <div class="step-number">1</div>
-            <div class="step-text">Siapkan dokumen berikut untuk verifikasi:</div>
-          </div>
-          <div class="verification-step">
-            <div class="step-number"></div>
-            <div class="step-text">• Foto KTP (Kartu Tanda Penduduk)</div>
-          </div>
-          <div class="verification-step">
-            <div class="step-number"></div>
-            <div class="step-text">• Foto SIM (Surat Izin Mengemudi)</div>
-          </div>
-          <div class="verification-step">
-            <div class="step-number"></div>
-            <div class="step-text">• Foto STNK (Surat Tanda Nomor Kendaraan)</div>
-          </div>
-          <div class="verification-step">
-            <div class="step-number"></div>
-            <div class="step-text">• Foto kendaraan (tampak depan, samping, dan belakang)</div>
-          </div>
-          
-          <div class="verification-step">
-            <div class="step-number">2</div>
-            <div class="step-text">Klik tombol di bawah untuk menghubungi Admin JeGo via WhatsApp</div>
-          </div>
-          
-          <div class="verification-step">
-            <div class="step-number">3</div>
-            <div class="step-text">Kirimkan foto dokumen yang telah disiapkan ke Admin</div>
-          </div>
+        <div class="success-message">
+          <p>Terima kasih telah mendaftar sebagai driver JeGo.</p>
+          <p>Data Anda sedang diverifikasi oleh admin. Proses verifikasi membutuhkan waktu 1-2 hari kerja.</p>
+          <p>Anda akan menerima notifikasi via WhatsApp setelah verifikasi selesai.</p>
         </div>
         
         <button class="whatsapp-btn" id="whatsappBtn">
           <span class="whatsapp-icon">📱</span>
-          Hubungi Admin via WhatsApp
+          Hubungi Admin JeGo
         </button>
         
-        <div style="text-align: center; margin-top: 15px; font-size: 0.8rem; color: #666;">
-          Nomor Admin: 083142889149
-        </div>
-      </div>
-      
-      <!-- Profile Photo Section (akan muncul jika status accepted) -->
-      <div class="profile-photo-section" id="profilePhotoSection">
-        <h2 class="profile-photo-title">Upload Foto Profil</h2>
+        <p style="font-size: 0.8rem; color: #666; margin-top: 15px;">
+          Nomor Admin: 083142889149<br>
+          Jam Operasional: 08:00 - 17:00 WITA
+        </p>
         
-        <div class="profile-photo-info">
-          <p>Selamat! Status Anda telah <strong>diterima</strong> sebagai driver JeGo.</p>
-          <p>Silakan masukkan URL foto profil yang diberikan oleh Admin untuk ditampilkan ke customer.</p>
-        </div>
-        
-        <div class="profile-photo-form">
-          <div class="form-group">
-            <label class="form-label" for="profilePhotoUrl">URL Foto Profil *</label>
-            <input type="url" class="form-input" id="profilePhotoUrl" placeholder="Contoh: https://example.com/foto-driver.jpg" required>
-          </div>
-          
-          <button class="profile-photo-btn" id="saveProfilePhotoBtn">Simpan Foto Profil</button>
-        </div>
+        <a href="list.html" class="submit-btn" style="background: var(--gray); margin-top: 10px;">
+          Kembali ke Halaman Utama
+        </a>
       </div>
     </div>
   </div>
 
   <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs",
-      authDomain: "ojeka-ba255.firebaseapp.com",
-      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-      projectId: "ojeka-ba255",
-      storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
+    // ================================================
+    // KONFIGURASI FIREBASE (SAMA DENGAN registrasi_jego.html)
+    // ================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // ================================================
+    // INISIALISASI FIREBASE
+    // ================================================
+    firebase.initializeApp(FIREBASE_CONFIG);
     const database = firebase.database();
+    const storage = firebase.storage();
+    const auth = firebase.auth();
 
-    // Generate unique driver ID
+    // ================================================
+    // FUNGSI UTILITAS
+    // ================================================
+    
+    // Generate driver ID dengan format: jego + 8 digit angka + 3 huruf
     function generateDriverId() {
-      return 'DRIVER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const digits = '0123456789';
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let numPart = '';
+      let letterPart = '';
+      
+      // Generate 8 digit angka
+      for (let i = 0; i < 8; i++) {
+        numPart += digits.charAt(Math.floor(Math.random() * digits.length));
+      }
+      
+      // Generate 3 huruf kapital
+      for (let i = 0; i < 3; i++) {
+        letterPart += letters.charAt(Math.floor(Math.random() * letters.length));
+      }
+      
+      return 'JEGO' + numPart + letterPart;
     }
 
     // Show status message
-    function showStatus(message, type) {
+    function showStatus(message, type = 'info') {
       const statusElement = document.getElementById('statusMessage');
       statusElement.textContent = message;
       statusElement.className = 'status-message';
@@ -668,7 +733,7 @@
       statusElement.style.display = 'block';
       
       // Auto hide success messages after 5 seconds
-      if (type === 'success') {
+      if (type === 'success' || type === 'info') {
         setTimeout(() => {
           statusElement.style.display = 'none';
         }, 5000);
@@ -712,6 +777,158 @@
       return null; // No errors
     }
 
+    // Upload file to Firebase Storage
+    async function uploadFile(file, path, progressBar) {
+      return new Promise((resolve, reject) => {
+        // Set metadata untuk gambar
+        const metadata = {
+          contentType: file.type,
+          customMetadata: {
+            uploadedBy: 'driver_registration',
+            timestamp: Date.now().toString()
+          }
+        };
+        
+        const storageRef = storage.ref(path);
+        const uploadTask = storageRef.put(file, metadata);
+        
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            // Progress monitoring
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log(`Upload is ${progress}% done`);
+            
+            if (progressBar) {
+              progressBar.style.width = progress + '%';
+            }
+          },
+          (error) => {
+            console.error('Upload error:', error);
+            reject(error);
+          },
+          async () => {
+            try {
+              const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+              resolve(downloadURL);
+            } catch (error) {
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+
+    // Setup file upload functionality
+    function setupFileUpload(uploadContainerId, fileInputId, previewId, progressId, progressBarId) {
+      const uploadContainer = document.getElementById(uploadContainerId);
+      const fileInput = document.getElementById(fileInputId);
+      const preview = document.getElementById(previewId);
+      const progress = document.getElementById(progressId);
+      const progressBar = document.getElementById(progressBarId);
+      
+      // Click container to trigger file input
+      uploadContainer.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Handle file input change
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          // Validate file size (max 2MB)
+          if (file.size > 2 * 1024 * 1024) {
+            showStatus('File terlalu besar. Maksimal 2MB', 'error');
+            fileInput.value = '';
+            return;
+          }
+          
+          // Validate file type
+          if (!file.type.startsWith('image/')) {
+            showStatus('File harus berupa gambar', 'error');
+            fileInput.value = '';
+            return;
+          }
+          
+          // Show preview
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+      
+      // Drag and drop functionality
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadContainer.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        uploadContainer.addEventListener(eventName, highlight, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        uploadContainer.addEventListener(eventName, unhighlight, false);
+      });
+      
+      function highlight() {
+        uploadContainer.classList.add('dragover');
+      }
+      
+      function unhighlight() {
+        uploadContainer.classList.remove('dragover');
+      }
+      
+      uploadContainer.addEventListener('drop', handleDrop, false);
+      
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+          const file = files[0];
+          
+          // Validate file
+          if (file.size > 2 * 1024 * 1024) {
+            showStatus('File terlalu besar. Maksimal 2MB', 'error');
+            return;
+          }
+          
+          if (!file.type.startsWith('image/')) {
+            showStatus('File harus berupa gambar', 'error');
+            return;
+          }
+          
+          fileInput.files = files;
+          fileInput.dispatchEvent(new Event('change'));
+        }
+      }
+      
+      return {
+        uploadContainer,
+        fileInput,
+        preview,
+        progress,
+        progressBar
+      };
+    }
+
+    // ================================================
+    // INISIALISASI ELEMEN DAN EVENT HANDLERS
+    // ================================================
+    
+    // Setup file uploads
+    const profileUpload = setupFileUpload('profileUploadContainer', 'profileFile', 'profilePreview', 'profileProgress', 'profileProgressBar');
+    const ktpUpload = setupFileUpload('ktpUploadContainer', 'ktpFile', 'ktpPreview', 'ktpProgress', 'ktpProgressBar');
+    const simUpload = setupFileUpload('simUploadContainer', 'simFile', 'simPreview', 'simProgress', 'simProgressBar');
+    const stnkUpload = setupFileUpload('stnkUploadContainer', 'stnkFile', 'stnkPreview', 'stnkProgress', 'stnkProgressBar');
+
     // Handle vehicle selection
     document.querySelectorAll('.vehicle-option').forEach(option => {
       option.addEventListener('click', function() {
@@ -728,156 +945,198 @@
       });
     });
 
-    // Handle form submission - DIPERBARUI DENGAN SALDO AWAL DAN POTONGAN
-    document.getElementById('driverForm').addEventListener('submit', function(e) {
+    // Handle form submission
+    document.getElementById('driverForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
       submitBtn.textContent = 'Mendaftarkan...';
       
-      // Collect form data - DITAMBAHKAN SALDO AWAL DAN POTONGAN
-      const formData = {
-        fullName: document.getElementById('fullName').value.trim(),
-        phoneNumber: document.getElementById('phoneNumber').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        address: document.getElementById('address').value.trim(),
-        vehicleType: document.getElementById('vehicleType').value,
-        vehicleBrand: document.getElementById('vehicleBrand').value.trim(),
-        plateNumber: document.getElementById('plateNumber').value.trim(),
-        idCardNumber: document.getElementById('idCardNumber').value.trim(),
-        registrationDate: new Date().toISOString(),
-        status: 'pending', // pending, accepted, rejected
-        driverId: generateDriverId(),
-        profilePhotoUrl: '', // Awalnya kosong
+      try {
+        // Validate required files
+        const requiredFiles = [
+          { name: 'Foto Profil', file: profileUpload.fileInput.files[0], upload: profileUpload },
+          { name: 'KTP', file: ktpUpload.fileInput.files[0], upload: ktpUpload },
+          { name: 'SIM', file: simUpload.fileInput.files[0], upload: simUpload },
+          { name: 'STNK', file: stnkUpload.fileInput.files[0], upload: stnkUpload }
+        ];
         
-        // === FIELD BARU: SALDO AWAL DAN POTONGAN ===
-        Balance: 0, // Saldo awal Rp 25.000
-        Potongan: 10,  // Potongan 10%
+        for (const reqFile of requiredFiles) {
+          if (!reqFile.file) {
+            showStatus(`Harap upload ${reqFile.name}`, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Daftar sebagai Driver';
+            return;
+          }
+        }
         
-        // FIELD BARU YANG DITAMBAHKAN untuk statistik driver
-        totalOrders: 0,
-        completedOrders: 0,
-        totalEarnings: 0,
-        avgRating: 5.0,     // ⭐⭐⭐⭐⭐ default rating awal
-        ratingCount: 0,     // supaya nilai 5.0 valid
-        completionRate: '0%',
-        isOnline: false,
-        location: null,
-        onTrip: false
-      };
-      
-      // Validate form data
-      const validationError = validateForm(formData);
-      if (validationError) {
-        showStatus(validationError, 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Daftar sebagai Driver';
-        return;
-      }
-      
-      // Save to Firebase
-      const driversRef = database.ref('drivers');
-      driversRef.child(formData.driverId).set(formData)
-        .then(() => {
-          // Simpan ke localStorage
-          localStorage.setItem('jego_driver_data', JSON.stringify(formData));
+        // Collect form data
+        const driverId = generateDriverId();
+        const formData = {
+          fullName: document.getElementById('fullName').value.trim(),
+          phoneNumber: document.getElementById('phoneNumber').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          address: document.getElementById('address').value.trim(),
+          vehicleType: document.getElementById('vehicleType').value,
+          vehicleBrand: document.getElementById('vehicleBrand').value.trim(),
+          plateNumber: document.getElementById('plateNumber').value.trim(),
+          idCardNumber: document.getElementById('idCardNumber').value.trim(),
+          registrationDate: new Date().toISOString(),
+          registrationTimestamp: Date.now(),
+          status: 'pending', // pending, verified, rejected
+          driverId: driverId,
+          profilePhotoUrl: '',
           
-          showStatus('Pendaftaran berhasil! Silakan verifikasi data Anda dengan Admin.', 'success');
+          // Saldo dan potongan
+          Balance: 25000, // Saldo awal Rp 25.000
+          Potongan: 10,  // Potongan 10%
           
-          // Sembunyikan form dan tampilkan section verifikasi
-          document.getElementById('driverForm').style.display = 'none';
-          document.getElementById('verificationSection').style.display = 'block';
+          // Statistik driver
+          totalOrders: 0,
+          completedOrders: 0,
+          totalEarnings: 0,
+          avgRating: 5.0,
+          ratingCount: 1,
+          completionRate: '0%',
+          isOnline: false,
+          onTrip: false,
           
-          // Kirim data ke Kodular - DIPERBARUI DENGAN DATA LENGKAP
-          sendToKodular({
-            action: 'driver_registered',
-            driver_id: formData.driverId,
-            full_name: formData.fullName,
-            phone_number: formData.phoneNumber,
-            vehicle_type: formData.vehicleType,
-            total_orders: formData.totalOrders,
-            avg_rating: formData.avgRating,
-            completion_rate: formData.completionRate,
-            initial_balance: formData.Balance, // Tambahkan info saldo awal
-            potongan_percentage: formData.Potongan // Tambahkan info potongan
-          });
-        })
-        .catch((error) => {
-          console.error('Error saving driver data:', error);
-          showStatus('Terjadi kesalahan saat menyimpan data. Silakan coba lagi.', 'error');
-        })
-        .finally(() => {
+          // Dokumen (akan diisi setelah upload)
+          ktpPhotoUrl: '',
+          simPhotoUrl: '',
+          stnkPhotoUrl: ''
+        };
+        
+        // Validate form data
+        const validationError = validateForm(formData);
+        if (validationError) {
+          showStatus(validationError, 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Daftar sebagai Driver';
+          return;
+        }
+        
+        // Show uploading status
+        showStatus('Mengupload foto dan dokumen...', 'info');
+        
+        // Upload semua file sekaligus dengan Promise.all
+        const uploadPromises = [];
+        
+        // Upload Foto Profil
+        profileUpload.progress.style.display = 'block';
+        uploadPromises.push(
+          uploadFile(
+            profileUpload.fileInput.files[0], 
+            `drivers/${driverId}/profile_${Date.now()}.jpg`,
+            profileUpload.progressBar
+          ).then(url => { formData.profilePhotoUrl = url; })
+        );
+        
+        // Upload KTP
+        ktpUpload.progress.style.display = 'block';
+        uploadPromises.push(
+          uploadFile(
+            ktpUpload.fileInput.files[0], 
+            `drivers/${driverId}/ktp_${Date.now()}.jpg`,
+            ktpUpload.progressBar
+          ).then(url => { formData.ktpPhotoUrl = url; })
+        );
+        
+        // Upload SIM
+        simUpload.progress.style.display = 'block';
+        uploadPromises.push(
+          uploadFile(
+            simUpload.fileInput.files[0], 
+            `drivers/${driverId}/sim_${Date.now()}.jpg`,
+            simUpload.progressBar
+          ).then(url => { formData.simPhotoUrl = url; })
+        );
+        
+        // Upload STNK
+        stnkUpload.progress.style.display = 'block';
+        uploadPromises.push(
+          uploadFile(
+            stnkUpload.fileInput.files[0], 
+            `drivers/${driverId}/stnk_${Date.now()}.jpg`,
+            stnkUpload.progressBar
+          ).then(url => { formData.stnkPhotoUrl = url; })
+        );
+        
+        // Tunggu semua upload selesai
+        await Promise.all(uploadPromises);
+        
+        // Save to Firebase Realtime Database
+        showStatus('Menyimpan data driver...', 'info');
+        const driversRef = database.ref('drivers');
+        await driversRef.child(driverId).set(formData);
+        
+        // Juga simpan di path lain untuk kemudahan akses
+        await database.ref(`driver_by_phone/${formData.phoneNumber.replace(/\D/g, '')}`).set({
+          driverId: driverId,
+          name: formData.fullName,
+          status: 'pending'
         });
+        
+        // Simpan ke localStorage
+        localStorage.setItem('jego_driver_data', JSON.stringify(formData));
+        
+        // Tampilkan pesan sukses
+        showStatus('Pendaftaran berhasil! Data Anda sedang diverifikasi.', 'success');
+        
+        // Kirim data ke Kodular
+        sendToKodular({
+          action: 'driver_registered',
+          driver_id: driverId,
+          full_name: formData.fullName,
+          phone_number: formData.phoneNumber,
+          vehicle_type: formData.vehicleType,
+          initial_balance: formData.Balance,
+          potongan_percentage: formData.Potongan,
+          status: 'pending'
+        });
+        
+        // Sembunyikan form dan tampilkan success section
+        document.getElementById('driverForm').style.display = 'none';
+        document.getElementById('successSection').style.display = 'block';
+        
+      } catch (error) {
+        console.error('Error saving driver data:', error);
+        
+        let errorMessage = 'Terjadi kesalahan saat menyimpan data. ';
+        if (error.code === 'storage/unauthorized') {
+          errorMessage = '⚠️ ERROR: Akses storage ditolak. Silakan hubungi administrator untuk mengatur Firebase Storage Rules.';
+          showStatus(errorMessage, 'error');
+          
+          // Tampilkan instruksi untuk admin
+          setTimeout(() => {
+            showStatus(
+              'Admin: Buka Firebase Console → Storage → Rules → Ubah rules menjadi: allow read, write: if true; (untuk development)',
+              'warning'
+            );
+          }, 3000);
+        } else if (error.code === 'storage/canceled') {
+          errorMessage += 'Upload dibatalkan.';
+          showStatus(errorMessage, 'error');
+        } else {
+          errorMessage += 'Silakan coba lagi. ' + (error.message || '');
+          showStatus(errorMessage, 'error');
+        }
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Daftar sebagai Driver';
+      }
     });
 
-    // Handle WhatsApp button click
+    // Handle WhatsApp button
     document.getElementById('whatsappBtn').addEventListener('click', function() {
       const driverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
       
-      // Kirim data ke Kodular untuk diarahkan ke WhatsApp - DIPERBARUI
-      sendToKodular({
-        action: 'whatsapp_verification',
-        driver_id: driverData.driverId,
-        admin_number: '083142889149',
-        driver_name: driverData.fullName,
-        vehicle_type: driverData.vehicleType,
-        initial_balance: driverData.Balance,
-        potongan_percentage: driverData.Potongan
-      });
+      const message = `Halo Admin JeGo, saya ${driverData.fullName || 'calon driver'} ingin menanyakan status verifikasi pendaftaran driver saya.`;
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/6283142889149?text=${encodedMessage}`;
       
-      showStatus('Permintaan verifikasi telah dikirim. Tunggu konfirmasi dari Admin.', 'success');
-    });
-
-    // Handle save profile photo - DIPERBARUI
-    document.getElementById('saveProfilePhotoBtn').addEventListener('click', function() {
-      const profilePhotoUrl = document.getElementById('profilePhotoUrl').value.trim();
-      
-      if (!profilePhotoUrl) {
-        showStatus('Harap masukkan URL foto profil', 'error');
-        return;
-      }
-      
-      // Validasi URL
-      try {
-        new URL(profilePhotoUrl);
-      } catch (e) {
-        showStatus('URL tidak valid. Harap masukkan URL yang benar.', 'error');
-        return;
-      }
-      
-      const driverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
-      
-      // Update data di localStorage
-      driverData.profilePhotoUrl = profilePhotoUrl;
-      localStorage.setItem('jego_driver_data', JSON.stringify(driverData));
-      
-      // Update data di Firebase
-      const driversRef = database.ref('drivers/' + driverData.driverId);
-      driversRef.update({
-        profilePhotoUrl: profilePhotoUrl,
-        profileUpdatedAt: new Date().toISOString()
-      })
-      .then(() => {
-        showStatus('Foto profil berhasil disimpan!', 'success');
-        
-        // Kirim data ke Kodular - DIPERBARUI
-        sendToKodular({
-          action: 'profile_photo_updated',
-          driver_id: driverData.driverId,
-          profile_photo_url: profilePhotoUrl,
-          full_name: driverData.fullName,
-          status: 'completed_registration',
-          balance: driverData.Balance,
-          potongan: driverData.Potongan
-        });
-      })
-      .catch((error) => {
-        console.error('Error updating profile photo:', error);
-        showStatus('Terjadi kesalahan saat menyimpan foto profil.', 'error');
-      });
+      window.open(whatsappUrl, '_blank');
     });
 
     // Fungsi untuk mengirim data ke Kodular
@@ -921,40 +1180,12 @@
     function checkDriverStatus() {
       const driverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
       
-      if (driverData.driverId) {
-        // Driver sudah terdaftar, cek status di Firebase
-        const driversRef = database.ref('drivers/' + driverData.driverId);
-        driversRef.once('value')
-          .then((snapshot) => {
-            const currentData = snapshot.val();
-            
-            if (currentData) {
-              // Update data di localStorage dengan data terbaru dari Firebase
-              const updatedData = { ...driverData, ...currentData };
-              localStorage.setItem('jego_driver_data', JSON.stringify(updatedData));
-              
-              // Tampilkan section sesuai status
-              if (currentData.status === 'accepted') {
-                // Jika status accepted, tampilkan form foto profil
-                document.getElementById('driverForm').style.display = 'none';
-                document.getElementById('verificationSection').style.display = 'none';
-                document.getElementById('profilePhotoSection').style.display = 'block';
-                
-                // Jika sudah ada foto profil, isi field
-                if (currentData.profilePhotoUrl) {
-                  document.getElementById('profilePhotoUrl').value = currentData.profilePhotoUrl;
-                }
-              } else if (currentData.status === 'pending') {
-                // Jika status masih pending, tampilkan section verifikasi
-                document.getElementById('driverForm').style.display = 'none';
-                document.getElementById('verificationSection').style.display = 'block';
-                document.getElementById('profilePhotoSection').style.display = 'none';
-              }
-            }
-          })
-          .catch((error) => {
-            console.error('Error checking driver status:', error);
-          });
+      if (driverData.driverId && driverData.status === 'pending') {
+        // Jika sudah mendaftar dan status pending
+        document.getElementById('driverForm').style.display = 'none';
+        document.getElementById('successSection').style.display = 'block';
+        
+        showStatus('Anda sudah mendaftar. Status: Menunggu verifikasi admin.', 'info');
       }
     }
 
