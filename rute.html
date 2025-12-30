@@ -3591,367 +3591,43 @@
       });
     }
 
-    // ==================== PLACES API BARU - FUNGSI UTAMA ====================
+    // ==================== FUNGSI INISIALISASI MAP & AUTOCOMPLETE ====================
 
-    // Fungsi untuk inisialisasi autocomplete dengan Places API baru
-    function initAutocomplete() {
-      console.log("🗺️ Memulai inisialisasi autocomplete baru...");
-      
-      const fromInput = document.getElementById("fromInput");
-      const toInput = document.getElementById("toInput");
-      
-      // Periksa apakah Google Maps sudah dimuat dengan benar
-      if (!window.google || !window.google.maps) {
-        console.error("❌ Google Maps API belum dimuat");
-        setTimeout(initAutocomplete, 1000);
-        return;
-      }
-      
-      // Batasan wilayah Gorontalo
-      const gorontaloBounds = {
-        north: 1.2,
-        south: 0.1,
-        east: 123.8,
-        west: 121.8
-      };
-      
-      try {
-        // ============== METODE BARU: PlaceAutocompleteElement ==============
-        if (window.google.maps.places && window.google.maps.places.PlaceAutocompleteElement) {
-          console.log("✅ Menggunakan PlaceAutocompleteElement (API baru)");
-          
-          // Import library
-          const { PlaceAutocompleteElement } = google.maps.places;
-          
-          // Buat bounds untuk Gorontalo
-          const bounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(gorontaloBounds.south, gorontaloBounds.west),
-            new google.maps.LatLng(gorontaloBounds.north, gorontaloBounds.east)
-          );
-          
-          // 1. Autocomplete untuk lokasi awal
-          const autocompleteFrom = new PlaceAutocompleteElement({
-            inputElement: fromInput,
-            placeAutocompleteOptions: {
-              bounds: bounds,
-              componentRestrictions: { country: 'id' },
-              types: ['address'],
-              strictBounds: true
-            }
-          });
-          
-          // 2. Autocomplete untuk lokasi tujuan
-          const autocompleteTo = new PlaceAutocompleteElement({
-            inputElement: toInput,
-            placeAutocompleteOptions: {
-              bounds: bounds,
-              componentRestrictions: { country: 'id' },
-              types: ['address'],
-              strictBounds: true
-            }
-          });
-          
-          // Tambahkan event listener
-          autocompleteFrom.addEventListener('gmp-placeselect', (event) => {
-            handlePlaceSelect(event.place, 'fromInput');
-          });
-          
-          autocompleteTo.addEventListener('gmp-placeselect', (event) => {
-            handlePlaceSelect(event.place, 'toInput');
-          });
-          
-          console.log("✅ Autocomplete baru berhasil diinisialisasi");
-          
-        } 
-        // ============== FALLBACK: Library API Lama ==============
-        else if (window.google.maps.places && window.google.maps.places.Autocomplete) {
-          console.log("⚠️ Menggunakan Autocomplete legacy (API lama)");
-          
-          const bounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(gorontaloBounds.south, gorontaloBounds.west),
-            new google.maps.LatLng(gorontaloBounds.north, gorontaloBounds.east)
-          );
-          
-          // Buat autocomplete sederhana
-          const autocompleteOptions = {
-            bounds: bounds,
-            componentRestrictions: { country: 'id' },
-            strictBounds: true
-          };
-          
-          const autocompleteFrom = new google.maps.places.Autocomplete(fromInput, autocompleteOptions);
-          const autocompleteTo = new google.maps.places.Autocomplete(toInput, autocompleteOptions);
-          
-          // Event listener untuk API lama
-          autocompleteFrom.addListener('place_changed', () => {
-            const place = autocompleteFrom.getPlace();
-            handlePlaceSelect(place, 'fromInput');
-          });
-          
-          autocompleteTo.addListener('place_changed', () => {
-            const place = autocompleteTo.getPlace();
-            handlePlaceSelect(place, 'toInput');
-          });
-          
-          console.log("✅ Autocomplete legacy berhasil diinisialisasi");
-          
-        } 
-        // ============== FALLBACK TERAKHIR: Manual Input ==============
-        else {
-          console.error("❌ Tidak ada autocomplete API yang tersedia");
-          
-          // Fallback ke input manual dengan tombol deteksi lokasi
-          showNotification("Fitur pencarian alamat tidak tersedia. Gunakan tombol lokasi atau ketik manual", "warning");
-          
-          // Tambahkan event untuk input manual
-          fromInput.addEventListener('change', () => {
-            if (fromInput.value.length > 3) {
-              geocodeAddress(fromInput.value, 'fromInput');
-            }
-          });
-          
-          toInput.addEventListener('change', () => {
-            if (toInput.value.length > 3) {
-              geocodeAddress(toInput.value, 'toInput');
-            }
-          });
-        }
-        
-      } catch (error) {
-        console.error("❌ Error inisialisasi autocomplete:", error);
-        showNotification("Fitur pencarian alamat tidak berfungsi. Gunakan input manual", "error");
-      }
-    }
-
-    // ==================== FUNGSI BARU: Handle Place Select ====================
-    async function handlePlaceSelect(place, inputId) {
-      console.log(`📍 Tempat dipilih untuk ${inputId}:`, place);
-      
-      if (!place || !place.location) {
-        console.warn("❌ Tempat tidak valid");
-        showNotification("Lokasi tidak valid. Coba lagi.", "warning");
-        return;
-      }
-      
-      const location = {
-        lat: place.location.lat(),
-        lng: place.location.lng()
-      };
-      
-      // Validasi apakah di Gorontalo
-      const isInGorontalo = await checkIfInGorontalo(location);
-      
-      if (!isInGorontalo) {
-        showPopup("Lokasi harus berada di Provinsi Gorontalo", "Peringatan", "warning");
-        document.getElementById(inputId).value = '';
-        return;
-      }
-      
-      // Update marker
-      updateMarker(inputId, location);
-      
-      // Update input dengan alamat
-      const address = place.formattedAddress || place.name || '';
-      document.getElementById(inputId).value = address;
-      
-      // Update peta
-      map.panTo(location);
-      map.setZoom(14);
-      
-      // Coba hitung rute jika kedua lokasi sudah ada
-      const isFromInput = inputId === 'fromInput';
-      if ((isFromInput && markerB) || (!isFromInput && markerA)) {
-        setTimeout(() => {
-          tryDirection();
-        }, 500);
-      }
-      
-      updateConfirmButton();
-    }
-
-    // ==================== FUNGSI BARU: Geocode Address Manual ====================
-    async function geocodeAddress(address, inputId) {
-      if (!window.google || !window.google.maps) {
-        console.error("Google Maps tidak tersedia untuk geocode");
-        return;
-      }
-      
-      showRadar("Mencari alamat...");
-      
-      try {
-        const geocoder = new google.maps.Geocoder();
-        
-        geocoder.geocode({ 
-          address: address + ', Gorontalo',
-          region: 'ID',
-          bounds: new google.maps.LatLngBounds(
-            new google.maps.LatLng(0.1, 121.8),
-            new google.maps.LatLng(1.2, 123.8)
-          )
-        }, (results, status) => {
-          hideRadar();
-          
-          if (status === 'OK' && results[0]) {
-            const place = results[0];
-            const location = {
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
-            };
-            
-            // Update marker dan peta
-            updateMarker(inputId, location);
-            document.getElementById(inputId).value = place.formatted_address;
-            map.panTo(location);
-            map.setZoom(14);
-            
-            // Coba hitung rute
-            const isFromInput = inputId === 'fromInput';
-            if ((isFromInput && markerB) || (!isFromInput && markerA)) {
-              setTimeout(() => {
-                tryDirection();
-              }, 500);
-            }
-            
-            updateConfirmButton();
-            
-          } else {
-            console.warn('Geocode gagal:', status);
-            showNotification("Alamat tidak ditemukan. Coba gunakan deteksi lokasi.", "warning");
-          }
-        });
-        
-      } catch (error) {
-        hideRadar();
-        console.error("Error geocoding:", error);
-        showNotification("Gagal mencari alamat", "error");
-      }
-    }
-
-    // ==================== FUNGSI BARU: Cek Lokasi Gorontalo ====================
-    async function checkIfInGorontalo(location) {
-      // Batasan wilayah Gorontalo
-      const gorontaloBounds = {
-        north: 1.2,
-        south: 0.1,
-        east: 123.8,
-        west: 121.8
-      };
-      
-      // Cek bounds
-      if (location.lat < gorontaloBounds.south || 
-          location.lat > gorontaloBounds.north || 
-          location.lng < gorontaloBounds.west || 
-          location.lng > gorontaloBounds.east) {
-        return false;
-      }
-      
-      // Tambahan: Reverse geocode untuk memastikan
-      try {
-        const geocoder = new google.maps.Geocoder();
-        
-        return new Promise((resolve) => {
-          geocoder.geocode({ location: location }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-              const address = results[0].formatted_address || '';
-              const hasGorontalo = address.toLowerCase().includes('gorontalo');
-              resolve(hasGorontalo);
-            } else {
-              resolve(true); // Default true jika reverse geocode gagal
-            }
-          });
-        });
-        
-      } catch (error) {
-        console.error("Error reverse geocode:", error);
-        return true; // Default true jika error
-      }
-    }
-
-    // ==================== FUNGSI BARU: Inisialisasi Firebase Auth ====================
-    async function initializeFirebaseAuth() {
-      try {
-        // Coba sign in anonymously untuk mendapatkan token
-        const userCredential = await firebaseAuth.signInAnonymously();
-        console.log("✅ Firebase Auth berhasil diinisialisasi:", userCredential.user.uid);
-        return userCredential.user;
-      } catch (error) {
-        console.error("❌ Gagal sign in anonymous:", error);
-        return null;
-      }
-    }
-
-    // ==================== FUNGSI BARU: Deteksi Lokasi Otomatis ====================
-    function detectAutoLocation() {
-      if (navigator.geolocation) {
-        showRadar('Mendeteksi lokasi...');
-        
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const userLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            
-            // Cek apakah di Gorontalo
-            checkIfInGorontalo(userLocation).then(isInGorontalo => {
-              hideRadar();
-              
-              if (isInGorontalo) {
-                // Update peta ke lokasi pengguna
-                map.setCenter(userLocation);
-                map.setZoom(14);
-                
-                // Isi input lokasi penjemputan
-                getAddressFromOSM(userLocation, (alamat) => {
-                  document.getElementById("fromInput").value = alamat;
-                  updateMarker("fromInput", userLocation);
-                });
-              } else {
-                // Tetap di Gorontalo
-                map.setCenter({ lat: 0.5441, lng: 123.0595 });
-                map.setZoom(12);
-                showNotification("Lokasi Anda di luar Gorontalo", "info");
-              }
-            });
-          },
-          (error) => {
-            console.log("Gagal mendapatkan lokasi pengguna:", error);
-            hideRadar();
-            
-            // Default ke Gorontalo
-            map.setCenter({ lat: 0.5441, lng: 123.0595 });
-            map.setZoom(12);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 60000
-          }
-        );
-      }
-    }
-
-    // ==================== FUNGSI INISIALISASI MAP ====================
     function initMap() {
-      console.log("🗺️ Memulai inisialisasi peta...");
+      console.log("Memulai inisialisasi peta...");
       
-      // Pastikan Google Maps sudah dimuat
-      if (!window.google || !window.google.maps) {
-        console.error("❌ Google Maps API belum dimuat");
-        setTimeout(initMap, 1000);
-        return;
-      }
-      
+      const lokasiA = getLatLng(fromParam);
+      const lokasiB = getLatLng(toParam);
+
+      styledMapType = new google.maps.StyledMapType(
+        [
+          { elementType: "geometry", stylers: [{ color: "#212121" }] },
+          { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+          { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+          { featureType: "poi", elementType: "geometry", stylers: [{ color: "#2e2e2e" }] },
+          { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
+          { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
+          { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
+          { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
+          { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f2f2f" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
+          { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
+        ],
+        { name: "Mode Malam" }
+      );
+
+      // Inisialisasi map dengan lokasi default Gorontalo
       try {
-        // Inisialisasi peta
         map = new google.maps.Map(document.getElementById("map"), {
           zoom: 12,
           center: { lat: 0.5441, lng: 123.0595 }, // Gorontalo
           clickableIcons: false,
           gestureHandling: "greedy",
-          mapTypeControl: true,
           mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+            mapTypeIds: ['roadmap', 'styled_map']
           },
           styles: [
             {
@@ -3961,10 +3637,12 @@
             }
           ]
         });
+
+        console.log("Peta berhasil diinisialisasi");
+
+        map.mapTypes.set('styled_map', styledMapType);
         
-        console.log("✅ Peta berhasil diinisialisasi");
-        
-        // Inisialisasi directions service
+        // Inisialisasi directionsService dan directionsRenderer dengan benar
         directionsService = new google.maps.DirectionsService();
         directionsRenderer = new google.maps.DirectionsRenderer({
           map: map,
@@ -3975,69 +3653,325 @@
             strokeOpacity: 0.8
           }
         });
+
+        console.log("Directions service dan renderer berhasil diinisialisasi");
+
+        // Deteksi lokasi pengguna otomatis saat pertama kali membuka HANYA untuk fromInput
+        if (navigator.geolocation && !fromParam && !coordParam) {
+          showRadar('Mendeteksi lokasi penjemputan...');
+          
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              
+              // Update peta ke lokasi pengguna
+              map.setCenter(userLocation);
+              map.setZoom(14);
+              
+              // Isi input lokasi penjemputan dengan lokasi pengguna menggunakan OpenStreetMap
+              getAddressFromOSM(userLocation, (alamat) => {
+                document.getElementById("fromInput").value = alamat;
+                updateMarker("fromInput", userLocation);
+                hideRadar();
+              });
+            },
+            (error) => {
+              console.log("Gagal mendapatkan lokasi pengguna:", error);
+              hideRadar();
+              
+              // Jika gagal, gunakan lokasi dari parameter atau default Gorontalo
+              if (lokasiA) {
+                map.setCenter(lokasiA);
+                map.setZoom(14);
+              } else {
+                // Tetap di Gorontalo dengan zoom yang lebih dekat
+                map.setCenter({ lat: 0.5441, lng: 123.0595 });
+                map.setZoom(14);
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 60000
+            }
+          );
+        } else {
+          // Gunakan lokasi dari parameter jika ada, atau default Gorontalo
+          if (lokasiA) {
+            map.setCenter(lokasiA);
+            map.setZoom(14);
+          } else {
+            // Tetap di Gorontalo dengan zoom yang lebih dekat
+            map.setCenter({ lat: 0.5441, lng: 123.0595 });
+            map.setZoom(14);
+          }
+        }
+
+        // Tambahkan marker untuk lokasi A jika ada
+        if (lokasiA) {
+          // Gunakan data kendaraan dari Firebase atau fallback
+          let vehicleIcon;
+          if (vehicleData && vehicleData[vehicle]) {
+              vehicleIcon = vehicleData[vehicle].icon;
+          } else {
+              vehicleIcon = fallbackVehicleData[vehicle].icon;
+          }
+          
+          markerA = new google.maps.Marker({
+            position: lokasiA,
+            map: map,
+            icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
+          });
+          // Untuk parameter from, gunakan OpenStreetMap untuk mendapatkan alamat
+          getAddressFromOSM(lokasiA, (alamat) => {
+            document.getElementById("fromInput").value = alamat || "";
+          });
+        }
+
+        // Tambahkan marker untuk lokasi B jika ada
+        if (lokasiB) {
+          markerB = new google.maps.Marker({
+            position: lokasiB,
+            map: map,
+            icon: {
+              url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+              scaledSize: new google.maps.Size(40, 40)
+            }
+          });
+          // Untuk parameter to, gunakan OpenStreetMap untuk mendapatkan alamat
+          getAddressFromOSM(lokasiB, (alamat) => {
+            document.getElementById("toInput").value = alamat || "";
+          });
+        }
+
+        // Jika kedua lokasi ada, hitung rute
+        if (lokasiA && lokasiB) {
+          setTimeout(() => {
+            tryDirection();
+          }, 1000);
+        }
         
-        console.log("✅ Directions service berhasil diinisialisasi");
-        
-        // Deteksi lokasi pengguna otomatis
-        detectAutoLocation();
+        // Jika ada parameter coord, gunakan sebagai lokasi saat ini
+        if (coordParam) {
+          const coords = coordParam.split(',');
+          if (coords.length === 2) {
+            const lat = parseFloat(coords[0]);
+            const lng = parseFloat(coords[1]);
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              currentPosition = { lat, lng };
+              getAddressFromOSM(currentPosition, (alamat) => {
+                document.getElementById("fromInput").value = alamat;
+                updateMarker("fromInput", currentPosition);
+                map.setCenter(currentPosition);
+                map.setZoom(14);
+              });
+            }
+          }
+        }
         
       } catch (error) {
-        console.error("❌ Error inisialisasi peta:", error);
+        console.error("Error dalam inisialisasi peta:", error);
         showPopup("Gagal memuat peta. Silakan refresh halaman.", "Error", "error");
       }
     }
 
-    // ==================== FUNGSI INISIALISASI APLIKASI UTAMA ====================
-    async function onLoad() {
-      console.log("🚀 [DEBUG] ========== MEMULAI INISIALISASI APLIKASI ==========");
+    function initAutocomplete() {
+      console.log("Memulai inisialisasi autocomplete...");
       
-      try {
-        // 1. Inisialisasi Firebase Auth terlebih dahulu
-        console.log("🔐 [DEBUG] Inisialisasi Firebase Auth...");
-        const firebaseUser = await initializeFirebaseAuth();
-        
-        if (!firebaseUser) {
-          console.warn("⚠️ [DEBUG] Firebase Auth tidak berhasil, beberapa fitur mungkin terbatas");
-        }
-        
-        // 2. Ambil data user dari localStorage
-        userData = getUserData();
-        
-        if (userData) {
-          console.log("✅ [DEBUG] User ditemukan:", userData.name || userData.phone);
-          
-          // Mulai auto-refresh user data
-          if (userData.firebase_key) {
-            startUserDataRefresh();
-          }
-        } else {
-          console.log("⚠️ [DEBUG] User belum login, beberapa fitur mungkin terbatas");
-        }
-        
-        // 3. Tunggu hingga Google Maps siap
-        if (!window.google || !window.google.maps) {
-          console.log("⏳ [DEBUG] Menunggu Google Maps API...");
-          setTimeout(onLoad, 500);
+      const fromInput = document.getElementById("fromInput");
+      const toInput = document.getElementById("toInput");
+      
+      // Pastikan Google Maps Places API sudah dimuat
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        console.error("Google Maps Places API belum dimuat");
+        return;
+      }
+      
+      // ✅ BATASI WILAYAH GORONTALO
+      // Koordinat bounds untuk Gorontalo
+      const gorontaloBounds = {
+        north: 1.0,    // Batas utara
+        south: 0.3,    // Batas selatan
+        east: 123.5,   // Batas timur
+        west: 122.0    // Batas barat
+      };
+      
+      const gorontaloLatLngBounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(gorontaloBounds.south, gorontaloBounds.west),
+        new google.maps.LatLng(gorontaloBounds.north, gorontaloBounds.east)
+      );
+      
+      // Konfigurasi autocomplete dengan bounds Gorontalo
+      const autocompleteOptions = {
+        bounds: gorontaloLatLngBounds,
+        componentRestrictions: { country: 'id' },
+        fields: ['address_components', 'geometry', 'name', 'formatted_address'],
+        strictBounds: false, // false agar tetap bisa cari luar Gorontalo
+        types: ['address']   // Hanya alamat, bukan tempat umum lainnya
+      };
+      
+      // Autocomplete untuk lokasi awal
+      const autocompleteFrom = new google.maps.places.Autocomplete(fromInput, autocompleteOptions);
+      
+      // Autocomplete untuk lokasi tujuan
+      const autocompleteTo = new google.maps.places.Autocomplete(toInput, autocompleteOptions);
+      
+      // Tambahkan listener untuk tempat yang dipilih
+      autocompleteFrom.addListener('place_changed', function() {
+        const place = autocompleteFrom.getPlace();
+        if (!place.geometry) {
+          console.warn("Tidak ada detail untuk tempat yang dipilih");
           return;
         }
         
-        // 4. Inisialisasi map
-        initMap();
+        // ✅ CEK JIKA DI LUAR GORONTALO
+        const location = place.geometry.location;
+        const isInGorontalo = gorontaloLatLngBounds.contains(location);
         
-        // 5. Muat data tarif dari Firebase
+        if (!isInGorontalo) {
+          console.log("📍 [INFO] Lokasi di luar Gorontalo, tetap diproses");
+          // Tampilkan notifikasi informatif
+          showNotification("Lokasi berada di luar wilayah Gorontalo. Pastikan driver tersedia di area tersebut.", "info");
+        }
+        
+        if (markerA) markerA.setMap(null);
+        
+        // Gunakan data kendaraan dari Firebase atau fallback
+        let vehicleIcon;
+        if (vehicleData && vehicleData[vehicle]) {
+          vehicleIcon = vehicleData[vehicle].icon;
+        } else {
+          vehicleIcon = fallbackVehicleData[vehicle].icon;
+        }
+        
+        markerA = new google.maps.Marker({
+          position: place.geometry.location,
+          map: map,
+          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
+        });
+        
+        // Format alamat
+        const name = place.name || '';
+        let address = place.formatted_address || '';
+        address = address.replace(/^[A-Z0-9+]{4,},\s*/i, '');
+        document.getElementById("fromInput").value = 
+          name && address && !address.includes(name) 
+            ? `${name}, ${address}` 
+            : (name || address);
+        
+        map.panTo(place.geometry.location);
+        if (markerB) {
+          setTimeout(() => {
+            tryDirection();
+          }, 500);
+        }
+        updateConfirmButton();
+      });
+      
+      autocompleteTo.addListener('place_changed', function() {
+        const place = autocompleteTo.getPlace();
+        if (!place.geometry) {
+          console.warn("Tidak ada detail untuk tempat yang dipilih");
+          return;
+        }
+        
+        // ✅ CEK JIKA DI LUAR GORONTALO
+        const location = place.geometry.location;
+        const isInGorontalo = gorontaloLatLngBounds.contains(location);
+        
+        if (!isInGorontalo) {
+          console.log("📍 [INFO] Lokasi tujuan di luar Gorontalo, tetap diproses");
+          showNotification("Lokasi tujuan berada di luar wilayah Gorontalo.", "info");
+        }
+        
+        if (markerB) markerB.setMap(null);
+        markerB = new google.maps.Marker({
+          position: place.geometry.location,
+          map: map,
+          icon: {
+            url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+            scaledSize: new google.maps.Size(40, 40)
+          }
+        });
+        
+        // Format alamat
+        const name = place.name || '';
+        let address = place.formatted_address || '';
+        address = address.replace(/^[A-Z0-9+]{4,},\s*/i, '');
+        document.getElementById("toInput").value = 
+          name && address && !address.includes(name) 
+            ? `${name}, ${address}` 
+            : (name || address);
+        
+        if (markerA) {
+          setTimeout(() => {
+            tryDirection();
+          }, 500);
+        }
+        updateConfirmButton();
+      });
+      
+      console.log("Autocomplete berhasil diinisialisasi dengan batas wilayah Gorontalo");
+    }
+
+    // ==================== INISIALISASI ====================
+
+    function onLoad() {
+      console.log("🚀 [DEBUG] ========== MEMULAI INISIALISASI APLIKASI ==========");
+      
+      try {
+        // 1. Cek jika user sudah login
+        const isLoggedIn = checkIfUserLoggedIn();
+        
+        if (!isLoggedIn) {
+          console.log("⚠️ [DEBUG] User belum login, beberapa fitur mungkin terbatas");
+          showPopup("Silakan login untuk menggunakan fitur lengkap", "Info", "info");
+        } else {
+          // 2. Ambil data user
+          userData = getUserData();
+          console.log("✅ [DEBUG] User berhasil diidentifikasi:", userData.name || userData.phone);
+          console.log("🔑 [DEBUG] User key:", userData.firebase_key || userData.uid);
+          console.log("📊 [DEBUG] Rating:", userData.rating);
+          console.log("📈 [DEBUG] Perjalanan:", userData.perjalanan);
+          
+          // 3. Ambil data TERBARU dari Firebase jika ada user key
+          if (userData.firebase_key || userData.uid) {
+            const userKey = userData.firebase_key || userData.uid;
+            fetchLatestUserData(userKey).then(updatedUserData => {
+              if (updatedUserData) {
+                userData = updatedUserData;
+                console.log("🔄 [DEBUG] User data diperbarui saat load. Rating sekarang:", userData.rating);
+              }
+              
+              // Mulai auto-refresh user data
+              startUserDataRefresh();
+            }).catch(error => {
+              console.error("❌ [DEBUG] Gagal refresh user data saat load:", error);
+              // Tetap mulai auto-refresh
+              startUserDataRefresh();
+            });
+          }
+        }
+        
+        // Muat data tarif dari Firebase terlebih dahulu
         loadVehicleData()
           .then(() => {
-            console.log('✅ [DEBUG] Data tarif berhasil dimuat');
+            console.log('✅ [DEBUG] Data tarif berhasil dimuat dari Firebase');
             
-            // Cek data pengiriman kurir
+            // Cek apakah ada data pengiriman kurir di localStorage
             const lastTransport = localStorage.getItem('jego_last_transport');
             if (lastTransport) {
               try {
                 const transportData = JSON.parse(lastTransport);
                 if (transportData.deliveryData) {
                   kurirDeliveryData = transportData.deliveryData;
-                  console.log('📦 [DEBUG] Data pengiriman kurir ditemukan');
+                  console.log('📦 [DEBUG] Data pengiriman kurir ditemukan:', kurirDeliveryData);
                   
+                  // Tampilkan data pengiriman jika ini adalah kurir
                   if (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor') {
                     showDeliveryInfo();
                   }
@@ -4047,15 +3981,11 @@
               }
             }
             
-            // Cek order aktif dengan error handling
-            checkActiveOrder().catch(error => {
-              console.error('[DEBUG] Error checkActiveOrder:', error);
-            });
+            // Cek apakah ada order aktif
+            checkActiveOrder();
             
-            // Inisialisasi autocomplete dengan delay
-            setTimeout(() => {
-              initAutocomplete();
-            }, 1000);
+            // Inisialisasi autocomplete
+            initAutocomplete();
             
             // Setup close button untuk driver offers
             document.getElementById('closeDriverOffers').addEventListener('click', function() {
@@ -4065,20 +3995,18 @@
           })
           .catch(error => {
             console.error('❌ [DEBUG] Gagal memuat data tarif:', error);
-            // Gunakan fallback data
+            showPopup('Gagal memuat data tarif. Silakan coba lagi.', "Error", "error");
+            
+            // Fallback: gunakan fallback data
             vehicleData = fallbackVehicleData;
             
-            // Cek order aktif
-            checkActiveOrder().catch(error => {
-              console.error('[DEBUG] Error checkActiveOrder:', error);
-            });
+            // Cek apakah ada order aktif
+            checkActiveOrder();
             
             // Inisialisasi autocomplete
-            setTimeout(() => {
-              initAutocomplete();
-            }, 1000);
+            initAutocomplete();
             
-            // Setup close button
+            // Setup close button untuk driver offers
             document.getElementById('closeDriverOffers').addEventListener('click', function() {
               document.getElementById('driverOffers').style.display = 'none';
             });
@@ -4090,27 +4018,14 @@
       }
     }
 
-    // ==================== LOAD APLIKASI ====================
-    window.addEventListener('load', function() {
-      console.log("📄 Halaman selesai dimuat");
-      
-      // Tunggu sedikit untuk memastikan semua resource siap
-      setTimeout(() => {
-        onLoad();
-      }, 500);
-    });
-
-    // Tambahkan juga callback untuk Google Maps
-    window.initMap = function() {
-      console.log("🗺️ Google Maps API siap");
-      // Map sudah diinisialisasi di onLoad
-    };
+    // Panggil fungsi inisialisasi saat halaman dimuat
+    window.onload = onLoad;
   </script>
   
-  <!-- Load Google Maps API dengan Places API baru -->
+  <!-- Load Google Maps API -->
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&callback=initMap&libraries=places,geometry&loading=async&v=beta"
-    async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&callback=initMap&libraries=places,geometry&v=weekly"
+    defer
   ></script>
 </body>
 </html>
