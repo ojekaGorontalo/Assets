@@ -3791,20 +3791,57 @@
         return;
       }
       
-      // ✅ WILAYAH GORONTALO YANG TELAH DIPERBAIKI
-      const gorontaloBounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(0.37, 121.22), // Southwest
-        new google.maps.LatLng(1.06, 123.40)  // Northeast
+      // ✅ BATASI WILAYAH HANYA PROVINSI GORONTALO
+      // Koordinat bounds untuk Provinsi Gorontalo (diperluas untuk mencakup seluruh provinsi)
+      const gorontaloBounds = {
+        north: 1.2,    // Batas utara (Kabupaten Bolaang Mongondow Utara - perbatasan Sulut)
+        south: 0.1,    // Batas selatan (Perbatasan Sulawesi Tengah)
+        east: 123.8,   // Batas timur (Laut Maluku)
+        west: 121.8    // Batas barat (Teluk Tomini)
+      };
+      
+      const gorontaloLatLngBounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(gorontaloBounds.south, gorontaloBounds.west),
+        new google.maps.LatLng(gorontaloBounds.north, gorontaloBounds.east)
       );
       
-      // Konfigurasi autocomplete dengan bounds Gorontalo
+      // Konfigurasi autocomplete dengan batas ketat untuk Gorontalo
       const autocompleteOptions = {
-        bounds: gorontaloBounds,
-        componentRestrictions: { country: 'id' },
-        fields: ['address_components', 'geometry', 'name', 'formatted_address'],
-        strictBounds: true, // ✅ HANYA tampilkan hasil dalam bounds
-        types: ['geocode', 'establishment', 'point_of_interest'] // ✅ Mendukung desa, toko, rumah, alamat
+        bounds: gorontaloLatLngBounds,
+        componentRestrictions: { 
+          country: 'id',
+          // Tambahkan batasan administratif level 1 (provinsi) untuk Gorontalo
+          administrativeArea: 'Gorontalo'
+        },
+        fields: ['address_components', 'geometry', 'name', 'formatted_address', 'types'],
+        strictBounds: true, // Hanya tampilkan hasil dalam bounds
+        types: ['address', 'establishment'], // Alamat dan tempat usaha
+        // Filter tambahan untuk memastikan hanya Gorontalo
+        // Ini akan memfilter berdasarkan komponen alamat
       };
+      
+      // Fungsi untuk memfilter hasil berdasarkan provinsi Gorontalo
+      function filterGorontaloResults(predictions, status) {
+        if (status !== google.maps.places.PlacesServiceStatus.OK) {
+          console.warn("Autocomplete error:", status);
+          return;
+        }
+        
+        // Filter hanya yang mengandung "Gorontalo" dalam deskripsi
+        const gorontaloPredictions = predictions.filter(prediction => {
+          const description = prediction.description.toLowerCase();
+          const terms = prediction.terms || [];
+          
+          // Cek apakah ada term yang mengandung "gorontalo"
+          const hasGorontalo = terms.some(term => 
+            term.value.toLowerCase().includes('gorontalo')
+          );
+          
+          return hasGorontalo || description.includes('gorontalo');
+        });
+        
+        return gorontaloPredictions;
+      }
       
       // Autocomplete untuk lokasi awal
       const autocompleteFrom = new google.maps.places.Autocomplete(fromInput, autocompleteOptions);
@@ -3812,15 +3849,114 @@
       // Autocomplete untuk lokasi tujuan
       const autocompleteTo = new google.maps.places.Autocomplete(toInput, autocompleteOptions);
       
-      // Tambahkan listener untuk tempat yang dipilih - TANPA VALIDASI LOKASI
+      // Override getPlacePredictions untuk filter tambahan
+      const placesService = new google.maps.places.PlacesService(map);
+      
+      // Tambahkan listener untuk tempat yang dipilih
       autocompleteFrom.addListener('place_changed', function() {
         const place = autocompleteFrom.getPlace();
         if (!place.geometry) {
-          console.log("Tidak ada detail untuk tempat yang dipilih");
+          console.warn("Tidak ada detail untuk tempat yang dipilih");
+          
+          // Coba cari ulang dengan query yang lebih spesifik
+          const query = fromInput.value;
+          if (query && query.length > 3) {
+            const request = {
+              query: query + ' Gorontalo',
+              fields: ['name', 'geometry', 'formatted_address', 'address_components']
+            };
+            
+            placesService.findPlaceFromQuery(request, function(results, status) {
+              if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+                const foundPlace = results[0];
+                
+                // Cek apakah hasil berada di Gorontalo
+                const isInGorontalo = checkIfInGorontalo(foundPlace);
+                
+                if (isInGorontalo) {
+                  processSelectedPlace(foundPlace, 'fromInput');
+                } else {
+                  showPopup("Lokasi harus berada di Provinsi Gorontalo", "Peringatan", "warning");
+                  fromInput.value = '';
+                }
+              }
+            });
+          }
           return;
         }
         
-        if (markerA) markerA.setMap(null);
+        // Validasi apakah tempat berada di Gorontalo
+        const isInGorontalo = checkIfInGorontalo(place);
+        
+        if (!isInGorontalo) {
+          showPopup("Lokasi harus berada di Provinsi Gorontalo", "Peringatan", "warning");
+          fromInput.value = '';
+          return;
+        }
+        
+        processSelectedPlace(place, 'fromInput');
+      });
+      
+      autocompleteTo.addListener('place_changed', function() {
+        const place = autocompleteTo.getPlace();
+        if (!place.geometry) {
+          console.warn("Tidak ada detail untuk tempat yang dipilih");
+          
+          // Coba cari ulang dengan query yang lebih spesifik
+          const query = toInput.value;
+          if (query && query.length > 3) {
+            const request = {
+              query: query + ' Gorontalo',
+              fields: ['name', 'geometry', 'formatted_address', 'address_components']
+            };
+            
+            placesService.findPlaceFromQuery(request, function(results, status) {
+              if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+                const foundPlace = results[0];
+                
+                // Cek apakah hasil berada di Gorontalo
+                const isInGorontalo = checkIfInGorontalo(foundPlace);
+                
+                if (isInGorontalo) {
+                  processSelectedPlace(foundPlace, 'toInput');
+                } else {
+                  showPopup("Lokasi tujuan harus berada di Provinsi Gorontalo", "Peringatan", "warning");
+                  toInput.value = '';
+                }
+              }
+            });
+          }
+          return;
+        }
+        
+        // Validasi apakah tempat berada di Gorontalo
+        const isInGorontalo = checkIfInGorontalo(place);
+        
+        if (!isInGorontalo) {
+          showPopup("Lokasi tujuan harus berada di Provinsi Gorontalo", "Peringatan", "warning");
+          toInput.value = '';
+          return;
+        }
+        
+        processSelectedPlace(place, 'toInput');
+      });
+      
+      // Fungsi untuk memproses tempat yang dipilih
+      function processSelectedPlace(place, inputId) {
+        const isFromInput = inputId === 'fromInput';
+        
+        // ✅ CEK LOKASI DI GORONTALO
+        const location = place.geometry.location;
+        const isInBounds = gorontaloLatLngBounds.contains(location);
+        
+        if (!isInBounds) {
+          showPopup("Lokasi berada di luar wilayah Gorontalo", "Peringatan", "warning");
+          document.getElementById(inputId).value = '';
+          return;
+        }
+        
+        if (isFromInput && markerA) markerA.setMap(null);
+        if (!isFromInput && markerB) markerB.setMap(null);
         
         // Gunakan data kendaraan dari Firebase atau fallback
         let vehicleIcon;
@@ -3830,65 +3966,101 @@
           vehicleIcon = fallbackVehicleData[vehicle].icon;
         }
         
-        markerA = new google.maps.Marker({
+        const marker = new google.maps.Marker({
           position: place.geometry.location,
           map: map,
-          icon: { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) }
+          icon: isFromInput ? 
+            { url: vehicleIcon, scaledSize: new google.maps.Size(40, 40) } :
+            { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) }
         });
+        
+        if (isFromInput) {
+          markerA = marker;
+        } else {
+          markerB = marker;
+        }
         
         // Format alamat
         const name = place.name || '';
         let address = place.formatted_address || '';
+        
+        // Hapus duplikasi nama dan alamat
         address = address.replace(/^[A-Z0-9+]{4,},\s*/i, '');
-        document.getElementById("fromInput").value = 
+        
+        // Pastikan alamat mengandung "Gorontalo"
+        if (!address.toLowerCase().includes('gorontalo')) {
+          // Tambahkan Gorontalo jika tidak ada
+          const addressComponents = place.address_components || [];
+          const hasProvince = addressComponents.some(comp => 
+            comp.types.includes('administrative_area_level_1') && 
+            comp.long_name.toLowerCase().includes('gorontalo')
+          );
+          
+          if (!hasProvince) {
+            address += ', Gorontalo';
+          }
+        }
+        
+        document.getElementById(inputId).value = 
           name && address && !address.includes(name) 
             ? `${name}, ${address}` 
             : (name || address);
         
         map.panTo(place.geometry.location);
-        if (markerB) {
+        if ((isFromInput && markerB) || (!isFromInput && markerA)) {
           setTimeout(() => {
             tryDirection();
           }, 500);
         }
         updateConfirmButton();
-      });
+      }
       
-      autocompleteTo.addListener('place_changed', function() {
-        const place = autocompleteTo.getPlace();
-        if (!place.geometry) {
-          console.log("Tidak ada detail untuk tempat yang dipilih");
-          return;
+      // Fungsi untuk mengecek apakah tempat berada di Gorontalo
+      function checkIfInGorontalo(place) {
+        // Cek bounds terlebih dahulu
+        const location = place.geometry.location;
+        const isInBounds = gorontaloLatLngBounds.contains(location);
+        
+        if (!isInBounds) return false;
+        
+        // Cek komponen alamat
+        const addressComponents = place.address_components || [];
+        
+        // Cari komponen provinsi (administrative_area_level_1)
+        const provinceComponent = addressComponents.find(comp => 
+          comp.types.includes('administrative_area_level_1')
+        );
+        
+        if (provinceComponent) {
+          const provinceName = provinceComponent.long_name.toLowerCase();
+          return provinceName.includes('gorontalo');
         }
         
-        if (markerB) markerB.setMap(null);
-        markerB = new google.maps.Marker({
-          position: place.geometry.location,
-          map: map,
-          icon: {
-            url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-            scaledSize: new google.maps.Size(40, 40)
+        // Cek dalam formatted_address
+        const formattedAddress = place.formatted_address || '';
+        return formattedAddress.toLowerCase().includes('gorontalo');
+      }
+      
+      // Tambahkan event listener untuk input manual
+      fromInput.addEventListener('input', function() {
+        if (this.value.length > 3) {
+          // Otomatis tambahkan "Gorontalo" jika tidak disebutkan
+          if (!this.value.toLowerCase().includes('gorontalo')) {
+            // Tidak otomatis menambahkan, biarkan user mengetik
           }
-        });
-        
-        // Format alamat
-        const name = place.name || '';
-        let address = place.formatted_address || '';
-        address = address.replace(/^[A-Z0-9+]{4,},\s*/i, '');
-        document.getElementById("toInput").value = 
-          name && address && !address.includes(name) 
-            ? `${name}, ${address}` 
-            : (name || address);
-        
-        if (markerA) {
-          setTimeout(() => {
-            tryDirection();
-          }, 500);
         }
-        updateConfirmButton();
       });
       
-      console.log("Autocomplete berhasil diinisialisasi dengan batas wilayah Gorontalo");
+      toInput.addEventListener('input', function() {
+        if (this.value.length > 3) {
+          // Otomatis tambahkan "Gorontalo" jika tidak disebutkan
+          if (!this.value.toLowerCase().includes('gorontalo')) {
+            // Tidak otomatis menambahkan, biarkan user mengetik
+          }
+        }
+      });
+      
+      console.log("Autocomplete berhasil diinisialisasi dengan batas ketat wilayah Gorontalo");
     }
 
     // ==================== INISIALISASI ====================
