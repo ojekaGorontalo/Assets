@@ -1621,9 +1621,8 @@
       try {
         console.log('🔍 Checking phone in database:', phoneNumber);
         
-        
-        
-        // Cek di drivers
+        // USER LOGIC REMOVED - hanya cek di drivers
+        // DRIVER_BY_PHONE REMOVED - hanya cek di drivers
         const driversSnapshot = await database.ref('drivers')
           .orderByChild('phoneNumber')
           .equalTo(phoneNumber)
@@ -1654,6 +1653,67 @@
           exists: false,
           error: error.message
         };
+      }
+    }
+
+    // ================================================
+    // FUNGSI CEK STATUS DRIVER
+    // ================================================
+    
+    async function checkDriverStatus() {
+      try {
+        const user = auth.currentUser;
+        
+        if (!user) {
+          // User belum login, tampilkan form pendaftaran normal
+          return;
+        }
+        
+        // Cek apakah driver sudah terdaftar berdasarkan UID
+        const driversSnapshot = await database.ref('drivers')
+          .orderByChild('uid')
+          .equalTo(user.uid)
+          .once('value');
+        
+        const driversData = driversSnapshot.val();
+        
+        if (!driversData) {
+          // Driver belum terdaftar, tampilkan form pendaftaran
+          return;
+        }
+        
+        // Ambil data driver pertama yang ditemukan
+        const driverId = Object.keys(driversData)[0];
+        const driverData = driversData[driverId];
+        
+        // Cek status driver dari Firebase
+        if (driverData.status === 'active' || driverData.status === 'approved') {
+          // Redirect ke dashboard driver
+          window.location.href = 'driverDashboard.html';
+          return;
+        } else if (driverData.status === 'rejected') {
+          // Tampilkan pesan penolakan
+          document.getElementById('step1-content').style.display = 'none';
+          document.getElementById('step2-content').style.display = 'none';
+          document.getElementById('step3-content').style.display = 'none';
+          document.getElementById('successSection').style.display = 'none';
+          
+          showErrorMessage('Pendaftaran Anda ditolak. Silakan hubungi admin untuk informasi lebih lanjut.');
+          return;
+        } else if (driverData.status === 'pending') {
+          // Tampilkan pesan pending
+          document.getElementById('step1-content').style.display = 'none';
+          document.getElementById('step2-content').style.display = 'none';
+          document.getElementById('step3-content').style.display = 'none';
+          document.getElementById('successSection').style.display = 'block';
+          
+          showInfoMessage('Status pendaftaran Anda: Menunggu verifikasi admin.');
+          return;
+        }
+        
+      } catch (error) {
+        console.error('❌ Error checking driver status:', error);
+        // Jika error, tetap tampilkan form pendaftaran
       }
     }
     
@@ -1880,12 +1940,8 @@
         // Simpan ke database dengan path drivers/{driverId}
         await database.ref('drivers/' + driverId).set(driverProfile);
         
-        // Juga simpan referensi by phone
-        await database.ref(`driver_by_phone/${formData.phoneNumber.replace(/\D/g, '')}`).set({
-          driverId: driverId,
-          name: formData.fullName,
-          status: 'pending'
-        });
+        // DRIVER_BY_PHONE REMOVED - tidak perlu lagi
+        // USER LOGIC REMOVED - tidak perlu lagi
         
         hideLoading();
         console.log('✅ Driver data saved to database');
@@ -2165,13 +2221,8 @@
         // Save driver data to database
         await saveDriverToDatabase(driverId, formData, firebaseUser.uid);
         
-        // Simpan ke localStorage
-        localStorage.setItem('jego_driver_data', JSON.stringify({
-          ...formData,
-          driverId: driverId,
-          uid: firebaseUser.uid,
-          status: 'pending'
-        }));
+        // localStorage TIDAK BOLEH digunakan untuk status - hapus logika ini
+        // localStorage.removeItem('jego_driver_data'); // Hapus data lama jika ada
         
         // Kirim data ke Kodular
         sendToKodular({
@@ -2211,9 +2262,7 @@
     
     // WhatsApp button
     document.getElementById('whatsappBtn').addEventListener('click', function() {
-      const driverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
-      
-      const message = `Halo Admin JeGo, saya ${driverData.fullName || 'calon driver'} ingin menanyakan status verifikasi pendaftaran driver saya.`;
+      const message = `Halo Admin JeGo, saya ingin menanyakan status verifikasi pendaftaran driver saya.`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/6283142889149?text=${encodedMessage}`;
       
@@ -2254,7 +2303,7 @@
     }
     
     // ================================================
-    // INITIALIZATION
+    // INITIALIZATION & AUTH STATE LISTENER
     // ================================================
     
     document.addEventListener('DOMContentLoaded', async function() {
@@ -2286,17 +2335,16 @@
           });
         });
         
-        console.log('✅ Aplikasi Pendaftaran Driver siap digunakan');
+        // Set up auth state listener untuk cek status driver
+        auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            // User sudah login, cek status driver
+            await checkDriverStatus();
+          }
+          // Jika tidak ada user, biarkan form pendaftaran normal
+        });
         
-        // Check if already registered
-        const existingDriverData = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
-        if (existingDriverData.driverId && existingDriverData.status === 'pending') {
-          document.getElementById('step1-content').style.display = 'none';
-          document.getElementById('step2-content').style.display = 'none';
-          document.getElementById('step3-content').style.display = 'none';
-          document.getElementById('successSection').style.display = 'block';
-          showInfoMessage('Anda sudah mendaftar. Status: Menunggu verifikasi admin.');
-        }
+        console.log('✅ Aplikasi Pendaftaran Driver siap digunakan');
         
       } catch (error) {
         console.error('❌ Error inisialisasi:', error);
