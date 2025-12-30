@@ -2378,10 +2378,13 @@
 
     // ==================== FUNGSI BARU: Ambil URL foto customer dengan fallback ====================
     function getCustomerPhoto(order) {
+        // Cek di berbagai kemungkinan lokasi data foto
         if (order.user_foto_profil && order.user_foto_profil !== '') {
             return order.user_foto_profil;
         } else if (order.user_data?.fotoProfilURL && order.user_data.fotoProfilURL !== '') {
             return order.user_data.fotoProfilURL;
+        } else if (order.user_snapshot?.fotoProfilURL && order.user_snapshot.fotoProfilURL !== '') {
+            return order.user_snapshot.fotoProfilURL;
         } else {
             return 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
         }
@@ -2494,16 +2497,16 @@
     }
 
     // ==================== KODE FIREBASE DAN VARIABEL ====================
-    // Firebase Configuration
+    // Firebase Configuration - DIUPDATE
     const firebaseConfig = {
-      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
-      authDomain: "ojeka-ba255.firebaseapp.com",
-      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-      projectId: "ojeka-ba255",
-      storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "639980533353",
-      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
-      measurementId: "G-PBP64Z8VQ8"
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
     };
 
     // Initialize Firebase dengan error handling
@@ -3538,7 +3541,8 @@
         currentDriverId = generateDriverId();
         
         // 1. TAMBAH NAMA DAN FOTO CUSTOMER DI MODAL
-        const customerName = currentOrder.user_data?.nama || 'Tidak diketahui';
+        // UPDATE: Gunakan user_data.name (bukan nama) sesuai struktur baru
+        const customerName = currentOrder.user_data?.name || currentOrder.user_data?.nama || 'Tidak diketahui';
         const customerPhoto = getCustomerPhoto(currentOrder);
         
         // Update HTML untuk menampilkan foto dan nama
@@ -3667,7 +3671,8 @@
         currentDriverId = generateDriverId();
         
         // 2. TAMBAH NAMA DAN FOTO CUSTOMER DI MODAL AUTOBID
-        const customerName = currentOrder.user_data?.nama || 'Tidak diketahui';
+        // UPDATE: Gunakan user_data.name (bukan nama) sesuai struktur baru
+        const customerName = currentOrder.user_data?.name || currentOrder.user_data?.nama || 'Tidak diketahui';
         const customerPhoto = getCustomerPhoto(currentOrder);
         
         const autobidCustomerName = document.getElementById('autobidCustomerName');
@@ -4065,7 +4070,7 @@
             orders_count: currentCount,
             orders: orders.map(order => ({
                 id: order.order_id || order.id,
-                customer_name: order.user_data?.nama || 'Tidak diketahui',
+                customer_name: order.user_data?.name || order.user_data?.nama || 'Tidak diketahui', // UPDATE: gunakan name
                 alamat_a: order.alamat_a || '-',
                 alamat_b: order.alamat_b || '-',
                 durasi: order.durasi || '-',
@@ -4206,7 +4211,8 @@
         orderItem.className = 'order-item';
         orderItem.dataset.orderId = order.id;
         
-        const customerName = order.user_data?.nama || 'Tidak diketahui';
+        // UPDATE: Gunakan user_data.name (bukan nama) sesuai struktur baru
+        const customerName = order.user_data?.name || order.user_data?.nama || 'Tidak diketahui';
         const customerPhoto = getCustomerPhoto(order);
         const alamatA = order.alamat_a || '-';
         const alamatB = order.alamat_b || '-';
@@ -4254,8 +4260,9 @@
         }
 
         // Data rating dan trip count
-        const rating = order.user_data?.Ratings || 0;
-        const tripCount = order.user_data?.Perjalanan || 0;
+        // UPDATE: Gunakan user_data.rating (bukan Ratings) dan user_data.perjalanan (bukan Perjalanan)
+        const rating = order.user_data?.rating || order.user_data?.Ratings || 0;
+        const tripCount = order.user_data?.perjalanan || order.user_data?.Perjalanan || 0;
         
         // Format waktu order
         const timeAgo = formatTimeAgo(order.created_at);
