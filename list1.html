@@ -14,15 +14,15 @@
   
   <style>
     :root {
-      --primary: #FF9800;
-      --secondary: #FFB74D;
-      --accent: #FF5722;
-      --light: #f8f9fa;
-      --dark: #343a40;
-      --success: #4CAF50;
-      --danger: #F44336;
-      --promo: #FF9800;
-    }
+  --primary: #FF9800;        /* Orange utama */
+  --secondary: #FFB74D;      /* Orange lebih terang */
+  --accent: #FF5722;         /* Orange tua untuk aksen */
+  --light: #f8f9fa;
+  --dark: #343a40;
+  --success: #4CAF50;        /* Hijau */
+  --danger: #F44336;         /* Merah */
+  --promo: #FF9800;          /* Orange untuk promo */
+}
 
     * {
       box-sizing: border-box;
@@ -1044,7 +1044,7 @@
     }
 
     .nav-item.active {
-      background-color: rgba(255, 152, 0, 0.1);
+      background-color: rgba(30, 111, 92, 0.1);
     }
 
     .nav-item.active .nav-icon {
@@ -2424,32 +2424,10 @@
     // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
     function initApp() {
       console.log('✅ Google Maps API berhasil di-load');
-      
-      // Tunggu sedikit untuk memastikan Firebase SDK sudah benar-benar siap
-      setTimeout(() => {
-        // Cek apakah Firebase sudah benar-benar tersedia
-        if (typeof firebase !== 'undefined' && firebase.app) {
-          console.log('🔥 Firebase SDK sudah siap, mulai inisialisasi...');
-          initializeFirebase();
-          initJeGoApp();
-        } else {
-          console.warn('⚠️ Firebase SDK belum siap, tunggu 2 detik lagi...');
-          setTimeout(() => {
-            if (typeof firebase !== 'undefined' && firebase.app) {
-              initializeFirebase();
-              initJeGoApp();
-            } else {
-              console.error('❌ Firebase SDK gagal di-load setelah timeout');
-              // Tampilkan pesan lebih user-friendly
-              showPopup(
-                'Aplikasi sedang memuat sistem. Jika pesan ini terus muncul, silakan restart aplikasi.', 
-                'Sedang Memuat', 
-                'info'
-              );
-            }
-          }, 2000);
-        }
-      }, 500);
+      // Inisialisasi Firebase setelah Google Maps siap
+      initializeFirebase();
+      // Panggil fungsi inisialisasi aplikasi
+      initJeGoApp();
     }
 
     // ==================== KONFIGURASI FIREBASE ====================
@@ -2471,30 +2449,31 @@
 
     function initializeFirebase() {
       try {
-        // Cek apakah Firebase sudah tersedia dengan lebih teliti
-        if (typeof firebase === 'undefined' || !firebase.app || !firebase.database) {
-          console.warn('Firebase SDK belum sepenuhnya terload, tunggu...');
+        // Cek apakah Firebase sudah tersedia
+        if (typeof firebase === 'undefined') {
+          console.error('Firebase SDK tidak terload');
+          showPopup('Gagal memuat Firebase SDK. Periksa koneksi internet.', 'Error', 'error');
           return false;
         }
         
         // Inisialisasi Firebase app
         if (!firebase.apps.length) {
           firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-          console.log('✅ Firebase App diinisialisasi');
         } else {
           firebaseApp = firebase.app();
-          console.log('✅ Firebase App sudah ada');
         }
         
         database = firebase.database();
         auth = firebase.auth();
-        console.log('✅ Firebase Database & Auth siap');
+        console.log('✅ Firebase berhasil diinisialisasi');
         return true;
         
       } catch (error) {
         console.error('❌ Error inisialisasi Firebase:', error);
-        // Jangan langsung tampilkan popup error, biarkan sistem coba lagi
-        console.warn('Firebase initialization akan dicoba lagi nanti...');
+        // Tampilkan pesan error yang lebih user-friendly
+        setTimeout(() => {
+          showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
+        }, 1000);
         return false;
       }
     }
@@ -5574,24 +5553,6 @@
     function initJeGoApp() {
         console.log('🚀 Aplikasi JeGo diinisialisasi');
         
-        // CEK FIREBASE SUDAH SIAP
-        if (!database) {
-            console.warn('⚠️ Database belum siap, tunggu 2 detik...');
-            setTimeout(() => {
-                if (database) {
-                    initJeGoApp();
-                } else {
-                    console.error('❌ Database tidak tersedia setelah timeout');
-                    showPopup(
-                        'Sistem sedang memuat data. Silakan tunggu atau refresh halaman.',
-                        'Memuat Sistem',
-                        'info'
-                    );
-                }
-            }, 2000);
-            return;
-        }
-        
         // CEK LOGIN STATUS
         if (!checkLoginStatus()) {
             return; // Hentikan eksekusi jika belum login
@@ -5782,26 +5743,23 @@
     document.addEventListener('DOMContentLoaded', () => {
         console.log('🚀 Halaman JeGo Driver dimuat');
         
-        // Tunggu lebih lama untuk pastikan semua SDK siap
+        // Tunggu sedikit untuk memastikan Firebase SDK sudah terload
         setTimeout(() => {
             // Inisialisasi Firebase
             const firebaseInitialized = initializeFirebase();
             
             if (firebaseInitialized) {
-                console.log('✅ Firebase siap, tunggu Google Maps...');
+                console.log('✅ Firebase siap, inisialisasi aplikasi...');
                 // Google Maps API akan memanggil initApp() saat siap
+                // initApp() akan memanggil initJeGoApp()
             } else {
-                console.warn('⚠️ Firebase belum siap, coba lagi nanti...');
-                // Coba lagi dalam 3 detik
+                console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
+                // Tunda inisialisasi
                 setTimeout(() => {
-                    if (initializeFirebase()) {
-                        console.log('✅ Firebase berhasil diinisialisasi setelah retry');
-                    } else {
-                        console.error('❌ Firebase gagal diinisialisasi setelah beberapa kali percobaan');
-                    }
-                }, 3000);
+                    initJeGoApp();
+                }, 2000);
             }
-        }, 1000); // Tunggu 1 detik lebih lama
+        }, 500);
     });
 
     window.addEventListener('beforeunload', () => {
