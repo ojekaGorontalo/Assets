@@ -9,19 +9,20 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
   <style>
     :root {
-      --primary: #1e6f5c;
-      --secondary: #289672;
-      --accent: #e6dd3b;
+      --primary: #FF9800;    /* Orange */
+      --secondary: #FF5722;   /* Red-Orange */
+      --accent: #FFC107;     /* Amber/Yellow */
       --light: #f8f9fa;
       --dark: #343a40;
-      --success: #28a745;
-      --danger: #dc3545;
-      --warning: #ffc107;
+      --success: #4CAF50;    /* Green */
+      --danger: #f44336;     /* Red */
+      --warning: #FFC107;    /* Yellow */
+      --info: #2196F3;       /* Blue */
+      --gray: #9E9E9E;       /* Gray */
       --basic: #6c757d;
       --standard: #17a2b8;
       --regular: #28a745;
       --essential: #ffc107;
-      --info: #17a2b8;
     }
 
     * {
@@ -59,6 +60,19 @@
       gap: 10px;
     }
 
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: var(--primary);
+    }
+
     .back-btn {
       background: rgba(255,255,255,0.2);
       color: white;
@@ -94,7 +108,7 @@
       background: white;
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
       margin-bottom: 20px;
       text-align: center;
     }
@@ -179,18 +193,18 @@
 
     /* Balance Styles */
     .balance-container {
-      background: linear-gradient(135deg, var(--info), #138496);
+      background: linear-gradient(135deg, var(--info), #0d8dd9);
       color: white;
       border-radius: 10px;
       padding: 15px;
       margin: 15px 0;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      cursor: pointer; /* Tambahkan cursor pointer */
-      transition: all 0.3s ease; /* Tambahkan transisi */
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
 
     .balance-container:hover {
-      transform: translateY(-2px); /* Efek hover */
+      transform: translateY(-2px);
       box-shadow: 0 6px 15px rgba(0,0,0,0.2);
     }
 
@@ -226,7 +240,7 @@
     }
 
     .profile-rating:hover {
-      background-color: rgba(255, 193, 7, 0.1);
+      background-color: rgba(255, 152, 0, 0.1);
     }
 
     .rating-stars {
@@ -272,7 +286,7 @@
     }
 
     .stat-item:hover {
-      background-color: rgba(30, 111, 92, 0.05);
+      background-color: rgba(255, 152, 0, 0.05);
     }
 
     .stat-value {
@@ -303,9 +317,9 @@
 
     .info-card {
       background: white;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
 
     .card-header {
@@ -335,7 +349,7 @@
     }
 
     .toggle-btn:hover {
-      background: rgba(30, 111, 92, 0.1);
+      background: rgba(255, 152, 0, 0.1);
     }
 
     .card-content {
@@ -390,7 +404,7 @@
     }
 
     .copy-btn:hover {
-      background-color: rgba(30, 111, 92, 0.1);
+      background-color: rgba(255, 152, 0, 0.1);
       transform: scale(1.1);
     }
 
@@ -419,6 +433,12 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
     }
 
     .btn-danger {
@@ -436,58 +456,38 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
 
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      padding: 8px 0;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-radius: 8px;
-      margin: 0 5px;
-    }
-
-    .nav-item.active {
-      background-color: rgba(30, 111, 92, 0.1);
-    }
-
-    .nav-item.active .nav-icon {
-      color: var(--primary);
-    }
-
-    .nav-item.active .nav-label {
-      color: var(--primary);
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
       font-weight: 600;
+      text-transform: uppercase;
     }
 
-    .nav-icon {
-      font-size: 1.2rem;
-      margin-bottom: 4px;
-      color: #666;
-      transition: all 0.2s;
+    .status-active {
+      background-color: rgba(76, 175, 80, 0.1);
+      color: var(--success);
+      border: 1px solid var(--success);
     }
 
-    .nav-label {
-      font-size: 0.7rem;
-      color: #666;
-      transition: all 0.2s;
+    .status-pending {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: var(--warning);
+      border: 1px solid var(--warning);
     }
 
-    .nav-badge {
-      position: absolute;
-      top: 0;
-      right: 20%;
-      background-color: var(--danger);
-      color: white;
-      border-radius: 50%;
-      width: 16px;
-      height: 16px;
-      font-size: 0.6rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .status-rejected {
+      background-color: rgba(244, 67, 54, 0.1);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+
+    .status-blocked {
+      background-color: rgba(158, 158, 158, 0.1);
+      color: var(--gray);
+      border: 1px solid var(--gray);
     }
 
     /* Loading spinner */
@@ -685,14 +685,15 @@
   <!-- Header -->
   <div class="header">
     <div class="logo-container">
-      <button class="back-btn" id="backBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </button>
+      <div class="logo">JG</div>
+      <div class="header-title">Driver JeGo</div>
     </div>
-    <div class="header-title">Driver JeGo</div>
-    <div style="width: 80px;"></div>
+    <button class="back-btn" id="backBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Kembali
+    </button>
   </div>
 
   <!-- Container -->
@@ -711,7 +712,7 @@
       <div class="balance-container" id="balanceContainer">
         <div class="balance-label">Saldo Deposit</div>
         <div class="balance-amount" id="balanceAmount">Rp 0</div>
-        <div class="commission-info">Komisi: <span id="commissionRate">0%</span></div>
+        <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
       </div>
       
       <!-- Rating Display - Clickable -->
@@ -722,7 +723,6 @@
       </div>
       
       <div class="profile-stats">
-        <!-- Hanya menyisakan pendapatan hari ini -->
         <div class="stat-item" id="todayEarningsStat">
           <div class="stat-value" id="todayEarnings">Rp 0</div>
           <div class="stat-label">Pendapatan Hari Ini</div>
@@ -854,8 +854,20 @@
           </div>
           
           <div class="info-item">
-            <div class="info-label">Status Verifikasi</div>
-            <div class="info-value" id="verificationStatus">-</div>
+            <div class="info-label">Status Akun</div>
+            <div class="info-value" id="verificationStatus">
+              <span class="status-badge status-pending">-</span>
+            </div>
+          </div>
+          
+          <div class="info-item">
+            <div class="info-label">Total Order</div>
+            <div class="info-value" id="totalOrders">0</div>
+          </div>
+          
+          <div class="info-item">
+            <div class="info-label">Order Selesai</div>
+            <div class="info-value" id="completedOrders">0</div>
           </div>
         </div>
       </div>
@@ -863,6 +875,13 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons">
+      <button class="btn btn-info" id="editProfileBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        Edit Profil
+      </button>
       <button class="btn btn-danger" id="logoutBtn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -898,16 +917,16 @@
   </div>
 
   <script>
-  // Firebase Configuration
+  // Firebase Configuration - SAMA dengan daftarDriver.html
   const firebaseConfig = {
-    apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
-    authDomain: "ojeka-ba255.firebaseapp.com",
-    databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-    projectId: "ojeka-ba255",
-    storageBucket: "ojeka-ba255.firebasestorage.app",
-    messagingSenderId: "639980533353",
-    appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
-    measurementId: "G-PBP64Z8VQ8"
+    apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+    authDomain: "game-balap-simpel.firebaseapp.com",
+    databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+    projectId: "game-balap-simpel",
+    storageBucket: "game-balap-simpel.firebasestorage.app",
+    messagingSenderId: "864576853495",
+    appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+    measurementId: "G-YWJPK7Y3J4"
   };
 
   // Initialize Firebase
@@ -974,7 +993,7 @@
   function restoreMainUI() {
     const container = document.getElementById('mainContainer');
     
-    // Kembalikan struktur UI asli akun.html dengan pembaruan
+    // Kembalikan struktur UI asli akun.html dengan tema baru
     container.innerHTML = `
       <!-- Profile Card -->
       <div class="profile-card">
@@ -990,7 +1009,7 @@
         <div class="balance-container" id="balanceContainer">
           <div class="balance-label">Saldo Deposit</div>
           <div class="balance-amount" id="balanceAmount">Rp 0</div>
-          <div class="commission-info">Komisi: <span id="commissionRate">0%</span></div>
+          <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
         </div>
         
         <!-- Rating Display - Clickable -->
@@ -1001,7 +1020,6 @@
         </div>
         
         <div class="profile-stats">
-          <!-- Hanya menyisakan pendapatan hari ini -->
           <div class="stat-item" id="todayEarningsStat">
             <div class="stat-value" id="todayEarnings">Rp 0</div>
             <div class="stat-label">Pendapatan Hari Ini</div>
@@ -1133,8 +1151,20 @@
             </div>
             
             <div class="info-item">
-              <div class="info-label">Status Verifikasi</div>
-              <div class="info-value" id="verificationStatus">-</div>
+              <div class="info-label">Status Akun</div>
+              <div class="info-value" id="verificationStatus">
+                <span class="status-badge status-pending">-</span>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <div class="info-label">Total Order</div>
+              <div class="info-value" id="totalOrders">0</div>
+            </div>
+            
+            <div class="info-item">
+              <div class="info-label">Order Selesai</div>
+              <div class="info-value" id="completedOrders">0</div>
             </div>
           </div>
         </div>
@@ -1142,6 +1172,13 @@
 
       <!-- Action Buttons -->
       <div class="action-buttons">
+        <button class="btn btn-info" id="editProfileBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Edit Profil
+        </button>
         <button class="btn btn-danger" id="logoutBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1153,7 +1190,7 @@
       </div>
     `;
     
-    console.log('✅ UI asli berhasil direstore');
+    console.log('✅ UI asli berhasil direstore dengan tema baru');
     
     // Inisialisasi ulang tombol setelah UI direstore
     initButtons();
@@ -1362,15 +1399,34 @@
           
           // Update statistik pendapatan hari ini
           updateTodayEarnings();
+          
+          // Update statistik total dan completed orders
+          updateOrderStats();
         } else {
           console.log('❌ Tidak ada data orders ditemukan');
           updateTodayEarnings();
+          updateOrderStats();
         }
       })
       .catch((error) => {
         console.error('❌ Error memuat data orders:', error);
         updateTodayEarnings();
+        updateOrderStats();
       });
+  }
+
+  // Fungsi untuk update statistik order
+  function updateOrderStats() {
+    const totalOrders = driverOrders.length;
+    const completedOrders = driverOrders.filter(order => 
+      order.status === 'completed' || order.status === 'selesai'
+    ).length;
+    
+    const totalOrdersElement = document.getElementById('totalOrders');
+    const completedOrdersElement = document.getElementById('completedOrders');
+    
+    if (totalOrdersElement) totalOrdersElement.textContent = totalOrders;
+    if (completedOrdersElement) completedOrdersElement.textContent = completedOrders;
   }
 
   // Fungsi untuk menghitung rata-rata rating dari data ratings individual
@@ -1458,7 +1514,8 @@
     console.log(`💰 Total earnings today (WITA): Rp ${todayEarnings}`);
 
     // Update UI
-    document.getElementById('todayEarnings').textContent = formatCurrency(todayEarnings);
+    const todayEarningsElement = document.getElementById('todayEarnings');
+    if (todayEarningsElement) todayEarningsElement.textContent = formatCurrency(todayEarnings);
   }
 
   // Fungsi untuk mendapatkan data driver dari localStorage
@@ -1490,7 +1547,7 @@
       return;
     }
 
-    // Safe data dengan default values
+    // Safe data dengan default values - SESUAI dengan contoh data driver
     const safeData = {
       fullName: data.fullName || '-',
       email: data.email || '-',
@@ -1503,7 +1560,10 @@
       driverId: data.driverId || '-',
       status: data.status || 'pending',
       profilePhotoUrl: data.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-      registrationDate: data.registrationDate || null
+      registrationDate: data.registrationDate || null,
+      totalOrders: data.totalOrders || 0,
+      completedOrders: data.completedOrders || 0,
+      totalEarnings: data.totalEarnings || 0
     };
 
     // Foto profil dengan error handling
@@ -1564,10 +1624,16 @@
     const driverId = document.getElementById('driverId');
     const registrationDate = document.getElementById('registrationDate');
     const verificationStatus = document.getElementById('verificationStatus');
+    const totalOrdersElement = document.getElementById('totalOrders');
+    const completedOrdersElement = document.getElementById('completedOrders');
     
     if (driverId) driverId.textContent = safeData.driverId;
     if (registrationDate) registrationDate.textContent = formatDate(safeData.registrationDate);
-    if (verificationStatus) verificationStatus.textContent = getStatusText(safeData.status);
+    if (verificationStatus) {
+      verificationStatus.innerHTML = getStatusBadge(safeData.status);
+    }
+    if (totalOrdersElement) totalOrdersElement.textContent = safeData.totalOrders;
+    if (completedOrdersElement) completedOrdersElement.textContent = safeData.completedOrders;
     
     // Pastikan tombol copy sudah ada di container ID driver
     const driverIdContainer = document.getElementById('driverIdContainer');
@@ -1655,12 +1721,21 @@
     return starsHTML;
   }
 
+  // Fungsi untuk mendapatkan badge status
+  function getStatusBadge(status) {
+    const statusText = getStatusText(status);
+    const statusClass = getStatusClass(status);
+    return `<span class="status-badge ${statusClass}">${statusText}</span>`;
+  }
+
   // Fungsi untuk mendapatkan teks status
   function getStatusText(status) {
     const statusMap = {
+      'active': 'Aktif',
       'accepted': 'Diterima',
       'pending': 'Menunggu',
-      'rejected': 'Ditolak'
+      'rejected': 'Ditolak',
+      'blocked': 'Diblokir'
     };
     return statusMap[status] || status;
   }
@@ -1668,9 +1743,11 @@
   // Fungsi untuk mendapatkan class status
   function getStatusClass(status) {
     const classMap = {
-      'accepted': 'status-accepted',
+      'active': 'status-active',
+      'accepted': 'status-active',
       'pending': 'status-pending',
-      'rejected': 'status-rejected'
+      'rejected': 'status-rejected',
+      'blocked': 'status-blocked'
     };
     return classMap[status] || 'status-pending';
   }
@@ -1775,7 +1852,18 @@
       console.log('✅ Tombol logout diinisialisasi');
     }
     
-    // PERUBAHAN: Event listener untuk rating - kirim data ke Kodular
+    const editProfileBtn = document.getElementById('editProfileBtn');
+    if (editProfileBtn) {
+      editProfileBtn.addEventListener('click', function() {
+        sendToKodular({
+          action: 'edit_profile',
+          message: 'Buka halaman edit profil'
+        });
+        console.log('✅ Mengirim permintaan buka halaman edit profil ke Kodular');
+      });
+    }
+    
+    // Event listener untuk rating - kirim data ke Kodular
     const ratingClickable = document.getElementById('ratingClickable');
     if (ratingClickable) {
       ratingClickable.addEventListener('click', function() {
@@ -1787,7 +1875,7 @@
       });
     }
 
-    // PERUBAHAN: Event listener untuk pendapatan hari ini - kirim data ke Kodular
+    // Event listener untuk pendapatan hari ini - kirim data ke Kodular
     const todayEarningsStat = document.getElementById('todayEarningsStat');
     if (todayEarningsStat) {
       todayEarningsStat.addEventListener('click', function() {
@@ -1799,7 +1887,7 @@
       });
     }
     
-    // PERUBAHAN: Event listener untuk balance container - kirim data ke Kodular
+    // Event listener untuk balance container - kirim data ke Kodular
     const balanceContainer = document.getElementById('balanceContainer');
     if (balanceContainer) {
       balanceContainer.addEventListener('click', function() {
@@ -1992,4 +2080,4 @@
   });
   </script>
 </body>
-  </html>
+</html>
