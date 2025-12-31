@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <title>List Permintaan - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <!-- Google Maps API -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places"></script>
+  
+  <!-- Google Maps API dengan async dan callback -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places&callback=initApp" async defer></script>
+  
   <style>
     :root {
       --primary: #1e6f5c;
@@ -1607,6 +1610,108 @@
       background: rgba(0,0,0,0.7);
     }
 
+    /* POPUP STYLES (SESUAI RUTE.HTML) */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .popup-overlay.active {
+      display: flex;
+    }
+
+    .popup {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 320px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      animation: slideIn 0.3s ease;
+    }
+
+    .popup-header {
+      padding: 15px 20px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      text-align: center;
+    }
+
+    .popup-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 8px 0 0 0;
+    }
+
+    #popupIcon {
+      font-size: 2rem;
+      display: block;
+    }
+
+    .popup-body {
+      padding: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    .popup-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: center;
+    }
+
+    .popup-button {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 30px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .popup-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .popup-button-primary {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+    }
+
+    .popup-button-warning {
+      background: linear-gradient(to right, #ff9800, #f57c00);
+    }
+
+    .popup-button-danger {
+      background: linear-gradient(to right, #dc3545, #c82333);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-20px) scale(0.95); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
     @media (max-width: 768px) {
       body {
         font-size: 0.8rem;
@@ -2267,6 +2372,22 @@
     </div>
   </div>
 
+  <!-- Popup Overlay (Sesuai rute.html) -->
+  <div id="popupOverlay" class="popup-overlay" style="display: none;">
+    <div class="popup">
+      <div class="popup-header">
+        <span id="popupIcon">ℹ️</span>
+        <h3 id="popupTitle">Pemberitahuan</h3>
+      </div>
+      <div class="popup-body">
+        <p id="popupMessage"></p>
+      </div>
+      <div class="popup-footer">
+        <button id="popupButton" class="popup-button">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bottom Navigation -->
   <div class="bottom-nav" id="bottomNav">
     <div class="nav-item active" data-screen="home">
@@ -2300,109 +2421,61 @@
   </audio>
 
   <script>
-    // ==================== FUNGSI UTAMA SEND TO KODULAR - DIPERBAIKI ====================
-    function sendToKodular(data) {
-        console.log('📤 Mengirim data ke Kodular:', data);
-        
-        // Konversi data ke string JSON
-        const jsonString = JSON.stringify(data);
-        console.log('📦 Data JSON:', jsonString);
-        
-        // Prioritaskan AppInventor (Kodular)
-        if (typeof window.AppInventor !== 'undefined') {
-            console.log('📱 Deteksi AppInventor (Kodular)');
-            try {
-                if (window.AppInventor.setWebViewString) {
-                    window.AppInventor.setWebViewString(jsonString);
-                    console.log('✅ Data berhasil dikirim via AppInventor.setWebViewString');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ Error mengirim via AppInventor:', error);
-            }
-        }
-        
-        // Fallback untuk Android
-        else if (typeof window.android !== 'undefined') {
-            console.log('📱 Deteksi Android');
-            try {
-                if (window.android.receiveData) {
-                    window.android.receiveData(jsonString);
-                    console.log('✅ Data berhasil dikirim via android.receiveData');
-                    return true;
-                } else if (window.android.sendDataToKodular) {
-                    window.android.sendDataToKodular(jsonString);
-                    console.log('✅ Data berhasil dikirim via android.sendDataToKodular');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ Error mengirim via android:', error);
-            }
-        }
-        
-        // Fallback untuk iOS
-        else if (window.webkit && window.webkit.messageHandlers) {
-            console.log('📱 Deteksi iOS (WKWebView)');
-            try {
-                if (window.webkit.messageHandlers.observe) {
-                    window.webkit.messageHandlers.observe.postMessage(data);
-                    console.log('✅ Data berhasil dikirim via webkit.messageHandlers');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ Error mengirim via webkit:', error);
-            }
-        }
-        
-        // Metode alternatif menggunakan prompt (untuk debugging)
-        else if (window.location.href.indexOf('file://') === -1) {
-            console.log('🔧 Coba metode prompt untuk debugging');
-            try {
-                const result = prompt('KodularBridge', jsonString);
-                if (result) {
-                    console.log('✅ Data berhasil dikirim via prompt');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ Error mengirim via prompt:', error);
-            }
-        }
-        
-        console.log('🔕 Mode browser: Tidak ada bridge ke Kodular yang terdeteksi');
-        
-        // Untuk debugging di browser, tampilkan data di console
-        console.log('🔄 Data yang akan dikirim ke Kodular (browser mode):', data);
-        
-        return false;
+    // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
+    function initApp() {
+      console.log('✅ Google Maps API berhasil di-load');
+      // Inisialisasi Firebase setelah Google Maps siap
+      initializeFirebase();
+      // Panggil fungsi inisialisasi aplikasi
+      initJeGoApp();
     }
 
-    // ==================== KONFIGURASI FIREBASE (DIPERBARUI SESUAI LOGINDRIVER.HTML) ====================
+    // ==================== KONFIGURASI FIREBASE ====================
     const FIREBASE_CONFIG = {
-        apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
-        authDomain: "game-balap-simpel.firebaseapp.com",
-        databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
-        projectId: "game-balap-simpel",
-        storageBucket: "game-balap-simpel.firebasestorage.app",
-        messagingSenderId: "864576853495",
-        appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
-        measurementId: "G-YWJPK7Y3J4"
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
     };
 
-    // Initialize Firebase
+    // Initialize Firebase dengan error handling yang lebih baik
     let database;
     let auth;
     let firebaseApp;
-    try {
-        // Cek apakah Firebase sudah diinisialisasi
-        if (!firebase.apps.length) {
-            firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+
+    function initializeFirebase() {
+      try {
+        // Cek apakah Firebase sudah tersedia
+        if (typeof firebase === 'undefined') {
+          console.error('Firebase SDK tidak terload');
+          showPopup('Gagal memuat Firebase SDK. Periksa koneksi internet.', 'Error', 'error');
+          return false;
         }
+        
+        // Inisialisasi Firebase app
+        if (!firebase.apps.length) {
+          firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+        } else {
+          firebaseApp = firebase.app();
+        }
+        
         database = firebase.database();
-        auth = firebase.auth(); // Tambahkan auth untuk konsistensi
-        console.log('✅ Firebase berhasil diinisialisasi (konsisten dengan loginDriver.html)');
-    } catch (error) {
+        auth = firebase.auth();
+        console.log('✅ Firebase berhasil diinisialisasi');
+        return true;
+        
+      } catch (error) {
         console.error('❌ Error inisialisasi Firebase:', error);
-        showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', "Koneksi Error", "error");
+        // Tampilkan pesan error yang lebih user-friendly
+        setTimeout(() => {
+          showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
+        }, 1000);
+        return false;
+      }
     }
 
     // ==================== FUNGSI BARU: SISTEM USER DATA MANAGEMENT ====================
@@ -2591,9 +2664,9 @@
         return false;
     }
 
-    // ==================== FUNGSI POPUP CUSTOM (SESUAI RUTE.HTML) ====================
+    // ==================== FUNGSI POPUP CUSTOM ====================
 
-    // Fungsi untuk menampilkan popup
+    // Fungsi untuk menampilkan popup dengan error handling
     function showPopup(message, title = "Pemberitahuan", type = "info") {
       const popupOverlay = document.getElementById('popupOverlay');
       const popupTitle = document.getElementById('popupTitle');
@@ -2601,34 +2674,51 @@
       const popupIcon = document.getElementById('popupIcon');
       const popupButton = document.getElementById('popupButton');
       
-      // Set konten popup
-      popupTitle.textContent = title;
-      popupMessage.textContent = message;
-      
-      // Set ikon dan warna berdasarkan tipe
-      switch(type) {
-        case "success":
-          popupIcon.textContent = "✅";
-          popupButton.className = "popup-button popup-button-primary";
-          break;
-        case "warning":
-          popupIcon.textContent = "⚠️";
-          popupButton.className = "popup-button popup-button-warning";
-          break;
-        case "error":
-          popupIcon.textContent = "❌";
-          popupButton.className = "popup-button popup-button-danger";
-          break;
-        case "info":
-        default:
-          popupIcon.textContent = "ℹ️";
-          popupButton.className = "popup-button popup-button-primary";
-          break;
+      // Cek jika element popup ada
+      if (!popupOverlay || !popupTitle || !popupMessage || !popupIcon || !popupButton) {
+        console.error('❌ Element popup tidak ditemukan');
+        // Fallback ke alert
+        alert(`${title}: ${message}`);
+        return;
       }
       
-      // Tampilkan popup
-      popupOverlay.style.display = 'flex';
-      popupOverlay.classList.add('active');
+      try {
+        // Set konten popup
+        popupTitle.textContent = title;
+        popupMessage.textContent = message;
+        
+        // Set ikon dan warna berdasarkan tipe
+        switch(type) {
+          case "success":
+            popupIcon.textContent = "✅";
+            popupButton.className = "popup-button popup-button-primary";
+            break;
+          case "warning":
+            popupIcon.textContent = "⚠️";
+            popupButton.className = "popup-button popup-button-warning";
+            break;
+          case "error":
+            popupIcon.textContent = "❌";
+            popupButton.className = "popup-button popup-button-danger";
+            break;
+          case "info":
+          default:
+            popupIcon.textContent = "ℹ️";
+            popupButton.className = "popup-button popup-button-primary";
+            break;
+        }
+        
+        // Tampilkan popup
+        popupOverlay.style.display = 'flex';
+        setTimeout(() => {
+          popupOverlay.classList.add('active');
+        }, 10);
+        
+      } catch (error) {
+        console.error('❌ Error menampilkan popup:', error);
+        // Fallback ke alert
+        alert(`${title}: ${message}`);
+      }
     }
 
     // Fungsi untuk menutup popup
@@ -2638,41 +2728,80 @@
       popupOverlay.classList.remove('active');
     }
 
-    // Fungsi untuk menampilkan notifikasi sementara (sesuai rute.html)
-    function showNotification(message, type = 'info') {
-      // Hapus notifikasi sebelumnya
-      const existingNotification = document.querySelector('.search-status');
-      if (existingNotification) {
-        existingNotification.remove();
-      }
-      
-      const notification = document.createElement('div');
-      notification.className = 'search-status';
-      notification.textContent = message;
-      
-      // Set warna berdasarkan tipe
-      if (type === 'warning') {
-        notification.style.borderLeftColor = 'var(--warning)';
-        notification.style.background = 'rgba(255, 193, 7, 0.1)';
-      } else if (type === 'error') {
-        notification.style.borderLeftColor = 'var(--danger)';
-        notification.style.background = 'rgba(220, 53, 69, 0.1)';
-      } else if (type === 'success') {
-        notification.style.borderLeftColor = 'var(--success)';
-        notification.style.background = 'rgba(40, 167, 69, 0.1)';
-      } else {
-        notification.style.borderLeftColor = 'var(--info)';
-        notification.style.background = 'rgba(23, 162, 184, 0.1)';
-      }
-      
-      document.body.appendChild(notification);
-      
-      // Hapus notifikasi setelah 5 detik
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
+    // ==================== FUNGSI UTAMA SEND TO KODULAR - DIPERBAIKI ====================
+    function sendToKodular(data) {
+        console.log('📤 Mengirim data ke Kodular:', data);
+        
+        // Konversi data ke string JSON
+        const jsonString = JSON.stringify(data);
+        console.log('📦 Data JSON:', jsonString);
+        
+        // Prioritaskan AppInventor (Kodular)
+        if (typeof window.AppInventor !== 'undefined') {
+            console.log('📱 Deteksi AppInventor (Kodular)');
+            try {
+                if (window.AppInventor.setWebViewString) {
+                    window.AppInventor.setWebViewString(jsonString);
+                    console.log('✅ Data berhasil dikirim via AppInventor.setWebViewString');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error mengirim via AppInventor:', error);
+            }
         }
-      }, 5000);
+        
+        // Fallback untuk Android
+        else if (typeof window.android !== 'undefined') {
+            console.log('📱 Deteksi Android');
+            try {
+                if (window.android.receiveData) {
+                    window.android.receiveData(jsonString);
+                    console.log('✅ Data berhasil dikirim via android.receiveData');
+                    return true;
+                } else if (window.android.sendDataToKodular) {
+                    window.android.sendDataToKodular(jsonString);
+                    console.log('✅ Data berhasil dikirim via android.sendDataToKodular');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error mengirim via android:', error);
+            }
+        }
+        
+        // Fallback untuk iOS
+        else if (window.webkit && window.webkit.messageHandlers) {
+            console.log('📱 Deteksi iOS (WKWebView)');
+            try {
+                if (window.webkit.messageHandlers.observe) {
+                    window.webkit.messageHandlers.observe.postMessage(data);
+                    console.log('✅ Data berhasil dikirim via webkit.messageHandlers');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error mengirim via webkit:', error);
+            }
+        }
+        
+        // Metode alternatif menggunakan prompt (untuk debugging)
+        else if (window.location.href.indexOf('file://') === -1) {
+            console.log('🔧 Coba metode prompt untuk debugging');
+            try {
+                const result = prompt('KodularBridge', jsonString);
+                if (result) {
+                    console.log('✅ Data berhasil dikirim via prompt');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error mengirim via prompt:', error);
+            }
+        }
+        
+        console.log('🔕 Mode browser: Tidak ada bridge ke Kodular yang terdeteksi');
+        
+        // Untuk debugging di browser, tampilkan data di console
+        console.log('🔄 Data yang akan dikirim ke Kodular (browser mode):', data);
+        
+        return false;
     }
 
     // ==================== FUNGSI BARU: Ambil URL foto customer dengan fallback ====================
@@ -5420,20 +5549,24 @@
         isAutobidProcessing = false;
     }
 
-    // ==================== INISIALISASI ====================
-    // Inisialisasi saat halaman dimuat
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('🚀 Halaman JeGo Driver dimuat');
+    // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
+    function initJeGoApp() {
+        console.log('🚀 Aplikasi JeGo diinisialisasi');
         
-        // CEK LOGIN STATUS (DIPERBARUI SESUAI LOGINDRIVER.HTML)
+        // CEK LOGIN STATUS
         if (!checkLoginStatus()) {
             return; // Hentikan eksekusi jika belum login
         }
         
+        // Setup event listeners
+        setupEventListeners();
+        
+        // Mulai monitoring GPS
         setTimeout(() => {
             startGPSMonitoring();
         }, 1000);
         
+        // Load data dari storage
         loadDriverLocationFromStorage();
         
         // Load filter tujuan dari Firebase
@@ -5441,87 +5574,156 @@
             loadFilterTujuanFromFirebase();
         }, 1500);
         
+        // Load orders
         setTimeout(() => {
             loadOrders();
         }, 500);
         
+        // Setup sidebar navigation
+        setTimeout(() => {
+            setupSidebarNavigation();
+        }, 500);
+        
+        // Cek order yang sudah diterima
+        const acceptedOrder = getAcceptedOrderFromLocalStorage();
+        if (acceptedOrder) {
+            console.log('✅ Order yang diterima ditemukan di localStorage');
+        }
+        
+        console.log('🔧 STATUS SISTEM FINAL:');
+        console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
+        console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
+        console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
+        console.log('- Radius:', customRadius + ' km');
+        console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
+    }
+
+    // ==================== SETUP EVENT LISTENERS ====================
+    function setupEventListeners() {
         // Event listeners baru untuk menu
-        document.getElementById('menuBtn').addEventListener('click', openSidebar);
-        document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
-        document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+        const menuBtn = document.getElementById('menuBtn');
+        if (menuBtn) menuBtn.addEventListener('click', openSidebar);
         
-        // PERBAIKAN: TOMBOL SIMPAN PENGATURAN YANG BERFUNGSI
-        document.getElementById('saveSettings').addEventListener('click', saveSettings);
+        const closeSidebarBtn = document.getElementById('closeSidebar');
+        if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
         
-        document.getElementById('clearFilterTujuan').addEventListener('click', function() {
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+        
+        // TOMBOL SIMPAN PENGATURAN
+        const saveSettingsBtn = document.getElementById('saveSettings');
+        if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
+        
+        // Clear filter tujuan
+        const clearFilterTujuan = document.getElementById('clearFilterTujuan');
+        if (clearFilterTujuan) clearFilterTujuan.addEventListener('click', function() {
             document.getElementById('filterTujuanInput').value = '';
             filterTujuanText = '';
         });
         
-        // PERBAIKAN: Event listeners untuk perubahan nilai - FIXED
-        document.getElementById('autobidToggle').addEventListener('change', function(e) {
-            console.log('🔄 autobidToggle changed:', e.target.checked);
-            toggleAutobid();
-        });
+        // Event listeners untuk perubahan nilai
+        const autobidToggle = document.getElementById('autobidToggle');
+        if (autobidToggle) {
+            autobidToggle.addEventListener('change', function(e) {
+                console.log('🔄 autobidToggle changed:', e.target.checked);
+                toggleAutobid();
+            });
+        }
         
-        // PERBAIKAN: Event listener untuk Terima Kurir - FIXED
-        document.getElementById('acceptKurirToggle').addEventListener('change', function(e) {
-            console.log('🔄 acceptKurirToggle changed:', e.target.checked);
-            acceptKurirEnabled = e.target.checked;
-            // Langsung simpan ke localStorage
-            localStorage.setItem('jego_accept_kurir', acceptKurirEnabled);
-            console.log('✅ acceptKurirEnabled disimpan ke localStorage:', acceptKurirEnabled);
-            // Refresh orders list untuk menerapkan filter kurir
-            loadOrders();
-        });
+        // Event listener untuk Terima Kurir
+        const acceptKurirToggle = document.getElementById('acceptKurirToggle');
+        if (acceptKurirToggle) {
+            acceptKurirToggle.addEventListener('change', function(e) {
+                console.log('🔄 acceptKurirToggle changed:', e.target.checked);
+                acceptKurirEnabled = e.target.checked;
+                // Langsung simpan ke localStorage
+                localStorage.setItem('jego_accept_kurir', acceptKurirEnabled);
+                console.log('✅ acceptKurirEnabled disimpan ke localStorage:', acceptKurirEnabled);
+                // Refresh orders list untuk menerapkan filter kurir
+                loadOrders();
+            });
+        }
         
-        document.getElementById('radiusInput').addEventListener('change', function(e) {
-            const value = parseFloat(e.target.value);
-            if (value >= 0.1 && value <= 10) {
-                customRadius = value;
-            } else {
-                e.target.value = customRadius;
-                showPopup('Jarak radius harus antara 0.1 - 10 km', 'Validasi Error', 'warning');
-            }
-        });
+        // Radius input
+        const radiusInput = document.getElementById('radiusInput');
+        if (radiusInput) {
+            radiusInput.addEventListener('change', function(e) {
+                const value = parseFloat(e.target.value);
+                if (value >= 0.1 && value <= 10) {
+                    customRadius = value;
+                } else {
+                    e.target.value = customRadius;
+                    showPopup('Jarak radius harus antara 0.1 - 10 km', 'Validasi Error', 'warning');
+                }
+            });
+        }
         
-        document.getElementById('filterTujuanInput').addEventListener('input', function(e) {
-            filterTujuanText = e.target.value;
-        });
+        // Filter tujuan input
+        const filterTujuanInput = document.getElementById('filterTujuanInput');
+        if (filterTujuanInput) {
+            filterTujuanInput.addEventListener('input', function(e) {
+                filterTujuanText = e.target.value;
+            });
+        }
         
         // Event listeners yang sudah ada
-        document.getElementById('locationToggleBtn').addEventListener('click', toggleLocationTracking);
-        document.getElementById('refreshBtn').addEventListener('click', refreshData);
-        document.getElementById('closeModal').addEventListener('click', closeModal);
-        document.getElementById('ambilBtn').addEventListener('click', sendDriverOffer);
-
-        // Event listener untuk modal informasi - DIUBAH KE POPUP BARU
-        document.getElementById('popupButton').addEventListener('click', closePopup);
-        document.getElementById('popupOverlay').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('popupOverlay')) {
-                closePopup();
-            }
-        });
-
-        document.getElementById('autobidModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('autobidModal')) {
-                console.log('🚫 Modal Autobid tidak bisa di-close');
-            }
-        });
-
-        document.getElementById('orderModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('orderModal')) closeModal();
-        });
-
+        const locationToggleBtn = document.getElementById('locationToggleBtn');
+        if (locationToggleBtn) locationToggleBtn.addEventListener('click', toggleLocationTracking);
+        
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) refreshBtn.addEventListener('click', refreshData);
+        
+        const closeModalBtn = document.getElementById('closeModal');
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+        
+        const ambilBtn = document.getElementById('ambilBtn');
+        if (ambilBtn) ambilBtn.addEventListener('click', sendDriverOffer);
+        
+        // Event listener untuk modal informasi
+        const popupButton = document.getElementById('popupButton');
+        if (popupButton) popupButton.addEventListener('click', closePopup);
+        
+        const popupOverlay = document.getElementById('popupOverlay');
+        if (popupOverlay) {
+            popupOverlay.addEventListener('click', (e) => {
+                if (e.target === popupOverlay) {
+                    closePopup();
+                }
+            });
+        }
+        
+        // Modal autobid
+        const autobidModal = document.getElementById('autobidModal');
+        if (autobidModal) {
+            autobidModal.addEventListener('click', (e) => {
+                if (e.target === autobidModal) {
+                    console.log('🚫 Modal Autobid tidak bisa di-close');
+                }
+            });
+        }
+        
+        // Modal order
+        const orderModal = document.getElementById('orderModal');
+        if (orderModal) {
+            orderModal.addEventListener('click', (e) => {
+                if (e.target === orderModal) closeModal();
+            });
+        }
+        
         // Event listener untuk modal foto profil besar
-        document.getElementById('closePhotoModal').addEventListener('click', closePhotoModal);
-        document.getElementById('photoModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePhotoModal();
-            }
-        });
-
-        // Event listener untuk bottom navigation - DIPERBAIKI
+        const closePhotoModalBtn = document.getElementById('closePhotoModal');
+        if (closePhotoModalBtn) closePhotoModalBtn.addEventListener('click', closePhotoModal);
+        
+        const photoModal = document.getElementById('photoModal');
+        if (photoModal) {
+            photoModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closePhotoModal();
+                }
+            });
+        }
+        
+        // Event listener untuk bottom navigation
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
@@ -5535,23 +5737,29 @@
                 navigateToScreen(screen);
             });
         });
-        
-        // INISIALISASI NAVIGASI SIDEBAR
-        setTimeout(() => {
-            setupSidebarNavigation();
-        }, 500);
+    }
 
-        const acceptedOrder = getAcceptedOrderFromLocalStorage();
-        if (acceptedOrder) {
-            console.log('✅ Order yang diterima ditemukan di localStorage');
-        }
+    // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 Halaman JeGo Driver dimuat');
         
-        console.log('🔧 STATUS SISTEM FINAL:');
-        console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
-        console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
-        console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
-        console.log('- Radius:', customRadius + ' km');
-        console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
+        // Tunggu sedikit untuk memastikan Firebase SDK sudah terload
+        setTimeout(() => {
+            // Inisialisasi Firebase
+            const firebaseInitialized = initializeFirebase();
+            
+            if (firebaseInitialized) {
+                console.log('✅ Firebase siap, inisialisasi aplikasi...');
+                // Google Maps API akan memanggil initApp() saat siap
+                // initApp() akan memanggil initJeGoApp()
+            } else {
+                console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
+                // Tunda inisialisasi
+                setTimeout(() => {
+                    initJeGoApp();
+                }, 2000);
+            }
+        }, 500);
     });
 
     window.addEventListener('beforeunload', () => {
@@ -5579,6 +5787,6 @@
         // Hentikan auto-refresh data driver
         stopDriverDataRefresh();
     });
-</script>
+  </script>
 </body>
 </html>
