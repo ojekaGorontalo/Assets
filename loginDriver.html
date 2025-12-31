@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     :root {
       --primary: #FF9800;    /* Orange */
@@ -681,9 +681,21 @@
     };
 
     // ================================================
-    // INISIALISASI FIREBASE
+    // INISIALISASI FIREBASE DENGAN GUARD
     // ================================================
-    firebase.initializeApp(FIREBASE_CONFIG);
+    console.log('🚀 Memulai inisialisasi Firebase...');
+    try {
+      // Gunakan guard untuk menghindari inisialisasi berulang
+      if (!firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        console.log('✅ Firebase berhasil diinisialisasi');
+      } else {
+        console.log('✅ Firebase sudah diinisialisasi sebelumnya');
+      }
+    } catch (error) {
+      console.error('❌ Error inisialisasi Firebase:', error);
+    }
+    
     const database = firebase.database();
     const auth = firebase.auth();
 
@@ -694,9 +706,9 @@
     let confirmationResult = null;
     let otpTimer = null;
     let otpCountdown = 60;
-    let driverData = null;
-    let formattedPhoneNumber = '';
     let currentDriverData = null;
+    let formattedPhoneNumber = '';
+    let currentDriverId = null; // Menyimpan driverId yang valid
 
     // ================================================
     // ELEMEN DOM
@@ -1016,125 +1028,34 @@
       }
     }
     
-    // ================================================
-    // FUNGSI CEK DRIVER DENGAN NOMOR TELEPON (PERBAIKAN)
-    // ================================================
-    
     async function checkDriverByPhone(phoneNumber) {
       try {
         console.log('🔍 Checking driver by phone:', phoneNumber);
         
-        // Ambil semua driver terlebih dahulu
-        const snapshot = await database.ref('drivers').once('value');
-        const allDrivers = snapshot.val();
+        const driversSnapshot = await database.ref('drivers')
+          .orderByChild('phoneNumber')
+          .equalTo(phoneNumber)
+          .once('value');
         
-        console.log('📊 Total drivers found:', allDrivers ? Object.keys(allDrivers).length : 0);
+        const driversData = driversSnapshot.val();
         
-        if (!allDrivers) {
-          console.log('❌ No drivers in database');
-          return { exists: false };
-        }
-        
-        // Normalisasi nomor telepon yang dicari
-        const searchPhone = phoneNumber.trim().replace(/\s+/g, '');
-        console.log('🔍 Search phone (normalized):', searchPhone);
-        
-        // Iterasi semua driver untuk mencari nomor telepon yang cocok
-        for (const [driverId, driverData] of Object.entries(allDrivers)) {
-          if (driverData && driverData.phoneNumber) {
-            // Normalisasi nomor telepon dari database
-            const dbPhone = driverData.phoneNumber.trim().replace(/\s+/g, '');
-            
-            console.log(`📱 Checking driver ${driverId}: ${dbPhone} vs ${searchPhone}`);
-            
-            // Bandingkan secara langsung
-            if (dbPhone === searchPhone) {
-              const status = driverData.status || 'pending';
-              console.log('✅ Driver found (exact match):', { 
-                driverId, 
-                phone: dbPhone, 
-                name: driverData.fullName, 
-                status 
-              });
-              return {
-                exists: true,
-                driver: driverData,
-                driverId: driverId,
-                status: status
-              };
-            }
-            
-            // Coba format alternatif jika tidak cocok langsung
-            // Format: +62, 62, 08, dll.
-            const altSearchPhones = [
-              searchPhone,
-              searchPhone.replace('+', ''),
-              '0' + searchPhone.replace('+62', ''),
-              '62' + searchPhone.replace('+', ''),
-              searchPhone.replace('+62', '08')
-            ];
-            
-            if (altSearchPhones.includes(dbPhone)) {
-              const status = driverData.status || 'pending';
-              console.log('✅ Driver found (alternative format):', { 
-                driverId, 
-                phone: dbPhone, 
-                name: driverData.fullName, 
-                status 
-              });
-              return {
-                exists: true,
-                driver: driverData,
-                driverId: driverId,
-                status: status
-              };
-            }
-          }
-        }
-        
-        console.log('❌ Driver not found for phone:', searchPhone);
-        
-        // Debug: Tampilkan semua nomor telepon yang ada
-        console.log('📋 All phone numbers in database:');
-        for (const [driverId, driverData] of Object.entries(allDrivers)) {
-          if (driverData && driverData.phoneNumber) {
-            console.log(`  ${driverId}: ${driverData.phoneNumber} (${driverData.fullName})`);
-          }
+        if (driversData) {
+          const driverId = Object.keys(driversData)[0];
+          const driverData = driversData[driverId];
+          const status = driverData.status || 'pending';
+          
+          return {
+            exists: true,
+            driver: driverData,
+            driverId: driverId,
+            status: status
+          };
         }
         
         return { exists: false };
-        
       } catch (error) {
         console.error('❌ Error checking driver by phone:', error);
         return { exists: false, error: error.message };
-      }
-    }
-    
-    // ================================================
-    // FUNGSI DEBUG UNTUK MELIHAT SEMUA DRIVER
-    // ================================================
-    
-    async function debugAllDrivers() {
-      try {
-        const snapshot = await database.ref('drivers').once('value');
-        const allDrivers = snapshot.val();
-        
-        console.log('=== DEBUG: ALL DRIVERS IN DATABASE ===');
-        if (allDrivers) {
-          console.log(`Total drivers: ${Object.keys(allDrivers).length}`);
-          Object.entries(allDrivers).forEach(([driverId, driver]) => {
-            console.log(`Driver ID: ${driverId}`);
-            console.log(`- Phone: ${driver.phoneNumber || 'N/A'}`);
-            console.log(`- Name: ${driver.fullName || 'N/A'}`);
-            console.log(`- Status: ${driver.status || 'pending'}`);
-            console.log('---');
-          });
-        } else {
-          console.log('No drivers found in database');
-        }
-        console.log('=== END DEBUG ===');
-      } catch (error) {
-        console.error('Debug error:', error);
       }
     }
 
@@ -1221,7 +1142,6 @@
       
       setTimeout(async () => {
         try {
-          console.log('🔄 Checking phone:', formattedPhone);
           const driverInfo = await checkDriverByPhone(formattedPhone);
           
           if (driverInfo.exists) {
@@ -1256,29 +1176,15 @@
       try {
         // Cek apakah driver terdaftar
         showLoading('Memeriksa data driver...');
-        console.log('🔍 Checking driver for phone:', phoneNumber);
-        
         const driverInfo = await checkDriverByPhone(phoneNumber);
         hideLoading();
         
         if (!driverInfo.exists) {
-          console.log('❌ Driver not found, showing error message');
-          showPopup(
-            'Nomor Tidak Terdaftar', 
-            `Nomor ${phoneNumber} tidak terdaftar sebagai driver. Silakan daftar terlebih dahulu.`, 
-            'error', 
-            {
-              confirmText: 'Daftar Sekarang',
-              cancelText: 'Coba Lagi',
-              showCancel: true,
-              onConfirm: () => {
-                window.location.href = 'daftarDriver.html';
-              },
-              onCancel: () => {
-                document.getElementById('phoneNumber').focus();
-              }
+          showErrorMessage(`Nomor ${phoneNumber} tidak terdaftar sebagai driver. Silakan daftar terlebih dahulu.`, {
+            onConfirm: () => {
+              window.location.href = 'daftarDriver.html';
             }
-          );
+          });
           return;
         }
         
@@ -1291,10 +1197,10 @@
         
         // Simpan data driver sementara
         currentDriverData = driverInfo.driver;
+        currentDriverId = driverInfo.driverId; // Simpan driverId yang valid
         formattedPhoneNumber = phoneNumber;
         
         // Kirim OTP
-        console.log('📤 Sending OTP to:', phoneNumber);
         const otpSent = await sendFirebaseOTP(phoneNumber);
         
         if (otpSent) {
@@ -1319,7 +1225,7 @@
         return;
       }
       
-      if (!currentDriverData) {
+      if (!currentDriverData || !currentDriverId) {
         showErrorMessage('Data driver tidak ditemukan. Silakan mulai ulang login.');
         return;
       }
@@ -1335,15 +1241,20 @@
         return;
       }
       
-      // Login berhasil
-      // Cari driver ID berdasarkan nomor telepon
-      const driverInfo = await checkDriverByPhone(formattedPhoneNumber);
-      if (driverInfo.exists) {
-        handleLoginSuccess(driverInfo.driverId, currentDriverData);
+      // Login berhasil - gunakan driverId yang sudah disimpan
+      if (currentDriverId && currentDriverData) {
+        handleLoginSuccess(currentDriverId, currentDriverData);
       } else {
-        showErrorMessage('Driver ID tidak ditemukan. Silakan coba lagi.');
-        document.getElementById('verifyOtpBtn').disabled = false;
-        document.getElementById('verifyOtpBtn').textContent = 'Verifikasi OTP';
+        // Fallback: cek ulang jika driverId hilang
+        console.log('⚠️ DriverId tidak tersedia, melakukan pengecekan ulang...');
+        const driverInfo = await checkDriverByPhone(formattedPhoneNumber);
+        if (driverInfo.exists && driverInfo.driverId) {
+          handleLoginSuccess(driverInfo.driverId, driverInfo.driver);
+        } else {
+          showErrorMessage('Data driver tidak valid. Silakan login ulang.');
+          document.getElementById('verifyOtpBtn').disabled = false;
+          document.getElementById('verifyOtpBtn').textContent = 'Verifikasi OTP';
+        }
       }
     });
     
@@ -1368,6 +1279,10 @@
       phoneForm.style.display = 'block';
       otpSection.style.display = 'none';
       document.getElementById('phoneNumber').focus();
+      // Reset data sementara
+      currentDriverData = null;
+      currentDriverId = null;
+      formattedPhoneNumber = '';
     });
     
     document.getElementById('registerBtn').addEventListener('click', function() {
@@ -1393,9 +1308,6 @@
             window.location.href = 'list1.html';
           }, 2000);
         }
-        
-        // Debug: Tampilkan semua driver di database
-        await debugAllDrivers();
         
         // Setup reCAPTCHA
         setupRecaptcha();
