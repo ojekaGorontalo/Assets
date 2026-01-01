@@ -766,90 +766,16 @@
                 });
         }
 
-        // FUNGSI PERBAIKAN: Mengirim sinyal ke Kodular
+        // Fungsi untuk membuka halaman edit profil di Kodular
         function openEditProfile() {
-            console.log('Mencoba membuka edit profil di Kodular...');
-            
-            // Versi 1: Metode standar Kodular
-            if (typeof window.App !== 'undefined' && typeof window.App.SetWebViewString === 'function') {
-                try {
-                    window.App.SetWebViewString('edit_profile');
-                    console.log('SUKSES: Mengirim "edit_profile" via SetWebViewString');
-                    return true;
-                } catch (e) {
-                    console.error('GAGAL SetWebViewString:', e);
-                }
+            // Kirim sinyal ke Kodular untuk membuka halaman edit profil
+            if (typeof window.App !== 'undefined' && typeof window.App.SetWebViewString !== 'undefined') {
+                window.App.SetWebViewString('edit_profile');
+            } else {
+                console.log('Kodular WebView API tidak tersedia');
+                // Fallback untuk browser
+                alert('Fitur edit profil hanya tersedia di aplikasi Kodular');
             }
-            
-            // Versi 2: Metode Android WebView langsung
-            if (typeof android !== 'undefined' && typeof android.setWebViewString === 'function') {
-                try {
-                    android.setWebViewString('edit_profile');
-                    console.log('SUKSES: Mengirim "edit_profile" via android.setWebViewString');
-                    return true;
-                } catch (e) {
-                    console.error('GAGAL android.setWebViewString:', e);
-                }
-            }
-            
-            // Versi 3: Metode WebView Interface
-            if (typeof window.webkit !== 'undefined' && window.webkit.messageHandlers) {
-                try {
-                    window.webkit.messageHandlers.kodular.postMessage('edit_profile');
-                    console.log('SUKSES: Mengirim "edit_profile" via webkit.messageHandlers');
-                    return true;
-                } catch (e) {
-                    console.error('GAGAL webkit.messageHandlers:', e);
-                }
-            }
-            
-            // Versi 4: URL Scheme untuk Kodular
-            try {
-                window.location.href = 'kodular://edit_profile';
-                console.log('SUKSES: Mengarahkan ke kodular://edit_profile');
-                return true;
-            } catch (e) {
-                console.error('GAGAL URL Scheme:', e);
-            }
-            
-            // Versi 5: Metode Universal dengan iframe (untuk Android)
-            try {
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = 'kodular://edit_profile';
-                document.body.appendChild(iframe);
-                setTimeout(() => document.body.removeChild(iframe), 100);
-                console.log('SUKSES: Menggunakan iframe untuk URL Scheme');
-                return true;
-            } catch (e) {
-                console.error('GAGAL iframe method:', e);
-            }
-            
-            // Versi 6: Metode Post Message
-            try {
-                window.postMessage('edit_profile', '*');
-                console.log('SUKSES: Menggunakan postMessage');
-                return true;
-            } catch (e) {
-                console.error('GAGAL postMessage:', e);
-            }
-            
-            // Fallback: Jika semua metode gagal
-            console.log('SEMUA METODE GAGAL: Kodular WebView API tidak dikenali');
-            alert('Fitur edit profil hanya tersedia di aplikasi Kodular. Pastikan Anda membuka dari aplikasi JeGo.');
-            return false;
-        }
-
-        // Fungsi untuk debug API yang tersedia
-        function debugKodularAPI() {
-            console.log('=== DEBUG KODULAR API ===');
-            console.log('window.App:', typeof window.App !== 'undefined' ? window.App : 'undefined');
-            console.log('window.App.SetWebViewString:', typeof window.App !== 'undefined' && typeof window.App.SetWebViewString);
-            console.log('android:', typeof android !== 'undefined' ? android : 'undefined');
-            console.log('window.webkit:', typeof window.webkit !== 'undefined' ? window.webkit : 'undefined');
-            console.log('window.location.href:', window.location.href);
-            console.log('navigator.userAgent:', navigator.userAgent);
-            console.log('=== END DEBUG ===');
         }
 
         // Event listener untuk tombol logout (membuka modal)
@@ -992,10 +918,6 @@
                             console.error('Error fetching user data from Firebase:', error);
                         });
                 }
-                
-                // Debug API Kodular setelah 1 detik
-                setTimeout(debugKodularAPI, 1000);
-                
             } catch (error) {
                 console.error('Error parsing user data:', error);
                 window.location.href = 'loginUser.html';
