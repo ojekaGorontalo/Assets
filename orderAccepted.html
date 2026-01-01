@@ -1467,16 +1467,16 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // Firebase Configuration
+    // Firebase Configuration - DIUBAH sesuai registrasi_jego.html
     const firebaseConfig = {
-      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
-      authDomain: "ojeka-ba255.firebaseapp.com",
-      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-      projectId: "ojeka-ba255",
-      storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "639980533353",
-      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
-      measurementId: "G-PBP64Z8VQ8"
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
     };
 
     // Initialize Firebase
@@ -1614,7 +1614,7 @@
       image.src = customerPhotoUrl;
       
       // Set modal title
-      title.textContent = `Foto Profil ${currentOrderData?.user_data?.nama || 'Customer'}`;
+      title.textContent = `Foto Profil ${currentOrderData?.user_data?.name || 'Customer'}`;
       
       // Build info content
       if (customerPhotoData) {
@@ -1622,15 +1622,15 @@
         const infoHTML = `
           <div class="photo-info-item">
             <span class="photo-info-label">Nama:</span>
-            <span class="photo-info-value">${user.nama || '-'}</span>
+            <span class="photo-info-value">${user.name || '-'}</span>
           </div>
           <div class="photo-info-item">
             <span class="photo-info-label">Rating:</span>
-            <span class="photo-info-value">${user.Ratings ? user.Ratings.toFixed(1) : '0.0'} ⭐</span>
+            <span class="photo-info-value">${user.rating ? user.rating.toFixed(1) : '0.0'} ⭐</span>
           </div>
           <div class="photo-info-item">
             <span class="photo-info-label">Perjalanan:</span>
-            <span class="photo-info-value">${user.Perjalanan || 0} kali</span>
+            <span class="photo-info-value">${user.perjalanan || 0} kali</span>
           </div>
           <div class="photo-info-item">
             <span class="photo-info-label">Email:</span>
@@ -1638,7 +1638,7 @@
           </div>
           <div class="photo-info-item">
             <span class="photo-info-label">Telepon:</span>
-            <span class="photo-info-value">${user.telepon || '-'}</span>
+            <span class="photo-info-value">${user.phone || '-'}</span>
           </div>
         `;
         infoContainer.innerHTML = infoHTML;
@@ -2395,13 +2395,13 @@
       const chatName = document.getElementById('chatName');
       const chatAvatar = document.getElementById('chatAvatar');
       
-      chatName.textContent = customer.nama || 'Customer';
+      chatName.textContent = customer.name || 'Customer';
       
       // Setup avatar
       if (customer.fotoProfilURL) {
-        chatAvatar.innerHTML = `<img src="${customer.fotoProfilURL}" alt="${customer.nama}">`;
+        chatAvatar.innerHTML = `<img src="${customer.fotoProfilURL}" alt="${customer.name}">`;
       } else if (customer.foto) {
-        chatAvatar.innerHTML = `<img src="${customer.foto}" alt="${customer.nama}">`;
+        chatAvatar.innerHTML = `<img src="${customer.foto}" alt="${customer.name}">`;
       } else {
         chatAvatar.innerHTML = '';
         chatAvatar.style.backgroundImage = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23006699\"><path d=\"M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\"/></svg>')";
@@ -2729,8 +2729,8 @@
       // Jika ini perjalanan pertama
       if (currentPerjalanan === 0) {
         const newData = {
-          Perjalanan: 1,
-          Ratings: selectedRating,
+          perjalanan: 1,
+          rating: selectedRating,
           last_trip_order: currentOrderId,
           last_trip_update: new Date().toISOString()
         };
@@ -2746,8 +2746,8 @@
         const newAverageRating = parseFloat((newTotalRating / newPerjalanan).toFixed(1));
         
         const updateData = {
-          Perjalanan: newPerjalanan,
-          Ratings: newAverageRating,
+          perjalanan: newPerjalanan,
+          rating: newAverageRating,
           last_trip_order: currentOrderId,
           last_trip_update: new Date().toISOString()
         };
@@ -2791,7 +2791,7 @@
         order_data: orderCompletedData.order_data,
         user_rating_data: {
           userId: userToRate.userId,
-          user_name: userToRate.nama,
+          user_name: userToRate.name,
           rating_given: selectedRating,
           rating_comment: ratingComment || '',
           previous_rating: currentRating,
@@ -2917,6 +2917,10 @@
       document.getElementById('destinationAddress').textContent = order.alamat_b || '-';
       document.getElementById('serviceType').textContent = order.vehicle_name || '-';
       document.getElementById('serviceCapacity').textContent = order.vehicle_capacity || '-';
+      
+      // Set jarak dan durasi dari data order (sesuai contoh)
+      document.getElementById('tripDistance').textContent = order.jarak || '-';
+      document.getElementById('tripDuration').textContent = order.durasi || '-';
       
       // ==================== TAMPILKAN DATA HARGA DENGAN PROMO ====================
       const promoSection = document.getElementById('promoSection');
@@ -3044,33 +3048,31 @@
         // Simpan data untuk modal foto
         customerPhotoData = user;
         
-        // 1. TAMPILKAN NAMA
-        customerName.textContent = user.nama || '-';
+        // 1. TAMPILKAN NAMA - sesuai contoh data (field name, bukan nama)
+        customerName.textContent = user.name || '-';
         
-        // 2. TAMPILKAN RATING DARI FIREBASE
-        let rating = 4.8; // Default fallback
+        // 2. TAMPILKAN RATING DARI FIREBASE - sesuai contoh data (field rating, bukan Ratings)
+        let rating = 5.0; // Default fallback
         
         // Coba ambil dari berbagai field yang mungkin
-        if (user.Ratings !== undefined) {
-          rating = parseFloat(user.Ratings);
-        } else if (user.rating !== undefined) {
+        if (user.rating !== undefined) {
           rating = parseFloat(user.rating);
-        } else if (user.ratings !== undefined) {
-          rating = parseFloat(user.ratings);
+        } else if (user.Ratings !== undefined) {
+          rating = parseFloat(user.Ratings);
         }
         
         // Format rating dengan 1 desimal
         const formattedRating = rating.toFixed(1);
         customerStars.innerHTML = `🌟 ${formattedRating}`;
         
-        // 3. TAMPILKAN JUMLAH PERJALANAN DARI FIREBASE
+        // 3. TAMPILKAN JUMLAH PERJALANAN DARI FIREBASE - sesuai contoh data (field perjalanan, bukan Perjalanan)
         let perjalanan = 0; // Default fallback
         
         // Coba ambil dari berbagai field yang mungkin
-        if (user.Perjalanan !== undefined) {
-          perjalanan = parseInt(user.Perjalanan);
-        } else if (user.perjalanan !== undefined) {
+        if (user.perjalanan !== undefined) {
           perjalanan = parseInt(user.perjalanan);
+        } else if (user.Perjalanan !== undefined) {
+          perjalanan = parseInt(user.Perjalanan);
         }
         
         tripCountElement.textContent = `(${perjalanan})`;
@@ -3089,24 +3091,24 @@
           // Buat elemen img dengan error handling
           const img = document.createElement('img');
           img.src = fotoUrl;
-          img.alt = user.nama || 'Customer';
+          img.alt = user.name || 'Customer';
           img.onerror = function() {
             // Jika gambar gagal load, gunakan default avatar
             console.log('❌ Foto gagal dimuat, menggunakan default avatar');
-            setupDefaultAvatar(customerAvatar, user.jenisKelamin);
+            setupDefaultAvatar(customerAvatar, user.gender);
             customerPhotoUrl = null;
           };
           customerAvatar.appendChild(img);
         } else {
           // Jika tidak ada foto, gunakan default avatar
-          setupDefaultAvatar(customerAvatar, user.jenisKelamin);
+          setupDefaultAvatar(customerAvatar, user.gender);
           customerPhotoUrl = null;
         }
         
       } else {
         // Fallback jika tidak ada user_data
         customerName.textContent = 'Tidak diketahui';
-        customerStars.innerHTML = '🌟 4.8';
+        customerStars.innerHTML = '🌟 5.0';
         tripCountElement.textContent = '(0)';
         customerAvatar.className = 'customer-avatar default-unknown';
         customerAvatar.innerHTML = '';
@@ -3119,7 +3121,8 @@
       avatarElement.innerHTML = '';
       avatarElement.className = 'customer-avatar';
       
-      if (gender === 'laki-laki' || gender === 'pria' || gender === 'male') {
+      // Sesuai contoh data: gender = "Laki-laki"
+      if (gender === 'laki-laki' || gender === 'Laki-laki' || gender === 'pria' || gender === 'male') {
         avatarElement.classList.add('default-male');
       } else if (gender === 'perempuan' || gender === 'wanita' || gender === 'female') {
         avatarElement.classList.add('default-female');
@@ -3350,12 +3353,12 @@
         };
         
         // Tampilkan modal rating jika ada data user
-        if (currentOrderData.user_data && currentOrderData.user_data.userId) {
+        if (currentOrderData.user_data && currentOrderData.user_data.uid) {
           userToRate = {
-            userId: currentOrderData.user_data.userId,
-            nama: currentOrderData.user_data.nama || 'Customer',
-            currentPerjalanan: currentOrderData.user_data.Perjalanan || 0,
-            currentRating: currentOrderData.user_data.Ratings || 0
+            userId: currentOrderData.user_data.uid,
+            name: currentOrderData.user_data.name || 'Customer',
+            currentPerjalanan: currentOrderData.user_data.perjalanan || 0,
+            currentRating: currentOrderData.user_data.rating || 0
           };
           
           // Tampilkan modal rating
@@ -3500,8 +3503,8 @@
           status: 'completed',
           user_data: currentOrderData.user_data || {},
           service_type: currentOrderData.vehicle_name,
-          distance: currentOrderData.distance,
-          duration: currentOrderData.duration,
+          distance: currentOrderData.jarak,
+          duration: currentOrderData.durasi,
           created_at: currentOrderData.created_at,
           completed_at: new Date().toISOString()
         };
