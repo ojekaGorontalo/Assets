@@ -2162,116 +2162,60 @@
       });
     }
 
-    // PERBAIKAN: Fungsi renderDriver dengan foto user dan data lengkap
+    // ==================== FUNGSI PERBAIKAN: renderDriver HANYA MENAMPILKAN DATA DRIVER ====================
+    
+    // FUNGSI YANG DIPERBAIKI: renderDriver hanya menampilkan data driver tanpa data user
     function renderDriver(driver, index) {
       const card = document.createElement('div');
       card.className = 'driver-offer-card';
       card.id = `driver-${driver.id}`;
       
-      // Ambil data user dari Firebase untuk ditampilkan bersama driver
-      if (currentOrderId) {
-        const orderRef = database.ref('orders/' + currentOrderId);
-        orderRef.once('value').then(snapshot => {
-          const orderData = snapshot.val();
-          const userData = orderData?.user_snapshot || orderData?.user_data;
-          
-          // Buat konten card dengan foto user dan driver
-          const userPhotoHTML = userData?.fotoProfilURL ? `
-            <div style="display: flex; align-items: center; margin-bottom: 8px; padding: 5px; background: #f8f9fa; border-radius: 8px;">
-              <img src="${userData.fotoProfilURL}" 
-                   style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; border: 2px solid var(--primary);"
-                   onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-              <div>
-                <div style="font-weight: 600; font-size: 12px;">${userData.name || 'Penumpang'}</div>
-                <div style="font-size: 10px; color: #666;">Rating: ${userData.rating || '5'}/5</div>
-              </div>
+      // Tambahkan badge prioritas
+      const priorityBadge = getPriorityBadge(driver.avg_rating, index);
+      
+      // Dapatkan bintang untuk rating dengan format yang lebih baik
+      const rating = Math.min(parseFloat(driver.avg_rating) || 0, 5.0);
+      const formattedRating = rating.toFixed(1);
+      const stars = getStarRatingHTML(rating);
+      
+      // Tampilkan harga tawaran jika ada, jika tidak gunakan harga normal
+      const offeredPrice = driver.offered_price || currentRouteData.harga_total;
+      const priceDisplay = `Rp ${offeredPrice.toLocaleString('id-ID')}`;
+      
+      // ✅ HANYA TAMPILKAN DATA DRIVER (TIDAK ADA DATA USER)
+      card.innerHTML = `
+        <div class="driver-info">
+          <img src="${driver.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" 
+               class="driver-photo" 
+               onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+          <div class="driver-details">
+            ${priorityBadge}
+            <div class="driver-name">
+              <span class="driver-name-text">${driver.name || 'Driver'}</span>
+              <span class="position-badge">#${index + 1}</span>
             </div>
-          ` : '';
-          
-          // Tambahkan badge prioritas
-          const priorityBadge = getPriorityBadge(driver.avg_rating, index);
-          
-          // Dapatkan bintang untuk rating dengan format yang lebih baik
-          const rating = Math.min(parseFloat(driver.avg_rating) || 0, 5.0);
-          const formattedRating = rating.toFixed(1);
-          const stars = getStarRatingHTML(rating);
-          
-          // Tampilkan harga tawaran jika ada, jika tidak gunakan harga normal
-          const offeredPrice = driver.offered_price || currentRouteData.harga_total;
-          const priceDisplay = `Rp ${offeredPrice.toLocaleString('id-ID')}`;
-          
-          card.innerHTML = `
-            ${userPhotoHTML}
-            <div class="driver-info">
-              <img src="${driver.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" 
-                   class="driver-photo" 
-                   onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-              <div class="driver-details">
-                ${priorityBadge}
-                <div class="driver-name">
-                  <span class="driver-name-text">${driver.name || 'Driver'}</span>
-                  <span class="position-badge">#${index + 1}</span>
-                </div>
-                <div class="driver-vehicle">
-                  ${driver.vehicle_brand || ''} • ${driver.vehicle_type || ''}
-                </div>
-                <div class="driver-rating-container">
-                  ${stars}
-                  <span>${formattedRating}/5</span>
-                </div>
-                <div style="margin-top: 5px; font-weight: 600; color: var(--success); font-size: 12px;">
-                  ${priceDisplay}
-                </div>
-              </div>
+            <div class="driver-vehicle">
+              ${driver.vehicle_brand || ''} • ${driver.vehicle_type || ''}
             </div>
-            <button class="accept-btn" onclick="selectDriver('${driver.id}')">Terima</button>
-          `;
-          
-          document.getElementById('driverOfferList').appendChild(card);
-          
-          // Auto-scroll ke driver terbaik
-          if (index === 0) {
-            setTimeout(() => {
-              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 500);
-          }
-        });
-      } else {
-        // Fallback jika tidak ada orderId
-        const priorityBadge = getPriorityBadge(driver.avg_rating, index);
-        const rating = Math.min(parseFloat(driver.avg_rating) || 0, 5.0);
-        const formattedRating = rating.toFixed(1);
-        const stars = getStarRatingHTML(rating);
-        const offeredPrice = driver.offered_price || currentRouteData?.harga_total || 0;
-        const priceDisplay = `Rp ${offeredPrice.toLocaleString('id-ID')}`;
-        
-        card.innerHTML = `
-          <div class="driver-info">
-            <img src="${driver.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" 
-                 class="driver-photo" 
-                 onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
-            <div class="driver-details">
-              ${priorityBadge}
-              <div class="driver-name">
-                <span class="driver-name-text">${driver.name || 'Driver'}</span>
-                <span class="position-badge">#${index + 1}</span>
-              </div>
-              <div class="driver-vehicle">
-                ${driver.vehicle_brand || ''} • ${driver.vehicle_type || ''}
-              </div>
-              <div class="driver-rating-container">
-                ${stars}
-                <span>${formattedRating}/5</span>
-              </div>
-              <div style="margin-top: 5px; font-weight: 600; color: var(--success); font-size: 12px;">
-                ${priceDisplay}
-              </div>
+            <div class="driver-rating-container">
+              ${stars}
+              <span>${formattedRating}/5</span>
+            </div>
+            <div style="margin-top: 5px; font-weight: 600; color: var(--success); font-size: 12px;">
+              ${priceDisplay}
             </div>
           </div>
-          <button class="accept-btn" onclick="selectDriver('${driver.id}')">Terima</button>
-        `;
-        
-        document.getElementById('driverOfferList').appendChild(card);
+        </div>
+        <button class="accept-btn" onclick="selectDriver('${driver.id}')">Terima</button>
+      `;
+      
+      document.getElementById('driverOfferList').appendChild(card);
+      
+      // Auto-scroll ke driver terbaik
+      if (index === 0) {
+        setTimeout(() => {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500);
       }
     }
 
