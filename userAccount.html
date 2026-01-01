@@ -168,11 +168,30 @@
             margin-right: 20px;
             cursor: pointer;
             transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
         }
         
         .avatar:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .avatar-edit-icon {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--accent);
+            color: var(--dark);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
         }
         
         .profile-info h3 {
@@ -500,6 +519,7 @@
                     <div class="profile-header">
                         <div class="avatar" id="userAvatar">
                             <!-- Avatar akan diisi dengan inisial nama -->
+                            <div class="avatar-edit-icon">✏️</div>
                         </div>
                         <div class="profile-info">
                             <h3 id="userName">-</h3>
@@ -766,15 +786,17 @@
                 });
         }
 
-        // Fungsi untuk membuka halaman edit profil di Kodular
+        // Fungsi untuk membuka halaman edit profil di Kodular (DIPERBARUI)
         function openEditProfile() {
-            // Kirim sinyal ke Kodular untuk membuka halaman edit profil
-            if (typeof window.App !== 'undefined' && typeof window.App.SetWebViewString !== 'undefined') {
-                window.App.SetWebViewString('edit_profile');
+            // Cek apakah WebViewString API Kodular tersedia
+            if (typeof window.AppInventor !== 'undefined' && 
+                typeof window.AppInventor.setWebViewString === 'function') {
+                // Kirim sinyal ke Kodular untuk membuka halaman edit profil
+                window.AppInventor.setWebViewString('edit_profile');
             } else {
+                // Fallback untuk browser atau jika API tidak tersedia
                 console.log('Kodular WebView API tidak tersedia');
-                // Fallback untuk browser
-                alert('Fitur edit profil hanya tersedia di aplikasi Kodular');
+                alert('Fitur edit profil hanya tersedia di aplikasi');
             }
         }
 
