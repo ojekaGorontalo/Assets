@@ -1223,20 +1223,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
-      authDomain: "ojeka-ba255.firebaseapp.com",
-      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
-      projectId: "ojeka-ba255",
-      storageBucket: "ojeka-ba255.firebasestorage.app",
-      messagingSenderId: "639980533353",
-      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
-      measurementId: "G-PBP64Z8VQ8"
+    // ==================== KONFIGURASI FIREBASE YANG DIPERBARUI ====================
+    // Diambil dari registrasi_jego.html
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Initialize Firebase dengan konfigurasi baru
+    firebase.initializeApp(FIREBASE_CONFIG);
     const database = firebase.database();
 
     // Data yang diterima dari halaman rute
@@ -2718,7 +2719,7 @@
                 }
                 
                 // Ambil jumlah perjalanan saat ini (default 0 jika tidak ada)
-                let currentTrips = user.Perjalanan || 0;
+                let currentTrips = user.Perjalanan || user.perjalanan || 0;
                 
                 // PERBAIKAN: Pastikan currentTrips adalah number
                 if (typeof currentTrips === 'string') {
@@ -2735,6 +2736,7 @@
                 // Update di Firebase
                 return userRef.update({ 
                     Perjalanan: newTripCount,
+                    perjalanan: newTripCount,
                     last_trip_update: new Date().toISOString(),
                     last_trip_order: orderId,
                     updated_at: new Date().toISOString()
@@ -2815,10 +2817,11 @@
             const loggedInUser = localStorage.getItem('jego_logged_in_user');
             if (loggedInUser) {
                 const user = JSON.parse(loggedInUser);
-                const currentTrips = user.Perjalanan || 0;
+                const currentTrips = user.Perjalanan || user.perjalanan || 0;
                 const newTripCount = currentTrips + 1;
                 
                 user.Perjalanan = newTripCount;
+                user.perjalanan = newTripCount;
                 user.last_trip_update = new Date().toISOString();
                 user.last_trip_order = orderId;
                 
@@ -2833,10 +2836,11 @@
                 const userId = userData?.firebase_key || userData?.user_key;
                 
                 if (userId && users[userId]) {
-                    const currentTrips = users[userId].Perjalanan || 0;
+                    const currentTrips = users[userId].Perjalanan || users[userId].perjalanan || 0;
                     const newTripCount = currentTrips + 1;
                     
                     users[userId].Perjalanan = newTripCount;
+                    users[userId].perjalanan = newTripCount;
                     users[userId].last_trip_update = new Date().toISOString();
                     users[userId].last_trip_order = orderId;
                     
@@ -3136,8 +3140,8 @@
         document.getElementById('driverName').textContent = driver.name;
       }
       
-      if (driver && driver.rating) {
-        document.getElementById('driverRating').textContent = driver.rating;
+      if (driver && (driver.rating || driver.avg_rating)) {
+        document.getElementById('driverRating').textContent = driver.rating || driver.avg_rating || '4.9';
       } else {
         document.getElementById('driverRating').textContent = '4.9';
       }
@@ -3177,6 +3181,14 @@
       
       if (route.vehicle_capacity) {
         document.getElementById('serviceCapacity').textContent = route.vehicle_capacity;
+      }
+      
+      if (route.durasi) {
+        document.getElementById('tripDuration').textContent = route.durasi;
+      }
+      
+      if (route.jarak) {
+        document.getElementById('tripDistance').textContent = route.jarak;
       }
       
       if (route.created_at) {
@@ -3220,7 +3232,7 @@
         
         // Isi data driver
         document.getElementById('driverName').textContent = actualDriverData.name || '-';
-        document.getElementById('driverRating').textContent = actualDriverData.rating || '4.9';
+        document.getElementById('driverRating').textContent = actualDriverData.rating || actualDriverData.avg_rating || '4.9';
         document.getElementById('driverVehicleBrand').textContent = actualDriverData.vehicle_brand || '-';
         document.getElementById('driverVehicleType').textContent = actualDriverData.vehicle_type || '-';
         document.getElementById('driverPlate').textContent = actualDriverData.plate_number || '-';
@@ -3239,8 +3251,17 @@
         // Gunakan data langsung dari routeData (order data)
         document.getElementById('pickupAddress').textContent = routeData.alamat_a || '-';
         document.getElementById('destinationAddress').textContent = routeData.alamat_b || '-';
-        document.getElementById('serviceType').textContent = routeData.vehicle_name || '-';
+        document.getElementById('serviceType').textContent = routeData.vehicle_name || routeData.vehicle || '-';
         document.getElementById('serviceCapacity').textContent = routeData.vehicle_capacity || '-';
+        
+        // Tambahkan durasi dan jarak dari data contoh
+        if (routeData.durasi) {
+          document.getElementById('tripDuration').textContent = routeData.durasi;
+        }
+        
+        if (routeData.jarak) {
+          document.getElementById('tripDistance').textContent = routeData.jarak;
+        }
         
         // PERBAIKAN: Tampilkan harga dengan diskon jika ada
         displayPriceWithDiscount();
@@ -3612,4 +3633,4 @@
     window.receiveDataFromKodular = receiveDataFromKodular;
   </script>
 </body>
-  </html>
+</html>
