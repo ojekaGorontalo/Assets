@@ -169,11 +169,36 @@
             cursor: pointer;
             transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
+            overflow: hidden;
         }
         
         .avatar:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        #avatarInitials {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
         }
         
         .avatar-edit-icon {
@@ -192,6 +217,7 @@
             border: 2px solid white;
             box-shadow: 0 1px 4px rgba(0,0,0,0.2);
             pointer-events: none;
+            z-index: 3;
         }
         
         .profile-info h3 {
@@ -461,7 +487,10 @@
                 margin-bottom: 15px;
                 width: 80px;
                 height: 80px;
-                font-size: 1.8rem;
+            }
+            
+            #avatarInitials {
+                font-size: 2rem;
             }
             
             .profile-section, .account-details {
@@ -518,7 +547,10 @@
                     
                     <div class="profile-header">
                         <div class="avatar" id="userAvatar">
-                            <!-- Avatar akan diisi dengan inisial nama -->
+                            <!-- Gambar profil akan ditampilkan di sini jika ada -->
+                            <img id="avatarImage" src="" alt="Foto Profil" style="display: none;">
+                            <!-- Inisial akan ditampilkan jika tidak ada gambar -->
+                            <div id="avatarInitials"></div>
                             <div class="avatar-edit-icon">✏️</div>
                         </div>
                         <div class="profile-info">
@@ -654,6 +686,8 @@
         const userStatus = document.getElementById('userStatus');
         const joinDate = document.getElementById('joinDate');
         const userAvatar = document.getElementById('userAvatar');
+        const avatarImage = document.getElementById('avatarImage');
+        const avatarInitials = document.getElementById('avatarInitials');
         const userRating = document.getElementById('userRating');
         const userPerjalanan = document.getElementById('userPerjalanan');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -729,9 +763,22 @@
             userStatus.textContent = statusText;
             userStatus.className = `status-badge ${statusClass}`;
             
-            // Set avatar
+            // Set avatar - FIXED: Tampilkan gambar profil jika ada
             const initials = getInitials(userData.name || 'U');
-            userAvatar.textContent = initials;
+            
+            // Periksa apakah ada foto profil URL
+            if (userData.fotoProfilURL && userData.fotoProfilURL.trim() !== '') {
+                // Tampilkan gambar profil
+                avatarImage.src = userData.fotoProfilURL;
+                avatarImage.style.display = 'block';
+                avatarInitials.style.display = 'none';
+                avatarInitials.textContent = '';
+            } else {
+                // Tampilkan inisial
+                avatarImage.style.display = 'none';
+                avatarInitials.style.display = 'flex';
+                avatarInitials.textContent = initials;
+            }
             
             // Sembunyikan tombol hapus akun jika status sudah delete_account
             if (status === 'delete_account') {
@@ -922,6 +969,11 @@
                                     ...userData,
                                     ...updatedUserData
                                 };
+                                
+                                // Pastikan fotoProfilURL tidak di-overwrite dengan undefined
+                                if (userData.fotoProfilURL && !updatedUserData.fotoProfilURL) {
+                                    mergedData.fotoProfilURL = userData.fotoProfilURL;
+                                }
                                 
                                 displayUserData(mergedData);
                                 
