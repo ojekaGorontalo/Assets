@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profil - JeGo</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <style>
+        :root {
+            --primary: #1e6f5c;
+            --secondary: #289672;
+            --accent: #e6dd3b;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: var(--dark);
+            line-height: 1.4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 0;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .logo img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+        }
+        
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 0;
+        }
+        
+        .tagline {
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .content-wrapper {
+            width: 100%;
+        }
+        
+        .profile-edit-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--accent);
+            font-size: 1.4rem;
+            text-align: center;
+        }
+        
+        .profile-picture-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .avatar {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .avatar-edit-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .avatar:hover .avatar-edit-overlay {
+            opacity: 1;
+        }
+        
+        .avatar-edit-icon {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--accent);
+            color: var(--dark);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+        
+        .avatar-initials {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        
+        .avatar-text {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(40, 150, 114, 0.2);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input-label:hover {
+            background: #e9ecef;
+            border-color: var(--primary);
+        }
+        
+        .file-input-label i {
+            color: var(--primary);
+            margin-right: 8px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--dark);
+            font-size: 0.85rem;
+            background-color: white;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .alert-info {
+            background-color: rgba(23, 162, 184, 0.1);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+            border: 2px solid var(--primary);
+        }
+        
+        .file-info {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .local-badge {
+            display: inline-block;
+            background-color: var(--accent);
+            color: var(--dark);
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 0.8rem;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .readonly-field {
+            background-color: #f8f9fa;
+            color: #666;
+            cursor: not-allowed;
+        }
+        
+        .profile-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .info-value {
+            font-size: 0.95rem;
+            text-align: right;
+        }
+        
+        /* Upload Progress Bar Styles - Ditambahkan */
+        .upload-progress-container {
+            margin-top: 15px;
+            width: 100%;
+            max-width: 300px;
+            display: none;
+        }
+        
+        .upload-progress-bar {
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .upload-progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .upload-progress-text {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .profile-edit-section {
+                padding: 20px;
+            }
+            
+            .avatar {
+                width: 100px;
+                height: 100px;
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <div class="logo">
+                        <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="JeGo Logo">
+                    </div>
+                    <h1>JeGo - Edit Profil</h1>
+                </div>
+                <div class="header-actions">
+                    <a href="#" class="header-btn" id="backBtn">Kembali</a>
+                </div>
+            </div>
+            <p class="tagline">Jasa Ekspedisi Gorontalo - Aplikasi Lokal Buatan Anak Gorontalo</p>
+        </div>
+    </header>
+    
+    <div class="content-wrapper">
+        <div class="container">
+            <div id="successAlert" class="alert alert-success">
+                ✅ Profil berhasil diperbarui!
+            </div>
+            
+            <div id="errorAlert" class="alert alert-danger">
+                ❌ Terjadi kesalahan. Silakan coba lagi.
+            </div>
+            
+            <div id="infoAlert" class="alert alert-info">
+                ℹ️ Memproses perubahan...
+            </div>
+            
+            <section class="profile-edit-section">
+                <h2>Edit Profil Saya</h2>
+                
+                <div class="profile-info">
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value" id="currentEmail">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Telepon:</span>
+                        <span class="info-value" id="currentPhone">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value" id="currentStatus">-</span>
+                    </div>
+                </div>
+                
+                <div class="profile-picture-container">
+                    <div class="avatar" id="avatarContainer">
+                        <div class="avatar-edit-overlay">Ganti Foto</div>
+                        <div class="avatar-edit-icon">✏️</div>
+                        <div id="avatarInitials" class="avatar-initials"></div>
+                        <img id="avatarImage" src="" alt="Foto Profil" style="display: none;">
+                    </div>
+                    <div class="avatar-text">Klik untuk mengganti foto profil</div>
+                    
+                    <div class="file-input-wrapper">
+                        <div class="file-input-label">
+                            <i>📁</i> Pilih Foto Baru (Max 2MB)
+                        </div>
+                        <input type="file" id="photoInput" class="file-input" accept="image/*" capture="environment">
+                    </div>
+                    
+                    <!-- Upload Progress Bar - Ditambahkan -->
+                    <div class="upload-progress-container" id="uploadProgressContainer">
+                        <div class="upload-progress-bar">
+                            <div class="upload-progress-fill" id="uploadProgressFill"></div>
+                        </div>
+                        <div class="upload-progress-text" id="uploadProgressText">0%</div>
+                    </div>
+                    
+                    <img id="imagePreview" class="preview-image" alt="Pratinjau">
+                    <div id="fileInfo" class="file-info"></div>
+                </div>
+                
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label for="name">Nama Lengkap *</label>
+                        <input type="text" id="name" name="name" required maxlength="50">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email (Tidak dapat diubah)</label>
+                        <input type="email" id="email" name="email" class="readonly-field" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Nomor Telepon (Tidak dapat diubah)</label>
+                        <input type="tel" id="phone" name="phone" class="readonly-field" readonly>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="saveBtn">
+                            <span id="saveText">Simpan Perubahan</span>
+                            <span id="saveLoader" style="display: none;">
+                                <span class="loading-spinner"></span> Menyimpan...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="local-badge">APLIKASI LOKAL BUATAN ANAK GORONTALO</div>
+            </section>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 JeGo - Jasa Ekspedisi Gorontalo. Aplikasi Lokal Buatan Anak Gorontalo.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Firebase configuration
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+            authDomain: "game-balap-simpel.firebaseapp.com",
+            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+            projectId: "game-balap-simpel",
+            storageBucket: "game-balap-simpel.firebasestorage.app",
+            messagingSenderId: "864576853495",
+            appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+            measurementId: "G-YWJPK7Y3J4"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(FIREBASE_CONFIG);
+        const database = firebase.database();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+        
+        // Referensi ke database
+        const usersRef = database.ref('users');
+        
+        // Elemen DOM
+        const backBtn = document.getElementById('backBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const saveText = document.getElementById('saveText');
+        const saveLoader = document.getElementById('saveLoader');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+        const infoAlert = document.getElementById('infoAlert');
+        const editProfileForm = document.getElementById('editProfileForm');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
+        const currentEmail = document.getElementById('currentEmail');
+        const currentPhone = document.getElementById('currentPhone');
+        const currentStatus = document.getElementById('currentStatus');
+        const avatarContainer = document.getElementById('avatarContainer');
+        const avatarInitials = document.getElementById('avatarInitials');
+        const avatarImage = document.getElementById('avatarImage');
+        const photoInput = document.getElementById('photoInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const fileInfo = document.getElementById('fileInfo');
+        const uploadProgressContainer = document.getElementById('uploadProgressContainer');
+        const uploadProgressFill = document.getElementById('uploadProgressFill');
+        const uploadProgressText = document.getElementById('uploadProgressText');
+        
+        // Variabel global
+        let currentUserData = null;
+        let selectedFile = null;
+        let userUid = null;
+        let uploadTask = null;
+        
+        // Fungsi untuk mendapatkan inisial nama
+        function getInitials(name) {
+            if (!name || name === '-') return 'U';
+            return name.split(' ').map(word => word[0]).join('').toUpperCase();
+        }
+        
+        // Fungsi untuk menampilkan alert
+        function showAlert(alertElement, message, autoHide = true) {
+            if (message) alertElement.textContent = message;
+            alertElement.style.display = 'block';
+            
+            if (autoHide) {
+                setTimeout(() => {
+                    alertElement.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Fungsi untuk memuat data user
+        function loadUserData() {
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+            
+            if (!loggedInUser) {
+                showAlert(errorAlert, 'Anda belum login. Redirecting...');
+                setTimeout(() => {
+                    if (window.AppInventor && window.AppInventor.setWebViewString) {
+                        window.AppInventor.setWebViewString('close_edit_profile');
+                    } else {
+                        window.location.href = 'loginUser.html';
+                    }
+                }, 2000);
+                return;
+            }
+            
+            try {
+                currentUserData = JSON.parse(loggedInUser);
+                userUid = currentUserData.userId || currentUserData.uid;
+                
+                if (!userUid) {
+                    throw new Error('User ID tidak ditemukan');
+                }
+                
+                // Tampilkan data di form
+                nameInput.value = currentUserData.name || '';
+                emailInput.value = currentUserData.email || '';
+                phoneInput.value = currentUserData.phone || '';
+                
+                // Tampilkan info tambahan
+                currentEmail.textContent = currentUserData.email || '-';
+                currentPhone.textContent = currentUserData.phone || '-';
+                currentStatus.textContent = currentUserData.status === 'active' ? 'Aktif' : 'Tidak Aktif';
+                
+                // Atur avatar
+                const initials = getInitials(currentUserData.name || 'U');
+                avatarInitials.textContent = initials;
+                
+                // Jika ada foto profil, tampilkan
+                if (currentUserData.fotoProfilURL) {
+                    avatarImage.src = currentUserData.fotoProfilURL;
+                    avatarImage.style.display = 'block';
+                    avatarInitials.style.display = 'none';
+                } else {
+                    avatarImage.style.display = 'none';
+                    avatarInitials.style.display = 'block';
+                }
+                
+                // Ambil data terbaru dari Firebase
+                usersRef.child(userUid).once('value')
+                    .then(snapshot => {
+                        const firebaseData = snapshot.val();
+                        if (firebaseData) {
+                            // Update data lokal dengan data Firebase
+                            currentUserData = { ...currentUserData, ...firebaseData };
+                            
+                            // Update form jika ada perubahan
+                            nameInput.value = firebaseData.name || currentUserData.name || '';
+                            emailInput.value = firebaseData.email || currentUserData.email || '';
+                            phoneInput.value = firebaseData.phone || currentUserData.phone || '';
+                            
+                            // Update info
+                            currentEmail.textContent = firebaseData.email || currentUserData.email || '-';
+                            currentPhone.textContent = firebaseData.phone || currentUserData.phone || '-';
+                            currentStatus.textContent = (firebaseData.status || currentUserData.status) === 'active' ? 'Aktif' : 'Tidak Aktif';
+                            
+                            // Update avatar
+                            if (firebaseData.fotoProfilURL) {
+                                avatarImage.src = firebaseData.fotoProfilURL;
+                                avatarImage.style.display = 'block';
+                                avatarInitials.style.display = 'none';
+                            }
+                            
+                            // Update localStorage
+                            localStorage.setItem('jego_logged_in_user', JSON.stringify(currentUserData));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching user data from Firebase:', error);
+                    });
+                    
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                showAlert(errorAlert, 'Gagal memuat data pengguna');
+            }
+        }
+        
+        // ================================================
+        // FUNGSI UPLOAD FOTO KE STORAGE (Mengikuti cara daftarDriver.html)
+        // ================================================
+        
+        function uploadFileToStorage(file, userId, folderName, fileName) {
+            return new Promise((resolve, reject) => {
+                if (!file || !userId) {
+                    reject(new Error('File atau User ID tidak valid'));
+                    return;
+                }
+                
+                // Validasi file
+                if (!file.type.startsWith('image/')) {
+                    reject(new Error('File harus berupa gambar'));
+                    return;
+                }
+                
+                if (file.size > 2 * 1024 * 1024) {
+                    reject(new Error('Ukuran file maksimal 2MB'));
+                    return;
+                }
+                
+                // Generate nama file jika tidak diberikan
+                const timestamp = new Date().getTime();
+                const fileExtension = file.name.split('.').pop();
+                const finalFileName = fileName || `profile_${userId}_${timestamp}.${fileExtension}`;
+                const storagePath = `${folderName}/${userId}/${finalFileName}`;
+                
+                // Metadata untuk upload (mirip daftarDriver.html)
+                const metadata = {
+                    contentType: file.type,
+                    customMetadata: {
+                        uploadedBy: 'user_profile',
+                        originalName: file.name,
+                        timestamp: timestamp.toString(),
+                        fileSize: file.size.toString()
+                    }
+                };
+                
+                // Upload ke Firebase Storage
+                const storageRef = storage.ref(storagePath);
+                uploadTask = storageRef.put(file, metadata);
+                
+                // Reset progress bar
+                uploadProgressFill.style.width = '0%';
+                uploadProgressText.textContent = '0%';
+                uploadProgressContainer.style.display = 'block';
+                
+                // Timeout untuk mencegah hang (2 menit)
+                let uploadTimeout = setTimeout(() => {
+                    if (uploadTask) {
+                        uploadTask.cancel();
+                    }
+                    reject(new Error('Upload timeout (120 detik). Periksa koneksi internet Anda.'));
+                    
+                    // Reset progress
+                    uploadProgressContainer.style.display = 'none';
+                }, 120000);
+                
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Clear timeout karena ada progress
+                        clearTimeout(uploadTimeout);
+                        
+                        const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                        console.log(`📤 Upload progress: ${progress}% - ${storagePath}`);
+                        
+                        // Update progress bar UI
+                        uploadProgressFill.style.width = progress + '%';
+                        uploadProgressText.textContent = `${progress}%`;
+                        
+                        // Set timeout baru untuk stalling
+                        uploadTimeout = setTimeout(() => {
+                            if (uploadTask) {
+                                uploadTask.cancel();
+                            }
+                            reject(new Error('Upload terhenti. Coba lagi dengan koneksi yang lebih stabil.'));
+                        }, 30000);
+                    },
+                    (error) => {
+                        // Clear timeout
+                        clearTimeout(uploadTimeout);
+                        
+                        console.error('❌ Upload error:', error.code, error.message);
+                        
+                        // Reset progress
+                        uploadProgressContainer.style.display = 'none';
+                        
+                        // Error handling spesifik
+                        let errorMessage = 'Gagal mengupload file. ';
+                        switch (error.code) {
+                            case 'storage/unauthorized':
+                                errorMessage = '❌ ERROR STORAGE: Anda tidak memiliki izin untuk upload file. Hubungi administrator.';
+                                break;
+                            case 'storage/canceled':
+                                errorMessage = 'Upload dibatalkan.';
+                                break;
+                            case 'storage/unknown':
+                                errorMessage = 'Error tidak diketahui. Periksa koneksi internet Anda.';
+                                break;
+                            case 'storage/quota-exceeded':
+                                errorMessage = '❌ ERROR STORAGE: Kuota storage telah habis. Hubungi administrator.';
+                                break;
+                            case 'storage/unauthenticated':
+                                errorMessage = '❌ ERROR STORAGE: Anda belum login atau sesi telah berakhir.';
+                                break;
+                            default:
+                                errorMessage += error.message || 'Coba lagi dengan file yang lebih kecil.';
+                        }
+                        
+                        reject(new Error(errorMessage));
+                    },
+                    async () => {
+                        // Upload selesai, dapatkan URL
+                        clearTimeout(uploadTimeout);
+                        
+                        try {
+                            // Tunggu sebentar untuk memastikan upload benar-benar selesai
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            
+                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                            console.log('✅ Upload berhasil, URL:', downloadURL);
+                            
+                            // Progress bar ke 100% untuk visual feedback
+                            uploadProgressFill.style.width = '100%';
+                            uploadProgressText.textContent = '100%';
+                            
+                            // Sembunyikan progress bar setelah 1 detik
+                            setTimeout(() => {
+                                uploadProgressContainer.style.display = 'none';
+                            }, 1000);
+                            
+                            resolve({
+                                url: downloadURL,
+                                storagePath: storagePath,
+                                fileName: finalFileName
+                            });
+                        } catch (urlError) {
+                            console.error('❌ Error getting download URL:', urlError);
+                            reject(new Error('Gagal mendapatkan URL file: ' + urlError.message));
+                        }
+                    }
+                );
+            });
+        }
+        
+        // ================================================
+        // FUNGSI UNTUK MENYIMPAN PERUBAHAN PROFIL (Diperbarui)
+        // ================================================
+        
+        async function saveProfileChanges() {
+            // Validasi
+            if (!nameInput.value.trim()) {
+                showAlert(errorAlert, 'Nama tidak boleh kosong');
+                nameInput.focus();
+                return false;
+            }
+            
+            if (!userUid) {
+                showAlert(errorAlert, 'User ID tidak ditemukan');
+                return false;
+            }
+            
+            // Tampilkan loading
+            saveText.style.display = 'none';
+            saveLoader.style.display = 'inline';
+            saveBtn.disabled = true;
+            cancelBtn.disabled = true;
+            
+            try {
+                const updates = {
+                    name: nameInput.value.trim(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // Jika ada file yang dipilih, upload dulu
+                if (selectedFile) {
+                    showAlert(infoAlert, 'Mengupload foto profil...', false);
+                    
+                    try {
+                        console.log('📤 Memulai upload foto profil...');
+                        
+                        // Gunakan fungsi upload yang sama seperti di daftarDriver.html
+                        const uploadResult = await uploadFileToStorage(
+                            selectedFile, 
+                            userUid, 
+                            'user_profiles', 
+                            null // Biarkan generate otomatis
+                        );
+                        
+                        console.log('✅ Upload berhasil:', uploadResult);
+                        
+                        updates.fotoProfilURL = uploadResult.url;
+                        updates.fotoProfilStorage = uploadResult.storagePath;
+                        updates.fotoProfilFileName = uploadResult.fileName;
+                        
+                        showAlert(infoAlert, 'Foto berhasil diupload, menyimpan data...', false);
+                    } catch (uploadError) {
+                        console.error('❌ Upload error detail:', uploadError);
+                        showAlert(errorAlert, uploadError.message || 'Gagal upload foto');
+                        
+                        saveText.style.display = 'inline';
+                        saveLoader.style.display = 'none';
+                        saveBtn.disabled = false;
+                        cancelBtn.disabled = false;
+                        infoAlert.style.display = 'none';
+                        uploadProgressContainer.style.display = 'none';
+                        return false;
+                    }
+                }
+                
+                // Update data di Firebase Realtime Database
+                console.log('💾 Menyimpan data ke Firebase Database...', updates);
+                await usersRef.child(userUid).update(updates);
+                console.log('✅ Data berhasil disimpan ke database');
+                
+                // Update data di localStorage
+                const updatedUserData = {
+                    ...currentUserData,
+                    name: updates.name,
+                    fotoProfilURL: updates.fotoProfilURL || currentUserData.fotoProfilURL,
+                    fotoProfilStorage: updates.fotoProfilStorage || currentUserData.fotoProfilStorage,
+                    fotoProfilFileName: updates.fotoProfilFileName || currentUserData.fotoProfilFileName,
+                    updatedAt: updates.updatedAt
+                };
+                
+                localStorage.setItem('jego_logged_in_user', JSON.stringify(updatedUserData));
+                
+                // Tampilkan pesan sukses
+                showAlert(successAlert, 'Profil berhasil diperbarui!');
+                
+                // Reset form state
+                selectedFile = null;
+                photoInput.value = '';
+                imagePreview.style.display = 'none';
+                fileInfo.textContent = '';
+                
+                // Update tampilan avatar jika ada foto baru
+                if (updates.fotoProfilURL) {
+                    avatarImage.src = updates.fotoProfilURL;
+                    avatarImage.style.display = 'block';
+                    avatarInitials.style.display = 'none';
+                }
+                
+                // Update nama di avatar initials
+                const initials = getInitials(updates.name);
+                avatarInitials.textContent = initials;
+                
+                // Beri waktu sebelum kembali
+                setTimeout(() => {
+                    // Kirim sinyal ke Kodular jika di WebView
+                    if (typeof window.AppInventor !== 'undefined' && 
+                        typeof window.AppInventor.setWebViewString === 'function') {
+                        window.AppInventor.setWebViewString('profile_updated:' + JSON.stringify({
+                            name: updates.name,
+                            fotoProfilURL: updates.fotoProfilURL || currentUserData.fotoProfilURL
+                        }));
+                    } else {
+                        // Jika di browser, kembali ke halaman akun
+                        window.location.href = 'userAccount.html';
+                    }
+                }, 1500);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Error saving profile:', error);
+                showAlert(errorAlert, `Gagal menyimpan perubahan: ${error.message || 'Terjadi kesalahan'}`);
+                return false;
+            } finally {
+                // Sembunyikan loading
+                saveText.style.display = 'inline';
+                saveLoader.style.display = 'none';
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+                infoAlert.style.display = 'none';
+            }
+        }
+        
+        // Fungsi untuk kembali ke halaman sebelumnya
+        function goBack() {
+            if (typeof window.AppInventor !== 'undefined' && 
+                typeof window.AppInventor.setWebViewString === 'function') {
+                window.AppInventor.setWebViewString('close_edit_profile');
+            } else {
+                window.history.back();
+            }
+        }
+        
+        // Event Listeners
+        backBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            goBack();
+        });
+        
+        cancelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            goBack();
+        });
+        
+        editProfileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveProfileChanges();
+        });
+        
+        avatarContainer.addEventListener('click', function() {
+            photoInput.click();
+        });
+        
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validasi file
+            if (!file.type.startsWith('image/')) {
+                showAlert(errorAlert, 'File harus berupa gambar (JPG, PNG, dll)');
+                photoInput.value = '';
+                return;
+            }
+            
+            if (file.size > 2 * 1024 * 1024) {
+                showAlert(errorAlert, 'Ukuran file maksimal 2MB');
+                photoInput.value = '';
+                return;
+            }
+            
+            selectedFile = file;
+            
+            // Tampilkan info file
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            fileInfo.textContent = `File: ${file.name} (${fileSize} MB)`;
+            fileInfo.style.color = '#666';
+            
+            // Tampilkan preview
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                imagePreview.src = event.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            // Sembunyikan progress bar jika ada dari sebelumnya
+            uploadProgressContainer.style.display = 'none';
+        });
+        
+        // Fungsi untuk cancel upload jika halaman ditutup
+        window.addEventListener('beforeunload', function() {
+            if (uploadTask) {
+                uploadTask.cancel();
+                console.log('Upload task cancelled due to page unload');
+            }
+        });
+        
+        // Muat data saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            
+            // Cek jika ada parameter dari URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+            if (message) {
+                showAlert(infoAlert, decodeURIComponent(message));
+            }
+            
+            // Cek koneksi internet
+            if (!navigator.onLine) {
+                showAlert(errorAlert, 'Tidak ada koneksi internet. Perubahan tidak dapat disimpan.');
+                saveBtn.disabled = true;
+            }
+            
+            // Monitor koneksi
+            window.addEventListener('online', function() {
+                console.log('Koneksi internet tersedia');
+                saveBtn.disabled = false;
+                showAlert(successAlert, 'Koneksi internet tersedia kembali', true);
+            });
+            
+            window.addEventListener('offline', function() {
+                console.log('Tidak ada koneksi internet');
+                showAlert(errorAlert, 'Tidak ada koneksi internet. Pastikan koneksi stabil sebelum menyimpan.', false);
+                saveBtn.disabled = true;
+            });
+        });
+    </script>
+</body>
+</html>
