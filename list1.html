@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
   <meta charset="utf-8" />
   <title>List Permintaan - JeGo</title>
@@ -9,7 +8,6 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   
   <!-- Google Maps API dengan async dan callback -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places&callback=initApp" async defer></script>
@@ -1995,7 +1993,6 @@
     }
   </style>
 </head>
-
 <body>
   <!-- Header dengan tombol menu di kiri foto profil -->
   <div class="header">
@@ -2429,6 +2426,8 @@
       console.log('✅ Google Maps API berhasil di-load');
       // Inisialisasi Firebase setelah Google Maps siap
       initializeFirebase();
+      // Panggil fungsi inisialisasi aplikasi
+      initJeGoApp();
     }
 
     // ==================== KONFIGURASI FIREBASE ====================
@@ -2467,14 +2466,11 @@
         database = firebase.database();
         auth = firebase.auth();
         console.log('✅ Firebase berhasil diinisialisasi');
-        
-        // Panggil fungsi inisialisasi aplikasi setelah Firebase siap
-        initJeGoApp();
-        
         return true;
         
       } catch (error) {
         console.error('❌ Error inisialisasi Firebase:', error);
+        // Tampilkan pesan error yang lebih user-friendly
         setTimeout(() => {
           showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
         }, 1000);
@@ -2858,6 +2854,26 @@
             return isAllowed;
         }
         return false;
+    }
+
+    // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
+    function checkLoginStatus() {
+        // PERBAIKAN: Gunakan fungsi baru yang konsisten dengan rute.html
+        if (!checkIfDriverLoggedIn()) {
+            console.log('❌ Driver belum login atau tidak aktif, kirim event ke Kodular');
+            
+            // Kirim event login ke Kodular (bukan redirect)
+            sendToKodular({
+                action: "navigate",
+                target: "login",
+                reason: "not_logged_in_or_inactive"
+            });
+            
+            // Tampilkan pesan di halaman menggunakan showPopup baru
+            showPopup('Anda belum login atau akun tidak aktif. Aplikasi akan membuka halaman login.', 'Perhatian', 'warning');
+            return false;
+        }
+        return true;
     }
 
     // ==================== FUNGSI NOTIFIKASI SUARA ====================
@@ -4490,10 +4506,9 @@
             }
         }, 10000);
 
-        if (!currentDriverData) {
-            console.log('❌ Driver data belum diinisialisasi, tunggu auth...');
+        if (!checkDriverData()) {
+            console.log('❌ Driver tidak terdaftar, berhenti load orders');
             clearTimeout(loadingTimeout);
-            ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
             return;
         }
 
@@ -4763,11 +4778,83 @@
     }
 
     function checkDriverData() {
-        if (!currentDriverData) {
-            console.log('❌ Driver data belum diinisialisasi');
+        try {
+            // PERBAIKAN: Gunakan fungsi getDriverData yang baru
+            const driverData = getDriverData();
+            const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
+            const driverStatus = localStorage.getItem('jego_driver_status');
+            
+            console.log('📋 Data driver dari getDriverData:', driverData);
+            console.log('📋 Status login:', isLoggedIn);
+            console.log('📋 Status driver:', driverStatus);
+            
+            if (!driverData || isLoggedIn !== 'true' || driverStatus !== 'active') {
+                console.log('❌ Tidak ada data driver valid di localStorage');
+                showDriverNotRegistered();
+                return false;
+            }
+            
+            console.log('👤 Parsed driver data:', driverData);
+            
+            if (driverData.driverId && driverData.fullName) {
+                currentDriverData = driverData;
+                currentUserData = driverData; // Simpan juga di currentUserData untuk konsistensi
+                
+                updateDriverPhoto();
+                
+                // INISIALISASI SISTEM SALDO (TANPA PEMOTONGAN)
+                initializeBalanceSystem();
+                
+                const savedAutobid = localStorage.getItem('jego_autobid_enabled');
+                if (savedAutobid !== null) {
+                    autobidEnabled = savedAutobid === 'true';
+                    updateAutobidButton();
+                }
+                
+                loadLocationTrackingSetting();
+                
+                // Load settings dari localStorage
+                const savedAcceptKurir = localStorage.getItem('jego_accept_kurir');
+                const savedRadius = localStorage.getItem('jego_custom_radius');
+                const savedFilterTujuan = localStorage.getItem('jego_filter_tujuan');
+                
+                // PERBAIKAN: Pastikan parsing boolean dari localStorage benar
+                if (savedAcceptKurir !== null) {
+                    acceptKurirEnabled = savedAcceptKurir === 'true';
+                } else {
+                    acceptKurirEnabled = true; // Default value
+                }
+                
+                console.log('✅ acceptKurirEnabled dari localStorage saat checkDriverData:', acceptKurirEnabled);
+                
+                if (savedRadius) {
+                    customRadius = parseFloat(savedRadius);
+                }
+                
+                if (savedFilterTujuan) {
+                    const filterData = JSON.parse(savedFilterTujuan);
+                    filterTujuanText = filterData.text || '';
+                    filterTujuanEnabled = filterData.enabled || false;
+                }
+                
+                console.log('✅ Driver data valid dan diterima');
+                
+                // MULAI AUTO-REFRESH DATA DRIVER
+                if (driverData.driverId) {
+                    startDriverDataRefresh();
+                }
+                
+                return true;
+            } else {
+                console.log('❌ Data driver tidak lengkap');
+                showDriverNotRegistered();
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error checking driver data:', error);
+            showDriverNotRegistered();
             return false;
         }
-        return true;
     }
 
     function showDriverNotRegistered() {
@@ -5462,6 +5549,55 @@
         isAutobidProcessing = false;
     }
 
+    // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
+    function initJeGoApp() {
+        console.log('🚀 Aplikasi JeGo diinisialisasi');
+        
+        // CEK LOGIN STATUS
+        if (!checkLoginStatus()) {
+            return; // Hentikan eksekusi jika belum login
+        }
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+        // Mulai monitoring GPS
+        setTimeout(() => {
+            startGPSMonitoring();
+        }, 1000);
+        
+        // Load data dari storage
+        loadDriverLocationFromStorage();
+        
+        // Load filter tujuan dari Firebase
+        setTimeout(() => {
+            loadFilterTujuanFromFirebase();
+        }, 1500);
+        
+        // Load orders
+        setTimeout(() => {
+            loadOrders();
+        }, 500);
+        
+        // Setup sidebar navigation
+        setTimeout(() => {
+            setupSidebarNavigation();
+        }, 500);
+        
+        // Cek order yang sudah diterima
+        const acceptedOrder = getAcceptedOrderFromLocalStorage();
+        if (acceptedOrder) {
+            console.log('✅ Order yang diterima ditemukan di localStorage');
+        }
+        
+        console.log('🔧 STATUS SISTEM FINAL:');
+        console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
+        console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
+        console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
+        console.log('- Radius:', customRadius + ' km');
+        console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
+    }
+
     // ==================== SETUP EVENT LISTENERS ====================
     function setupEventListeners() {
         // Event listeners baru untuk menu
@@ -5604,84 +5740,6 @@
     }
 
     // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
-    function initJeGoApp() {
-        console.log('🚀 Aplikasi JeGo diinisialisasi');
-        
-        // Setup event listeners (tanpa auth)
-        setupEventListeners();
-        
-        // Mulai monitoring GPS (tanpa auth)
-        setTimeout(() => {
-            startGPSMonitoring();
-        }, 1000);
-        
-        // Load data dari storage (tanpa auth)
-        loadDriverLocationFromStorage();
-        
-        // Setup sidebar navigation (tanpa auth)
-        setTimeout(() => {
-            setupSidebarNavigation();
-        }, 500);
-        
-        // Cek auth state dengan Firebase Auth
-        firebase.auth().onAuthStateChanged((user) => {
-            if (!user) {
-                // User belum login, redirect ke halaman login
-                window.location.href = "loginDriver.html";
-                return;
-            }
-
-            console.log('✅ User sudah login:', user.uid);
-            
-            // Validasi driver data di localStorage dengan user.uid
-            const driverData = getDriverData(); // dari localStorage
-            if (!driverData || driverData.driverId !== user.uid) {
-                console.error('❌ Data driver di localStorage tidak sesuai dengan user.uid');
-                // Logout dari Firebase dan redirect ke login
-                firebase.auth().signOut();
-                window.location.href = "loginDriver.html";
-                return;
-            }
-
-            // Set currentDriverData dan currentUserData
-            currentDriverData = driverData;
-            currentUserData = driverData;
-
-            // Update foto profil driver di header
-            updateDriverPhoto();
-
-            // Inisialisasi sistem saldo
-            initializeBalanceSystem();
-
-            // Load filter tujuan dari Firebase
-            loadFilterTujuanFromFirebase();
-
-            // Load orders (yang di dalamnya akan memanggil checkActiveOrderForDriver)
-            loadOrders();
-
-            // Load setting location tracking (akan memulai tracking jika setting mengizinkan)
-            loadLocationTrackingSetting();
-
-            // Cek order yang sudah diterima dari localStorage
-            const acceptedOrder = getAcceptedOrderFromLocalStorage();
-            if (acceptedOrder) {
-                console.log('✅ Order yang diterima ditemukan di localStorage');
-            }
-
-            // MULAI AUTO-REFRESH DATA DRIVER
-            if (driverData.driverId) {
-                startDriverDataRefresh();
-            }
-
-            console.log('🔧 STATUS SISTEM FINAL:');
-            console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
-            console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
-            console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
-            console.log('- Radius:', customRadius + ' km');
-            console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
-        });
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
         console.log('🚀 Halaman JeGo Driver dimuat');
         
@@ -5690,14 +5748,17 @@
             // Inisialisasi Firebase
             const firebaseInitialized = initializeFirebase();
             
-            if (!firebaseInitialized) {
+            if (firebaseInitialized) {
+                console.log('✅ Firebase siap, inisialisasi aplikasi...');
+                // Google Maps API akan memanggil initApp() saat siap
+                // initApp() akan memanggil initJeGoApp()
+            } else {
                 console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
                 // Tunda inisialisasi
                 setTimeout(() => {
                     initJeGoApp();
                 }, 2000);
             }
-            // initJeGoApp akan dipanggil dari initializeFirebase setelah Firebase siap
         }, 500);
     });
 
