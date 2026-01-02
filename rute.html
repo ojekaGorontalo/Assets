@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8" />
   <title>Rute - JeGo</title>
@@ -23,6 +24,7 @@
       --info: #2196F3;       /* Blue */
       --gray: #9E9E9E;       /* Gray */
     }
+
     html, body, #map {
       height: 100%;
       margin: 0;
@@ -535,7 +537,7 @@
       gap: 10px;
       align-items: center;
       flex: 1;
-      min-width: 0;
+      min-width: 0; /* Penting untuk truncate text */
     }
 
     .driver-photo {
@@ -550,7 +552,7 @@
     .driver-details {
       flex: 1;
       min-width: 0;
-      max-width: calc(100% - 90px);
+      max-width: calc(100% - 90px); /* Batasi lebar maksimal */
       overflow: hidden;
     }
 
@@ -1199,164 +1201,70 @@
     // Variabel untuk user data refresh interval
     let userDataRefreshInterval = null;
 
-    // Ambil parameter vehicle
-    const urlParams = new URLSearchParams(window.location.search);
-    let vehicle = urlParams.get("vehicle");
-
-    // Jika tidak ada parameter vehicle, coba ambil dari localStorage
-    if (!vehicle) {
-      const lastTransport = localStorage.getItem('jego_last_transport');
-      if (lastTransport) {
-        try {
-          const transportData = JSON.parse(lastTransport);
-          vehicle = transportData.type;
-          
-          // Cek apakah ada data pengiriman untuk kurir
-          if (transportData.deliveryData) {
-            kurirDeliveryData = transportData.deliveryData;
-          }
-        } catch (e) {
-          console.error('[DEBUG] Error parsing last transport:', e);
-        }
-      }
-    }
-
-    // Fallback ke motor jika masih tidak ada
-    if (!vehicle) {
-      vehicle = "motor";
-    }
-
-    const fromParam = urlParams.get("from");
-    const toParam = urlParams.get("to");
-    const coordParam = urlParams.get("coord");
-
-    // Data kendaraan akan diambil dari Firebase
-    let vehicleData = {};
-
-    // Fallback data jika Firebase tidak tersedia (untuk emergency)
-    const fallbackVehicleData = {
-      motor: { 
-        name: "Motor", 
-        capacity: "1 Penumpang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
-        minDistance: 4,
-        minPrice: 10000,
-        pricePerKm: 2200
-      },
-      bentor: { 
-        name: "Bentor", 
-        capacity: "2 Penumpang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
-        minDistance: 4,
-        minPrice: 11000,
-        pricePerKm: 3000
-      },
-      mobil: { 
-        name: "Mobil", 
-        capacity: "4 Penumpang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
-        minDistance: 4,
-        minPrice: 15000,
-        pricePerKm: 4000
-      },
-      kurir_motor: { 
-        name: "Kurir Motor", 
-        capacity: "Paket Kecil", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
-        minDistance: 4,
-        minPrice: 10000,
-        pricePerKm: 2100
-      },
-      kurir_bentor: { 
-        name: "Kurir Bentor", 
-        capacity: "Paket Sedang", 
-        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
-        minDistance: 4,
-        minPrice: 10000,
-        pricePerKm: 2100
-      }
-    };
-
-    // ==================== FUNGSI BARU: GET USER DATA LENGKAP DARI FIREBASE ====================
+    // ==================== FUNGSI BARU: USER DATA MANAGEMENT ====================
     
-    // FUNGSI BARU 1: Ambil SEMUA data user dari Firebase (sudah lengkap!)
-    async function getCompleteUserDataFromFirebase(userKey) {
-      console.log("🔍 [DEBUG] Memulai getCompleteUserDataFromFirebase");
-      
+    // FUNGSI BARU 1: Ambil data user TERBARU dari Firebase
+    async function fetchLatestUserData(userKey) {
       if (!userKey) {
-        console.error("❌ User key tidak tersedia");
-        return null;
+        console.error("User key tidak tersedia untuk fetchLatestUserData");
+        return userData;
       }
       
       try {
+        console.log("🔍 [DEBUG] Memulai fetchLatestUserData untuk key:", userKey);
         const userRef = database.ref('users/' + userKey);
         const snapshot = await userRef.once('value');
-        const firebaseUserData = snapshot.val();
+        const latestUserData = snapshot.val();
         
-        if (!firebaseUserData) {
-          console.error("❌ Data user tidak ditemukan di Firebase");
-          return null;
+        if (!latestUserData) {
+          console.error("Data user tidak ditemukan di Firebase untuk key:", userKey);
+          return userData;
         }
         
-        console.log("✅ [DEBUG] Data lengkap dari Firebase:", {
-          name: firebaseUserData.name,
-          phone: firebaseUserData.phone,
-          rating: firebaseUserData.rating,
-          fotoProfilURL: firebaseUserData.fotoProfilURL ? '✅ ADA' : '❌ TIDAK ADA',
-          firebase_key: userKey
+        console.log("🔍 [DEBUG] Data terbaru dari Firebase:", {
+          rating: latestUserData.rating,
+          perjalanan: latestUserData.perjalanan,
+          name: latestUserData.name,
+          phone: latestUserData.phone
         });
         
-        // Return data lengkap dari Firebase
-        return {
-          ...firebaseUserData,
+        // Gabungkan data: data Firebase memiliki prioritas tertinggi
+        const updatedUserData = {
+          ...userData, // Data lama dari cache
+          ...latestUserData, // Data baru dari Firebase (akan timpa field yang sama)
+          // Pastikan firebase_key tetap ada
           firebase_key: userKey,
-          uid: userKey,
-          key: userKey,
-          last_updated: new Date().toISOString()
+          // Pastikan field kritis diambil dari Firebase
+          rating: latestUserData.rating || userData.rating,
+          perjalanan: latestUserData.perjalanan || userData.perjalanan,
+          // Timestamp pembaruan
+          last_updated_from_firebase: new Date().toISOString()
         };
         
-      } catch (error) {
-        console.error("❌ Gagal mengambil data dari Firebase:", error);
-        return null;
-      }
-    }
-    
-    // FUNGSI BARU 2: Ambil data driver lengkap dari Firebase
-    async function getCompleteDriverDataFromFirebase(driverId) {
-      console.log("🔍 [DEBUG] Memulai getCompleteDriverDataFromFirebase untuk driver:", driverId);
-      
-      if (!driverId) {
-        console.error("❌ Driver ID tidak tersedia");
-        return null;
-      }
-      
-      try {
-        const driverRef = database.ref('drivers/' + driverId);
-        const snapshot = await driverRef.once('value');
-        const driverData = snapshot.val();
-        
-        if (!driverData) {
-          console.error("❌ Data driver tidak ditemukan di Firebase");
-          return null;
+        // Update cache localStorage
+        try {
+          localStorage.setItem('jego_logged_in_user', JSON.stringify(updatedUserData));
+          
+          // Update juga di jego_users jika ada
+          const jegoUsers = JSON.parse(localStorage.getItem('jego_users')) || {};
+          if (userKey in jegoUsers) {
+            jegoUsers[userKey] = updatedUserData;
+            localStorage.setItem('jego_users', JSON.stringify(jegoUsers));
+          }
+        } catch (e) {
+          console.warn('Gagal update localStorage:', e);
         }
         
-        console.log("✅ [DEBUG] Data driver lengkap dari Firebase:", {
-          name: driverData.name,
-          phone: driverData.phone,
-          rating: driverData.avg_rating,
-          vehicle_type: driverData.vehicle_type,
-          fotoProfilURL: driverData.fotoProfilURL ? '✅ ADA' : '❌ TIDAK ADA'
-        });
-        
-        return driverData;
+        console.log("✅ [DEBUG] User data diperbarui dari Firebase. Rating baru:", updatedUserData.rating);
+        return updatedUserData;
         
       } catch (error) {
-        console.error("❌ Gagal mengambil data driver dari Firebase:", error);
-        return null;
+        console.error("❌ [DEBUG] Gagal mengambil data terbaru dari Firebase:", error);
+        return userData; // Fallback ke data lama
       }
     }
     
-    // FUNGSI BARU 3: Refresh data user secara periodic
+    // FUNGSI BARU 2: Refresh data user secara periodic
     function startUserDataRefresh() {
       // Hentikan interval sebelumnya jika ada
       if (userDataRefreshInterval) {
@@ -1367,10 +1275,7 @@
       userDataRefreshInterval = setInterval(async () => {
         if (userData && userData.firebase_key) {
           console.log("🔄 [DEBUG] Auto-refresh user data dari Firebase...");
-          const updatedUserData = await getCompleteUserDataFromFirebase(userData.firebase_key);
-          if (updatedUserData) {
-            userData = updatedUserData;
-          }
+          userData = await fetchLatestUserData(userData.firebase_key);
         }
       }, 30000); // 30 detik
     }
@@ -1382,7 +1287,7 @@
       }
     }
 
-    // FUNGSI BARU 4: Ambil dan validasi data user sebelum membuat order
+    // FUNGSI BARU 3: Ambil dan validasi data user sebelum membuat order
     async function getValidatedUserDataForOrder() {
       console.log("🔍 [DEBUG] Memulai getValidatedUserDataForOrder");
       
@@ -1395,33 +1300,33 @@
       }
       
       // 2. Ambil data user dari localStorage (utamakan jego_logged_in_user)
-      const localUserData = getUserData();
+      userData = getUserData();
       
-      if (!localUserData) {
+      if (!userData) {
         console.error("❌ [DEBUG] userData tidak ada/null");
         showPopup("Silakan login terlebih dahulu", "Perhatian", "warning");
         return null;
       }
       
-      const userKey = localUserData.firebase_key || localUserData.uid || localUserData.key;
+      const userKey = userData.firebase_key || userData.uid || userData.key;
       console.log("🔑 [DEBUG] User key yang ditemukan:", userKey);
       
       if (!userKey) {
-        console.error("❌ [DEBUG] User key tidak ditemukan di userData:", localUserData);
+        console.error("❌ [DEBUG] User key tidak ditemukan di userData:", userData);
         showPopup("User key tidak ditemukan. Silakan login ulang.", "Error", "error");
         return null;
       }
       
-      // 3. Ambil data TERBARU dan LENGKAP dari Firebase
+      // 3. Ambil data TERBARU dari Firebase (jika ada koneksi)
       try {
-        console.log("🔄 [DEBUG] Memanggil getCompleteUserDataFromFirebase untuk key:", userKey);
-        const validatedUserData = await getCompleteUserDataFromFirebase(userKey);
+        console.log("🔄 [DEBUG] Memanggil fetchLatestUserData untuk key:", userKey);
+        const validatedUserData = await fetchLatestUserData(userKey);
         
         if (!validatedUserData) {
-          console.error("❌ [DEBUG] getCompleteUserDataFromFirebase mengembalikan null");
+          console.error("❌ [DEBUG] fetchLatestUserData mengembalikan null");
           // Fallback ke data lokal
           console.log("⚠️ [DEBUG] Menggunakan data user dari localStorage");
-          return localUserData;
+          return userData;
         }
         
         console.log("✅ [DEBUG] Data user divalidasi untuk order:", {
@@ -1429,7 +1334,6 @@
           perjalanan: validatedUserData.perjalanan,
           name: validatedUserData.name,
           phone: validatedUserData.phone,
-          fotoProfilURL: validatedUserData.fotoProfilURL,
           firebase_key: validatedUserData.firebase_key
         });
         
@@ -1438,13 +1342,13 @@
       } catch (error) {
         console.error("❌ [DEBUG] Gagal mengambil data dari Firebase:", error);
         console.log("⚠️ [DEBUG] Menggunakan data user dari localStorage sebagai fallback");
-        return localUserData; // Fallback ke data lokal
+        return userData; // Fallback ke data lokal
       }
     }
 
     // ==================== FUNGSI YANG DIUBAH: sendOrderToFirebase ====================
     
-    // FUNGSI YANG DIPERBAIKI: Kirim order ke Firebase dengan data TERBARU dan LENGKAP
+    // FUNGSI YANG DIPERBAIKI: Kirim order ke Firebase dengan data TERBARU
     async function sendOrderToFirebase(orderData) {
       console.log("🚀 [DEBUG] ========== MEMULAI sendOrderToFirebase ==========");
       console.log("📦 [DEBUG] orderData yang diterima:", orderData);
@@ -1453,7 +1357,7 @@
         currentOrderId = generateOrderId();
         console.log("🆔 [DEBUG] Generated Order ID:", currentOrderId);
         
-        // 🔴 PERUBAHAN PENTING: Validasi dan ambil data user TERBARU dan LENGKAP
+        // 🔴 PERUBAHAN PENTING: Validasi dan ambil data user TERBARU
         console.log("👤 [DEBUG] Memanggil getValidatedUserDataForOrder...");
         const validatedUserData = await getValidatedUserDataForOrder();
         if (!validatedUserData) {
@@ -1463,12 +1367,7 @@
         
         // Update userData global dengan data terbaru
         userData = validatedUserData;
-        console.log("✅ [DEBUG] userData diperbarui:", {
-          name: userData.name,
-          phone: userData.phone,
-          rating: userData.rating,
-          fotoProfilURL: userData.fotoProfilURL
-        });
+        console.log("✅ [DEBUG] userData diperbarui:", userData);
         
         const userKey = userData.firebase_key || userData.key;
         
@@ -1479,24 +1378,27 @@
           throw new Error("User key tidak valid");
         }
         
-        // Buat snapshot data user untuk order - SEMUA DATA LENGKAP DARI FIREBASE
+        // Buat snapshot data user untuk order - TANPA FIELD YANG TIDAK ADA DI FIREBASE
         const userSnapshot = {
-          // Data lengkap dari Firebase
-          ...userData,
+          // Data dari Firebase (paling baru)
+          rating: userData.rating || 5,
+          perjalanan: userData.perjalanan || 0,
+          
+          // Data identitas yang ADA di Firebase
+          name: userData.name || '',
+          phone: userData.phone || '',
+          email: userData.email || '',
+          
+          // Field foto profil - KOSONG karena belum ada di Firebase
+          fotoProfilURL: '',
+          fotoProfilStorage: '',
           
           // Metadata
           snapshot_timestamp: new Date().toISOString(),
           snapshot_source: 'firebase_latest'
         };
         
-        // Hapus field yang tidak perlu untuk order (opsional)
-        delete userSnapshot.last_updated;
-        
-        console.log("📸 [DEBUG] Snapshot user LENGKAP untuk order:", {
-          fotoProfilURL: userSnapshot.fotoProfilURL,
-          name: userSnapshot.name,
-          rating: userSnapshot.rating
-        });
+        console.log("📊 [DEBUG] Snapshot user untuk order:", userSnapshot);
         
         // Tambahkan data kurir jika ada
         const orderRecord = {
@@ -1506,17 +1408,25 @@
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           
-          // 🔴 PERUBAHAN: Simpan SNAPSHOT data user LENGKAP, termasuk foto profil
+          // 🔴 PERUBAHAN: Simpan SNAPSHOT data user, bukan referensi
           user_snapshot: userSnapshot,
           
-          // Data lengkap user (untuk kompatibilitas) - SAMA dengan snapshot
-          user_data: userSnapshot,
+          // Data lengkap user (untuk kompatibilitas)
+          user_data: {
+            // Hanya field yang benar-benar ada di Firebase
+            name: userData.name || '',
+            phone: userData.phone || '',
+            email: userData.email || '',
+            rating: userData.rating || 5,
+            perjalanan: userData.perjalanan || 0,
+            role: userData.role || 'penumpang',
+            status: userData.status || 'active'
+            // 🔴 TIDAK SERTAKAN field yang tidak ada di Firebase
+          },
           
           // Reference ke user (menggunakan phone/email sebagai identifier)
           user_phone: userData.phone || '',
-          user_email: userData.email || '',
-          user_firebase_key: userKey,
-          user_foto_profil: userData.fotoProfilURL || '' // 🔴 SIMPAN JUGA DI FIELD TERPISAH
+          user_email: userData.email || ''
         };
         
         // Jika ini adalah pesanan kurir, tambahkan data pengiriman
@@ -1527,7 +1437,7 @@
         
         console.log('📤 [DEBUG] Mengirim order ke Firebase dengan ID:', currentOrderId);
         console.log('📊 [DEBUG] Rating yang dikirim:', userSnapshot.rating);
-        console.log('🖼️ [DEBUG] Foto profil yang dikirim:', userSnapshot.fotoProfilURL);
+        console.log('📈 [DEBUG] Perjalanan yang dikirim:', userSnapshot.perjalanan);
         console.log('🏢 [DEBUG] Path Firebase: orders/' + currentOrderId);
         
         // ✅ SIMPAN ORDER BARU KE LOCALSTORAGE
@@ -1549,7 +1459,7 @@
         
         console.log('✅ [DEBUG] Order berhasil disimpan di Firebase:', currentOrderId);
         console.log('📊 [DEBUG] Rating tersimpan:', userSnapshot.rating);
-        console.log('🖼️ [DEBUG] Foto profil tersimpan:', userSnapshot.fotoProfilURL);
+        console.log('📈 [DEBUG] Perjalanan tersimpan:', userSnapshot.perjalanan);
         
         // Kirim notifikasi ke Kodular
         if (kurirDeliveryData) {
@@ -1630,10 +1540,7 @@
       
       // Update userData global
       userData = validatedUserData;
-      console.log("✅ [DEBUG] userData setelah validasi:", {
-        name: userData.name,
-        fotoProfilURL: userData.fotoProfilURL
-      });
+      console.log("✅ [DEBUG] userData setelah validasi:", userData);
       
       // Nonaktifkan tombol sementara
       document.getElementById('confirmBtn').disabled = true;
@@ -1647,8 +1554,7 @@
         user_snapshot: {
           rating: userData.rating,
           perjalanan: userData.perjalanan,
-          name: userData.name,
-          fotoProfilURL: userData.fotoProfilURL
+          name: userData.name
         },
         action: 'route_confirmed'
       }, 'route_confirmed');
@@ -1695,10 +1601,8 @@
       }
       
       // 🔴 PERUBAHAN: Ambil data user terbaru sebelum cek order
-      getCompleteUserDataFromFirebase(userKey).then(updatedUserData => {
-        if (updatedUserData) {
-          userData = updatedUserData;
-        }
+      fetchLatestUserData(userKey).then(updatedUserData => {
+        userData = updatedUserData;
         
         const ordersRef = database.ref('orders');
         ordersRef.once('value')
@@ -1725,24 +1629,30 @@
                   // 🔴 PERUBAHAN: Update order dengan data user terbaru jika berbeda
                   if (order.user_data && 
                       (order.user_data.rating !== userData.rating || 
-                       order.user_data.perjalanan !== userData.perjalanan ||
-                       order.user_data.fotoProfilURL !== userData.fotoProfilURL)) {
+                       order.user_data.perjalanan !== userData.perjalanan)) {
                     
                     console.log("🔄 [DEBUG] Update data user di order yang aktif:", {
                       order_rating: order.user_data.rating,
                       latest_rating: userData.rating,
-                      order_foto: order.user_data.fotoProfilURL ? 'Ada' : 'Tidak ada',
-                      latest_foto: userData.fotoProfilURL ? 'Ada' : 'Tidak ada'
+                      order_perjalanan: order.user_data.perjalanan,
+                      latest_perjalanan: userData.perjalanan
                     });
                     
                     // Update order dengan snapshot terbaru
                     const orderRef = database.ref('orders/' + orderId);
                     orderRef.update({
                       'user_snapshot': {
-                        ...userData,
+                        rating: userData.rating,
+                        perjalanan: userData.perjalanan,
+                        name: userData.name,
+                        phone: userData.phone,
+                        email: userData.email,
+                        fotoProfilURL: '', // Kosong karena belum ada
+                        fotoProfilStorage: '', // Kosong karena belum ada
                         snapshot_timestamp: new Date().toISOString()
                       },
-                      'user_data': userData,
+                      'user_data.rating': userData.rating,
+                      'user_data.perjalanan': userData.perjalanan,
                       updated_at: new Date().toISOString()
                     }).then(() => {
                       console.log("✅ [DEBUG] Order diperbarui dengan data user terbaru");
@@ -1756,12 +1666,6 @@
             
             if (activeOrder) {
               console.log('✅ [DEBUG] Order aktif ditemukan untuk user:', userData.phone || userData.email);
-              console.log('🚗 [DEBUG] Driver data di order:', {
-                has_driver: !!activeOrder.driver,
-                has_selected_driver: !!activeOrder.selected_driver,
-                status: activeOrder.status
-              });
-              
               currentOrderId = activeOrder.orderId;
               
               // Isi currentRouteData dengan data dari order
@@ -1842,22 +1746,14 @@
                 startPriceIncreaseTimer();
                 
               } else if (activeOrder.status === 'accepted' && activeOrder.driver) {
-                // Simpan data driver dari field driver
+                // Simpan data driver
                 currentDriverData = activeOrder.driver;
                 
                 // ✅ SIMPAN DATA DRIVER KE LOCALSTORAGE
                 saveActiveOrderToLocalStorage({
                   ...activeOrder,
                   currentRouteData: currentRouteData,
-                  driver_data: currentDriverData,
-                  selected_driver: currentDriverData // 🔴 TAMBAHKAN JUGA KE selected_driver
-                });
-                
-                // Update Firebase untuk konsistensi
-                const orderRef = database.ref('orders/' + currentOrderId);
-                orderRef.update({
-                  selected_driver: currentDriverData,
-                  updated_at: new Date().toISOString()
+                  driver_data: currentDriverData
                 });
                 
                 // Redirect ke halaman order diterima
@@ -1867,7 +1763,6 @@
                 hideRadar();
                 document.getElementById('confirmBtn').style.display = 'none';
                 document.getElementById('cancelBtn').style.display = 'block';
-                
               } else if (activeOrder.status === 'accepted' && activeOrder.selected_driver) {
                 // Driver sudah dipilih dari penawaran
                 currentDriverData = activeOrder.selected_driver;
@@ -1876,8 +1771,7 @@
                 saveActiveOrderToLocalStorage({
                   ...activeOrder,
                   currentRouteData: currentRouteData,
-                  driver_data: currentDriverData,
-                  selected_driver: currentDriverData
+                  driver_data: currentDriverData
                 });
                 
                 // Redirect ke halaman order diterima
@@ -1901,8 +1795,7 @@
                 order_data: activeOrder,
                 user_snapshot: {
                   rating: userData.rating,
-                  perjalanan: userData.perjalanan,
-                  fotoProfilURL: userData.fotoProfilURL
+                  perjalanan: userData.perjalanan
                 }
               }, 'order_restored');
               
@@ -1924,6 +1817,86 @@
         console.error('[DEBUG] Error fetching latest user data:', error);
       });
     }
+
+    // ==================== FUNGSI YANG TIDAK BERUBAH (Tetap sama seperti sebelumnya) ====================
+    
+    // Ambil parameter vehicle
+    const urlParams = new URLSearchParams(window.location.search);
+    let vehicle = urlParams.get("vehicle");
+
+    // Jika tidak ada parameter vehicle, coba ambil dari localStorage
+    if (!vehicle) {
+      const lastTransport = localStorage.getItem('jego_last_transport');
+      if (lastTransport) {
+        try {
+          const transportData = JSON.parse(lastTransport);
+          vehicle = transportData.type;
+          
+          // Cek apakah ada data pengiriman untuk kurir
+          if (transportData.deliveryData) {
+            kurirDeliveryData = transportData.deliveryData;
+          }
+        } catch (e) {
+          console.error('[DEBUG] Error parsing last transport:', e);
+        }
+      }
+    }
+
+    // Fallback ke motor jika masih tidak ada
+    if (!vehicle) {
+      vehicle = "motor";
+    }
+
+    const fromParam = urlParams.get("from");
+    const toParam = urlParams.get("to");
+    const coordParam = urlParams.get("coord");
+
+    // Data kendaraan akan diambil dari Firebase
+    let vehicleData = {};
+
+    // Fallback data jika Firebase tidak tersedia (untuk emergency)
+    const fallbackVehicleData = {
+      motor: { 
+        name: "Motor", 
+        capacity: "1 Penumpang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+        minDistance: 4,
+        minPrice: 10000,
+        pricePerKm: 2200
+      },
+      bentor: { 
+        name: "Bentor", 
+        capacity: "2 Penumpang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+        minDistance: 4,
+        minPrice: 11000,
+        pricePerKm: 3000
+      },
+      mobil: { 
+        name: "Mobil", 
+        capacity: "4 Penumpang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+        minDistance: 4,
+        minPrice: 15000,
+        pricePerKm: 4000
+      },
+      kurir_motor: { 
+        name: "Kurir Motor", 
+        capacity: "Paket Kecil", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+        minDistance: 4,
+        minPrice: 10000,
+        pricePerKm: 2100
+      },
+      kurir_bentor: { 
+        name: "Kurir Bentor", 
+        capacity: "Paket Sedang", 
+        icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+        minDistance: 4,
+        minPrice: 10000,
+        pricePerKm: 2100
+      }
+    };
 
     // ==================== FUNGSI TAMPILKAN DATA KURIR ====================
 
@@ -2160,9 +2133,7 @@
       });
     }
 
-    // ==================== FUNGSI PERBAIKAN: renderDriver HANYA MENAMPILKAN DATA DRIVER ====================
-    
-    // FUNGSI YANG DIPERBAIKI: renderDriver hanya menampilkan data driver tanpa data user
+    // PERBAIKAN: Fungsi renderDriver dengan layout yang lebih baik
     function renderDriver(driver, index) {
       const card = document.createElement('div');
       card.className = 'driver-offer-card';
@@ -2180,7 +2151,6 @@
       const offeredPrice = driver.offered_price || currentRouteData.harga_total;
       const priceDisplay = `Rp ${offeredPrice.toLocaleString('id-ID')}`;
       
-      // ✅ HANYA TAMPILKAN DATA DRIVER (TIDAK ADA DATA USER)
       card.innerHTML = `
         <div class="driver-info">
           <img src="${driver.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" 
@@ -2376,8 +2346,7 @@
                     phone: userData.phone,
                     firebase_key: userData.firebase_key,
                     rating: userData.rating,
-                    perjalanan: userData.perjalanan,
-                    fotoProfilURL: userData.fotoProfilURL ? 'Ada' : 'Tidak ada'
+                    perjalanan: userData.perjalanan
                 });
                 
                 // ✅ PERUBAHAN PENTING: Mapping field dari registrasi ke format yang diharapkan
@@ -2398,10 +2367,9 @@
                     rating: userData.rating || 5,
                     perjalanan: userData.perjalanan || 0,
                     
-                    // Field foto profil (PASTIKAN ADA)
+                    // Field foto profil (kosong jika belum ada)
                     fotoProfilURL: userData.fotoProfilURL || userData.photoURL || '',
                     fotoProfilStorage: userData.fotoProfilStorage || 'default',
-                    fotoProfilFileName: userData.fotoProfilFileName || '',
                     
                     // Field status/role
                     status: userData.status || 'active',
@@ -2452,7 +2420,6 @@
                         perjalanan: userData.perjalanan || 0,
                         fotoProfilURL: userData.fotoProfilURL || '',
                         fotoProfilStorage: userData.fotoProfilStorage || 'default',
-                        fotoProfilFileName: userData.fotoProfilFileName || '',
                         status: 'active',
                         role: 'penumpang'
                     };
@@ -2484,7 +2451,6 @@
                     perjalanan: 0,
                     fotoProfilURL: firebaseUser.photoURL || '',
                     fotoProfilStorage: 'default',
-                    fotoProfilFileName: '',
                     status: 'active',
                     role: 'penumpang'
                 };
@@ -2936,7 +2902,6 @@
               ...existingOrder,
               status: 'accepted',
               driver: orderData.driver,
-              selected_driver: orderData.driver, // 🔴 TAMBAHKAN JUGA KE selected_driver
               updated_at: new Date().toISOString()
             });
           }
@@ -2965,7 +2930,6 @@
               ...existingOrder,
               status: 'accepted',  // ← DIUBAH KE 'accepted'
               selected_driver: orderData.selected_driver,
-              driver: orderData.selected_driver, // 🔴 TAMBAHKAN JUGA KE driver untuk konsistensi
               updated_at: new Date().toISOString()
             });
           }
@@ -3103,14 +3067,12 @@
       }, 3000);
     }
 
-    // PERBAIKAN: Fungsi untuk memilih driver dari penawaran (DIPERBAIKI DENGAN DATA LENGKAP)
+    // PERBAIKAN: Fungsi untuk memilih driver dari penawaran
     function selectDriver(offerId) {
       if (!currentOrderId) {
         showPopup('Tidak ada order aktif', "Error", "error");
         return;
       }
-      
-      console.log("🚗 [DEBUG] Memilih driver dengan ID:", offerId);
       
       const orderRef = database.ref('orders/' + currentOrderId);
       const offerRef = database.ref('orders/' + currentOrderId + '/driver_offers/' + offerId);
@@ -3124,48 +3086,24 @@
             return;
           }
           
-          // 🔴 AMBIL DATA DRIVER LENGKAP DARI FIREBASE
-          return getCompleteDriverDataFromFirebase(offerId).then(completeDriverData => {
-            const driverData = completeDriverData || offer;
-            
-            // Gabungkan data driver dengan data dari penawaran
-            const selectedDriver = {
-              // Data lengkap dari driver node
-              ...driverData,
-              
-              // Data dari penawaran (harga tawaran dll)
+          // Gunakan harga tawaran jika ada, jika tidak gunakan harga normal
+          const finalPrice = offer.offered_price || currentRouteData.harga_total;
+          
+          // Update order dengan driver yang dipilih
+          return orderRef.update({
+            status: 'accepted',
+            selected_driver: {
               ...offer,
-              
-              // Metadata
               offer_id: offerId,
               selected_at: new Date().toISOString(),
-              final_price: offer.offered_price || currentRouteData.harga_total
-            };
-            
-            // Hapus field duplikat
-            delete selectedDriver.id;
-            
-            console.log("✅ [DEBUG] Data driver lengkap untuk selected_driver:", {
-              name: selectedDriver.name,
-              fotoProfilURL: selectedDriver.fotoProfilURL,
-              rating: selectedDriver.avg_rating,
-              final_price: selectedDriver.final_price
-            });
-            
-            const finalPrice = offer.offered_price || currentRouteData.harga_total;
-            
-            // Update order dengan driver yang dipilih
-            return orderRef.update({
-              status: 'accepted',
-              selected_driver: selectedDriver,
-              driver: selectedDriver, // 🔴 SIMPAN JUGA DI FIELD driver untuk konsistensi
-              harga_total: finalPrice, // Update harga order
-              updated_at: new Date().toISOString()
-            });
+              final_price: finalPrice // Simpan harga final
+            },
+            harga_total: finalPrice, // Update harga order
+            updated_at: new Date().toISOString()
           });
         })
         .then(() => {
-          console.log('✅ Driver berhasil dipilih:', offerId);
+          console.log('Driver berhasil dipilih:', offerId);
           
           // Sembunyikan modal penawaran
           document.getElementById('driverOffers').style.display = 'none';
@@ -3175,28 +3113,14 @@
             action: 'driver_selected',
             order_id: currentOrderId,
             driver_offer_id: offerId,
-            driver_data: currentDriverData,
-            final_price: currentRouteData?.harga_total
+            final_price: finalPrice
           }, 'driver_selected');
-          
-          // ✅ SIMPAN DATA DRIVER KE LOCALSTORAGE
-          const existingOrder = getActiveOrderFromLocalStorage();
-          if (existingOrder) {
-            saveActiveOrderToLocalStorage({
-              ...existingOrder,
-              status: 'accepted',
-              selected_driver: currentDriverData,
-              driver: currentDriverData,
-              updated_at: new Date().toISOString()
-            });
-          }
           
           // Redirect ke halaman order diterima
           window.location.href = 'orderAcceptedForCS.html';
-          
         })
         .catch((error) => {
-          console.error('❌ Gagal memilih driver:', error);
+          console.error('Gagal memilih driver:', error);
           showPopup('Gagal memilih driver. Silakan coba lagi.', "Error", "error");
         });
     }
@@ -3498,33 +3422,28 @@
     }
 
     function sendToKodular(data, action = 'route_calculated') {
-      // ✅ PERUBAHAN: AMBIL SNAPSHOT USER DATA LENGKAP
+      // ✅ PERUBAHAN: AMBIL SNAPSHOT USER DATA
       const userSnapshot = userData ? {
         rating: userData.rating,
         perjalanan: userData.perjalanan,
         name: userData.name,
         phone: userData.phone,
         email: userData.email,
-        fotoProfilURL: userData.fotoProfilURL || '',
-        fotoProfilStorage: userData.fotoProfilStorage || 'default',
-        fotoProfilFileName: userData.fotoProfilFileName || '',
-        gender: userData.gender || '',
-        address: userData.address || ''
+        fotoProfilURL: '' // 🔴 KOSONG karena belum ada di Firebase
       } : null;
       
       const kodularData = {
         action: action,
         timestamp: new Date().toISOString(),
         user_data: userData, // ✅ Sertakan data user dari registrasi
-        user_snapshot: userSnapshot, // ✅ PERUBAHAN: SELALU KIRIM SNAPSHOT LENGKAP
+        user_snapshot: userSnapshot, // ✅ PERUBAHAN: SELALU KIRIM SNAPSHOT
         ...data
       };
       
       console.log('📊 Data yang akan dikirim ke Kodular (dengan snapshot):', {
         action: action,
         user_snapshot: userSnapshot,
-        user_nama: userData ? userData.name : 'Tidak diketahui',
-        user_foto: userSnapshot?.fotoProfilURL ? 'Ada' : 'Tidak ada'
+        user_nama: userData ? userData.name : 'Tidak diketahui'
       });
       
       // METODE 1: Menggunakan window.AppInventor.setWebViewString (PREFERED)
@@ -3887,17 +3806,12 @@
       
       // Konfigurasi autocomplete dengan bounds Gorontalo
       const autocompleteOptions = {
-  bounds: gorontaloLatLngBounds,
-  componentRestrictions: { country: 'id' },
-  fields: [
-    'address_components',
-    'geometry',
-    'name',
-    'formatted_address'
-  ],
-  strictBounds: false
-  // ⛔ JANGAN PAKAI types SAMA SEKALI
-};
+        bounds: gorontaloLatLngBounds,
+        componentRestrictions: { country: 'id' },
+        fields: ['address_components', 'geometry', 'name', 'formatted_address'],
+        strictBounds: false, // false agar tetap bisa cari luar Gorontalo
+        types: ['address']   // Hanya alamat, bukan tempat umum lainnya
+      };
       
       // Autocomplete untuk lokasi awal
       const autocompleteFrom = new google.maps.places.Autocomplete(fromInput, autocompleteOptions);
@@ -4022,16 +3936,14 @@
           console.log("🔑 [DEBUG] User key:", userData.firebase_key || userData.uid);
           console.log("📊 [DEBUG] Rating:", userData.rating);
           console.log("📈 [DEBUG] Perjalanan:", userData.perjalanan);
-          console.log("🖼️ [DEBUG] Foto profil:", userData.fotoProfilURL ? 'Ada' : 'Tidak ada');
           
           // 3. Ambil data TERBARU dari Firebase jika ada user key
           if (userData.firebase_key || userData.uid) {
             const userKey = userData.firebase_key || userData.uid;
-            getCompleteUserDataFromFirebase(userKey).then(updatedUserData => {
+            fetchLatestUserData(userKey).then(updatedUserData => {
               if (updatedUserData) {
                 userData = updatedUserData;
                 console.log("🔄 [DEBUG] User data diperbarui saat load. Rating sekarang:", userData.rating);
-                console.log("🖼️ [DEBUG] Foto profil sekarang:", userData.fotoProfilURL ? 'Ada' : 'Tidak ada');
               }
               
               // Mulai auto-refresh user data
