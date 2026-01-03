@@ -314,9 +314,10 @@
     /* Loading spinner */
     .loading {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 30px;
+      padding: 40px 20px;
       background: white;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
@@ -329,6 +330,7 @@
       border-radius: 50%;
       border-top-color: var(--primary);
       animation: spin 1s ease-in-out infinite;
+      margin-bottom: 15px;
     }
 
     @keyframes spin {
@@ -555,6 +557,67 @@
       box-shadow: 0 6px 15px rgba(0,0,0,0.2);
     }
 
+    /* Debug Panel */
+    .debug-panel {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 10000;
+      font-size: 0.7rem;
+      max-width: 300px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      border: 1px solid var(--primary);
+    }
+
+    .debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .debug-close {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .debug-item {
+      border-bottom: 1px solid #eee;
+      padding: 5px 0;
+      font-family: monospace;
+    }
+
+    .debug-time {
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .debug-btn {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      z-index: 9999;
+      padding: 8px 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
       body {
@@ -580,6 +643,11 @@
       
       .modal-map {
         height: 200px;
+      }
+      
+      .debug-panel {
+        max-width: 250px;
+        max-height: 150px;
       }
     }
 
@@ -619,6 +687,11 @@
       .header {
         padding: 12px 15px;
       }
+      
+      .debug-btn {
+        padding: 6px 10px;
+        font-size: 0.6rem;
+      }
     }
   </style>
 </head>
@@ -651,6 +724,7 @@
       <!-- Data akan diisi oleh JavaScript -->
       <div class="loading">
         <div class="spinner"></div>
+        <p>Memuat data riwayat...</p>
       </div>
     </div>
   </div>
@@ -723,6 +797,18 @@
     </div>
   </div>
 
+  <!-- Debug Panel -->
+  <div class="debug-panel" id="debugPanel">
+    <div class="debug-header">
+      <strong>Debug Info</strong>
+      <button class="debug-close" id="debugCloseBtn">&times;</button>
+    </div>
+    <div id="debugContent"></div>
+  </div>
+
+  <!-- Debug Button -->
+  <button class="debug-btn" id="debugBtn">🔄 Debug</button>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
@@ -738,43 +824,115 @@
       measurementId: "G-YWJPK7Y3J4"
     };
 
-    // Initialize Firebase
-    let database, auth;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      database = firebase.database();
-      auth = firebase.auth();
-      console.log('✅ Firebase berhasil diinisialisasi');
-    } catch (error) {
-      console.error('❌ Error inisialisasi Firebase:', error);
-    }
-
-    // OpenRouteService API Key
-    const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d868e0a852f64697af0';
-
+    // ==================== VARIABEL GLOBAL ====================
+    let database = null;
+    let auth = null;
+    let firebaseInitialized = false;
     let ordersRef = null;
     let ordersListener = null;
     let currentDriverData = null;
     let currentFilter = 'all';
     let driverId = null;
-    
-    // ==================== VARIABEL PETA ====================
+    let driverUid = null;
     let modalMap = null;
     let routePolyline = null;
     let startMarker = null;
     let endMarker = null;
     let mapLayers = [];
+    const ORS_API_KEY = '5b3ce3597851110001cf6248ddd85ecde3854d868e0a852f64697af0';
+
+    // ==================== FUNGSI DEBUGGING ====================
+    function showDebugInfo(message, data = null) {
+      const time = new Date().toLocaleTimeString();
+      console.log(`🔍 [${time}] ${message}`, data || '');
+      
+      const debugContent = document.getElementById('debugContent');
+      if (debugContent) {
+        const debugItem = document.createElement('div');
+        debugItem.className = 'debug-item';
+        
+        let html = `<div class="debug-time">${time}</div>`;
+        html += `<div>${message}</div>`;
+        
+        if (data) {
+          let dataStr = '';
+          if (typeof data === 'object') {
+            try {
+              dataStr = JSON.stringify(data).substring(0, 200);
+              if (JSON.stringify(data).length > 200) dataStr += '...';
+            } catch (e) {
+              dataStr = String(data);
+            }
+          } else {
+            dataStr = String(data);
+          }
+          html += `<div style="color:#666; font-size:0.6rem; margin-top:2px;">${dataStr}</div>`;
+        }
+        
+        debugItem.innerHTML = html;
+        debugContent.prepend(debugItem);
+        
+        // Batasi jumlah item debug
+        const items = debugContent.querySelectorAll('.debug-item');
+        if (items.length > 20) {
+          items[items.length - 1].remove();
+        }
+      }
+    }
+
+    function toggleDebugPanel() {
+      const panel = document.getElementById('debugPanel');
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function clearDebugInfo() {
+      const debugContent = document.getElementById('debugContent');
+      if (debugContent) {
+        debugContent.innerHTML = '';
+      }
+    }
+
+    // ==================== INISIALISASI FIREBASE ====================
+    function initializeFirebase() {
+      try {
+        if (firebase.apps.length === 0) {
+          firebase.initializeApp(firebaseConfig);
+          showDebugInfo('✅ Firebase berhasil diinisialisasi');
+        }
+        
+        database = firebase.database();
+        auth = firebase.auth();
+        firebaseInitialized = true;
+        
+        showDebugInfo('✅ Firebase modules loaded', {
+          database: !!database,
+          auth: !!auth
+        });
+        
+        return true;
+      } catch (error) {
+        showDebugInfo('❌ Error inisialisasi Firebase', error.message);
+        
+        document.getElementById('ordersList').innerHTML = `
+          <div class="empty-state">
+            <div>🔥</div>
+            <p>Gagal menghubungkan ke database</p>
+            <p style="font-size: 0.8rem; color: var(--danger);">Error: ${error.message || 'Unknown error'}</p>
+            <button class="login-btn" onclick="location.reload()">Refresh Halaman</button>
+          </div>
+        `;
+        
+        return false;
+      }
+    }
 
     // ==================== FUNGSI MANAJEMEN PETA ====================
     function clearMapLayers() {
-      console.log('🗑️ Menghapus semua layer peta...');
-      
       mapLayers.forEach(layer => {
         if (layer && modalMap && modalMap.hasLayer(layer)) {
           modalMap.removeLayer(layer);
         }
       });
-      
       mapLayers = [];
       routePolyline = null;
       startMarker = null;
@@ -789,8 +947,6 @@
     }
 
     function initMap() {
-      console.log('🗺️ Inisialisasi peta baru...');
-      
       if (modalMap) {
         modalMap.remove();
         modalMap = null;
@@ -806,7 +962,7 @@
       });
       addMapLayer(tileLayer);
       
-      console.log('✅ Peta berhasil diinisialisasi ulang');
+      showDebugInfo('🗺️ Peta berhasil diinisialisasi ulang');
     }
 
     // ==================== FUNGSI OPENROUTESERVICE ====================
@@ -817,7 +973,7 @@
         
         const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=${startCoords}&end=${endCoords}`;
         
-        console.log('🔄 Mengambil rute dari OpenRouteService...');
+        showDebugInfo('🔄 Mengambil rute dari OpenRouteService...');
         
         const response = await fetch(url);
         
@@ -828,20 +984,20 @@
         const data = await response.json();
         
         if (data.features && data.features.length > 0) {
-          console.log('✅ Rute berhasil diambil dari OpenRouteService');
+          showDebugInfo('✅ Rute berhasil diambil dari OpenRouteService');
           return data;
         } else {
           throw new Error('Tidak ada rute yang ditemukan');
         }
       } catch (error) {
-        console.error('❌ Error mengambil rute dari OpenRouteService:', error);
+        showDebugInfo('❌ Error mengambil rute dari OpenRouteService', error.message);
         throw error;
       }
     }
 
     async function showRouteOnMap(order) {
       if (!order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) {
-        console.log('❌ Data koordinat tidak lengkap untuk menampilkan peta');
+        showDebugInfo('❌ Data koordinat tidak lengkap untuk menampilkan peta');
         return;
       }
       
@@ -865,7 +1021,7 @@
         const latLngCoordinates = coordinates.map(coord => [coord[1], coord[0]]);
         
         routePolyline = L.polyline(latLngCoordinates, {
-          color: var(--secondary),
+          color: '#FF5722',
           weight: 6,
           opacity: 0.8,
           lineJoin: 'round'
@@ -883,11 +1039,11 @@
         const bounds = L.latLngBounds(latLngCoordinates);
         modalMap.fitBounds(bounds, { padding: [20, 20] });
         
-        console.log('✅ Rute berhasil ditampilkan di peta');
+        showDebugInfo('✅ Rute berhasil ditampilkan di peta');
         
       } catch (error) {
         document.getElementById('routeLoading').style.display = 'none';
-        console.error('❌ Gagal mengambil rute, menggunakan garis lurus:', error);
+        showDebugInfo('❌ Gagal mengambil rute, menggunakan garis lurus', error.message);
         showStraightLineRoute(order);
       }
     }
@@ -897,7 +1053,7 @@
       const endCoords = [order.to_lat, order.to_lng];
       
       routePolyline = L.polyline([startCoords, endCoords], {
-        color: var(--secondary),
+        color: '#FF5722',
         weight: 6,
         opacity: 0.8,
         lineJoin: 'round',
@@ -916,12 +1072,12 @@
       const bounds = L.latLngBounds([startCoords, endCoords]);
       modalMap.fitBounds(bounds, { padding: [20, 20] });
       
-      console.log('✅ Garis lurus ditampilkan sebagai fallback');
+      showDebugInfo('✅ Garis lurus ditampilkan sebagai fallback');
     }
 
     // ==================== FUNGSI MODAL ====================
     function showOrderDetail(order) {
-      console.log('📋 Menampilkan detail order:', order.id);
+      showDebugInfo('📋 Menampilkan detail order', order.id);
       
       document.getElementById('modalAddressA').textContent = order.alamat_a || '-';
       document.getElementById('modalAddressB').textContent = order.alamat_b || '-';
@@ -929,7 +1085,6 @@
       document.getElementById('modalDistance').textContent = order.jarak || '-';
       document.getElementById('modalPrice').textContent = order.harga_total ? `Rp ${order.harga_total.toLocaleString('id-ID')}` : '-';
       
-      // Cari timeline dari driver_offers jika ada
       let acceptedTime = '-';
       if (order.driver_offers && driverId) {
         const driverOffer = Object.values(order.driver_offers).find(
@@ -954,269 +1109,526 @@
     }
 
     function closeModal() {
-      console.log('🚪 Menutup modal dan membersihkan peta...');
+      showDebugInfo('🚪 Menutup modal dan membersihkan peta...');
       
       clearMapLayers();
       document.getElementById('orderModal').style.display = 'none';
       document.getElementById('routeLoading').style.display = 'none';
     }
 
-    // ==================== FUNGSI UTAMA ====================
+    // ==================== FUNGSI CEK DRIVER ====================
     async function checkDriverData() {
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          console.warn('❌ Tidak ada user yang login');
-          showLoginRequired();
+        if (!firebaseInitialized) {
+          showDebugInfo('❌ Firebase belum diinisialisasi');
           return false;
         }
 
-        const driverSnapshot = await database.ref('drivers')
+        // 1. Cek apakah user sudah login di Firebase Auth
+        const user = auth.currentUser;
+        showDebugInfo('🔍 Auth currentUser', user ? { uid: user.uid, email: user.email } : 'null');
+        
+        if (!user) {
+          showDebugInfo('❌ Tidak ada user yang login di Firebase Auth');
+          
+          // Coba login ulang dari localStorage
+          const savedUser = localStorage.getItem('jego_driver_data');
+          if (savedUser) {
+            try {
+              const driverData = JSON.parse(savedUser);
+              showDebugInfo('📱 Data dari localStorage', { 
+                driverId: driverData.driverId,
+                name: driverData.fullName 
+              });
+              
+              if (driverData.driverId) {
+                currentDriverData = driverData;
+                driverId = driverData.driverId;
+                driverUid = driverData.uid;
+                
+                showDebugInfo('✅ Menggunakan data dari localStorage');
+                return true;
+              }
+            } catch (e) {
+              showDebugInfo('❌ Error parsing saved user', e.message);
+            }
+          }
+          
+          showLoginRequired('Silakan login terlebih dahulu');
+          return false;
+        }
+
+        // 2. Cari driver di database berdasarkan UID
+        showDebugInfo('🔍 Mencari driver dengan UID', user.uid);
+        
+        let driverSnapshot = await database.ref('drivers')
           .orderByChild('uid')
           .equalTo(user.uid)
           .once('value');
         
-        const drivers = driverSnapshot.val();
+        let drivers = driverSnapshot.val();
+        showDebugInfo('📊 Driver data by UID', drivers ? Object.keys(drivers).length : 0);
+        
+        // Jika tidak ditemukan, coba cari di localStorage
+        if (!drivers) {
+          showDebugInfo('⚠️ Driver tidak ditemukan berdasarkan UID, cek localStorage');
+          const savedUser = localStorage.getItem('jego_driver_data');
+          if (savedUser) {
+            try {
+              const driverData = JSON.parse(savedUser);
+              if (driverData.driverId) {
+                showDebugInfo('🔍 Mencari berdasarkan driverId', driverData.driverId);
+                
+                driverSnapshot = await database.ref('drivers')
+                  .orderByChild('driverId')
+                  .equalTo(driverData.driverId)
+                  .once('value');
+                drivers = driverSnapshot.val();
+                showDebugInfo('📊 Driver data by driverId', drivers ? Object.keys(drivers).length : 0);
+              }
+            } catch (e) {
+              showDebugInfo('❌ Error', e.message);
+            }
+          }
+        }
         
         if (!drivers) {
-          console.warn('❌ Driver tidak ditemukan untuk UID ini');
-          showLoginRequired('Data driver tidak ditemukan');
+          showDebugInfo('❌ Driver tidak ditemukan di database');
+          showLoginRequired('Data driver tidak ditemukan. Silakan daftar ulang atau hubungi admin.');
           return false;
         }
 
-        driverId = Object.keys(drivers)[0];
-        const driverData = drivers[driverId];
+        // 3. Ambil data driver
+        const driverKey = Object.keys(drivers)[0];
+        const driverData = drivers[driverKey];
+        showDebugInfo('✅ Driver data ditemukan', { 
+          driverKey, 
+          driverId: driverData.driverId,
+          name: driverData.fullName,
+          status: driverData.status 
+        });
         
-        if (driverData.status !== 'accepted' && driverData.status !== 'active' && driverData.status !== 'approved') {
-          console.warn('❌ Status driver belum diterima:', driverData.status);
-          showLoginRequired(`Status driver: ${driverData.status}. Menunggu verifikasi admin.`);
+        // 4. Cek status driver
+        const status = driverData.status || 'pending';
+        const allowedStatuses = ['accepted', 'active', 'approved'];
+        
+        if (!allowedStatuses.includes(status)) {
+          showDebugInfo(`⚠️ Status driver belum diterima: ${status}`);
+          showLoginRequired(`Status driver Anda: ${status}. Menunggu verifikasi admin.`);
           return false;
         }
 
+        // 5. Simpan data driver
         currentDriverData = {
-          driverId: driverId,
+          driverId: driverData.driverId || driverKey,
           uid: user.uid,
           ...driverData
         };
-
-        console.log('✅ Driver data loaded:', currentDriverData);
+        
+        driverId = currentDriverData.driverId;
+        driverUid = user.uid;
+        
+        // Simpan ke localStorage untuk backup
+        localStorage.setItem('jego_driver_data', JSON.stringify(currentDriverData));
+        
+        showDebugInfo('✅ Driver data loaded', { 
+          driverId: currentDriverData.driverId,
+          name: currentDriverData.fullName 
+        });
         return true;
+        
       } catch (error) {
-        console.error('❌ Error mendapatkan data driver:', error);
-        showLoginRequired('Error memuat data driver');
+        showDebugInfo('❌ Error mendapatkan data driver', error.message);
+        
+        // Fallback ke localStorage
+        const savedUser = localStorage.getItem('jego_driver_data');
+        if (savedUser) {
+          try {
+            const driverData = JSON.parse(savedUser);
+            currentDriverData = driverData;
+            driverId = driverData.driverId;
+            showDebugInfo('✅ Menggunakan data fallback dari localStorage');
+            return true;
+          } catch (e) {
+            showDebugInfo('❌ Error fallback', e.message);
+          }
+        }
+        
+        showLoginRequired('Error memuat data driver: ' + (error.message || 'Unknown error'));
         return false;
       }
     }
 
-    function showLoginRequired(message = 'Anda belum login') {
+    function showLoginRequired(message = 'Anda belum login sebagai driver') {
       const ordersList = document.getElementById('ordersList');
       ordersList.innerHTML = `
         <div class="login-required">
-          <div style="font-size: 3rem; margin-bottom: 15px;">🔒</div>
-          <h3 style="color: var(--primary); margin-bottom: 10px;">Login Diperlukan</h3>
+          <div style="font-size: 3rem; margin-bottom: 15px; color: var(--primary)">🚗</div>
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Akses Dibatasi</h3>
           <p>${message}</p>
-          <button class="login-btn" id="loginBtn">Login sebagai Driver</button>
+          <div style="margin-top: 20px;">
+            <button class="login-btn" onclick="window.location.href='loginDriver.html'" style="margin-right: 10px;">
+              Login Driver
+            </button>
+            <button class="login-btn" onclick="window.location.href='list.html'" style="background: var(--gray);">
+              Kembali
+            </button>
+          </div>
+          <p style="font-size:0.8rem; margin-top:15px; color:#666;">
+            Jika sudah login tapi masih melihat pesan ini:<br>
+            1. Logout dan login ulang<br>
+            2. Periksa koneksi internet<br>
+            3. Hubungi admin JeGo: 083142889149
+          </p>
+        </div>
+      `;
+    }
+
+    // ==================== FUNGSI LOAD RIWAYAT ====================
+    async function loadHistoryData() {
+      showDebugInfo('🚀 Mulai loadHistoryData');
+      
+      const ordersList = document.getElementById('ordersList');
+      
+      // 1. Cek dan dapatkan data driver
+      if (!await checkDriverData()) {
+        showDebugInfo('❌ checkDriverData gagal');
+        return;
+      }
+      
+      showDebugInfo('✅ Data driver siap', { driverId, driverUid });
+      
+      ordersList.innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Memuat riwayat order...</p>
+          <p style="font-size:0.8rem; color:#666; margin-top:5px;">Driver ID: ${driverId || 'Tidak diketahui'}</p>
         </div>
       `;
       
-      document.getElementById('loginBtn').addEventListener('click', () => {
-        window.location.href = 'loginDriver.html';
-      });
-    }
-
-    async function loadHistoryData() {
-      if (!await checkDriverData()) {
-        return;
-      }
-
-      const ordersList = document.getElementById('ordersList');
-      ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-
+      // 2. Setup timeout
       const loadingTimeout = setTimeout(() => {
         if (ordersList.querySelector('.loading')) {
-          console.log('⚠️ Timeout loading history, fallback ke mode demo');
-          showDummyData();
+          showDebugInfo('⚠️ Timeout loading history (15 detik)');
+          ordersList.innerHTML = `
+            <div class="empty-state">
+              <div>⏱️</div>
+              <p>Waktu pemuatan habis</p>
+              <p style="font-size:0.8rem;">Coba refresh halaman atau periksa koneksi internet</p>
+              <button class="login-btn" onclick="location.reload()">Refresh Halaman</button>
+            </div>
+          `;
         }
-      }, 10000);
-
-      if (ordersListener && ordersRef) {
-        ordersRef.off('value', ordersListener);
+      }, 15000);
+      
+      try {
+        // 3. Hentikan listener lama jika ada
+        if (ordersListener && ordersRef) {
+          ordersRef.off('value', ordersListener);
+        }
+        
+        // 4. Baca data dari Firebase
+        showDebugInfo('📊 Membaca data dari /orders');
+        ordersRef = database.ref('orders');
+        
+        ordersListener = ordersRef.on('value', (snapshot) => {
+          clearTimeout(loadingTimeout);
+          showDebugInfo('✅ Data orders diterima');
+          
+          const orders = snapshot.val();
+          showDebugInfo('📈 Total orders ditemukan', orders ? Object.keys(orders).length : 0);
+          
+          if (!orders || Object.keys(orders).length === 0) {
+            ordersList.innerHTML = `
+              <div class="empty-state">
+                <div>📭</div>
+                <p>Tidak ada data order</p>
+                <p style="font-size:0.8rem;">Belum ada order yang tercatat</p>
+              </div>
+            `;
+            return;
+          }
+          
+          // 5. Filter dan proses data
+          processOrdersData(orders);
+          
+        }, (error) => {
+          clearTimeout(loadingTimeout);
+          showDebugInfo('❌ Error loading orders', error.message);
+          
+          ordersList.innerHTML = `
+            <div class="empty-state">
+              <div>❌</div>
+              <p>Gagal memuat data</p>
+              <p style="font-size:0.8rem; color:var(--danger);">${error.message || 'Unknown error'}</p>
+              <button class="login-btn" onclick="loadHistoryData()">Coba Lagi</button>
+            </div>
+          `;
+        });
+        
+      } catch (error) {
+        clearTimeout(loadingTimeout);
+        showDebugInfo('❌ Catch error loadHistoryData', error.message);
+        
+        ordersList.innerHTML = `
+          <div class="empty-state">
+            <div>🚨</div>
+            <p>Terjadi kesalahan</p>
+            <p style="font-size:0.8rem;">${error.message || 'Unknown error'}</p>
+            <button class="login-btn" onclick="location.reload()">Refresh Halaman</button>
+          </div>
+        `;
       }
-
-      ordersRef = database.ref('orders');
-      
-      ordersListener = ordersRef.on('value', (snapshot) => {
-        clearTimeout(loadingTimeout);
-        
-        const orders = snapshot.val();
-        ordersList.innerHTML = '';
-
-        if (!orders || Object.keys(orders).length === 0) {
-          ordersList.innerHTML = `
-            <div class="empty-state">
-              <div>📭</div>
-              <p>Tidak ada riwayat order</p>
-            </div>
-          `;
-          return;
-        }
-
-        // Filter orders berdasarkan driver_offers dan status selesai/dibatalkan
-        const driverOrders = Object.entries(orders)
-          .map(([id, order]) => ({ id, ...order }))
-          .filter(order => {
-            const isCompletedOrCancelled = ['completed', 'cancelled'].includes(order.status);
-            if (!isCompletedOrCancelled) return false;
-            
-            // Cek apakah driver ada di driver_offers
-            if (order.driver_offers && driverId) {
-              const driverOffer = Object.values(order.driver_offers).find(
-                offer => offer.driver_id === driverId
-              );
-              return !!driverOffer;
-            }
-            
-            return false;
-          })
-          .sort((a, b) => {
-            const timeA = new Date(a.completed_at || a.updated_at || a.created_at || 0).getTime();
-            const timeB = new Date(b.completed_at || b.updated_at || b.created_at || 0).getTime();
-            return timeB - timeA;
-          });
-
-        if (driverOrders.length === 0) {
-          ordersList.innerHTML = `
-            <div class="empty-state">
-              <div>📭</div>
-              <p>Tidak ada riwayat order untuk driver ini</p>
-            </div>
-          `;
-          return;
-        }
-
-        const ordersByDate = groupOrdersByDate(driverOrders);
-        displayFilteredOrders(ordersByDate);
-        
-      }, (error) => {
-        clearTimeout(loadingTimeout);
-        console.error('Error loading history:', error);
-        showDummyData();
-      });
     }
 
-    function groupOrdersByDate(orders) {
-      const groups = {};
-      
-      orders.forEach(order => {
-        const orderDate = new Date(order.completed_at || order.created_at);
-        const dateKey = formatDateKey(orderDate);
-        
-        if (!groups[dateKey]) {
-          groups[dateKey] = [];
-        }
-        
-        groups[dateKey].push(order);
-      });
-      
-      return groups;
-    }
-
-    function displayFilteredOrders(ordersByDate) {
+    function processOrdersData(orders) {
       const ordersList = document.getElementById('ordersList');
+      showDebugInfo('🔄 Memproses data orders');
+      
+      // 1. Konversi ke array dan filter
+      const allOrders = Object.entries(orders).map(([id, order]) => ({ 
+        id, 
+        ...order,
+        driver_offers: order.driver_offers || {},
+        accepted_driver: order.accepted_driver || null,
+        selected_driver: order.selected_driver || null
+      }));
+      
+      showDebugInfo('📊 Total semua orders', allOrders.length);
+      showDebugInfo('🔍 Driver ID yang dicari', driverId);
+      
+      // 2. Debug: tampilkan beberapa order pertama
+      allOrders.slice(0, 3).forEach((order, i) => {
+        showDebugInfo(`Order ${i + 1} - Status: ${order.status}`, {
+          id: order.id,
+          hasDriverOffers: Object.keys(order.driver_offers || {}).length,
+          driverIds: Object.values(order.driver_offers || {}).map(d => d.driver_id),
+          acceptedDriver: order.accepted_driver,
+          selectedDriver: order.selected_driver
+        });
+      });
+      
+      // 3. Filter orders untuk driver ini
+      const driverOrders = allOrders.filter(order => {
+        // Hanya order yang sudah selesai atau dibatalkan
+        if (!['completed', 'cancelled'].includes(order.status)) {
+          return false;
+        }
+        
+        // Cek apakah driver ada di driver_offers
+        if (order.driver_offers && Object.keys(order.driver_offers).length > 0) {
+          const driverOffer = Object.values(order.driver_offers).find(
+            offer => offer.driver_id === driverId
+          );
+          if (driverOffer) {
+            showDebugInfo(`✅ Driver ditemukan di driver_offers order ${order.id}`);
+            return true;
+          }
+        }
+        
+        // Cek apakah driver adalah accepted_driver
+        if (order.accepted_driver && order.accepted_driver.driver_id === driverId) {
+          showDebugInfo(`✅ Driver adalah accepted_driver order ${order.id}`);
+          return true;
+        }
+        
+        // Cek apakah driver adalah selected_driver
+        if (order.selected_driver && order.selected_driver.driver_id === driverId) {
+          showDebugInfo(`✅ Driver adalah selected_driver order ${order.id}`);
+          return true;
+        }
+        
+        return false;
+      });
+      
+      showDebugInfo(`🎯 Total order untuk driver ${driverId}`, driverOrders.length);
+      
+      // 4. Jika tidak ada order
+      if (driverOrders.length === 0) {
+        ordersList.innerHTML = `
+          <div class="empty-state">
+            <div>📭</div>
+            <p>Tidak ada riwayat order</p>
+            <p style="font-size:0.8rem;">Driver ID: ${driverId || 'Tidak diketahui'}</p>
+            <p style="font-size:0.8rem;">Belum ada order yang selesai/dibatalkan</p>
+            <button class="login-btn" onclick="loadHistoryData()" style="background: var(--info); margin-top:10px;">
+              Refresh Data
+            </button>
+          </div>
+        `;
+        return;
+      }
+      
+      // 5. Urutkan berdasarkan waktu terbaru
+      driverOrders.sort((a, b) => {
+        const timeA = new Date(a.completed_at || a.updated_at || a.created_at || 0).getTime();
+        const timeB = new Date(b.completed_at || b.updated_at || b.created_at || 0).getTime();
+        return timeB - timeA;
+      });
+      
+      // 6. Tampilkan data
+      displayOrders(driverOrders);
+    }
+
+    function displayOrders(orders) {
+      const ordersList = document.getElementById('ordersList');
+      
+      // 1. Kelompokkan berdasarkan tanggal
+      const ordersByDate = {};
+      orders.forEach(order => {
+        const date = new Date(order.completed_at || order.created_at);
+        const dateKey = date.toLocaleDateString('id-ID', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        
+        if (!ordersByDate[dateKey]) {
+          ordersByDate[dateKey] = [];
+        }
+        ordersByDate[dateKey].push(order);
+      });
+      
+      // 2. Tampilkan per tanggal
       ordersList.innerHTML = '';
       
-      const sortedDates = Object.keys(ordersByDate).sort((a, b) => new Date(b) - new Date(a));
+      const sortedDates = Object.keys(ordersByDate).sort((a, b) => {
+        return new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'));
+      });
       
-      sortedDates.forEach(date => {
-        const ordersForDate = ordersByDate[date];
+      sortedDates.forEach(dateKey => {
+        const ordersForDate = ordersByDate[dateKey];
         
-        const filteredOrders = ordersForDate.filter(order => {
-          if (currentFilter === 'all') return true;
-          if (currentFilter === 'completed') return order.status === 'completed';
-          if (currentFilter === 'cancelled') return order.status === 'cancelled';
-          if (currentFilter === 'this_week') return isThisWeek(new Date(order.completed_at || order.created_at));
-          if (currentFilter === 'this_month') return isThisMonth(new Date(order.completed_at || order.created_at));
-          return true;
-        });
+        // Filter berdasarkan filter aktif
+        let filteredOrders = ordersForDate;
+        if (currentFilter !== 'all') {
+          if (currentFilter === 'completed') {
+            filteredOrders = ordersForDate.filter(order => order.status === 'completed');
+          } else if (currentFilter === 'cancelled') {
+            filteredOrders = ordersForDate.filter(order => order.status === 'cancelled');
+          } else if (currentFilter === 'this_week') {
+            filteredOrders = ordersForDate.filter(order => isThisWeek(new Date(order.completed_at || order.created_at)));
+          } else if (currentFilter === 'this_month') {
+            filteredOrders = ordersForDate.filter(order => isThisMonth(new Date(order.completed_at || order.created_at)));
+          }
+        }
         
         if (filteredOrders.length === 0) return;
         
+        // Header tanggal
+        const dateHeader = document.createElement('div');
+        dateHeader.className = 'date-header';
+        dateHeader.textContent = `${dateKey} • ${filteredOrders.length} order`;
+        
         const dateSection = document.createElement('div');
         dateSection.className = 'date-section';
-        dateSection.innerHTML = `<div class="date-header">${formatDisplayDate(date)} • ${filteredOrders.length} order</div>`;
+        dateSection.appendChild(dateHeader);
         ordersList.appendChild(dateSection);
         
+        // Item order
         filteredOrders.forEach(order => {
-          const orderItem = document.createElement('div');
-          orderItem.className = 'order-item';
-          orderItem.dataset.orderId = order.id;
-          
-          const customerName = order.user_data?.name || order.user_data?.nama || 'Tidak diketahui';
-          const alamatA = order.alamat_a || '-';
-          const alamatB = order.alamat_b || '-';
-          const durasi = order.durasi || '-';
-          const jarak = order.jarak || '-';
-          const harga = order.harga_total ? `Rp ${order.harga_total.toLocaleString('id-ID')}` : '-';
-          const isKurir = order.vehicle && order.vehicle.includes('kurir');
-          const statusText = getStatusText(order.status);
-          const statusClass = getStatusClass(order.status);
-          
-          const orderTime = formatOrderTime(order.completed_at || order.created_at);
-
-          orderItem.innerHTML = `
-            <div class="order-header">
-              <div class="customer-name">
-                ${customerName}
-                ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
-              </div>
-              <span class="status-badge ${statusClass}">${statusText}</span>
-            </div>
-            <div class="route-info">
-              <div class="route-point">
-                <div class="point-marker point-marker-a">A</div>
-                <div class="point-address point-address-a">${alamatA}</div>
-              </div>
-              <div class="route-point">
-                <div class="point-marker point-marker-b">B</div>
-                <div class="point-address">${alamatB}</div>
-              </div>
-            </div>
-            <div class="order-details">
-              <div class="detail-item">
-                <span class="detail-value">${durasi}</span>
-                <span class="detail-label">Durasi</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-value">${jarak}</span>
-                <span class="detail-label">Jarak</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-value price-highlight">${harga}</span>
-                <span class="detail-label">Harga</span>
-              </div>
-            </div>
-            <div class="order-meta">
-              <span>${orderTime}</span>
-              <span>${order.vehicle_name || 'Motor'}</span>
-            </div>
-          `;
-          
-          orderItem.addEventListener('click', () => {
-            showOrderDetail(order);
-          });
-          
+          const orderItem = createOrderItem(order);
           ordersList.appendChild(orderItem);
         });
       });
       
+      // Jika tidak ada order setelah filter
       if (ordersList.children.length === 0) {
         ordersList.innerHTML = `
           <div class="empty-state">
             <div>🔍</div>
             <p>Tidak ada order yang sesuai dengan filter</p>
+            <p style="font-size:0.8rem;">Filter aktif: ${currentFilter}</p>
+            <button class="login-btn" onclick="changeFilter('all')" style="background: var(--info); margin-top:10px;">
+              Tampilkan Semua
+            </button>
           </div>
         `;
       }
+      
+      showDebugInfo(`✅ Menampilkan ${orders.length} order`);
+    }
+
+    function createOrderItem(order) {
+      const orderItem = document.createElement('div');
+      orderItem.className = 'order-item';
+      
+      // Data customer
+      const customerName = order.user_data?.name || 
+                          order.user_data?.nama || 
+                          'Tidak diketahui';
+      
+      // Data alamat
+      const alamatA = order.alamat_a || 'Lokasi penjemputan tidak tersedia';
+      const alamatB = order.alamat_b || 'Lokasi tujuan tidak tersedia';
+      
+      // Data perjalanan
+      const durasi = order.durasi || '-';
+      const jarak = order.jarak || '-';
+      const harga = order.harga_total ? 
+                    `Rp ${parseInt(order.harga_total).toLocaleString('id-ID')}` : 
+                    'Rp 0';
+      
+      // Status
+      const statusText = getStatusText(order.status);
+      const statusClass = getStatusClass(order.status);
+      
+      // Waktu
+      const orderTime = formatOrderTime(order.completed_at || order.created_at);
+      
+      // Vehicle info
+      const vehicleType = order.vehicle || order.vehicle_type || 'motor';
+      const vehicleName = order.vehicle_name || 
+                         (vehicleType === 'motor' ? 'Motor' : 
+                          vehicleType === 'mobil' ? 'Mobil' : 
+                          vehicleType === 'bentor' ? 'Bentor' : 'Kendaraan');
+      
+      // HTML order item
+      orderItem.innerHTML = `
+        <div class="order-header">
+          <div class="customer-name">
+            ${customerName}
+            ${order.vehicle_capacity && order.vehicle_capacity.includes('kurir') ? 
+              '<span class="kurir-badge">📦 KURIR</span>' : ''}
+          </div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        <div class="route-info">
+          <div class="route-point">
+            <div class="point-marker point-marker-a">A</div>
+            <div class="point-address point-address-a">${alamatA}</div>
+          </div>
+          <div class="route-point">
+            <div class="point-marker point-marker-b">B</div>
+            <div class="point-address">${alamatB}</div>
+          </div>
+        </div>
+        <div class="order-details">
+          <div class="detail-item">
+            <span class="detail-value">${durasi}</span>
+            <span class="detail-label">Durasi</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-value">${jarak}</span>
+            <span class="detail-label">Jarak</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-value price-highlight">${harga}</span>
+            <span class="detail-label">Harga</span>
+          </div>
+        </div>
+        <div class="order-meta">
+          <span>${orderTime}</span>
+          <span>${vehicleName}</span>
+        </div>
+      `;
+      
+      // Event click untuk detail
+      orderItem.addEventListener('click', () => {
+        showOrderDetail(order);
+      });
+      
+      return orderItem;
     }
 
     // ==================== FUNGSI BANTUAN ====================
@@ -1226,9 +1638,9 @@
         'cancelled': 'Dibatalkan',
         'accepted': 'Diterima',
         'on_the_way': 'Dalam Perjalanan',
-        'searching': 'Mencari Driver'
+        'searching': 'Mencari Driver',
+        'pending': 'Menunggu'
       };
-      
       return statusMap[status] || status;
     }
 
@@ -1238,36 +1650,14 @@
         'cancelled': 'status-cancelled',
         'accepted': 'status-accepted',
         'on_the_way': 'status-on_the_way',
-        'searching': 'status-search'
+        'searching': 'status-search',
+        'pending': 'status-accepted'
       };
-      
       return classMap[status] || 'status-completed';
     }
 
-    function formatDateKey(date) {
-      return date.toISOString().split('T')[0];
-    }
-
-    function formatDisplayDate(dateString) {
-      const date = new Date(dateString);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      if (formatDateKey(date) === formatDateKey(today)) {
-        return 'Hari Ini';
-      } else if (formatDateKey(date) === formatDateKey(yesterday)) {
-        return 'Kemarin';
-      } else {
-        return date.toLocaleDateString('id-ID', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        });
-      }
-    }
-
     function formatOrderTime(dateString) {
+      if (!dateString) return '-';
       const date = new Date(dateString);
       return date.toLocaleTimeString('id-ID', {
         hour: '2-digit',
@@ -1277,7 +1667,6 @@
 
     function formatFullTime(dateString) {
       if (!dateString) return '-';
-      
       const date = new Date(dateString);
       return date.toLocaleString('id-ID', {
         day: 'numeric',
@@ -1309,7 +1698,6 @@
       return date >= startOfMonth && date <= endOfMonth;
     }
 
-    // ==================== FUNGSI FILTER ====================
     function changeFilter(filter) {
       currentFilter = filter;
       
@@ -1325,9 +1713,8 @@
       loadHistoryData();
     }
 
-    // ==================== FUNGSI KODULAR ====================
     function sendToKodular(data) {
-      console.log('Mengirim data ke Kodular:', data);
+      console.log('📤 Mengirim data ke Kodular:', data);
       
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
@@ -1351,7 +1738,7 @@
         }
       }
       else {
-        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        console.warn('⚠️ Tidak ada metode yang berhasil mengirim data ke Kodular');
       }
     }
 
@@ -1364,111 +1751,74 @@
       window.location.href = 'list.html';
     }
 
-    // ==================== FUNGSI DATA DUMMY ====================
-    function showDummyData() {
-      const ordersList = document.getElementById('ordersList');
-      
-      ordersList.innerHTML = '';
-      
-      const warningMsg = document.createElement('div');
-      warningMsg.className = 'empty-state';
-      warningMsg.innerHTML = `
-        <div>⚠️</div>
-        <p>Mode Demo - Firebase tidak terhubung</p>
-        <p style="font-size: 0.8rem; margin-top: 10px;">Pastikan konfigurasi Firebase sudah benar</p>
-      `;
-      ordersList.appendChild(warningMsg);
-      
-      const dummyOrders = [
-        {
-          id: 'demo_1',
-          user_data: { name: 'Budi Santoso' },
-          alamat_a: 'Jl. Merdeka No. 123, Jakarta Pusat',
-          alamat_b: 'Plaza Indonesia, Jl. MH Thamrin, Jakarta',
-          durasi: '15 menit',
-          jarak: '3.2 km',
-          harga_total: 25000,
-          status: 'completed',
-          vehicle: 'motor',
-          vehicle_name: 'Motor',
-          created_at: '2025-11-15T10:30:00Z',
-          completed_at: '2025-11-15T10:45:00Z',
-          from_lat: -6.2088,
-          from_lng: 106.8456,
-          to_lat: -6.1932,
-          to_lng: 106.8228,
-          driver_offers: {
-            'DRIVER_1': {
-              driver_id: driverId || 'demo_driver',
-              offered_at: '2025-11-15T10:35:00Z'
-            }
-          }
-        }
-      ];
-      
-      const driverOrders = dummyOrders.filter(order => {
-        if (order.driver_offers && driverId) {
-          const driverOffer = Object.values(order.driver_offers).find(
-            offer => offer.driver_id === driverId
-          );
-          return !!driverOffer;
-        }
-        return false;
-      });
-      
-      if (driverOrders.length === 0) {
-        ordersList.innerHTML = `
-          <div class="empty-state">
-            <div>📭</div>
-            <p>Tidak ada riwayat order untuk driver ini</p>
-          </div>
-        `;
-        return;
-      }
-      
-      const ordersByDate = groupOrdersByDate(driverOrders);
-      displayFilteredOrders(ordersByDate);
-      
-      sendToKodular({
-        action: 'demo_mode_activated',
-        message: 'Firebase tidak terhubung, menggunakan data demo'
-      });
-    }
-
-    // ==================== INISIALISASI ====================
+    // ==================== INISIALISASI APLIKASI ====================
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 Halaman Riwayat Driver dimuat');
       
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          console.log('✅ User logged in:', user.uid);
-          loadHistoryData();
-        } else {
-          console.log('❌ No user logged in');
-          showLoginRequired();
-        }
-      });
+      // Inisialisasi Firebase
+      if (!initializeFirebase()) {
+        return;
+      }
       
+      // Setup event listeners
       document.getElementById('backBtn').addEventListener('click', goBack);
-      document.getElementById('closeModal').addEventListener('click', closeModal);
       
+      // Modal event listeners
+      document.getElementById('closeModal').addEventListener('click', closeModal);
       document.getElementById('orderModal').addEventListener('click', (e) => {
         if (e.target === document.getElementById('orderModal')) closeModal();
       });
-
-      const filterOptions = document.querySelectorAll('.filter-option');
-      filterOptions.forEach(option => {
+      
+      // Filter event listeners
+      document.querySelectorAll('.filter-option').forEach(option => {
         option.addEventListener('click', () => {
           changeFilter(option.dataset.filter);
         });
       });
-    });
-
-    document.addEventListener('visibilitychange', function() {
-      if (!document.hidden) {
-        console.log('🔄 Halaman menjadi aktif, memuat ulang data...');
-        loadHistoryData();
+      
+      // Debug panel event listeners
+      document.getElementById('debugBtn').addEventListener('click', toggleDebugPanel);
+      document.getElementById('debugCloseBtn').addEventListener('click', toggleDebugPanel);
+      
+      // Cek apakah ada data driver di localStorage
+      const savedUser = localStorage.getItem('jego_driver_data');
+      if (savedUser) {
+        try {
+          const driverData = JSON.parse(savedUser);
+          showDebugInfo('📱 Data driver dari localStorage', { 
+            driverId: driverData.driverId,
+            name: driverData.fullName 
+          });
+        } catch (e) {
+          showDebugInfo('❌ Error parsing saved user', e.message);
+        }
       }
+      
+      // Setup auth state listener
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          showDebugInfo('✅ User logged in', { uid: user.uid });
+          setTimeout(() => {
+            loadHistoryData();
+          }, 1000);
+        } else {
+          showDebugInfo('⚠️ No user logged in');
+          // Tunggu sebentar untuk memberi waktu inisialisasi
+          setTimeout(() => {
+            loadHistoryData();
+          }, 500);
+        }
+      });
+      
+      // Auto refresh ketika tab aktif kembali
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          showDebugInfo('🔄 Halaman menjadi aktif, memuat ulang data...');
+          setTimeout(() => {
+            loadHistoryData();
+          }, 500);
+        }
+      });
     });
   </script>
 </body>
