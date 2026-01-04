@@ -1,892 +1,448 @@
 <!DOCTYPE html>
-
 <html lang="id">
-
 <head>
-
   <meta charset="utf-8" />
-
   <title>List Permintaan - JeGo</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link rel="stylesheet" href="css/list1.css">
-
   
-
   <!-- Firebase SDK -->
-
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-
   
-
   <!-- Google Maps API dengan async dan callback -->
-
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places&callback=initApp" async defer></script>
-
   
-
+  <!-- CSS External -->
+  <link rel="stylesheet" href="cs/list1.css">
 </head>
-
 <body>
-
   <!-- Header dengan tombol menu di kiri foto profil -->
-
   <div class="header">
-
     <div class="logo-container">
-
       <!-- TOMBOL MENU DIPINDAH KE KIRI FOTO PROFIL -->
-
       <button class="menu-btn" id="menuBtn">
-
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
           <path d="M3 12h18M3 6h18M3 18h18"/>
-
         </svg>
-
       </button>
-
       <img id="driverPhoto" class="driver-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Driver Photo">
-
       <div class="gps-status" id="gpsStatus">
-
         <span class="gps-dot gps-inactive" id="gpsDot"></span>
-
         <span id="gpsText" style="display: none;">Mendapatkan lokasi...</span>
-
       </div>
-
     </div>
-
     <div class="header-controls">
-
       <button class="location-toggle-btn" id="locationToggleBtn">
-
         <span>📍</span> OFF
-
       </button>
-
       
-
       <button class="refresh-btn" id="refreshBtn" title="Refresh">
-
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-
           <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-
         </svg>
-
       </button>
-
     </div>
-
   </div>
-
-
 
   <!-- Sidebar/Menu Layout -->
-
   <div class="sidebar" id="sidebar">
-
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
     <div class="sidebar-content">
-
       <div class="sidebar-header">
-
         <h3>Pengaturan Driver</h3>
-
         <button class="close-sidebar" id="closeSidebar">&times;</button>
-
       </div>
-
       <div class="sidebar-body">
-
         <div class="menu-section">
-
           <h4>Filter Order</h4>
-
           
-
           <div class="menu-item">
-
             <div class="menu-item-label">
-
               <span>📍 Terima Otomatis</span>
-
               <span class="menu-item-desc">Autobid order terdekat</span>
-
             </div>
-
             <label class="toggle-switch">
-
               <input type="checkbox" id="autobidToggle" disabled>
-
               <span class="toggle-slider"></span>
-
             </label>
-
           </div>
-
           
-
           <div class="menu-item">
-
             <div class="menu-item-label">
-
               <span>📦 Terima Kurir</span>
-
               <span class="menu-item-desc">Tampilkan order kurir</span>
-
             </div>
-
             <label class="toggle-switch">
-
               <input type="checkbox" id="acceptKurirToggle" checked>
-
               <span class="toggle-slider"></span>
-
             </label>
-
           </div>
-
           
-
           <div class="menu-item">
-
             <div class="menu-item-label">
-
               <span>📏 Jarak Radius</span>
-
               <span class="menu-item-desc">Dalam kilometer (km)</span>
-
             </div>
-
             <div class="input-group">
-
               <input type="number" id="radiusInput" min="0.1" max="10" step="0.1" value="1.0">
-
               <span class="input-unit">km</span>
-
             </div>
-
           </div>
-
           
-
           <div class="menu-item" id="filterTujuanContainer" style="display: none;">
-
             <div class="menu-item-label">
-
               <span>🎯 Filter Tujuan</span>
-
               <span class="menu-item-desc">Pisah dengan koma, contoh: Kota Gorontalo, Tilongkabila, Limboto</span>
-
             </div>
-
             <!-- INPUT GROUP DIPERBESAR UNTUK FILTER TUJUAN -->
-
             <div class="input-group input-group-large">
-
               <input type="text" id="filterTujuanInput" placeholder="Contoh: Kota Gorontalo, Tilongkabila, Limboto">
-
               <button class="clear-btn" id="clearFilterTujuan">&times;</button>
-
             </div>
-
           </div>
-
         </div>
-
         
-
         <!-- ========== NAVIGASI CEPAT ========== -->
-
         <div class="menu-section">
-
           <h4>Navigasi Cepat</h4>
-
           
-
           <div class="sidebar-nav-buttons">
-
             <!-- TOMBOL TANYA JEGO -->
-
             <button class="sidebar-nav-button" id="tanyaJegoBtn" data-screen="tanya_jego">
-
               <div class="sidebar-nav-button-content">
-
                 <div class="sidebar-nav-button-icon">💬</div>
-
                 <div class="sidebar-nav-button-text">
-
                   <span class="sidebar-nav-button-title">Tanya Jego</span>
-
                   <span class="sidebar-nav-button-desc">Pusat bantuan & pertanyaan</span>
-
                 </div>
-
               </div>
-
               <div class="sidebar-nav-button-arrow">›</div>
-
             </button>
-
             
-
             <!-- TOMBOL PANDUAN DRIVER (contoh tambahan) -->
-
             <button class="sidebar-nav-button" id="panduanDriverBtn" data-screen="panduan_driver">
-
               <div class="sidebar-nav-button-content">
-
                 <div class="sidebar-nav-button-icon">📚</div>
-
                 <div class="sidebar-nav-button-text">
-
                   <span class="sidebar-nav-button-title">Panduan Driver</span>
-
                   <span class="sidebar-nav-button-desc">Cara penggunaan aplikasi</span>
-
                 </div>
-
               </div>
-
               <div class="sidebar-nav-button-arrow">›</div>
-
             </button>
-
             
-
             <!-- TOMBOL KOMUNITAS (contoh tambahan) -->
-
             <button class="sidebar-nav-button" id="komunitasBtn" data-screen="komunitas">
-
               <div class="sidebar-nav-button-content">
-
                 <div class="sidebar-nav-button-icon">👥</div>
-
                 <div class="sidebar-nav-button-text">
-
                   <span class="sidebar-nav-button-title">Komunitas Driver</span>
-
                   <span class="sidebar-nav-button-desc">Forum diskusi driver</span>
-
                 </div>
-
               </div>
-
               <div class="sidebar-nav-button-arrow">›</div>
-
             </button>
-
             
-
             <!-- TOMBOL LAPOR MASALAH (contoh tambahan) -->
-
             <button class="sidebar-nav-button" id="laporMasalahBtn" data-screen="lapor_masalah">
-
               <div class="sidebar-nav-button-content">
-
                 <div class="sidebar-nav-button-icon">⚠️</div>
-
                 <div class="sidebar-nav-button-text">
-
                   <span class="sidebar-nav-button-title">Lapor Masalah</span>
-
                   <span class="sidebar-nav-button-desc">Laporkan kendala teknis</span>
-
                 </div>
-
               </div>
-
               <div class="sidebar-nav-button-arrow">›</div>
-
             </button>
-
             
-
             <!-- TOMBOL PENGATURAN LANJUT (contoh tambahan) -->
-
             <button class="sidebar-nav-button" id="pengaturanLanjutBtn" data-screen="pengaturan_lanjut">
-
               <div class="sidebar-nav-button-content">
-
                 <div class="sidebar-nav-button-icon">⚙️</div>
-
                 <div class="sidebar-nav-button-text">
-
                   <span class="sidebar-nav-button-title">Pengaturan Lanjut</span>
-
                   <span class="sidebar-nav-button-desc">Konfigurasi aplikasi</span>
-
                 </div>
-
               </div>
-
               <div class="sidebar-nav-button-arrow">›</div>
-
             </button>
-
           </div>
-
         </div>
-
         
-
         <div class="menu-section">
-
           <h4>Status Sistem</h4>
-
           <div class="status-info">
-
             <div class="status-item">
-
               <span class="status-label">GPS:</span>
-
               <span class="status-value" id="gpsStatusInfo">Mendapatkan lokasi...</span>
-
             </div>
-
             <div class="status-item">
-
               <span class="status-label">Tracking:</span>
-
               <span class="status-value" id="trackingStatusInfo">OFF</span>
-
             </div>
-
             <div class="status-item">
-
               <span class="status-label">Saldo:</span>
-
               <span class="status-value" id="balanceStatusInfo">Rp 0</span>
-
             </div>
-
           </div>
-
         </div>
-
         
-
         <div class="sidebar-footer">
-
           <!-- TOMBOL SIMPAN PENGATURAN YANG BERFUNGSI -->
-
           <button class="save-btn" id="saveSettings">Simpan Pengaturan</button>
-
           
-
           <!-- INFO VERSI APLIKASI -->
-
           <div class="app-version">
-
             <div class="app-version-label">JeGo Driver App</div>
-
             <div class="app-version-name">v2.0</div>
-
             <div class="app-version-copyright">© 2025 Jasa Expedisi Gorontalo</div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- Driver Info - DISEMBUNYIKAN -->
-
   <div class="driver-info" id="driverInfo" style="display: none;">
-
     <div class="driver-details">
-
       <div class="driver-name" id="driverNameDisplay">-</div>
-
       <div class="driver-vehicle" id="driverVehicleDisplay">-</div>
-
     </div>
-
     <div class="driver-status" id="driverStatusDisplay">-</div>
-
   </div>
-
-
 
   <!-- Container -->
-
   <div class="container">
-
     <!-- Filter Options - DISEMBUNYIKAN -->
-
     <div class="filter-container" id="filterContainer" style="display: none;">
-
       <div class="filter-label">Filter Order:</div>
-
       <div class="filter-options">
-
         <div class="filter-option active" data-filter="all">Semua</div>
-
         <div class="filter-option" data-filter="penumpang">Penumpang</div>
-
         <div class="filter-option" data-filter="kurir">Kurir</div>
-
       </div>
-
     </div>
-
-
 
     <div class="orders-list" id="ordersList">
-
       <!-- Data akan diisi oleh JavaScript -->
-
       <div class="loading">
-
         <div class="spinner"></div>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- Modal Detail Order (untuk manual) - DIUBAH -->
-
   <div class="modal" id="orderModal">
-
     <div class="modal-content">
-
       <!-- HEADER DENGAN NAMA DAN FOTO CUSTOMER -->
-
       <div class="modal-header-with-customer">
-
         <div class="modal-title-container">
-
           <h3 class="modal-title">Detail Permintaan</h3>
-
           <div class="modal-customer-name" id="modalCustomerName">
-
             <img class="modal-customer-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Customer">
-
             <span id="modalCustomerNameText">-</span>
-
           </div>
-
         </div>
-
         <button class="close-btn" id="closeModal">&times;</button>
-
       </div>
-
       
-
       <div class="modal-body">
-
         <!-- MAP DIPERBESAR -->
-
         <div class="modal-map" id="modalMap"></div>
-
         
-
         <div class="modal-details">
-
           <div class="modal-route-info">
-
             <div class="modal-route-point">
-
               <div class="modal-point-marker point-marker-a">A</div>
-
               <div class="modal-point-address modal-point-address-a" id="modalAddressA">-</div>
-
             </div>
-
             <div class="modal-route-point">
-
               <div class="modal-point-marker point-marker-b">B</div>
-
               <div class="modal-point-address" id="modalAddressB">-</div>
-
             </div>
-
           </div>
-
           
-
           <!-- INFO PROMO DI MODAL -->
-
           <div class="modal-promo-info" id="modalPromoInfo" style="display: none;">
-
             <div class="modal-promo-badge">🎁 ORDER PROMO</div>
-
             <div class="modal-promo-item">
-
               <span class="modal-promo-label">Kode Promo:</span>
-
               <span class="modal-promo-value" id="modalPromoCode">-</span>
-
             </div>
-
             <div class="modal-promo-item">
-
               <span class="modal-promo-label">Diskon:</span>
-
               <span class="modal-promo-value" id="modalPromoDiscount">-</span>
-
             </div>
-
           </div>
-
           
-
           <div id="modalDeliveryInfo"></div>
-
           
-
           <!-- GRID DURASI, JARAK, HARGA -->
-
           <div class="modal-order-details">
-
             <div class="modal-detail-item">
-
               <span class="modal-detail-value" id="modalDuration">-</span>
-
               <span class="modal-detail-label">|</span>
-
             </div>
-
             <div class="modal-detail-item">
-
               <span class="modal-detail-value" id="modalDistance">-</span>
-
               <span class="modal-detail-label">|</span>
-
             </div>
-
             <div class="modal-detail-item">
-
               <span class="modal-detail-value modal-price-highlight" id="modalPrice">-</span>
-
               <span class="modal-detail-label">|</span>
-
             </div>
-
           </div>
-
           
-
           <!-- JARAK DRIVER - HANYA ANGKA + SATUAN -->
-
           <div class="distance-badge-container" id="driverDistanceContainer" style="display: none;">
-
             <div class="distance-badge" id="driverDistance">-</div>
-
           </div>
-
           
-
           <div class="countdown-container" id="countdownContainer">
-
             <div class="countdown-text">Menunggu konfirmasi customer:</div>
-
             <div class="countdown-timer" id="countdownTimer">30</div>
-
           </div>
-
         </div>
-
       </div>
-
       <div class="modal-footer">
-
         <button class="ambil-btn" id="ambilBtn">Kirim Penawaran</button>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- MODAL AUTOBID BARU DENGAN PROGRESS BAR - DIUBAH -->
-
   <div class="modal autobid-modal" id="autobidModal">
-
     <div class="modal-content">
-
       <!-- HEADER DENGAN NAMA DAN FOTO CUSTOMER -->
-
       <div class="modal-header-with-customer">
-
         <div class="modal-title-container">
-
           <h3 class="modal-title">🤖 AUTOBID - MENGIRIM PENAWARAN</h3>
-
           <div class="modal-customer-name" id="autobidCustomerName">
-
             <img class="autobid-customer-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Customer">
-
             <span id="autobidCustomerNameText">-</span>
-
           </div>
-
         </div>
-
         <!-- Tidak ada tombol close untuk modal Autobid -->
-
       </div>
-
       <div class="modal-body">
-
         <div class="modal-details">
-
           <div class="autobid-info">
-
             <div class="autobid-route">
-
               <div class="autobid-address autobid-address-a" id="autobidAddressA">-</div>
-
               <div style="font-size: 0.7rem; color: #666;">↓</div>
-
               <div class="autobid-address" id="autobidAddressB">-</div>
-
             </div>
-
             
-
             <!-- INFO PROMO DI AUTOBID MODAL -->
-
             <div class="autobid-promo-info" id="autobidPromoInfo" style="display: none;">
-
               <div class="autobid-promo-badge">🎁 ORDER PROMO</div>
-
             </div>
-
             
-
             <div id="autobidDeliveryInfo"></div>
-
             
-
             <!-- GRID DURASI, JARAK, HARGA -->
-
             <div class="autobid-details">
-
               <div class="autobid-detail-item">
-
                 <div class="autobid-detail-label">Jarak</div>
-
                 <div class="autobid-detail-value" id="autobidDistance">-</div>
-
               </div>
-
               <div class="autobid-detail-item">
-
                 <div class="autobid-detail-label">Durasi</div>
-
                 <div class="autobid-detail-value" id="autobidDuration">-</div>
-
               </div>
-
               <div class="autobid-detail-item">
-
                 <div class="autobid-detail-label">Harga</div>
-
                 <div class="autobid-detail-value autobid-price-value" id="autobidPrice">-</div>
-
               </div>
-
             </div>
-
           </div>
-
           
-
           <!-- PROGRESS BAR BARU UNTUK AUTOBID -->
-
           <div class="progress-text" id="autobidProgressText">Mengirim penawaran...</div>
-
           <div class="progress-container">
-
             <div class="progress-bar" id="autobidProgressBar"></div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- Modal Foto Profil Besar -->
-
   <div class="modal photo-modal" id="photoModal">
-
     <div class="modal-content">
-
       <button class="close-btn" id="closePhotoModal">&times;</button>
-
       <div class="modal-body">
-
         <img class="large-customer-photo" id="largeCustomerPhoto" src="" alt="Customer Photo">
-
         <div class="large-customer-name" id="largeCustomerName"></div>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- Modal Informasi -->
-
   <div class="modal info-modal" id="infoModal">
-
     <div class="modal-content">
-
       <div class="modal-header">
-
         <h3 class="modal-title">Informasi</h3>
-
         <button class="close-btn" id="closeInfoModal">&times;</button>
-
       </div>
-
       <div class="modal-body">
-
         <p id="infoMessage"></p>
-
       </div>
-
       <div class="modal-footer">
-
         <button class="ok-btn" id="infoOkBtn">OK</button>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- Popup Overlay (Sesuai rute.html) -->
-
   <div id="popupOverlay" class="popup-overlay" style="display: none;">
-
     <div class="popup">
-
       <div class="popup-header">
-
         <span id="popupIcon">ℹ️</span>
-
         <h3 id="popupTitle">Pemberitahuan</h3>
-
       </div>
-
       <div class="popup-body">
-
         <p id="popupMessage"></p>
-
       </div>
-
       <div class="popup-footer">
-
         <button id="popupButton" class="popup-button">OK</button>
-
       </div>
-
     </div>
-
   </div>
-
-
 
   <!-- Bottom Navigation -->
-
   <div class="bottom-nav" id="bottomNav">
-
     <div class="nav-item active" data-screen="home">
-
       <div class="nav-icon">🏠</div>
-
       <div class="nav-label">Beranda</div>
-
     </div>
-
     <div class="nav-item" data-screen="history">
-
       <div class="nav-icon">📋</div>
-
       <div class="nav-label">Riwayat</div>
-
     </div>
-
     <div class="nav-item" data-screen="active_order">
-
       <div class="nav-icon">🚗</div>
-
       <div class="nav-label">Berjalan</div>
-
       <div class="nav-badge" id="activeOrderBadge" style="display: none;">1</div>
-
     </div>
-
     <div class="nav-item" data-screen="account">
-
       <div class="nav-icon">👤</div>
-
       <div class="nav-label">Akun</div>
-
     </div>
-
   </div>
 
-
-
   <!-- Element Audio untuk Notifikasi -->
-
   <audio id="newOrderSound" preload="auto">
-
     <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-tone-996.mp3" type="audio/mpeg">
-
   </audio>
-
   <audio id="autobidSound" preload="auto">
-
     <source src="https://assets.mixkit.co/sfx/preview/mixkit-classic-alarm-995.mp3" type="audio/mpeg">
-
   </audio>
-
   <audio id="orderAcceptedSound" preload="auto">
-
     <source src="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3" type="audio/mpeg">
-
   </audio>
 
-
-
+  <!-- JavaScript External -->
   <script src="js/list1.js"></script>
-
 </body>
-
 </html>
-```
