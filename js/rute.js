@@ -10,15 +10,123 @@ const FIREBASE_CONFIG = {
   measurementId: "G-YWJPK7Y3J4"
 };
 
+// ==================== FUNGSI BARU: SIGN IN FIREBASE ====================
+
+// Fungsi untuk login ke Firebase dengan data dari localStorage
+async function signInToFirebase() {
+  try {
+    const loggedInUser = localStorage.getItem('jego_logged_in_user');
+    if (!loggedInUser) {
+      console.log('❌ Tidak ada user yang login di localStorage');
+      return false;
+    }
+
+    const userData = JSON.parse(loggedInUser);
+    console.log('🔑 [DEBUG] Mencoba sign in ke Firebase dengan user:', userData);
+
+    // Jika user sudah login di Firebase, tidak perlu sign in lagi
+    if (firebaseAuth && firebaseAuth.currentUser) {
+      console.log('✅ User sudah login di Firebase');
+      return true;
+    }
+
+    // Coba sign in dengan email/password jika ada
+    if (userData.email && userData.password) {
+      try {
+        await firebaseAuth.signInWithEmailAndPassword(userData.email, userData.password);
+        console.log('✅ Sign in dengan email berhasil');
+        return true;
+      } catch (emailError) {
+        console.log('❌ Gagal sign in dengan email, mencoba anonymous...');
+      }
+    }
+
+    // Fallback: Gunakan sign in anonymous untuk akses baca
+    try {
+      await firebaseAuth.signInAnonymously();
+      console.log('✅ Sign in anonymous berhasil');
+      return true;
+    } catch (anonError) {
+      console.error('❌ Gagal sign in anonymous:', anonError);
+      return false;
+    }
+
+  } catch (error) {
+    console.error('❌ Error dalam signInToFirebase:', error);
+    return false;
+  }
+}
+
+// ==================== FUNGSI BARU: TRANSFORM DATA TARIF ====================
+
+// Fungsi helper untuk transform data tarif
+function transformTarifData(tarifData) {
+  const transformed = {};
+  
+  const mapping = {
+    'Motor': 'motor',
+    'Bentor': 'bentor',
+    'Mobil': 'mobil',
+    'Kurir Motor': 'kurir_motor',
+    'Kurir Bentor': 'kurir_bentor'
+  };
+  
+  Object.keys(mapping).forEach(firebaseName => {
+    const internalName = mapping[firebaseName];
+    const data = tarifData[firebaseName];
+    
+    if (data) {
+      transformed[internalName] = {
+        name: data.Nama || firebaseName,
+        capacity: data.Capacity || "N/A",
+        icon: data.Icon || fallbackVehicleData[internalName]?.icon,
+        minDistance: data.MinimalDistance || 4,
+        minPrice: data.MinimalPrice || 10000,
+        pricePerKm: data.PricePerKm || 2000
+      };
+    } else {
+      // Fallback jika data tidak ada
+      transformed[internalName] = fallbackVehicleData[internalName];
+    }
+  });
+  
+  return transformed;
+}
+
 // Initialize Firebase
 let firebaseApp, firebaseAuth, database;
 try {
-  firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+  if (!firebase.apps.length) {
+    firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+  } else {
+    firebaseApp = firebase.app();
+  }
+  
   firebaseAuth = firebase.auth();
   database = firebase.database();
-  console.log("Firebase berhasil diinisialisasi");
+  
+  console.log("✅ Firebase berhasil diinisialisasi");
+  
+  // Set auth persistence ke LOCAL
+  firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(() => {
+      console.log("✅ Auth persistence diatur ke LOCAL");
+      // Coba sign in setelah persistence diatur
+      return signInToFirebase();
+    })
+    .then(signedIn => {
+      if (signedIn) {
+        console.log("✅ User berhasil sign in ke Firebase");
+      } else {
+        console.log("⚠️ User tidak berhasil sign in, mode baca mungkin terbatas");
+      }
+    })
+    .catch(error => {
+      console.error("❌ Error setting auth persistence:", error);
+    });
+  
 } catch (error) {
-  console.error("Error inisialisasi Firebase:", error);
+  console.error("❌ Error inisialisasi Firebase:", error);
 }
 
 // ==================== VARIABEL GLOBAL ====================
@@ -2489,67 +2597,40 @@ function showNotification(message, type = 'info') {
 // Fungsi untuk mengambil data tarif dari Firebase
 function loadVehicleData() {
   return new Promise((resolve, reject) => {
+    console.log('📡 [DEBUG] Mencoba mengambil data tarif dari Firebase...');
+    
     const tarifRef = database.ref('tarif');
     
-    tarifRef.once('value')
+    // Coba ambil data dengan timeout
+    const timeoutPromise = new Promise((_, rejectTimeout) => {
+      setTimeout(() => rejectTimeout(new Error('Timeout mengambil data tarif')), 10000);
+    });
+    
+    Promise.race([
+      tarifRef.once('value'),
+      timeoutPromise
+    ])
       .then(snapshot => {
         const tarifData = snapshot.val();
-        console.log('Data tarif dari Firebase:', tarifData);
+        console.log('✅ [DEBUG] Data tarif dari Firebase:', tarifData);
         
         if (tarifData) {
           // Transform data dari Firebase ke format yang kompatibel dengan kode yang ada
-          vehicleData = {
-            motor: {
-              name: tarifData.Motor.Nama,
-              capacity: tarifData.Motor.Capacity,
-              icon: tarifData.Motor.Icon,
-              minDistance: tarifData.Motor.MinimalDistance,
-              minPrice: tarifData.Motor.MinimalPrice,
-              pricePerKm: tarifData.Motor.PricePerKm
-            },
-            bentor: {
-              name: tarifData.Bentor.Nama,
-              capacity: tarifData.Bentor.Capacity,
-              icon: tarifData.Bentor.Icon,
-              minDistance: tarifData.Bentor.MinimalDistance,
-              minPrice: tarifData.Bentor.MinimalPrice,
-              pricePerKm: tarifData.Bentor.PricePerKm
-            },
-            mobil: {
-              name: tarifData.Mobil.Nama,
-              capacity: tarifData.Mobil.Capacity,
-              icon: tarifData.Mobil.Icon,
-              minDistance: tarifData.Mobil.MinimalDistance,
-              minPrice: tarifData.Mobil.MinimalPrice,
-              pricePerKm: tarifData.Mobil.PricePerKm
-            },
-            kurir_motor: {
-              name: tarifData["Kurir Motor"].Nama,
-              capacity: tarifData["Kurir Motor"].Capacity,
-              icon: tarifData["Kurir Motor"].Icon,
-              minDistance: tarifData["Kurir Motor"].MinimalDistance,
-              minPrice: tarifData["Kurir Motor"].MinimalPrice,
-              pricePerKm: tarifData["Kurir Motor"].PricePerKm
-            },
-            kurir_bentor: {
-              name: tarifData["Kurir Bentor"].Nama,
-              capacity: tarifData["Kurir Bentor"].Capacity,
-              icon: tarifData["Kurir Bentor"].Icon,
-              minDistance: tarifData["Kurir Bentor"].MinimalDistance,
-              minPrice: tarifData["Kurir Bentor"].MinimalPrice,
-              pricePerKm: tarifData["Kurir Bentor"].PricePerKm
-            }
-          };
+          vehicleData = transformTarifData(tarifData);
           
-          console.log('Data kendaraan berhasil dimuat:', vehicleData);
+          console.log('✅ [DEBUG] Data kendaraan berhasil dimuat:', vehicleData);
           resolve(vehicleData);
         } else {
-          reject(new Error('Data tarif tidak ditemukan di Firebase'));
+          console.warn('⚠️ Data tarif kosong di Firebase, menggunakan fallback');
+          vehicleData = fallbackVehicleData;
+          resolve(vehicleData);
         }
       })
       .catch(error => {
-        console.error('Error mengambil data tarif:', error);
-        reject(error);
+        console.error('❌ Error mengambil data tarif:', error);
+        console.warn('⚠️ Menggunakan fallback data kendaraan');
+        vehicleData = fallbackVehicleData;
+        resolve(vehicleData);
       });
   });
 }
