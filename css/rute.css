@@ -1,0 +1,877 @@
+:root {
+  --primary: #FF9800;    /* Orange */
+  --secondary: #FF5722;   /* Red-Orange */
+  --accent: #FFC107;     /* Amber/Yellow */
+  --light: #f8f9fa;
+  --dark: #343a40;
+  --success: #4CAF50;    /* Green */
+  --danger: #f44336;     /* Red */
+  --warning: #FFC107;    /* Yellow */
+  --info: #2196F3;       /* Blue */
+  --gray: #9E9E9E;       /* Gray */
+  
+  /* VARIABEL BARU UNTUK POSISI ELEMEN */
+  --confirm-bottom: 80px;
+  --confirm-height: 54px;
+  --confirm-gap: 10px;
+}
+
+html, body, #map {
+  height: 100%;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Panel Styles */
+.panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 15px;
+  z-index: 5;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  box-sizing: border-box;
+}
+
+.input-container {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+input {
+  width: 100%;
+  padding: 12px 40px 12px 15px;
+  font-size: 14px;
+  box-sizing: border-box;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.3s;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(40, 150, 114, 0.1);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 35px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-mode-btn {
+  position: absolute;
+  bottom: 120px;
+  right: 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.map-mode-btn:hover {
+  background: var(--secondary);
+  transform: translateY(-2px);
+}
+
+/* Detail Rute Styles - DIPERBAIKI */
+.route-details {
+  position: fixed;
+  bottom: 90px;
+  left: 20px;
+  right: 20px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 8;
+  max-height: 30vh;
+  overflow-y: auto;
+  display: none;
+  transition: all 0.25s ease;
+}
+
+.route-info {
+  margin-bottom: 12px;
+}
+
+.route-address {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  position: relative;
+}
+
+.route-address .label {
+  min-width: 70px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.route-address .value {
+  flex: 1;
+  color: var(--dark);
+  margin-right: 8px;
+  line-height: 1.4;
+}
+
+.route-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e9ecef;
+}
+
+.route-stat {
+  text-align: center;
+  flex: 1;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.price-highlight {
+  font-weight: 700;
+  color: var(--success);
+  font-size: 1.1rem;
+}
+
+/* Tombol Konfirmasi - DIPERBAIKI */
+.confirm-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(to right, var(--primary), var(--secondary));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 9;
+  transition: all 0.3s;
+  display: block !important;
+}
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+}
+
+.confirm-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Tombol Batal - DIPERBAIKI */
+.cancel-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(to right, var(--danger), #e74c3c);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  z-index: 9;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s;
+  display: none;
+}
+
+.cancel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+}
+
+.cancel-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Radar Loading */
+.radar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  transform: translate(-50%, -50%);
+  z-index: 999;
+  transition: all 2s ease-in-out;
+}
+
+.radar.expanding {
+  width: 300px;
+  height: 300px;
+}
+
+.radar::before, .radar::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--secondary);
+  border-radius: 50%;
+  animation: radarPulse 3s infinite ease-out;
+}
+
+.radar::after {
+  animation-delay: 1.5s;
+}
+
+.radar span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--secondary);
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  text-align: center;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+@keyframes radarPulse {
+  0% { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Notifikasi Status */
+.search-status {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 1000;
+  font-weight: 600;
+  text-align: center;
+  max-width: 80%;
+  border-left: 4px solid var(--primary);
+}
+
+/* POPUP STYLES */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.popup-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.popup {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.popup-overlay.active .popup {
+  transform: scale(1);
+}
+
+.popup-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popup-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--dark);
+  margin: 0;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.popup-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.popup-message {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--dark);
+  margin-bottom: 20px;
+}
+
+.popup-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.popup-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 100px;
+}
+
+.popup-button-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+}
+
+.popup-button-secondary {
+  background: #f8f9fa;
+  color: var(--dark);
+  border: 1px solid #ddd;
+}
+
+.popup-button-warning {
+  background: linear-gradient(135deg, var(--warning), #ff9800);
+  color: white;
+}
+
+.popup-button-danger {
+  background: linear-gradient(135deg, var(--danger), #e74c3c);
+  color: white;
+}
+
+.popup-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Tambahan style untuk data kurir */
+.delivery-info-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e9ecef;
+  display: none;
+}
+
+.delivery-item {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.delivery-label {
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 100px;
+  margin-right: 10px;
+}
+
+.delivery-value {
+  flex: 1;
+  color: var(--dark);
+}
+
+/* STAR RATING STYLES - DIPERBAIKI */
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  flex-wrap: nowrap;
+  max-width: 85px;
+}
+
+.star {
+  color: #ddd;
+  font-size: 12px;
+}
+
+.star.filled {
+  color: #ffc107;
+}
+
+.star.half {
+  position: relative;
+  color: #ddd;
+}
+
+.star.half::before {
+  content: '★';
+  position: absolute;
+  left: 0;
+  width: 50%;
+  overflow: hidden;
+  color: #ffc107;
+}
+
+/* DRIVER OFFER CARD STYLES - DIPERBAIKI SECARA LENGKAP */
+.driver-offer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-left: 4px solid #e9ecef;
+  transition: all 0.3s ease;
+  min-height: 70px;
+  overflow: hidden;
+}
+
+.driver-offer-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.driver-info {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-photo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.driver-details {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 90px);
+  overflow: hidden;
+}
+
+.driver-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.driver-name-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.driver-vehicle {
+  font-size: 12px;
+  color: #444;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.driver-rating-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #666;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.accept-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  min-width: 70px;
+  transition: all 0.3s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.accept-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* PRIORITAS DRIVER BADGE STYLES */
+.priority-badge {
+  display: inline-block;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-left: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  white-space: nowrap;
+}
+
+.priority-basic {
+  background: #6c757d;
+  color: white;
+}
+
+.priority-standard {
+  background: #17a2b8;
+  color: white;
+}
+
+.priority-regular {
+  background: #28a745;
+  color: white;
+}
+
+.priority-essential {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #333;
+  font-weight: 800;
+}
+
+.top-driver-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.position-badge {
+  background: #6c757d;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 50%;
+  font-size: 9px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.driver-offer-card.highlighted {
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+/* Driver dot animation styles */
+.driver-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #4285F4;
+  box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7);
+  animation: driverPulse 2s infinite;
+  z-index: 10;
+}
+
+@keyframes driverPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7);
+  }
+  
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(66, 133, 244, 0);
+  }
+  
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(66, 133, 244, 0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  :root {
+    --confirm-height: 64px;
+  }
+  
+  .panel {
+    top: 5px;
+  }
+  
+  .route-stats {
+    flex-direction: row;
+    gap: 5px;
+  }
+  
+  .route-address {
+    flex-direction: column;
+  }
+  
+  .route-address .label {
+    min-width: auto;
+    margin-bottom: 5px;
+  }
+  
+  .radar.expanding {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .radar span {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  
+  .route-details {
+    max-height: 28vh;
+    padding: 6px 10px;
+  }
+
+  .driver-offer-card {
+    padding: 8px;
+  }
+
+  .driver-info {
+    gap: 8px;
+  }
+
+  .driver-photo {
+    width: 45px;
+    height: 45px;
+  }
+
+  .driver-details {
+    max-width: calc(100% - 80px);
+  }
+
+  .accept-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-width: 60px;
+  }
+
+  .popup {
+    width: 95%;
+  }
+
+  .popup-buttons {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .driver-info {
+    gap: 6px;
+  }
+
+  .driver-photo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .route-address {
+    font-size: 0.75rem;
+  }
+
+  .driver-details {
+    max-width: calc(100% - 70px);
+  }
+
+  .driver-name {
+    font-size: 13px;
+  }
+
+  .driver-name-text {
+    max-width: 90px;
+  }
+
+  .driver-vehicle {
+    font-size: 11px;
+  }
+
+  .driver-rating-container {
+    font-size: 10px;
+  }
+
+  .star-rating {
+    max-width: 70px;
+  }
+
+  .star {
+    font-size: 10px;
+  }
+
+  .accept-btn {
+    padding: 5px 8px;
+    font-size: 10px;
+    min-width: 55px;
+  }
+
+  .priority-badge {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+
+  .top-driver-badge {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+
+  .position-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .driver-details {
+    max-width: calc(100% - 65px);
+  }
+
+  .driver-name-text {
+    max-width: 70px;
+  }
+
+  .accept-btn {
+    min-width: 50px;
+    padding: 4px 6px;
+    font-size: 9px;
+  }
+
+  .driver-photo {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+/* Menghilangkan watermark */
+.gm-style-cc, [title="Report errors in the road map or imagery to Google"] {
+  display: none !important;
+}
+
+a[href^="http://maps.google.com/maps"] {
+  display: none !important;
+}
+
+.gm-style a[href^="https://maps.google.com/maps"] {
+  display: none !important;
+}
+
+.gm-bundled-control {
+  bottom: 10px !important;
+}
