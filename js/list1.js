@@ -1,14 +1,13 @@
 // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
-
 function initApp() {
   console.log('✅ Google Maps API berhasil di-load');
-  
   // Inisialisasi Firebase setelah Google Maps siap
   initializeFirebase();
+  // Panggil fungsi inisialisasi aplikasi
+  initJeGoApp();
 }
 
 // ==================== KONFIGURASI FIREBASE ====================
-
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
   authDomain: "game-balap-simpel.firebaseapp.com",
@@ -20,51 +19,35 @@ const FIREBASE_CONFIG = {
   measurementId: "G-YWJPK7Y3J4"
 };
 
-// ==================== SISTEM AUTHENTIKASI FIREBASE YANG DIPERBAIKI ====================
-
-// Inisialisasi variabel global untuk auth state management
-let firebaseInitialized = false;
-let authStateChangedListener = null;
-let currentFirebaseUser = null;
-
-// ==================== INISIALISASI FIREBASE DENGAN AUTH STATE LISTENER ====================
-
+// Initialize Firebase dengan error handling yang lebih baik
 let database;
 let auth;
 let firebaseApp;
 
 function initializeFirebase() {
   try {
-    // Cek apakah Firebase SDK sudah tersedia
+    // Cek apakah Firebase sudah tersedia
     if (typeof firebase === 'undefined') {
       console.error('Firebase SDK tidak terload');
       showPopup('Gagal memuat Firebase SDK. Periksa koneksi internet.', 'Error', 'error');
       return false;
     }
-
+    
     // Inisialisasi Firebase app
     if (!firebase.apps.length) {
       firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-      console.log('✅ Firebase App diinisialisasi');
     } else {
       firebaseApp = firebase.app();
-      console.log('✅ Firebase App sudah ada');
     }
-
-    // Inisialisasi auth dan database
+    
     database = firebase.database();
     auth = firebase.auth();
-    
-    console.log('✅ Firebase Auth & Database siap');
-
-    // Setup auth state listener untuk real-time session management
-    setupAuthStateListener();
-    
-    firebaseInitialized = true;
+    console.log('✅ Firebase berhasil diinisialisasi');
     return true;
-
+    
   } catch (error) {
     console.error('❌ Error inisialisasi Firebase:', error);
+    // Tampilkan pesan error yang lebih user-friendly
     setTimeout(() => {
       showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
     }, 1000);
@@ -72,345 +55,181 @@ function initializeFirebase() {
   }
 }
 
-// ==================== AUTH STATE LISTENER UNTUK SESSION MANAGEMENT ====================
+// ==================== SISTEM AUTHENTIKASI FIREBASE ====================
 
-function setupAuthStateListener() {
-  if (!auth) {
-    console.error('Firebase Auth belum diinisialisasi');
-    return;
-  }
-
-  // Hapus listener sebelumnya jika ada
-  if (authStateChangedListener) {
-    authStateChangedListener(); // Panggil fungsi untuk unsubscribe
-    authStateChangedListener = null;
-  }
-
-  // Setup auth state listener baru
-  authStateChangedListener = auth.onAuthStateChanged(async (user) => {
-    console.log('🔐 Auth State Changed:', user ? `User logged in (${user.uid})` : 'User logged out');
-    currentFirebaseUser = user;
-
+// Fungsi untuk cek status login driver dengan Firebase Auth
+async function checkDriverAuthStatus() {
+  try {
+    // Cek apakah Firebase Auth sudah diinisialisasi
+    if (!auth) {
+      await initializeFirebase();
+    }
+    
+    // Cek apakah ada user yang sudah login di Firebase Auth
+    const user = auth.currentUser;
+    
     if (user) {
-      // User berhasil login via Firebase
-      console.log('✅ Firebase Auth: User terautentikasi', {
+      // User sudah login di Firebase
+      console.log('✅ Driver sudah login via Firebase Auth:', user.uid);
+      return {
+        loggedIn: true,
         uid: user.uid,
         email: user.email,
-        phone: user.phoneNumber
-      });
-
-      // Validasi konsistensi dengan localStorage
-      const sessionValid = await validateAndSyncUserSession(user);
-
-      if (sessionValid) {
-        console.log('✅ Session valid, melanjutkan inisialisasi aplikasi');
-        startAppAfterAuth();
-      } else {
-        console.log('❌ Session tidak valid, logout dan redirect ke login');
-        await logoutDriver();
-      }
-    } else {
-      // User logged out atau session expired
-      console.log('❌ Firebase Auth: User tidak terautentikasi');
-      
-      // Clear semua data session
-      clearDriverSession();
-      
-      // Redirect ke login
-      redirectToLogin('session_expired_or_logged_out');
+        displayName: user.displayName,
+        phoneNumber: user.phoneNumber
+      };
     }
-  }, (error) => {
-    console.error('❌ Error auth state listener:', error);
     
-    // Handle error spesifik
-    if (error.code === 'auth/network-request-failed') {
-      showPopup('Gagal terhubung ke server autentikasi. Periksa koneksi internet.', 'Koneksi Error', 'error');
-    } else if (error.code === 'auth/internal-error') {
-      showPopup('Error internal server autentikasi. Silakan coba lagi.', 'Server Error', 'error');
-    }
-  });
-}
-
-// ==================== VALIDASI DAN SYNC SESSION ====================
-
-async function validateAndSyncUserSession(firebaseUser) {
-  try {
-    console.log('🔍 Validasi dan sinkronisasi session...');
-    
-    // 1. Ambil data dari localStorage
-    const savedDriverData = localStorage.getItem('jego_driver_data');
-    const savedAuthUid = localStorage.getItem('jego_driver_auth_uid');
-    const savedDriverId = localStorage.getItem('jego_driver_id');
+    // Cek localStorage untuk driver yang login sebelumnya
+    const loggedInDriver = localStorage.getItem('jego_driver_data');
     const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
     const driverStatus = localStorage.getItem('jego_driver_status');
     
-    // 2. Validasi basic login flags
-    if (isLoggedIn !== 'true' || driverStatus !== 'active') {
-      console.error('❌ Login flags tidak valid atau driver tidak aktif');
-      return false;
-    }
-    
-    // 3. Validasi UID konsistensi
-    if (savedAuthUid !== firebaseUser.uid) {
-      console.warn('⚠️ UID tidak konsisten antara localStorage dan Firebase Auth');
-      console.log(`LocalStorage UID: ${savedAuthUid}, Firebase UID: ${firebaseUser.uid}`);
-      
-      // Update localStorage dengan UID yang benar
-      localStorage.setItem('jego_driver_auth_uid', firebaseUser.uid);
-      console.log('✅ UID diupdate di localStorage');
-    }
-    
-    // 4. Ambil data driver terbaru dari Firebase Database
-    if (savedDriverId) {
-      console.log(`🔍 Mengambil data driver dari Firebase untuk ID: ${savedDriverId}`);
-      
+    if (loggedInDriver && isLoggedIn === 'true' && driverStatus === 'active') {
       try {
-        // Gunakan wrapper function untuk database operation dengan auth
-        const driverRef = getAuthenticatedDatabaseRef('drivers/' + savedDriverId);
-        const snapshot = await driverRef.once('value');
+        const driverData = JSON.parse(loggedInDriver);
+        console.log('✅ Driver sudah login via localStorage:', driverData.driverId || driverData.uid);
         
-        if (snapshot.exists()) {
-          const firebaseDriverData = snapshot.val();
-          console.log('✅ Data driver ditemukan di Firebase:', firebaseDriverData);
-          
-          // Parse data lokal
-          const localDriverData = savedDriverData ? JSON.parse(savedDriverData) : {};
-          
-          // Merge data dari Firebase dengan data lokal
-          const mergedDriverData = {
-            ...localDriverData,
-            ...firebaseDriverData,
-            uid: firebaseUser.uid,
-            driverId: savedDriverId,
-            firebase_key: savedDriverId,
-            last_firebase_sync: new Date().toISOString()
-          };
-          
-          // Update localStorage dengan data terbaru
-          localStorage.setItem('jego_driver_data', JSON.stringify(mergedDriverData));
-          localStorage.setItem('jego_driver_logged_in', 'true');
-          localStorage.setItem('jego_driver_status', mergedDriverData.status || 'active');
-          
-          // Update variabel global
-          currentDriverData = mergedDriverData;
-          currentUserData = mergedDriverData;
-          
-          console.log('✅ Session divalidasi dan disinkronisasi');
-          return true;
-        } else {
-          console.error('❌ Data driver tidak ditemukan di Firebase');
-          return false;
-        }
-      } catch (error) {
-        console.error('❌ Error mengambil data driver dari Firebase:', error);
-        
-        // Fallback: gunakan data lokal jika ada dan UID cocok
-        if (savedDriverData) {
-          const localData = JSON.parse(savedDriverData);
-          if (localData.driverId === savedDriverId && localData.uid === firebaseUser.uid) {
-            console.log('⚠️ Menggunakan data lokal sebagai fallback');
-            currentDriverData = localData;
-            currentUserData = localData;
-            return true;
+        // Coba re-authenticate dengan Firebase jika ada email/password
+        if (driverData.email && driverData.passwordHash) {
+          // Note: Untuk aplikasi production, jangan simpan password di localStorage
+          try {
+            await auth.signInWithEmailAndPassword(driverData.email, driverData.passwordHash);
+            console.log('✅ Re-authenticated dengan Firebase');
+          } catch (authError) {
+            console.log('⚠️ Gagal re-authenticate, menggunakan localStorage data');
           }
         }
-        return false;
+        
+        return {
+          loggedIn: true,
+          uid: driverData.driverId || driverData.uid,
+          email: driverData.email,
+          name: driverData.fullName,
+          phoneNumber: driverData.phoneNumber
+        };
+      } catch (error) {
+        console.error('❌ Error parsing driver data:', error);
+        return { loggedIn: false };
       }
-    } else {
-      console.error('❌ Tidak ada driverId di localStorage');
-      return false;
     }
+    
+    console.log('❌ Driver belum login');
+    return { loggedIn: false };
+    
   } catch (error) {
-    console.error('❌ Error validasi session:', error);
-    return false;
+    console.error('❌ Error checking auth status:', error);
+    return { loggedIn: false };
   }
 }
 
-// ==================== FUNGSI LOGOUT YANG DIPERBAIKI ====================
-
-async function logoutDriver() {
+// Fungsi untuk login driver dengan Firebase Auth
+async function loginDriverWithFirebase(email, password) {
   try {
-    console.log('🚪 Logout driver...');
+    console.log('🔐 Mencoba login dengan Firebase Auth...');
     
-    // Sign out dari Firebase Auth
-    if (auth && auth.currentUser) {
-      await auth.signOut();
-      console.log('✅ Firebase Auth sign out berhasil');
+    if (!auth) {
+      await initializeFirebase();
     }
     
-    // Clear semua data session
-    clearDriverSession();
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
     
-    // Redirect ke halaman login
-    redirectToLogin('manual_logout');
+    console.log('✅ Login berhasil:', user.uid);
+    
+    // Simpan data user ke localStorage
+    const driverData = {
+      driverId: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      phoneNumber: user.phoneNumber,
+      loggedInAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem('jego_driver_data', JSON.stringify(driverData));
+    localStorage.setItem('jego_driver_logged_in', 'true');
+    localStorage.setItem('jego_driver_status', 'active');
+    
+    return {
+      success: true,
+      user: driverData
+    };
+    
+  } catch (error) {
+    console.error('❌ Error login dengan Firebase:', error);
+    
+    let errorMessage = 'Login gagal';
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'Email tidak ditemukan';
+    } else if (error.code === 'auth/wrong-password') {
+      errorMessage = 'Password salah';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Terlalu banyak percobaan. Coba lagi nanti';
+    }
+    
+    return {
+      success: false,
+      error: errorMessage
+    };
+  }
+}
+
+// Fungsi untuk logout driver
+async function logoutDriver() {
+  try {
+    console.log('🚪 Memulai proses logout...');
+    
+    // Hentikan semua listener dan interval
+    stopLocationTracking();
+    stopAutobid();
+    stopManualCheckInterval();
+    stopDriverDataRefresh();
+    
+    if (balanceListener && currentDriverData && currentDriverData.driverId) {
+      const driverId = currentDriverData.driverId;
+      database.ref('drivers/' + driverId + '/Balance').off('value', balanceListener);
+    }
+    
+    // Hapus data dari localStorage
+    localStorage.removeItem('jego_driver_data');
+    localStorage.removeItem('jego_driver_logged_in');
+    localStorage.removeItem('jego_driver_status');
+    localStorage.removeItem('jego_location_tracking_enabled');
+    localStorage.removeItem('jego_autobid_enabled');
+    localStorage.removeItem('jego_accept_kurir');
+    localStorage.removeItem('jego_custom_radius');
+    localStorage.removeItem('jego_filter_tujuan');
+    
+    // Logout dari Firebase Auth
+    if (auth) {
+      await auth.signOut();
+    }
+    
+    console.log('✅ Logout berhasil');
+    
+    // Kirim event ke Kodular untuk navigasi ke login
+    sendToKodular({
+      action: "navigate",
+      target: "login",
+      reason: "driver_logged_out"
+    });
+    
+    // Tampilkan status logout
+    showPopup('Anda telah logout dari sistem.', 'Logout Berhasil', 'success');
+    
+    // Redirect ke login page
+    setTimeout(() => {
+      if (window.location.href.indexOf('login') === -1) {
+        window.location.href = "login_driver.html";
+      }
+    }, 2000);
     
     return true;
+    
   } catch (error) {
     console.error('❌ Error logout:', error);
     showPopup('Gagal logout. Silakan coba lagi.', 'Error', 'error');
     return false;
-  }
-}
-
-function clearDriverSession() {
-  // Clear Firebase-related data
-  localStorage.removeItem('jego_driver_auth_uid');
-  localStorage.removeItem('jego_driver_id');
-  
-  // Clear driver data (tapi jangan hapus semua, bisa simpan untuk cache)
-  localStorage.removeItem('jego_driver_logged_in');
-  localStorage.removeItem('jego_driver_status');
-  
-  // Reset variabel global
-  currentDriverData = null;
-  currentUserData = null;
-  currentFirebaseUser = null;
-  
-  // Hentikan semua interval dan listener
-  stopDriverDataRefresh();
-  stopLocationTracking();
-  stopAutobid();
-  stopManualCheckInterval();
-  
-  console.log('✅ Session cleared');
-}
-
-function redirectToLogin(reason) {
-  console.log(`🔄 Redirect ke login karena: ${reason}`);
-  
-  // Kirim event ke Kodular untuk navigasi ke login
-  sendToKodular({
-    action: "navigate",
-    target: "login",
-    reason: reason,
-    timestamp: new Date().getTime()
-  });
-  
-  // Tampilkan pesan ke user
-  showPopup('Session Anda telah berakhir. Mengarahkan ke halaman login...', 'Session Expired', 'warning');
-}
-
-// ==================== FUNGSI CHECK LOGIN YANG DIPERBAIKI ====================
-
-function checkLoginStatus() {
-  console.log("🔍 Multi-layer login validation...");
-  
-  // Layer 1: Firebase Auth
-  if (!currentFirebaseUser) {
-    console.log('❌ Layer 1: Firebase Auth - Tidak ada user terautentikasi');
-    
-    // Coba cek auth.currentUser sebagai fallback
-    if (auth && auth.currentUser) {
-      currentFirebaseUser = auth.currentUser;
-      console.log('⚠️ Firebase Auth: currentUser ditemukan, memperbarui cache');
-    } else {
-      console.log('❌ Tidak ada session Firebase Auth yang valid');
-      redirectToLogin('no_firebase_auth');
-      return false;
-    }
-  }
-  
-  // Layer 2: LocalStorage consistency
-  const savedAuthUid = localStorage.getItem('jego_driver_auth_uid');
-  const savedDriverId = localStorage.getItem('jego_driver_id');
-  const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
-  const driverStatus = localStorage.getItem('jego_driver_status');
-  
-  if (!savedAuthUid || savedAuthUid !== currentFirebaseUser.uid) {
-    console.error(`❌ Layer 2: UID mismatch - Local: ${savedAuthUid}, Firebase: ${currentFirebaseUser.uid}`);
-    redirectToLogin('uid_mismatch');
-    return false;
-  }
-  
-  if (isLoggedIn !== 'true') {
-    console.error('❌ Layer 2: Login flag tidak valid');
-    redirectToLogin('invalid_login_flag');
-    return false;
-  }
-  
-  if (driverStatus !== 'active') {
-    console.error('❌ Layer 2: Driver status tidak aktif');
-    redirectToLogin('driver_inactive');
-    return false;
-  }
-  
-  // Layer 3: Driver data validation
-  if (!checkDriverData()) {
-    console.error('❌ Layer 3: Data driver tidak valid');
-    redirectToLogin('invalid_driver_data');
-    return false;
-  }
-  
-  console.log('✅ Multi-layer validation passed');
-  return true;
-}
-
-// ==================== PERBAIKAN FUNGSI DATABASE OPERATIONS ====================
-
-// Helper function untuk semua database operations dengan auth validation
-function getAuthenticatedDatabaseRef(path) {
-  if (!currentFirebaseUser) {
-    console.error('❌ Tidak ada user terautentikasi untuk akses database');
-    throw new Error('User not authenticated');
-  }
-  
-  if (!database) {
-    console.error('❌ Database tidak diinisialisasi');
-    throw new Error('Database not initialized');
-  }
-  
-  console.log(`🔐 Mengakses database path: ${path} dengan UID: ${currentFirebaseUser.uid}`);
-  return database.ref(path);
-}
-
-// Wrapper untuk semua write operations dengan auth check
-async function writeToDatabase(path, data) {
-  try {
-    // Validasi auth
-    if (!currentFirebaseUser) {
-      throw new Error('User not authenticated');
-    }
-    
-    const ref = getAuthenticatedDatabaseRef(path);
-    await ref.set(data);
-    console.log(`✅ Write to ${path} berhasil`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Error write to ${path}:`, error);
-    
-    // Handle permission denied khusus
-    if (error.code === 'PERMISSION_DENIED') {
-      console.error('❌ Permission denied - Auth mungkin tidak valid');
-      showPopup('Akses ditolak. Silakan login ulang.', 'Permission Error', 'error');
-      await logoutDriver();
-    }
-    
-    throw error;
-  }
-}
-
-async function updateDatabase(path, data) {
-  try {
-    // Validasi auth
-    if (!currentFirebaseUser) {
-      throw new Error('User not authenticated');
-    }
-    
-    const ref = getAuthenticatedDatabaseRef(path);
-    await ref.update(data);
-    console.log(`✅ Update to ${path} berhasil`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Error update to ${path}:`, error);
-    
-    // Handle permission denied khusus
-    if (error.code === 'PERMISSION_DENIED') {
-      console.error('❌ Permission denied - Auth mungkin tidak valid');
-      showPopup('Akses ditolak. Silakan login ulang.', 'Permission Error', 'error');
-      await logoutDriver();
-    }
-    
-    throw error;
   }
 }
 
@@ -421,70 +240,79 @@ let userDataRefreshInterval = null;
 let currentUserData = null;
 
 // FUNGSI BARU: Ambil data user dari localStorage dengan konsistensi yang sama dengan rute.html
-function getDriverData() {
+async function getDriverData() {
     console.log("🔍 [DEBUG] Memulai getDriverData");
     
     try {
-        // 1. UTAMAKAN: jego_logged_in_user (sama dengan registrasi_jego.html)
-        const loggedInUser = localStorage.getItem('jego_driver_data');
-        console.log("📁 [DEBUG] jego_driver_data di localStorage:", loggedInUser ? "Ada" : "Tidak ada");
+        // 1. Cek status auth terlebih dahulu
+        const authStatus = await checkDriverAuthStatus();
         
-        if (loggedInUser) {
-            const driverData = JSON.parse(loggedInUser);
-            console.log("✅ [DEBUG] Driver data ditemukan:", {
+        if (!authStatus.loggedIn) {
+            console.log("❌ [DEBUG] Driver belum login di Firebase Auth");
+            return null;
+        }
+        
+        // 2. Cek localStorage
+        const loggedInDriver = localStorage.getItem('jego_driver_data');
+        console.log("📁 [DEBUG] jego_driver_data di localStorage:", loggedInDriver ? "Ada" : "Tidak ada");
+        
+        if (loggedInDriver) {
+            const driverData = JSON.parse(loggedInDriver);
+            
+            // 3. Ambil data terbaru dari Firebase jika driverId ada
+            if (driverData.driverId && database) {
+                console.log("🔍 [DEBUG] Mengambil data terbaru dari Firebase untuk:", driverData.driverId);
+                
+                try {
+                    const driverRef = database.ref('drivers/' + driverData.driverId);
+                    const snapshot = await driverRef.once('value');
+                    const firebaseData = snapshot.val();
+                    
+                    if (firebaseData) {
+                        // Gabungkan data dari localStorage dan Firebase
+                        const mergedData = {
+                            // Data dari localStorage (registrasi)
+                            ...driverData,
+                            // Data dari Firebase (update terbaru)
+                            avg_rating: firebaseData.avg_rating,
+                            total_trips: firebaseData.total_trips,
+                            balance: firebaseData.balance,
+                            online: firebaseData.online,
+                            latitude: firebaseData.latitude,
+                            longitude: firebaseData.longitude,
+                            last_updated: new Date().toISOString()
+                        };
+                        
+                        console.log("✅ [DEBUG] Driver data setelah merge dengan Firebase:", {
+                            name: mergedData.fullName,
+                            phone: mergedData.phoneNumber,
+                            rating: mergedData.avg_rating,
+                            trips: mergedData.total_trips,
+                            balance: mergedData.balance
+                        });
+                        
+                        return mergedData;
+                    }
+                } catch (firebaseError) {
+                    console.error("❌ [DEBUG] Gagal ambil data dari Firebase:", firebaseError);
+                    // Fallback ke data localStorage
+                }
+            }
+            
+            console.log("✅ [DEBUG] Driver data ditemukan di localStorage:", {
                 name: driverData.fullName,
                 phone: driverData.phoneNumber,
-                driverId: driverData.driverId,
-                rating: driverData.avgRating,
-                perjalanan: driverData.totalTrips
+                driverId: driverData.driverId
             });
             
-            // Mapping field dari registrasi ke format yang diharapkan
-            const mappedDriverData = {
-                // Field utama dari registrasi
-                firebase_key: driverData.driverId || driverData.uid,
-                uid: driverData.driverId || driverData.uid,
-                key: driverData.driverId || driverData.uid,
-                
-                // Field identitas
-                name: driverData.fullName,
-                phone: driverData.phoneNumber,
-                email: driverData.email || '',
-                
-                // Field rating/perjalanan
-                rating: driverData.avgRating || 5,
-                perjalanan: driverData.totalTrips || 0,
-                
-                // Field foto profil
-                fotoProfilURL: driverData.profilePhotoUrl || '',
-                fotoProfilStorage: driverData.fotoProfilStorage || 'default',
-                
-                // Field kendaraan driver
-                vehicle_type: driverData.vehicleType,
-                vehicle_brand: driverData.vehicleBrand,
-                plate_number: driverData.plateNumber,
-                
-                // Field status/role
-                status: driverData.status || 'active',
-                role: 'driver',
-                
-                // Metadata
-                createdAt: driverData.createdAt || new Date().toISOString(),
-                last_updated: new Date().toISOString(),
-                
-                // Data driver lengkap
-                ...driverData
-            };
-            
-            console.log("✅ [DEBUG] Driver data setelah mapping:", mappedDriverData);
-            return mappedDriverData;
+            return driverData;
         }
         
     } catch (error) {
         console.error('❌ [DEBUG] Error mengambil data driver:', error);
     }
     
-    console.log("❌ [DEBUG] Tidak ada data driver ditemukan di localStorage");
+    console.log("❌ [DEBUG] Tidak ada data driver ditemukan");
     return null;
 }
 
@@ -497,7 +325,7 @@ async function fetchLatestDriverData(driverKey) {
   
   try {
     console.log("🔍 [DEBUG] Memulai fetchLatestDriverData untuk key:", driverKey);
-    const driverRef = getAuthenticatedDatabaseRef('drivers/' + driverKey);
+    const driverRef = database.ref('drivers/' + driverKey);
     const snapshot = await driverRef.once('value');
     const latestDriverData = snapshot.val();
     
@@ -557,7 +385,8 @@ function startDriverDataRefresh() {
   
   // Refresh setiap 30 detik jika driver sedang aktif
   userDataRefreshInterval = setInterval(async () => {
-    if (currentUserData && currentUserData.driverId) {
+    const authStatus = await checkDriverAuthStatus();
+    if (authStatus.loggedIn && currentUserData && currentUserData.driverId) {
       console.log("🔄 [DEBUG] Auto-refresh driver data dari Firebase...");
       currentUserData = await fetchLatestDriverData(currentUserData.driverId);
     }
@@ -572,27 +401,13 @@ function stopDriverDataRefresh() {
 }
 
 // FUNGSI BARU: Cek jika driver sudah login (konsisten dengan rute.html)
-function checkIfDriverLoggedIn() {
+async function checkIfDriverLoggedIn() {
     console.log("🔍 [DEBUG] Memeriksa status login driver...");
     
-    const loggedInDriver = localStorage.getItem('jego_driver_data');
-    const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
-    const driverStatus = localStorage.getItem('jego_driver_status');
+    const authStatus = await checkDriverAuthStatus();
     
-    if (loggedInDriver && isLoggedIn === 'true' && driverStatus === 'active') {
-        try {
-            const driverData = JSON.parse(loggedInDriver);
-            console.log("✅ [DEBUG] Driver sudah login:", driverData.fullName || driverData.phoneNumber);
-            return true;
-        } catch (error) {
-            console.error('❌ [DEBUG] Error parsing logged in driver:', error);
-            return false;
-        }
-    }
-    
-    // Cek juga dari Firebase Auth
-    if (auth && auth.currentUser) {
-        console.log("✅ [DEBUG] Driver login via Firebase Auth");
+    if (authStatus.loggedIn) {
+        console.log("✅ [DEBUG] Driver sudah login:", authStatus.uid);
         return true;
     }
     
@@ -665,7 +480,6 @@ function closePopup() {
 }
 
 // ==================== FUNGSI UTAMA SEND TO KODULAR - DIPERBAIKI ====================
-
 function sendToKodular(data) {
     console.log('📤 Mengirim data ke Kodular:', data);
     
@@ -742,7 +556,6 @@ function sendToKodular(data) {
 }
 
 // ==================== FUNGSI BARU: Ambil URL foto customer dengan fallback ====================
-
 function getCustomerPhoto(order) {
     // Cek di berbagai kemungkinan lokasi data foto
     if (order.user_foto_profil && order.user_foto_profil !== '') {
@@ -757,7 +570,6 @@ function getCustomerPhoto(order) {
 }
 
 // ==================== FUNGSI UNTUK FORMAT WAKTU ORDER ====================
-
 function formatTimeAgo(created_at) {
     if (!created_at) return 'Baru saja';
     
@@ -780,7 +592,6 @@ function formatTimeAgo(created_at) {
 }
 
 // ==================== FUNGSI VALIDASI PUSAT ====================
-
 function canSystemProcessOrder(source) {
     // source: "manual" (klik user) atau "auto" (sistem otomatis)
     if (source === "manual") {
@@ -797,10 +608,11 @@ function canSystemProcessOrder(source) {
 }
 
 // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
-
-function checkLoginStatusAndRedirect() {
+async function checkLoginStatus() {
     // PERBAIKAN: Gunakan fungsi baru yang konsisten dengan rute.html
-    if (!checkIfDriverLoggedIn()) {
+    const isLoggedIn = await checkIfDriverLoggedIn();
+    
+    if (!isLoggedIn) {
         console.log('❌ Driver belum login atau tidak aktif, kirim event ke Kodular');
         
         // Kirim event login ke Kodular (bukan redirect)
@@ -818,7 +630,6 @@ function checkLoginStatusAndRedirect() {
 }
 
 // ==================== FUNGSI NOTIFIKASI SUARA ====================
-
 function playNewOrderSound() {
     try {
         const audio = document.getElementById('newOrderSound');
@@ -868,7 +679,6 @@ function playOrderAcceptedSound() {
 }
 
 // ==================== VARIABEL GLOBAL ====================
-
 let ordersRef = null;
 let ordersListener = null;
 let modalMap = null;
@@ -886,7 +696,6 @@ let autobidInterval = null;
 let isAutobidProcessing = false;
 
 // ==================== VARIABEL BARU UNTUK GPS ====================
-
 let driverLocation = {
     latitude: null,
     longitude: null,
@@ -901,32 +710,26 @@ let activeOrderListenerRef = null;
 let activeOrderListener = null;
 
 // ==================== VARIABEL BARU UNTUK LOCATION TRACKING ====================
-
 let locationTrackingEnabled = false;
 let locationTrackingInterval = null;
 
 // ==================== VARIABEL UNTUK KONTROL PENGIRIMAN DATA KE KODULAR ====================
-
 let lastSentOrdersCount = null;
 let lastSentOrdersHash = null;
 let isInitialLoad = true;
 
 // ==================== VARIABEL BARU UNTUK PROGRESS AUTOBID ====================
-
 let autobidProgressInterval = null;
 let autobidProgressTimeLeft = 30;
 
 // ==================== VARIABEL UNTUK SISTEM SALDO (TANPA PEMOTONGAN) ====================
-
 let currentDriverBalance = 0;
 let balanceListener = null;
 
 // ==================== VARIABEL BARU UNTUK MANUAL CHECK INTERVAL ====================
-
 let manualCheckInterval = null;
 
 // ==================== VARIABEL BARU UNTUK MENU LAYOUT ====================
-
 let acceptKurirEnabled = true;
 let customRadius = 1.0; // Default 1km
 let filterTujuanEnabled = false;
@@ -934,7 +737,6 @@ let filterTujuanText = '';
 let filterTujuanData = null;
 
 // ==================== FUNGSI PERHITUNGAN HARGA DENGAN DISKON ====================
-
 function calculateDiscountedPrice(order) {
     // Jika tidak ada diskon, kembalikan harga normal
     if (!order.diskon_persen || order.diskon_persen === 0) {
@@ -962,7 +764,6 @@ function calculateDiscountedPrice(order) {
 }
 
 // ==================== FUNGSI NAVIGASI BOTTOM NAV YANG DIPERBARUI ====================
-
 function navigateToScreen(screen) {
     console.log(`🔄 Navigasi ke screen: ${screen}`);
     
@@ -1004,7 +805,6 @@ function updateActiveOrderBadge(hasActiveOrder) {
 }
 
 // ==================== FUNGSI MANUAL CHECK INTERVAL BARU ====================
-
 function startManualCheckInterval() {
     console.log('🔍 Memulai interval pemindaian manual...');
     
@@ -1029,8 +829,14 @@ function stopManualCheckInterval() {
 }
 
 // ==================== FUNGSI TOGGLE LOCATION TRACKING YANG DIPERBARUI ====================
-
-function toggleLocationTracking() {
+async function toggleLocationTracking() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        showPopup('Anda harus login untuk mengaktifkan tracking.', 'Error', 'error');
+        return;
+    }
+    
     // Cek koneksi Firebase
     if (!database) {
         showPopup('Tidak terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
@@ -1134,58 +940,56 @@ function stopLocationTracking() {
         })
         .catch(error => {
             console.error('❌ Gagal mengupdate status online:', error);
+            if (error.code === 'PERMISSION_DENIED') {
+                showPopup('Tidak memiliki izin untuk update lokasi. Silakan login ulang.', 'Error', 'error');
+            }
         });
     }
 }
 
-// ==================== PERBAIKAN FUNGSI SEND LOCATION DENGAN AUTH ====================
-
 async function sendLocationToFirebase() {
-  if (!currentDriverData || !currentDriverData.driverId) {
-    console.log('❌ Tidak ada data driver untuk mengirim lokasi');
-    return;
-  }
-  
-  if (!currentFirebaseUser) {
-    console.log('❌ Tidak ada user terautentikasi');
-    return;
-  }
-  
-  // Validasi: driverId harus sama dengan auth.uid
-  if (currentDriverData.driverId !== currentFirebaseUser.uid) {
-    console.error(`❌ Driver ID mismatch: ${currentDriverData.driverId} vs ${currentFirebaseUser.uid}`);
-    await logoutDriver();
-    return;
-  }
-  
-  if (!driverLocation.latitude || !driverLocation.longitude) {
-    console.log('❌ Tidak ada data lokasi untuk dikirim');
-    return;
-  }
-  
-  const driverId = currentDriverData.driverId;
-  
-  const locationUpdate = {
-    latitude: driverLocation.latitude,
-    longitude: driverLocation.longitude,
-    accuracy: driverLocation.accuracy,
-    last_updated: new Date().toISOString(),
-    online: true,
-    tracking_enabled: true
-  };
-  
-  try {
-    // Gunakan fungsi wrapper dengan auth validation
-    await updateDatabase('drivers/' + driverId, locationUpdate);
-    console.log('✅ Lokasi driver dikirim ke Firebase dengan auth yang valid');
-  } catch (error) {
-    console.error('❌ Gagal mengirim lokasi ke Firebase:', error);
-    // Tidak perlu showPopup lagi karena sudah di handle di wrapper
-  }
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        console.log('❌ Driver tidak login, tidak bisa mengirim lokasi');
+        return;
+    }
+    
+    if (!currentDriverData || !currentDriverData.driverId) {
+        console.log('❌ Tidak ada data driver untuk mengirim lokasi');
+        return;
+    }
+    
+    if (!driverLocation.latitude || !driverLocation.longitude) {
+        console.log('❌ Tidak ada data lokasi untuk dikirim');
+        return;
+    }
+    
+    const driverId = currentDriverData.driverId;
+    
+    const locationUpdate = {
+        latitude: driverLocation.latitude,
+        longitude: driverLocation.longitude,
+        accuracy: driverLocation.accuracy,
+        last_updated: new Date().toISOString(),
+        online: true,
+        tracking_enabled: true
+    };
+    
+    database.ref('drivers/' + driverId).update(locationUpdate)
+        .then(() => {
+            console.log('✅ Lokasi driver dikirim ke Firebase');
+        })
+        .catch(error => {
+            console.error('❌ Gagal mengirim lokasi ke Firebase:', error);
+            // Cek jika error karena permission denied
+            if (error.code === 'PERMISSION_DENIED') {
+                showPopup('Tidak memiliki izin untuk update lokasi. Silakan login ulang.', 'Error', 'error');
+            }
+        });
 }
 
 // ==================== FUNGSI UNTUK MENU LAYOUT ====================
-
 // Fungsi untuk membuka sidebar
 function openSidebar() {
     document.getElementById('sidebar').style.display = 'block';
@@ -1233,7 +1037,14 @@ function loadSettingsToUI() {
 }
 
 // PERBAIKAN: Fungsi untuk menyimpan pengaturan (TOMBOL SIMPAN PENGATURAN)
-function saveSettings() {
+async function saveSettings() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        showPopup('Anda harus login untuk menyimpan pengaturan.', 'Error', 'error');
+        return;
+    }
+    
     console.log('💾 Menyimpan pengaturan...');
     
     try {
@@ -1313,10 +1124,15 @@ function updateStatusInfo() {
 }
 
 // ==================== FUNGSI LOAD FILTER TUJUAN DARI FIREBASE ====================
-
 function loadFilterTujuanFromFirebase() {
-    try {
-        const filterRef = getAuthenticatedDatabaseRef('DataJego/Filter');
+    // Cek auth status terlebih dahulu
+    checkDriverAuthStatus().then(authStatus => {
+        if (!authStatus.loggedIn) {
+            console.log('❌ Driver belum login, tidak bisa load filter');
+            return;
+        }
+        
+        const filterRef = database.ref('DataJego/Filter');
         
         filterRef.once('value').then(snapshot => {
             filterTujuanData = snapshot.val();
@@ -1357,13 +1173,10 @@ function loadFilterTujuanFromFirebase() {
         }).catch(error => {
             console.error('Error loading filter tujuan:', error);
         });
-    } catch (error) {
-        console.error('Error accessing filter tujuan database:', error);
-    }
+    });
 }
 
 // ==================== FUNGSI NAVIGASI SIDEBAR ====================
-
 function setupSidebarNavigation() {
     // Dapatkan semua tombol navigasi sidebar
     const sidebarNavButtons = document.querySelectorAll('.sidebar-nav-button');
@@ -1397,24 +1210,9 @@ function setupSidebarNavigation() {
             }
         });
     });
-    
-    // Tambahkan tombol logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const confirmLogout = confirm('Apakah Anda yakin ingin logout?');
-            if (confirmLogout) {
-                await logoutDriver();
-            }
-        });
-    }
 }
 
 // ==================== UPDATE FUNGSI FILTER ORDER ====================
-
 function filterOrderByType(order) {
     if (currentFilter === 'all') {
         // Filter berdasarkan checkbox "Terima Kurir"
@@ -1465,7 +1263,6 @@ function checkOrderInRadius(order) {
 }
 
 // ==================== FUNGSI FILTER TUJUAN MULTIPLE KEYWORD (DIPERBAIKI) ====================
-
 function checkFilterTujuan(order) {
     if (!filterTujuanEnabled || !filterTujuanText.trim()) {
         return true; // Tidak ada filter, semua order diterima
@@ -1499,8 +1296,14 @@ function checkFilterTujuan(order) {
 }
 
 // ==================== FUNGSI TOGGLE AUTOBID YANG DIPERBARUI ====================
-
-function toggleAutobid() {
+async function toggleAutobid() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        showPopup('Anda harus login untuk mengaktifkan autobid.', 'Error', 'error');
+        return;
+    }
+    
     // Cek koneksi Firebase
     if (!database) {
         showPopup('Tidak terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
@@ -1552,8 +1355,13 @@ function updateAutobidButton() {
 }
 
 // ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL ====================
-
-function checkOrdersForManualPopup() {
+async function checkOrdersForManualPopup() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        return;
+    }
+    
     // GUARD: Sistem otomatis harus tracking ON
     if (!canSystemProcessOrder("auto")) {
         console.log("🚫 Manual Popup dihentikan: Tracking OFF");
@@ -1578,7 +1386,7 @@ function checkOrdersForManualPopup() {
             continue;
         }
         
-        const orderRef = getAuthenticatedDatabaseRef('orders/' + orderId);
+        const orderRef = database.ref('orders/' + orderId);
         orderRef.once('value').then(snapshot => {
             const order = snapshot.val();
             if (order && order.status === 'searching') {
@@ -1626,8 +1434,13 @@ function checkOrdersForManualPopup() {
 }
 
 // ==================== FUNGSI AUTOBID YANG DIPERBARUI ====================
-
-function checkOrdersForAutobid() {
+async function checkOrdersForAutobid() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        return;
+    }
+    
     // GUARD 1: Validasi sistem otomatis
     if (!canSystemProcessOrder("auto")) {
         console.log("🚫 Autobid dihentikan: Tracking OFF");
@@ -1650,7 +1463,7 @@ function checkOrdersForAutobid() {
             continue;
         }
         
-        const orderRef = getAuthenticatedDatabaseRef('orders/' + orderId);
+        const orderRef = database.ref('orders/' + orderId);
         orderRef.once('value').then(snapshot => {
             const order = snapshot.val();
             if (order && order.status === 'searching') {
@@ -1709,7 +1522,6 @@ function stopAutobid() {
 }
 
 // ==================== FUNGSI GPS DAN LOKASI ====================
-
 function startGPSMonitoring() {
     if (!navigator.geolocation) {
         console.error('❌ Browser tidak mendukung geolocation');
@@ -1849,7 +1661,6 @@ function updateGPSStatus(isActive, message) {
 }
 
 // ==================== FUNGSI PERHITUNGAN JARAK REAL ====================
-
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -1877,7 +1688,6 @@ function getDriverToPickupDistance(order) {
 }
 
 // ==================== FUNGSI UNTUK MENAMPILKAN FOTO PROFIL BESAR ====================
-
 function showCustomerPhoto(photoUrl, customerName) {
     const photoModal = document.getElementById('photoModal');
     const largePhoto = document.getElementById('largeCustomerPhoto');
@@ -1895,8 +1705,14 @@ function closePhotoModal() {
 }
 
 // ==================== FUNGSI MODAL DETAIL ORDER MANUAL - DIUBAH ====================
-
-function showOrderDetail(order) {
+async function showOrderDetail(order) {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        showPopup('Anda harus login untuk melihat detail order.', 'Error', 'error');
+        return;
+    }
+    
     // Cek apakah order kurir
     const isKurir = order.vehicle && order.vehicle.includes('kurir');
     
@@ -1911,7 +1727,7 @@ function showOrderDetail(order) {
         // Cek jarak untuk order kurir
         const isInRadius = checkOrderInRadius(order);
         if (!isInRadius) {
-            showPopup(`Order kurir berada di luar radius (${customRadius}km). Aktifkan tracking untuk melihat order dalam radius.`, 'Peringatan', 'warning');
+            showPopup(`Order kurir berada di luar radius (${customRadius}km). Aktifkan tracking untuk melihat order dalam radius.', 'Peringatan', 'warning');
             return;
         }
         
@@ -1922,7 +1738,7 @@ function showOrderDetail(order) {
     if (!checkDriverData()) return;
 
     const orderKey = order.order_id || order.id;
-    const orderRef = getAuthenticatedDatabaseRef('orders/' + orderKey);
+    const orderRef = database.ref('orders/' + orderKey);
     
     orderRef.once('value').then((snapshot) => {
         const currentOrder = snapshot.val();
@@ -2047,12 +1863,17 @@ function showOrderDetail(order) {
 }
 
 // ==================== FUNGSI MODAL AUTOBID - DIUBAH ====================
-
-function showAutobidOrderModal(order) {
+async function showAutobidOrderModal(order) {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        return;
+    }
+    
     if (!checkDriverData()) return;
 
     const orderKey = order.order_id || order.id;
-    const orderRef = getAuthenticatedDatabaseRef('orders/' + orderKey);
+    const orderRef = database.ref('orders/' + orderKey);
     
     orderRef.once('value').then((snapshot) => {
         const currentOrder = snapshot.val();
@@ -2157,7 +1978,6 @@ function showAutobidOrderModal(order) {
 }
 
 // ==================== FUNGSI PROGRESS BAR AUTOBID ====================
-
 function startAutobidProgressBar() {
     if (autobidProgressInterval) {
         clearInterval(autobidProgressInterval);
@@ -2208,6 +2028,14 @@ function closeAutobidModal() {
 }
 
 async function sendAutobidOffer() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        isAutobidProcessing = false;
+        closeAutobidModal();
+        return;
+    }
+    
     if (!currentSelectedOrder || !currentDriverId) {
         isAutobidProcessing = false;
         closeAutobidModal();
@@ -2223,9 +2051,8 @@ async function sendAutobidOffer() {
     const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
     const driverId = currentDriverId;
     
-    try {
-        const orderRef = getAuthenticatedDatabaseRef('orders/' + orderId);
-        const snapshot = await orderRef.once('value');
+    const orderRef = database.ref('orders/' + orderId);
+    orderRef.once('value').then((snapshot) => {
         const currentOrder = snapshot.val();
         
         if (!currentOrder || currentOrder.status !== 'searching') {
@@ -2255,37 +2082,54 @@ async function sendAutobidOffer() {
             autobid: true,
             priority_level: priorityData.priorityLevel,
             avg_rating: priorityData.rating,
-            priority_score: priorityScore,
-            auth_uid: currentFirebaseUser.uid
+            priority_score: priorityScore
         };
         
-        await updateDatabase(`orders/${orderId}/driver_offers/${driverId}`, driverData);
+        orderRef.child('driver_offers').child(driverId).set(driverData)
+            .then(() => {
+                console.log('✅ Autobid: Penawaran berhasil dikirim untuk order:', orderId);
+                
+                document.getElementById('autobidProgressText').textContent = 'Penawaran terkirim! Menunggu konfirmasi...';
+                document.getElementById('autobidProgressBar').style.background = 'linear-gradient(to right, var(--primary), var(--secondary))';
+                
+                sendToKodular({
+                    action: 'autobid_offer_sent',
+                    order_id: orderId,
+                    order_data: currentOrder,
+                    priority_score: priorityScore,
+                    message: `Autobid: Penawaran berhasil dikirim. Menunggu konfirmasi customer...`
+                });
+                
+                startAutobidProgressBar();
+                listenForAutobidOrderResponse(orderId, driverId);
+            })
+            .catch((error) => {
+                console.error('❌ Autobid: Gagal mengirim penawaran:', error);
+                
+                document.getElementById('autobidProgressText').textContent = 'Gagal mengirim penawaran';
+                document.getElementById('autobidProgressBar').style.background = '#dc3545';
+                
+                sendToKodular({ 
+                    action: 'autobid_offer_failed', 
+                    message: 'Autobid: Gagal mengirim penawaran.' 
+                });
+                
+                setTimeout(() => {
+                    closeAutobidModal();
+                }, 2000);
+                
+                isAutobidProcessing = false;
+                processedOrders.delete(orderId);
+            });
+    }).catch((error) => {
+        console.error('❌ Autobid: Error checking order status:', error);
         
-        console.log('✅ Autobid: Penawaran berhasil dikirim untuk order:', orderId);
-        
-        document.getElementById('autobidProgressText').textContent = 'Penawaran terkirim! Menunggu konfirmasi...';
-        document.getElementById('autobidProgressBar').style.background = 'linear-gradient(to right, var(--primary), var(--secondary))';
-        
-        sendToKodular({
-            action: 'autobid_offer_sent',
-            order_id: orderId,
-            order_data: currentOrder,
-            priority_score: priorityScore,
-            message: `Autobid: Penawaran berhasil dikirim. Menunggu konfirmasi customer...`
-        });
-        
-        startAutobidProgressBar();
-        listenForAutobidOrderResponse(orderId, driverId);
-        
-    } catch (error) {
-        console.error('❌ Autobid: Gagal mengirim penawaran:', error);
-        
-        document.getElementById('autobidProgressText').textContent = 'Gagal mengirim penawaran';
+        document.getElementById('autobidProgressText').textContent = 'Error memeriksa order';
         document.getElementById('autobidProgressBar').style.background = '#dc3545';
         
         sendToKodular({ 
-            action: 'autobid_offer_failed', 
-            message: 'Autobid: Gagal mengirim penawaran.' 
+            action: 'autobid_offer_check_failed', 
+            message: 'Autobid: Gagal memeriksa status order.' 
         });
         
         setTimeout(() => {
@@ -2294,11 +2138,11 @@ async function sendAutobidOffer() {
         
         isAutobidProcessing = false;
         processedOrders.delete(orderId);
-    }
+    });
 }
 
 function listenForAutobidOrderResponse(orderId, driverId) {
-    const orderRef = getAuthenticatedDatabaseRef('orders/' + orderId);
+    const orderRef = database.ref('orders/' + orderId);
     orderRef.on('value', (snapshot) => {
         const order = snapshot.val();
         
@@ -2422,7 +2266,6 @@ function listenForAutobidOrderResponse(orderId, driverId) {
 }
 
 // ==================== FUNGSI UNTUK KONTROL PENGIRIMAN DATA KE KODULAR ====================
-
 function generateOrdersHash(orders) {
     if (!orders || orders.length === 0) return 'empty';
     
@@ -2472,10 +2315,16 @@ function sendOrdersToKodular(orders) {
 }
 
 // ==================== FUNGSI TAMPILAN ORDER DENGAN INFORMASI JARAK ====================
-
-function loadOrders() {
-    console.log('🔄 Memulai loadOrders dengan auth validation...');
-    console.log('✅ Status acceptKurirEnabled saat loadOrders:', acceptKurirEnabled);
+async function loadOrders() {
+    console.log('🔄 Memulai loadOrders...');
+    
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        console.log('❌ Driver belum login, tidak bisa load orders');
+        showDriverNotRegistered();
+        return;
+    }
     
     const ordersList = document.getElementById('ordersList');
     if (!ordersList) {
@@ -2485,21 +2334,13 @@ function loadOrders() {
 
     ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
+    // Hapus timeout untuk demo mode
     const loadingTimeout = setTimeout(() => {
         if (ordersList.querySelector('.loading')) {
             console.log('⚠️ Timeout loading orders');
             showConnectionError();
         }
     }, 10000);
-
-    // Validasi auth sebelum melanjutkan
-    if (!currentFirebaseUser) {
-        console.log('❌ Tidak ada user terautentikasi, tidak bisa load orders');
-        clearTimeout(loadingTimeout);
-        showConnectionError();
-        redirectToLogin('no_auth_for_orders');
-        return;
-    }
 
     if (!checkDriverData()) {
         console.log('❌ Driver tidak terdaftar, berhenti load orders');
@@ -2521,10 +2362,10 @@ function loadOrders() {
     }
 
     try {
-        ordersRef = getAuthenticatedDatabaseRef('orders');
+        ordersRef = database.ref('orders');
         
         ordersListener = ordersRef.on('value', (snapshot) => {
-            console.log('✅ Data orders diterima dari Firebase dengan auth yang valid');
+            console.log('✅ Data orders diterima dari Firebase');
             clearTimeout(loadingTimeout);
             
             const orders = snapshot.val();
@@ -2550,15 +2391,7 @@ function loadOrders() {
         }, (error) => {
             console.error('❌ Error loading orders dari Firebase:', error);
             clearTimeout(loadingTimeout);
-            
-            // Handle permission denied
-            if (error.code === 'PERMISSION_DENIED') {
-                console.error('Permission denied - Auth mungkin tidak valid');
-                showConnectionError();
-                redirectToLogin('permission_denied_orders');
-            } else {
-                showConnectionError();
-            }
+            showConnectionError();
         });
         
     } catch (error) {
@@ -2753,7 +2586,6 @@ function renderOrdersList(orders, ordersList) {
 }
 
 // ==================== FUNGSI BARU: TAMPILAN ERROR KONEKSI ====================
-
 function showConnectionError() {
     const ordersList = document.getElementById('ordersList');
     
@@ -2777,7 +2609,6 @@ function showConnectionError() {
 }
 
 // ==================== FUNGSI UTAMA YANG SUDAH ADA ====================
-
 function generateDriverId() {
     return 'DRIVER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -2785,76 +2616,70 @@ function generateDriverId() {
 function checkDriverData() {
     try {
         // PERBAIKAN: Gunakan fungsi getDriverData yang baru
-        const driverData = getDriverData();
-        const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
-        const driverStatus = localStorage.getItem('jego_driver_status');
-        
-        console.log('📋 Data driver dari getDriverData:', driverData);
-        console.log('📋 Status login:', isLoggedIn);
-        console.log('📋 Status driver:', driverStatus);
-        
-        if (!driverData || isLoggedIn !== 'true' || driverStatus !== 'active') {
-            console.log('❌ Tidak ada data driver valid di localStorage');
-            showDriverNotRegistered();
-            return false;
-        }
-        
-        console.log('👤 Parsed driver data:', driverData);
-        
-        if (driverData.driverId && driverData.fullName) {
-            currentDriverData = driverData;
-            currentUserData = driverData; // Simpan juga di currentUserData untuk konsistensi
-            
-            updateDriverPhoto();
-            
-            // INISIALISASI SISTEM SALDO (TANPA PEMOTONGAN)
-            initializeBalanceSystem();
-            
-            const savedAutobid = localStorage.getItem('jego_autobid_enabled');
-            if (savedAutobid !== null) {
-                autobidEnabled = savedAutobid === 'true';
-                updateAutobidButton();
+        getDriverData().then(driverData => {
+            if (!driverData) {
+                showDriverNotRegistered();
+                return false;
             }
             
-            loadLocationTrackingSetting();
+            console.log('👤 Parsed driver data:', driverData);
             
-            // Load settings dari localStorage
-            const savedAcceptKurir = localStorage.getItem('jego_accept_kurir');
-            const savedRadius = localStorage.getItem('jego_custom_radius');
-            const savedFilterTujuan = localStorage.getItem('jego_filter_tujuan');
-            
-            // PERBAIKAN: Pastikan parsing boolean dari localStorage benar
-            if (savedAcceptKurir !== null) {
-                acceptKurirEnabled = savedAcceptKurir === 'true';
+            if (driverData.driverId && driverData.fullName) {
+                currentDriverData = driverData;
+                currentUserData = driverData; // Simpan juga di currentUserData untuk konsistensi
+                
+                updateDriverPhoto();
+                
+                // INISIALISASI SISTEM SALDO (TANPA PEMOTONGAN)
+                initializeBalanceSystem();
+                
+                const savedAutobid = localStorage.getItem('jego_autobid_enabled');
+                if (savedAutobid !== null) {
+                    autobidEnabled = savedAutobid === 'true';
+                    updateAutobidButton();
+                }
+                
+                loadLocationTrackingSetting();
+                
+                // Load settings dari localStorage
+                const savedAcceptKurir = localStorage.getItem('jego_accept_kurir');
+                const savedRadius = localStorage.getItem('jego_custom_radius');
+                const savedFilterTujuan = localStorage.getItem('jego_filter_tujuan');
+                
+                // PERBAIKAN: Pastikan parsing boolean dari localStorage benar
+                if (savedAcceptKurir !== null) {
+                    acceptKurirEnabled = savedAcceptKurir === 'true';
+                } else {
+                    acceptKurirEnabled = true; // Default value
+                }
+                
+                console.log('✅ acceptKurirEnabled dari localStorage saat checkDriverData:', acceptKurirEnabled);
+                
+                if (savedRadius) {
+                    customRadius = parseFloat(savedRadius);
+                }
+                
+                if (savedFilterTujuan) {
+                    const filterData = JSON.parse(savedFilterTujuan);
+                    filterTujuanText = filterData.text || '';
+                    filterTujuanEnabled = filterData.enabled || false;
+                }
+                
+                console.log('✅ Driver data valid dan diterima');
+                
+                // MULAI AUTO-REFRESH DATA DRIVER
+                if (driverData.driverId) {
+                    startDriverDataRefresh();
+                }
+                
+                return true;
             } else {
-                acceptKurirEnabled = true; // Default value
+                console.log('❌ Data driver tidak lengkap');
+                showDriverNotRegistered();
+                return false;
             }
-            
-            console.log('✅ acceptKurirEnabled dari localStorage saat checkDriverData:', acceptKurirEnabled);
-            
-            if (savedRadius) {
-                customRadius = parseFloat(savedRadius);
-            }
-            
-            if (savedFilterTujuan) {
-                const filterData = JSON.parse(savedFilterTujuan);
-                filterTujuanText = filterData.text || '';
-                filterTujuanEnabled = filterData.enabled || false;
-            }
-            
-            console.log('✅ Driver data valid dan diterima');
-            
-            // MULAI AUTO-REFRESH DATA DRIVER
-            if (driverData.driverId) {
-                startDriverDataRefresh();
-            }
-            
-            return true;
-        } else {
-            console.log('❌ Data driver tidak lengkap');
-            showDriverNotRegistered();
-            return false;
-        }
+        });
+        
     } catch (error) {
         console.error('❌ Error checking driver data:', error);
         showDriverNotRegistered();
@@ -2984,7 +2809,7 @@ function startCountdown(orderId, driverId) {
 }
 
 function removeDriverOffer(orderId, driverId) {
-    const orderRef = getAuthenticatedDatabaseRef('orders/' + orderId);
+    const orderRef = database.ref('orders/' + orderId);
     orderRef.child('driver_offers').child(driverId).remove()
         .then(() => console.log('Data driver dihapus karena waktu habis:', driverId))
         .catch(error => console.error('Gagal menghapus data driver:', error));
@@ -3014,124 +2839,12 @@ function closeModalAndRefresh() {
     loadOrders();
 }
 
-// ==================== PERBAIKAN FUNGSI SEND DRIVER OFFER DENGAN AUTH ====================
-
-async function sendDriverOffer() {
-    if (!currentSelectedOrder || !currentDriverId) return;
-    
-    if (!checkDriverData()) return;
-    
-    // Validasi auth
-    if (!currentFirebaseUser) {
-        showPopup('Session tidak valid. Silakan login ulang.', 'Auth Error', 'error');
-        await logoutDriver();
-        return;
-    }
-    
-    // GUARD: Validasi untuk order kurir
-    const isKurir = currentSelectedOrder.vehicle && currentSelectedOrder.vehicle.includes('kurir');
-    if (isKurir) {
-        // Untuk order kurir, pastikan tracking ON
-        if (!locationTrackingEnabled) {
-            showPopup('Untuk mengambil order kurir, aktifkan tracking lokasi terlebih dahulu.', 'Peringatan', 'warning');
-            return;
-        }
-        
-        // Pastikan dalam radius
-        const isInRadius = checkOrderInRadius(currentSelectedOrder);
-        if (!isInRadius) {
-            showPopup(`Order kurir berada di luar radius (${customRadius}km).`, 'Peringatan', 'warning');
-            return;
-        }
-    }
-    
-    // Lanjutkan proses normal...
-    const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
-    const driverId = currentDriverId;
-    const ambilBtn = document.getElementById('ambilBtn');
-    
-    ambilBtn.disabled = true;
-    ambilBtn.textContent = 'Mengirim...';
-    
-    try {
-        // Validasi order masih tersedia dengan auth
-        const orderRef = getAuthenticatedDatabaseRef('orders/' + orderId);
-        const snapshot = await orderRef.once('value');
-        const currentOrder = snapshot.val();
-        
-        if (!currentOrder || currentOrder.status !== 'searching') {
-            showPopup('Order ini sudah diambil oleh driver lain.', 'Info', 'info');
-            closeModalAndRefresh();
-            return;
-        }
-        
-        // Validasi driverId harus sama dengan auth.uid
-        if (currentDriverData.driverId !== currentFirebaseUser.uid) {
-            console.error('Driver ID tidak sesuai dengan auth.uid');
-            await logoutDriver();
-            return;
-        }
-        
-        const priorityData = getDriverPriorityData();
-        const driverDistance = getDriverToPickupDistance(currentOrder);
-        const priorityScore = calculatePriorityScore(
-            priorityData.priorityLevel,
-            priorityData.rating,
-            driverDistance
-        );
-        
-        const driverData = {
-            id: driverId,
-            name: currentDriverData.fullName,
-            plate_number: currentDriverData.plateNumber,
-            vehicle_type: currentDriverData.vehicleType,
-            vehicle_brand: currentDriverData.vehicleBrand,
-            driver_id: currentDriverData.driverId,
-            profile_photo_url: currentDriverData.profilePhotoUrl || '',
-            offered_at: new Date().toISOString(),
-            priority_level: priorityData.priorityLevel,
-            avg_rating: priorityData.rating,
-            priority_score: priorityScore,
-            // Tambahkan auth_uid untuk validasi
-            auth_uid: currentFirebaseUser.uid
-        };
-        
-        // Gunakan wrapper function dengan auth validation
-        await updateDatabase(`orders/${orderId}/driver_offers/${driverId}`, driverData);
-        
-        console.log('Penawaran driver berhasil dikirim untuk order:', orderId);
-        sendToKodular({ 
-            action: 'offer_sent', 
-            order_id: orderId, 
-            priority_score: priorityScore,
-            message: `Penawaran berhasil dikirim. Menunggu konfirmasi customer...` 
-        });
-        
-        startCountdown(orderId, driverId);
-        listenForOrderResponse(orderId, driverId);
-        ambilBtn.textContent = 'Menunggu Konfirmasi';
-        
-    } catch (error) {
-        console.error('Gagal mengirim penawaran:', error);
-        
-        if (error.message === 'User not authenticated') {
-            showPopup('Session expired. Silakan login ulang.', 'Auth Error', 'error');
-            await logoutDriver();
-        } else {
-            showPopup('Gagal mengirim penawaran. Silakan coba lagi.', 'Error', 'error');
-        }
-        
-        ambilBtn.disabled = false;
-        ambilBtn.textContent = 'Kirim Penawaran';
-    }
-}
-
 function listenForOrderResponse(orderId, driverId) {
     if (offerListenerRef && offerListener) {
         offerListenerRef.off('value', offerListener);
     }
     
-    offerListenerRef = getAuthenticatedDatabaseRef('orders/' + orderId);
+    offerListenerRef = database.ref('orders/' + orderId);
     offerListener = offerListenerRef.on('value', (snapshot) => {
         const order = snapshot.val();
         
@@ -3205,8 +2918,103 @@ function listenForOrderResponse(orderId, driverId) {
     });
 }
 
-// ==================== SISTEM PRIORITAS DRIVER ====================
+async function sendDriverOffer() {
+    // Cek auth status terlebih dahulu
+    const authStatus = await checkDriverAuthStatus();
+    if (!authStatus.loggedIn) {
+        showPopup('Anda harus login untuk mengirim penawaran.', 'Error', 'error');
+        return;
+    }
+    
+    if (!currentSelectedOrder || !currentDriverId) return;
+    
+    if (!checkDriverData()) return;
+    
+    // GUARD: Validasi untuk order kurir
+    const isKurir = currentSelectedOrder.vehicle && currentSelectedOrder.vehicle.includes('kurir');
+    if (isKurir) {
+        // Untuk order kurir, pastikan tracking ON
+        if (!locationTrackingEnabled) {
+            showPopup('Untuk mengambil order kurir, aktifkan tracking lokasi terlebih dahulu.', 'Peringatan', 'warning');
+            return;
+        }
+        
+        // Pastikan dalam radius
+        const isInRadius = checkOrderInRadius(currentSelectedOrder);
+        if (!isInRadius) {
+            showPopup(`Order kurir berada di luar radius (${customRadius}km).`, 'Peringatan', 'warning');
+            return;
+        }
+    }
+    
+    // Lanjutkan proses normal...
+    const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
+    const driverId = currentDriverId;
+    const ambilBtn = document.getElementById('ambilBtn');
+    
+    ambilBtn.disabled = true;
+    ambilBtn.textContent = 'Mengirim...';
+    
+    const orderRef = database.ref('orders/' + orderId);
+    orderRef.once('value').then((snapshot) => {
+        const currentOrder = snapshot.val();
+        
+        if (!currentOrder || currentOrder.status !== 'searching') {
+            showPopup('Order ini sudah diambil oleh driver lain.', 'Info', 'info');
+            closeModalAndRefresh();
+            return;
+        }
+        
+        const priorityData = getDriverPriorityData();
+        const driverDistance = getDriverToPickupDistance(currentOrder);
+        const priorityScore = calculatePriorityScore(
+            priorityData.priorityLevel,
+            priorityData.rating,
+            driverDistance
+        );
+        
+        const driverData = {
+            id: driverId,
+            name: currentDriverData.fullName,
+            plate_number: currentDriverData.plateNumber,
+            vehicle_type: currentDriverData.vehicleType,
+            vehicle_brand: currentDriverData.vehicleBrand,
+            driver_id: currentDriverData.driverId,
+            profile_photo_url: currentDriverData.profilePhotoUrl || '',
+            offered_at: new Date().toISOString(),
+            priority_level: priorityData.priorityLevel,
+            avg_rating: priorityData.rating,
+            priority_score: priorityScore
+        };
+        
+        orderRef.child('driver_offers').child(driverId).set(driverData)
+            .then(() => {
+                console.log('Penawaran driver berhasil dikirim untuk order:', orderId);
+                sendToKodular({ 
+                    action: 'offer_sent', 
+                    order_id: orderId, 
+                    priority_score: priorityScore,
+                    message: `Penawaran berhasil dikirim. Menunggu konfirmasi customer...` 
+                });
+                startCountdown(orderId, driverId);
+                listenForOrderResponse(orderId, driverId);
+                ambilBtn.textContent = 'Menunggu Konfirmasi';
+            })
+            .catch((error) => {
+                console.error('Gagal mengirim penawaran:', error);
+                showPopup('Gagal mengirim penawaran. Silakan coba lagi.', 'Error', 'error');
+                ambilBtn.disabled = false;
+                ambilBtn.textContent = 'Kirim Penawaran';
+            });
+    }).catch((error) => {
+        console.error('Error checking order status:', error);
+        showPopup('Gagal memeriksa status order. Silakan coba lagi.', 'Error', 'error');
+        ambilBtn.disabled = false;
+        ambilBtn.textContent = 'Kirim Penawaran';
+    });
+}
 
+// ==================== SISTEM PRIORITAS DRIVER ====================
 const PRIORITY_WEIGHTS = {
     'basic': 1,
     'standard': 2,
@@ -3288,7 +3096,6 @@ function updatePriorityBadgeInHeader() {
 }
 
 // ==================== SISTEM SALDO DRIVER (TANPA PEMOTONGAN) ====================
-
 function initializeBalanceSystem() {
     if (!currentDriverData || !currentDriverData.driverId) {
         console.log('❌ Tidak ada data driver untuk inisialisasi sistem saldo');
@@ -3296,7 +3103,7 @@ function initializeBalanceSystem() {
     }
 
     const driverId = currentDriverData.driverId;
-    const balanceRef = getAuthenticatedDatabaseRef('drivers/' + driverId + '/Balance');
+    const balanceRef = database.ref('drivers/' + driverId + '/Balance');
 
     // Setup real-time listener untuk saldo (HANYA UNTUK MENAMPILKAN, BUKAN PEMOTONGAN)
     balanceListener = balanceRef.on('value', (snapshot) => {
@@ -3316,7 +3123,6 @@ function initializeBalanceSystem() {
 }
 
 // ==================== FUNGSI LOCALSTORAGE ORDER DITERIMA ====================
-
 function saveAcceptedOrderToLocalStorage(orderData, driverData) {
     try {
         // Simpan data pengiriman lengkap jika ada
@@ -3377,7 +3183,6 @@ function getAcceptedOrderFromLocalStorage() {
 }
 
 // ==================== FUNGSI CEK ORDER BERJALAN YANG DIPERBAIKI ====================
-
 function checkActiveOrderForDriver() {
     if (!currentDriverData || !currentDriverData.driverId) {
         console.log('❌ Tidak ada data driver untuk mengecek order berjalan');
@@ -3386,7 +3191,7 @@ function checkActiveOrderForDriver() {
 
     console.log('🔍 Mengecek order berjalan untuk driver:', currentDriverData.driverId);
 
-    const ordersRef = getAuthenticatedDatabaseRef('orders');
+    const ordersRef = database.ref('orders');
     ordersRef.once('value').then(snapshot => {
         const orders = snapshot.val();
         let activeOrder = null;
@@ -3444,7 +3249,7 @@ function startActiveOrderListener(orderId) {
 
     console.log('👂 Mulai listen untuk order aktif:', orderId);
     
-    activeOrderListenerRef = getAuthenticatedDatabaseRef('orders/' + orderId);
+    activeOrderListenerRef = database.ref('orders/' + orderId);
     activeOrderListener = activeOrderListenerRef.on('value', (snapshot) => {
         const order = snapshot.val();
         
@@ -3556,7 +3361,6 @@ function showActiveOrderNotification(order) {
 }
 
 // ==================== FUNGSI TAMBAHAN UNTUK REFRESH ====================
-
 function refreshData() {
     console.log('🔄 Refresh data manual');
     loadOrders();
@@ -3583,9 +3387,14 @@ function closeModal() {
 }
 
 // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
-
-function startAppAfterAuth() {
-    console.log('🚀 Memulai aplikasi setelah auth valid...');
+async function initJeGoApp() {
+    console.log('🚀 Aplikasi JeGo diinisialisasi');
+    
+    // CEK LOGIN STATUS
+    const isLoggedIn = await checkLoginStatus();
+    if (!isLoggedIn) {
+        return; // Hentikan eksekusi jika belum login
+    }
     
     // Setup event listeners
     setupEventListeners();
@@ -3620,8 +3429,6 @@ function startAppAfterAuth() {
     }
     
     console.log('🔧 STATUS SISTEM FINAL:');
-    console.log('- Firebase Auth:', currentFirebaseUser ? '✅ Valid' : '❌ Tidak valid');
-    console.log('- Driver ID:', currentDriverData?.driverId || 'Tidak ada');
     console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
@@ -3630,7 +3437,6 @@ function startAppAfterAuth() {
 }
 
 // ==================== SETUP EVENT LISTENERS ====================
-
 function setupEventListeners() {
     // Event listeners baru untuk menu
     const menuBtn = document.getElementById('menuBtn');
@@ -3772,7 +3578,6 @@ function setupEventListeners() {
 }
 
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
-
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Halaman JeGo Driver dimuat');
     
@@ -3782,33 +3587,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const firebaseInitialized = initializeFirebase();
         
         if (firebaseInitialized) {
-            console.log('✅ Firebase siap, menunggu auth state...');
-            // Auth state listener akan memanggil startAppAfterAuth() ketika user terautentikasi
+            console.log('✅ Firebase siap, inisialisasi aplikasi...');
+            
+            // Setup auth state observer
+            if (auth) {
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        console.log('✅ User auth state changed: Logged in', user.uid);
+                        initJeGoApp();
+                    } else {
+                        console.log('❌ User auth state changed: Logged out');
+                        // Tampilkan login required
+                        const ordersList = document.getElementById('ordersList');
+                        if (ordersList) {
+                            ordersList.innerHTML = `
+                                <div class="empty-state">
+                                    <div>🔒</div>
+                                    <p>Silakan login untuk mengakses halaman driver</p>
+                                    <button onclick="sendToKodular({action: 'navigate', target: 'login'})" 
+                                        style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                        Login Sekarang
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+            } else {
+                // Fallback jika auth belum tersedia
+                setTimeout(() => {
+                    initJeGoApp();
+                }, 1000);
+            }
         } else {
-            console.log('⚠️ Firebase belum siap, coba lagi...');
-            // Tunda inisialisasi
+            console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
             setTimeout(() => {
-                // Coba langsung cek login status
-                if (checkLoginStatus()) {
-                    startAppAfterAuth();
-                }
+                initJeGoApp();
             }, 2000);
         }
     }, 500);
 });
 
-// ==================== CLEANUP PADA UNLOAD ====================
-
 window.addEventListener('beforeunload', () => {
-    console.log('🧹 Cleaning up resources...');
-    
-    // Hentikan auth state listener
-    if (authStateChangedListener) {
-        authStateChangedListener();
-        authStateChangedListener = null;
-    }
-    
-    // Hentikan semua interval dan listener lainnya
     if (locationWatchId) {
         navigator.geolocation.clearWatch(locationWatchId);
     }
@@ -3824,20 +3644,12 @@ window.addEventListener('beforeunload', () => {
     if (manualCheckInterval) {
         clearInterval(manualCheckInterval);
     }
-    if (balanceListener && currentDriverData?.driverId) {
-        database.ref('drivers/' + currentDriverData.driverId + '/Balance').off('value', balanceListener);
+    if (balanceListener) {
+        const driverId = currentDriverData?.driverId;
+        if (driverId) {
+            database.ref('drivers/' + driverId + '/Balance').off('value', balanceListener);
+        }
     }
-    
     // Hentikan auto-refresh data driver
     stopDriverDataRefresh();
-    
-    // Hentikan order listener
-    if (ordersListener && ordersRef) {
-        ordersRef.off('value', ordersListener);
-    }
-    
-    // Hentikan active order listener
-    stopActiveOrderListener();
-    
-    console.log('✅ Cleanup completed');
 });
