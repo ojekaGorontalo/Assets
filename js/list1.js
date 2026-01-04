@@ -1,23 +1,11 @@
 // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
-// Fungsi initApp harus GLOBAL agar bisa dipanggil oleh Google Maps API
-window.initApp = function() {
+function initApp() {
   console.log('✅ Google Maps API berhasil di-load');
   // Inisialisasi Firebase setelah Google Maps siap
   initializeFirebase();
   // Panggil fungsi inisialisasi aplikasi
   initJeGoApp();
-};
-
-// Fallback jika Google Maps API tidak memanggil callback dalam 5 detik
-setTimeout(() => {
-  if (typeof google === 'undefined' || !google.maps) {
-    console.log('⚠️ Google Maps API tidak terdeteksi, inisialisasi tanpa peta...');
-    const firebaseInitialized = initializeFirebase();
-    if (firebaseInitialized) {
-      initJeGoApp();
-    }
-  }
-}, 5000);
+}
 
 // ==================== KONFIGURASI FIREBASE ====================
 const FIREBASE_CONFIG = {
@@ -3328,15 +3316,29 @@ function setupEventListeners() {
     });
 }
 
-// ==================== EVENT LISTENER UNTUK MEMASTIKAN DOM SIAP ====================
-// Tidak menggunakan DOMContentLoaded untuk initApp karena sudah dipanggil oleh Google Maps API
-// Tapi kita perlu pastikan event listeners terpasang setelah DOM siap
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM Content Loaded - JeGo Driver');
-    // Tidak memanggil initJeGoApp() di sini karena sudah dipanggil oleh initApp()
+// ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Halaman JeGo Driver dimuat');
+    
+    // Tunggu sedikit untuk memastikan Firebase SDK sudah terload
+    setTimeout(() => {
+        // Inisialisasi Firebase
+        const firebaseInitialized = initializeFirebase();
+        
+        if (firebaseInitialized) {
+            console.log('✅ Firebase siap, inisialisasi aplikasi...');
+            // Google Maps API akan memanggil initApp() saat siap
+            // initApp() akan memanggil initJeGoApp()
+        } else {
+            console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
+            // Tunda inisialisasi
+            setTimeout(() => {
+                initJeGoApp();
+            }, 2000);
+        }
+    }, 500);
 });
 
-// ==================== CLEANUP SAAT WINDOW UNLOAD ====================
 window.addEventListener('beforeunload', () => {
     if (locationWatchId) {
         navigator.geolocation.clearWatch(locationWatchId);
