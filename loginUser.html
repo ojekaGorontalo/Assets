@@ -100,6 +100,10 @@
     
     function formatPhoneNumber(phone) {
       let cleaned = phone.replace(/\D/g, '');
+      
+      console.log('🔢 Pembersihan nomor:', phone, '→', cleaned);
+      
+      // Handle berbagai format
       if (cleaned.startsWith('0')) {
         cleaned = '+62' + cleaned.substring(1);
       } else if (cleaned.startsWith('62')) {
@@ -107,6 +111,8 @@
       } else if (!cleaned.startsWith('+')) {
         cleaned = '+62' + cleaned;
       }
+      
+      console.log('🎯 Hasil format:', cleaned);
       return cleaned;
     }
     
@@ -225,35 +231,91 @@
     
     async function checkPhoneNumberInDatabase(phoneNumber) {
       try {
-        console.log('🔍 Checking phone in database:', phoneNumber);
+        console.log('🔍 Mencari nomor di database:', phoneNumber);
         
-        // Query database untuk mencari user dengan nomor telepon yang sama
-        const snapshot = await firebaseDatabase.ref('users')
-          .orderByChild('phone')
-          .equalTo(phoneNumber)
-          .once('value');
-        
-        const data = snapshot.val();
-        
-        if (data) {
-          // Ambil user pertama yang ditemukan
-          const userId = Object.keys(data)[0];
-          const userData = data[userId];
+        // METHOD 1: Coba query langsung ke users collection
+        try {
+          const snapshot = await firebaseDatabase.ref('users')
+            .orderByChild('phone')
+            .equalTo(phoneNumber)
+            .once('value');
           
-          return {
-            exists: true,
-            user: userData,
-            userId: userId
-          };
+          const data = snapshot.val();
+          
+          if (data) {
+            // Ambil user pertama yang ditemukan
+            const userId = Object.keys(data)[0];
+            const userData = data[userId];
+            
+            console.log('✅ User ditemukan via query:', userId);
+            return {
+              exists: true,
+              user: userData,
+              userId: userId
+            };
+          }
+        } catch (queryError) {
+          console.log('⚠️ Query error, coba metode lain:', queryError.message);
         }
         
-        return {
-          exists: false,
-          user: null,
-          userId: null
-        };
+        // METHOD 2: Ambil semua user dan cari manual
+        console.log('🔄 Fallback: manual search...');
+        const allUsersSnapshot = await firebaseDatabase.ref('users').once('value');
+        const allUsers = allUsersSnapshot.val();
+        
+        if (!allUsers) {
+          console.log('📭 Database users kosong');
+          return { exists: false, user: null, userId: null };
+        }
+        
+        console.log(`📊 Total ${Object.keys(allUsers).length} user ditemukan`);
+        
+        // Cari dengan berbagai format nomor
+        const searchPatterns = [
+          phoneNumber, // Format asli (+62...)
+          phoneNumber.replace('+62', '0'), // 0823...
+          phoneNumber.replace('+62', '62'), // 62823...
+          '0' + phoneNumber.substring(3), // 0823... (alternatif)
+          '62' + phoneNumber.substring(3), // 62823... (alternatif)
+        ];
+        
+        for (const userId in allUsers) {
+          const user = allUsers[userId];
+          const dbPhone = user.phone || '';
+          
+          console.log(`🔎 Cek user ${userId}: ${dbPhone}`);
+          
+          // Cek exact match dengan berbagai pola
+          for (const pattern of searchPatterns) {
+            if (dbPhone === pattern) {
+              console.log(`✅ Match ditemukan! Pattern: ${pattern}`);
+              return {
+                exists: true,
+                user: user,
+                userId: userId
+              };
+            }
+          }
+          
+          // Cek dengan trim whitespace
+          const trimmedDbPhone = dbPhone.trim();
+          const trimmedSearch = phoneNumber.trim();
+          
+          if (trimmedDbPhone && trimmedDbPhone === trimmedSearch) {
+            console.log(`✅ Match setelah trim whitespace`);
+            return {
+              exists: true,
+              user: user,
+              userId: userId
+            };
+          }
+        }
+        
+        console.log('❌ Nomor tidak ditemukan di database');
+        return { exists: false, user: null, userId: null };
+        
       } catch (error) {
-        console.error('❌ Error checking phone number:', error);
+        console.error('❌ Error mencari nomor telepon:', error);
         return {
           exists: false,
           error: error.message
@@ -263,7 +325,7 @@
     
     async function sendFirebaseOTP(phoneNumber) {
       try {
-        showSmsStatus('📱 Mengirim OTP...', 'sending');
+        showSmsStatus('🔄 Mengirim OTP...', 'sending');
         
         if (!recaptchaVerifier) {
           throw new Error('reCAPTCHA belum diatur');
@@ -302,7 +364,7 @@
     
     async function verifyFirebaseOTP(code) {
       try {
-        showSmsStatus('🔍 Memverifikasi OTP...', 'sending');
+        showSmsStatus('🔄 Memverifikasi OTP...', 'sending');
         
         if (!confirmationResult) {
           throw new Error('Sesi OTP tidak valid. Silakan minta OTP baru.');
@@ -344,6 +406,8 @@
       const loginBtn = document.getElementById('loginBtn');
       const telepon = document.getElementById('teleponInput').value.trim();
       
+      console.log('📱 Input pengguna:', telepon);
+      
       if (!telepon) {
         showStatus('Harap masukkan nomor telepon.', 'error');
         return;
@@ -351,6 +415,9 @@
       
       // Format nomor telepon
       const formattedPhone = formatPhoneNumber(telepon);
+      
+      console.log('🔄 Nomor setelah format:', formattedPhone);
+      console.log('✅ Validasi format:', validatePhoneFormat(formattedPhone));
       
       if (!validatePhoneFormat(formattedPhone)) {
         showStatus('Format nomor telepon tidak valid. Gunakan format: 08123456789', 'error');
@@ -366,10 +433,16 @@
       try {
         // 1. Cek apakah nomor terdaftar di database
         showProgress(40);
+        console.log('🔍 Memulai pencarian di database...');
+        
         const phoneInfo = await checkPhoneNumberInDatabase(formattedPhone);
+        
+        console.log('📊 Hasil pencarian:', phoneInfo);
         
         if (phoneInfo.exists) {
           const userData = phoneInfo.user;
+          
+          console.log('👤 Data user ditemukan:', userData);
           
           // Cek status akun
           const userStatus = userData.status || 'active';
@@ -391,8 +464,12 @@
             userData: userData
           };
           
+          console.log('👤 Current user set:', currentUser);
+          
           // 2. Kirim OTP
           showProgress(60);
+          console.log('📲 Mengirim OTP...');
+          
           const otpSent = await sendFirebaseOTP(formattedPhone);
           
           if (otpSent) {
@@ -407,6 +484,7 @@
           }
           
         } else {
+          console.log('❌ Nomor tidak terdaftar');
           showStatus('Nomor telepon tidak terdaftar.', 'error');
           showNotification('Info', 'Nomor tidak terdaftar. Silakan daftar terlebih dahulu.', 'info');
         }
@@ -457,7 +535,7 @@
             return;
           }
           
-          // 3. ✅ BUAT SESSION DENGAN STRUKTUR STANDAR
+          // 3. BUAT SESSION DENGAN STRUKTUR STANDAR
           const sessionUser = {
             userId: firebaseUser.uid,
             uid: firebaseUser.uid,
@@ -473,7 +551,7 @@
             createdAt: dbUser.createdAt || new Date().toISOString()
           };
           
-          // 4. ✅ SIMPAN KE LOCALSTORAGE (KEY STANDAR)
+          // 4. SIMPAN KE LOCALSTORAGE (KEY STANDAR)
           localStorage.setItem('jego_logged_in_user', JSON.stringify(sessionUser));
           
           // 5. Tampilkan success
@@ -558,13 +636,67 @@
         }
       });
     }
+
+    // Fungsi debug untuk cek struktur database
+    window.debugDatabase = async function() {
+      console.log('🔧 DEBUG MODE - Database Check');
+      
+      try {
+        // Cek apakah bisa akses users
+        const snapshot = await firebaseDatabase.ref('users').once('value');
+        const users = snapshot.val();
+        
+        if (!users) {
+          console.log('❌ Database users kosong');
+          return;
+        }
+        
+        console.log(`📊 Total users: ${Object.keys(users).length}`);
+        
+        // Tampilkan semua user dengan nomor telepon
+        console.log('📋 Daftar semua user:');
+        for (const uid in users) {
+          const user = users[uid];
+          console.log(`  ${uid}:`);
+          console.log(`    Nama: ${user.name || '(no name)'}`);
+          console.log(`    Phone: ${user.phone || '(no phone)'}`);
+          console.log(`    Status: ${user.status || 'active'}`);
+          console.log('---');
+        }
+        
+        // Cari spesifik untuk nomor +6282311640444
+        console.log('🔍 Mencari spesifik +6282311640444...');
+        let found = false;
+        for (const uid in users) {
+          if (users[uid].phone === "+6282311640444") {
+            console.log(`✅ DITEMUKAN di UID: ${uid}`);
+            console.log('User data:', users[uid]);
+            found = true;
+          }
+        }
+        
+        if (!found) {
+          console.log('❌ Nomor +6282311640444 TIDAK ditemukan');
+          console.log('Mungkin ada perbedaan format:');
+          for (const uid in users) {
+            const phone = users[uid].phone;
+            if (phone && phone.includes("82311640444")) {
+              console.log(`  Mungkin ini: ${phone} (UID: ${uid})`);
+            }
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Debug error:', error);
+      }
+    };
     
     // ================================================
     // INITIALIZATION
     // ================================================
     
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('📄 DOM fully loaded, initializing...');
+      console.log('🚀 DOM fully loaded, initializing...');
       
       setupOTPInput();
       
