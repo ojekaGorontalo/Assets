@@ -533,6 +533,7 @@
       cursor: pointer;
       transition: all 0.3s;
       margin-bottom: 15px;
+      position: relative;
     }
 
     .file-upload-container:hover {
@@ -570,11 +571,12 @@
 
     .upload-progress {
       margin-top: 10px;
-      height: 6px;
+      height: 20px;
       background-color: #e0e0e0;
-      border-radius: 3px;
+      border-radius: 10px;
       overflow: hidden;
       display: none;
+      position: relative;
     }
 
     .upload-progress-bar {
@@ -582,6 +584,23 @@
       background: linear-gradient(to right, var(--primary), var(--accent));
       width: 0%;
       transition: width 0.3s;
+    }
+
+    .upload-percentage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .file-info {
+      margin-top: 5px;
+      font-size: 0.8rem;
+      color: var(--gray);
     }
 
     /* Success Section */
@@ -829,6 +848,19 @@
       text-align: center;
     }
 
+    .upload-stats {
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .upload-count {
+      font-size: 0.9rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -1065,7 +1097,9 @@
               <input type="file" class="file-input" id="profileFile" accept="image/*" required>
               <div class="upload-progress" id="profileProgress">
                 <div class="upload-progress-bar" id="profileProgressBar"></div>
+                <div class="upload-percentage" id="profilePercentage">0%</div>
               </div>
+              <div class="file-info" id="profileInfo"></div>
             </div>
             <div class="file-preview" id="profilePreview"></div>
           </div>
@@ -1086,7 +1120,9 @@
                 <input type="file" class="file-input" id="ktpFile" accept="image/*" required>
                 <div class="upload-progress" id="ktpProgress">
                   <div class="upload-progress-bar" id="ktpProgressBar"></div>
+                  <div class="upload-percentage" id="ktpPercentage">0%</div>
                 </div>
+                <div class="file-info" id="ktpInfo"></div>
               </div>
               <div class="file-preview" id="ktpPreview"></div>
             </div>
@@ -1100,7 +1136,9 @@
                 <input type="file" class="file-input" id="simFile" accept="image/*" required>
                 <div class="upload-progress" id="simProgress">
                   <div class="upload-progress-bar" id="simProgressBar"></div>
+                  <div class="upload-percentage" id="simPercentage">0%</div>
                 </div>
+                <div class="file-info" id="simInfo"></div>
               </div>
               <div class="file-preview" id="simPreview"></div>
             </div>
@@ -1114,9 +1152,49 @@
                 <input type="file" class="file-input" id="stnkFile" accept="image/*" required>
                 <div class="upload-progress" id="stnkProgress">
                   <div class="upload-progress-bar" id="stnkProgressBar"></div>
+                  <div class="upload-percentage" id="stnkPercentage">0%</div>
                 </div>
+                <div class="file-info" id="stnkInfo"></div>
               </div>
               <div class="file-preview" id="stnkPreview"></div>
+            </div>
+            
+            <!-- Foto Kendaraan Depan -->
+            <div class="form-group">
+              <label class="form-label">Foto Kendaraan (Depan) *</label>
+              <p style="font-size: 0.8rem; color: var(--gray); margin-bottom: 10px;">
+                Upload foto kendaraan dari bagian depan (terlihat jelas plat nomor). Maksimal 2MB.
+              </p>
+              <div class="file-upload-container" id="vehicleFrontUploadContainer">
+                <div class="upload-icon">🚗</div>
+                <p>Klik atau drag foto kendaraan depan ke sini</p>
+                <input type="file" class="file-input" id="vehicleFrontFile" accept="image/*" required>
+                <div class="upload-progress" id="vehicleFrontProgress">
+                  <div class="upload-progress-bar" id="vehicleFrontProgressBar"></div>
+                  <div class="upload-percentage" id="vehicleFrontPercentage">0%</div>
+                </div>
+                <div class="file-info" id="vehicleFrontInfo"></div>
+              </div>
+              <div class="file-preview" id="vehicleFrontPreview"></div>
+            </div>
+            
+            <!-- Foto Kendaraan Belakang -->
+            <div class="form-group">
+              <label class="form-label">Foto Kendaraan (Belakang) *</label>
+              <p style="font-size: 0.8rem; color: var(--gray); margin-bottom: 10px;">
+                Upload foto kendaraan dari bagian belakang. Maksimal 2MB.
+              </p>
+              <div class="file-upload-container" id="vehicleBackUploadContainer">
+                <div class="upload-icon">🚗</div>
+                <p>Klik atau drag foto kendaraan belakang ke sini</p>
+                <input type="file" class="file-input" id="vehicleBackFile" accept="image/*" required>
+                <div class="upload-progress" id="vehicleBackProgress">
+                  <div class="upload-progress-bar" id="vehicleBackProgressBar"></div>
+                  <div class="upload-percentage" id="vehicleBackPercentage">0%</div>
+                </div>
+                <div class="file-info" id="vehicleBackInfo"></div>
+              </div>
+              <div class="file-preview" id="vehicleBackPreview"></div>
             </div>
           </div>
           
@@ -1139,6 +1217,13 @@
           <div class="checkbox-group">
             <input type="checkbox" id="agreeTerms" required>
             <label for="agreeTerms">Saya telah membaca dan menyetujui Syarat dan Ketentuan JeGo Driver</label>
+          </div>
+          
+          <div class="upload-stats">
+            <div class="upload-count">
+              <span id="uploadedCount">0</span> dari <span id="totalFiles">6</span> file terupload
+            </div>
+            <div id="uploadStatusText" style="font-size: 0.9rem; color: var(--primary);"></div>
           </div>
           
           <button type="submit" class="submit-btn" id="submitBtn">Daftar sebagai Driver</button>
@@ -1236,6 +1321,8 @@
     let driverData = null;
     let firebaseUser = null;
     let currentStep = 1;
+    let uploadedFilesCount = 0;
+    const totalFilesRequired = 6;
 
     // ================================================
     // ELEMEN DOM
@@ -1270,6 +1357,9 @@
     const resendOtpLink = document.getElementById('resendOtpLink');
     const countdownText = document.getElementById('countdownText');
     const countdownElement = document.getElementById('countdown');
+    const uploadedCountElement = document.getElementById('uploadedCount');
+    const totalFilesElement = document.getElementById('totalFiles');
+    const uploadStatusText = document.getElementById('uploadStatusText');
 
     // ================================================
     // FUNGSI UTILITAS
@@ -1385,7 +1475,7 @@
             // Driver ditemukan - TIDAK BOLEH daftar ulang
             const status = phoneInfo.status || 'pending';
             
-            if (status === 'accepted') {  // Ganti dari 'approved'/'active' menjadi 'accepted'
+            if (status === 'accepted') {
               const loginBtn = document.createElement('button');
               loginBtn.className = 'phone-status-btn primary';
               loginBtn.textContent = 'Login Driver';
@@ -1395,7 +1485,6 @@
               phoneStatusActions.appendChild(loginBtn);
             }
             
-            // Tombol ganti nomor untuk semua kasus
             const clearBtn = document.createElement('button');
             clearBtn.className = 'phone-status-btn secondary';
             clearBtn.textContent = 'Ganti Nomor';
@@ -1537,7 +1626,6 @@
     }
     
     function openDashboard(driverData) {
-      // Format data untuk dikirim ke Kodular
       const data = {
         action: "open_dashboard",
         role: "driver",
@@ -1547,7 +1635,6 @@
         status: driverData.status
       };
       
-      // Cek apakah dibuka dari Kodular
       if (typeof window.AppInventor !== 'undefined') {
         console.log('📱 Dibuka dari Kodular, mengirim data...');
         const sent = sendToKodular(data);
@@ -1605,7 +1692,7 @@
     }
     
     // ================================================
-    // FIREBASE FUNCTIONS (KONSISTEN DENGAN USER)
+    // FIREBASE FUNCTIONS
     // ================================================
     
     function setupRecaptcha() {
@@ -1703,14 +1790,13 @@
     }
     
     // ================================================
-    // FUNGSI DATABASE (KONSISTEN DENGAN USER)
+    // FUNGSI DATABASE
     // ================================================
     
     async function checkPhoneNumberExists(phoneNumber) {
       try {
         console.log('🔍 Checking phone in database:', phoneNumber);
         
-        // 1. Cek di DRIVERS terlebih dahulu (untuk pendaftaran driver)
         const driversSnapshot = await database.ref('drivers')
           .orderByChild('phone')
           .equalTo(phoneNumber)
@@ -1729,11 +1815,10 @@
             userId: driverId,
             type: 'driver',
             status: status,
-            canRegisterAsDriver: false // TIDAK BOLEH DAFTAR LAGI
+            canRegisterAsDriver: false
           };
         }
         
-        // 2. Jika tidak ada di drivers, cek di users
         const usersSnapshot = await database.ref('users')
           .orderByChild('phone')
           .equalTo(phoneNumber)
@@ -1745,21 +1830,18 @@
           const userId = Object.keys(usersData)[0];
           const userData = usersData[userId];
           
-          // User ditemukan, tapi OTOMATIS BOLEH daftar sebagai driver
-          // dengan nomor yang sama (satu nomor bisa untuk user dan driver)
           return {
             exists: true,
             user: userData,
             userId: userId,
             type: 'user',
-            canRegisterAsDriver: true // Flag khusus
+            canRegisterAsDriver: true
           };
         }
         
-        // 3. Tidak ditemukan sama sekali
         return { 
           exists: false,
-          canRegisterAsDriver: true // Boleh daftar
+          canRegisterAsDriver: true
         };
         
       } catch (error) {
@@ -1767,7 +1849,7 @@
         return { 
           exists: false, 
           error: error.message,
-          canRegisterAsDriver: true // Default boleh daftar
+          canRegisterAsDriver: true
         };
       }
     }
@@ -1776,7 +1858,6 @@
       try {
         console.log('💾 Saving driver to database:', uid);
         
-        // Cek apakah driver sudah ada di database
         const driverRef = database.ref('drivers/' + uid);
         const snapshot = await driverRef.once('value');
         
@@ -1790,14 +1871,12 @@
           };
         }
         
-        // Buat data driver baru dengan struktur konsisten
         const now = new Date();
         const driverProfile = {
-          // Data dari auth (sama dengan user)
           firebase_key: uid,
           uid: uid,
           active: true,
-          status: "pending", // Status awal pending untuk driver
+          status: "pending",
           role: "driver",
           name: userData.fullName,
           phone: userData.phoneNumber,
@@ -1811,12 +1890,11 @@
           createdDate: now.toISOString().split('T')[0],
           updatedAt: now.toISOString(),
           
-          // Data khusus driver
           vehicleType: additionalData.vehicleType || "",
           vehicleBrand: additionalData.vehicleBrand || "",
           plateNumber: additionalData.plateNumber || "",
           idCardNumber: additionalData.idCardNumber || "",
-          driverStatus: "pending", // pending, accepted, rejected, blocked
+          driverStatus: "pending",
           Balance: 10000,
           Potongan: 10,
           totalOrders: 0,
@@ -1828,14 +1906,14 @@
           isOnline: false,
           onTrip: false,
           
-          // URL dokumen (akan diisi setelah upload)
           profilePhotoUrl: additionalData.profilePhotoUrl || "",
           ktpPhotoUrl: additionalData.ktpPhotoUrl || "",
           simPhotoUrl: additionalData.simPhotoUrl || "",
-          stnkPhotoUrl: additionalData.stnkPhotoUrl || ""
+          stnkPhotoUrl: additionalData.stnkPhotoUrl || "",
+          vehicleFrontPhotoUrl: additionalData.vehicleFrontPhotoUrl || "",
+          vehicleBackPhotoUrl: additionalData.vehicleBackPhotoUrl || ""
         };
         
-        // Simpan ke database
         await driverRef.set(driverProfile);
         
         console.log('✅ Driver saved to database');
@@ -1881,7 +1959,7 @@
         console.log(`🔍 Status driver: ${status}`);
         
         switch(status) {
-          case 'accepted':  // Ganti dari 'approved'/'active' menjadi 'accepted'
+          case 'accepted':
             console.log('✅ Driver diterima, membuka dashboard...');
             openDashboard(driverData);
             break;
@@ -1929,15 +2007,17 @@
     }
     
     // ================================================
-    // FILE UPLOAD FUNCTIONS
+    // FILE UPLOAD FUNCTIONS - DIPERBAIKI
     // ================================================
     
-    function setupFileUpload(uploadContainerId, fileInputId, previewId, progressId, progressBarId) {
+    function setupFileUpload(uploadContainerId, fileInputId, previewId, progressId, progressBarId, percentageId, infoId) {
       const uploadContainer = document.getElementById(uploadContainerId);
       const fileInput = document.getElementById(fileInputId);
       const preview = document.getElementById(previewId);
       const progress = document.getElementById(progressId);
       const progressBar = document.getElementById(progressBarId);
+      const percentage = document.getElementById(percentageId);
+      const fileInfo = document.getElementById(infoId);
       
       uploadContainer.addEventListener('click', () => {
         fileInput.click();
@@ -1957,6 +2037,9 @@
             fileInput.value = '';
             return;
           }
+          
+          const fileSize = (file.size / 1024 / 1024).toFixed(2);
+          fileInfo.textContent = `${file.name} (${fileSize} MB)`;
           
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -2011,6 +2094,9 @@
             return;
           }
           
+          const fileSize = (file.size / 1024 / 1024).toFixed(2);
+          fileInfo.textContent = `${file.name} (${fileSize} MB)`;
+          
           fileInput.files = files;
           fileInput.dispatchEvent(new Event('change'));
         }
@@ -2021,11 +2107,13 @@
         fileInput,
         preview,
         progress,
-        progressBar
+        progressBar,
+        percentage,
+        fileInfo
       };
     }
     
-    async function uploadFile(file, path, progressBar) {
+    async function uploadFile(file, path, progressBar, percentageElement, fileType) {
       return new Promise((resolve, reject) => {
         const metadata = {
           contentType: file.type,
@@ -2041,19 +2129,32 @@
         uploadTask.on('state_changed',
           (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            console.log(`Upload is ${progress}% done`);
+            const progressRounded = Math.round(progress);
             
             if (progressBar) {
               progressBar.style.width = progress + '%';
             }
+            
+            if (percentageElement) {
+              percentageElement.textContent = `${progressRounded}%`;
+            }
+            
+            console.log(`${fileType} upload: ${progressRounded}%`);
+            
+            updateUploadStatusText(progressRounded, fileType);
           },
           (error) => {
-            console.error('Upload error:', error);
+            console.error(`${fileType} upload error:`, error);
             reject(error);
           },
           async () => {
             try {
               const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+              
+              uploadedFilesCount++;
+              updateUploadedCount();
+              
+              console.log(`✅ ${fileType} uploaded successfully: ${downloadURL}`);
               resolve(downloadURL);
             } catch (error) {
               reject(error);
@@ -2061,6 +2162,38 @@
           }
         );
       });
+    }
+    
+    function updateUploadedCount() {
+      uploadedCountElement.textContent = uploadedFilesCount;
+      
+      if (uploadedFilesCount === totalFilesRequired) {
+        uploadStatusText.textContent = "✅ Semua file berhasil diupload!";
+        uploadStatusText.style.color = "var(--success)";
+      } else {
+        uploadStatusText.textContent = `Mengupload ${uploadedFilesCount}/${totalFilesRequired} file...`;
+      }
+    }
+    
+    function updateUploadStatusText(progress, fileType) {
+      const fileNames = {
+        'profile': 'Foto Profil',
+        'ktp': 'KTP',
+        'sim': 'SIM',
+        'stnk': 'STNK',
+        'vehicleFront': 'Kendaraan Depan',
+        'vehicleBack': 'Kendaraan Belakang'
+      };
+      
+      const displayName = fileNames[fileType] || fileType;
+      uploadStatusText.textContent = `Mengupload ${displayName}: ${progress}%`;
+    }
+    
+    function resetUploadCounters() {
+      uploadedFilesCount = 0;
+      uploadedCountElement.textContent = '0';
+      totalFilesElement.textContent = totalFilesRequired;
+      uploadStatusText.textContent = '';
     }
     
     // ================================================
@@ -2115,7 +2248,6 @@
         return;
       }
       
-      // Debounce untuk mengurangi request berlebihan
       clearTimeout(this.checkTimeout);
       this.checkTimeout = setTimeout(async () => {
         try {
@@ -2129,7 +2261,7 @@
               
               if (status === 'pending') {
                 message += ' Status: Menunggu verifikasi admin.';
-              } else if (status === 'accepted') {  // Ganti menjadi 'accepted'
+              } else if (status === 'accepted') {
                 message += ' Status: Sudah aktif. Silakan login.';
               } else if (status === 'rejected') {
                 message += ' Status: Ditolak. Hubungi admin untuk informasi lebih lanjut.';
@@ -2137,11 +2269,9 @@
                 message += ' Status: Diblokir. Hubungi admin untuk mengajukan pembukaan blokir.';
               }
               
-              // Tampilkan status dengan tombol login/ganti nomor
               showPhoneStatus('registered', message, phoneInfo);
             } else if (phoneInfo.type === 'user') {
               const nama = phoneInfo.user?.name || phoneInfo.user?.fullName || 'User';
-              // User ditemukan - BOLEH daftar sebagai driver
               showPhoneStatus('registered', 
                 `Nomor ${formattedPhone} sudah terdaftar sebagai user atas nama ${nama}. Anda dapat mendaftar sebagai driver dengan nomor ini.`, 
                 phoneInfo
@@ -2175,18 +2305,16 @@
         return;
       }
       
-      // CEK STATUS NOMOR TELEPON
       try {
         showLoading('Memeriksa nomor telepon...');
         const phoneInfo = await checkPhoneNumberExists(phoneNumber);
         hideLoading();
         
-        // JIKA SUDAH TERDAFTAR SEBAGAI DRIVER (APAPUN STATUSNYA) - TOLAK!
         if (phoneInfo.exists && phoneInfo.type === 'driver') {
           const status = phoneInfo.status || 'pending';
           let errorMsg = `Nomor ${phoneNumber} sudah terdaftar sebagai driver.`;
           
-          if (status === 'accepted') {  // Ganti menjadi 'accepted'
+          if (status === 'accepted') {
             errorMsg += " Status: Aktif. Silakan login di halaman login driver.";
             showErrorMessage(errorMsg, {
               onConfirm: () => {
@@ -2203,11 +2331,8 @@
             errorMsg += " Status: Diblokir. Hubungi admin untuk mengajukan pembukaan blokir.";
             showErrorMessage(errorMsg);
           }
-          return; // STOP PROSES - TIDAK BOLEH LANJUT
+          return;
         }
-        
-        // Jika user ditemukan, TETAP BOLEH lanjut (satu nomor untuk user dan driver)
-        // Tidak ada return di sini, biarkan lanjut
         
       } catch (error) {
         hideLoading();
@@ -2262,6 +2387,7 @@
       document.getElementById('verifyOtpBtn').disabled = false;
       document.getElementById('verifyOtpBtn').textContent = 'Verifikasi OTP';
       showSuccessMessage('Verifikasi berhasil! Silakan lengkapi data kendaraan dan dokumen.', true);
+      resetUploadCounters();
     });
     
     resendOtpLink.addEventListener('click', async function() {
@@ -2296,10 +2422,13 @@
       });
     });
     
-    const profileUpload = setupFileUpload('profileUploadContainer', 'profileFile', 'profilePreview', 'profileProgress', 'profileProgressBar');
-    const ktpUpload = setupFileUpload('ktpUploadContainer', 'ktpFile', 'ktpPreview', 'ktpProgress', 'ktpProgressBar');
-    const simUpload = setupFileUpload('simUploadContainer', 'simFile', 'simPreview', 'simProgress', 'simProgressBar');
-    const stnkUpload = setupFileUpload('stnkUploadContainer', 'stnkFile', 'stnkPreview', 'stnkProgress', 'stnkProgressBar');
+    // Setup semua file upload
+    const profileUpload = setupFileUpload('profileUploadContainer', 'profileFile', 'profilePreview', 'profileProgress', 'profileProgressBar', 'profilePercentage', 'profileInfo');
+    const ktpUpload = setupFileUpload('ktpUploadContainer', 'ktpFile', 'ktpPreview', 'ktpProgress', 'ktpProgressBar', 'ktpPercentage', 'ktpInfo');
+    const simUpload = setupFileUpload('simUploadContainer', 'simFile', 'simPreview', 'simProgress', 'simProgressBar', 'simPercentage', 'simInfo');
+    const stnkUpload = setupFileUpload('stnkUploadContainer', 'stnkFile', 'stnkPreview', 'stnkProgress', 'stnkProgressBar', 'stnkPercentage', 'stnkInfo');
+    const vehicleFrontUpload = setupFileUpload('vehicleFrontUploadContainer', 'vehicleFrontFile', 'vehicleFrontPreview', 'vehicleFrontProgress', 'vehicleFrontProgressBar', 'vehicleFrontPercentage', 'vehicleFrontInfo');
+    const vehicleBackUpload = setupFileUpload('vehicleBackUploadContainer', 'vehicleBackFile', 'vehicleBackPreview', 'vehicleBackProgress', 'vehicleBackProgressBar', 'vehicleBackPercentage', 'vehicleBackInfo');
     
     document.getElementById('driverFormStep3').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -2310,10 +2439,12 @@
       
       try {
         const requiredFiles = [
-          { name: 'Foto Profil', file: profileUpload.fileInput.files[0], upload: profileUpload },
-          { name: 'KTP', file: ktpUpload.fileInput.files[0], upload: ktpUpload },
-          { name: 'SIM', file: simUpload.fileInput.files[0], upload: simUpload },
-          { name: 'STNK', file: stnkUpload.fileInput.files[0], upload: stnkUpload }
+          { name: 'Foto Profil', file: profileUpload.fileInput.files[0], upload: profileUpload, type: 'profile' },
+          { name: 'KTP', file: ktpUpload.fileInput.files[0], upload: ktpUpload, type: 'ktp' },
+          { name: 'SIM', file: simUpload.fileInput.files[0], upload: simUpload, type: 'sim' },
+          { name: 'STNK', file: stnkUpload.fileInput.files[0], upload: stnkUpload, type: 'stnk' },
+          { name: 'Foto Kendaraan Depan', file: vehicleFrontUpload.fileInput.files[0], upload: vehicleFrontUpload, type: 'vehicleFront' },
+          { name: 'Foto Kendaraan Belakang', file: vehicleBackUpload.fileInput.files[0], upload: vehicleBackUpload, type: 'vehicleBack' }
         ];
         
         for (const reqFile of requiredFiles) {
@@ -2334,7 +2465,9 @@
           profilePhotoUrl: '',
           ktpPhotoUrl: '',
           simPhotoUrl: '',
-          stnkPhotoUrl: ''
+          stnkPhotoUrl: '',
+          vehicleFrontPhotoUrl: '',
+          vehicleBackPhotoUrl: ''
         };
         
         const validationError = validateDriverData(formData);
@@ -2347,43 +2480,101 @@
         
         showLoading('Mengupload foto dan dokumen...');
         
+        // Reset counter sebelum upload
+        uploadedFilesCount = 0;
+        updateUploadedCount();
+        
+        // Tampilkan progress bars
+        const uploadContainers = [profileUpload, ktpUpload, simUpload, stnkUpload, vehicleFrontUpload, vehicleBackUpload];
+        uploadContainers.forEach(container => {
+          container.progress.style.display = 'block';
+          if (container.percentage) container.percentage.textContent = '0%';
+          if (container.progressBar) container.progressBar.style.width = '0%';
+        });
+        
+        uploadStatusText.textContent = "Mengupload file...";
+        
         const uploadPromises = [];
         const uploadResults = {};
+        const timestamp = Date.now();
         
-        profileUpload.progress.style.display = 'block';
+        // Upload semua file secara parallel
         uploadPromises.push(
           uploadFile(
             profileUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/profile_${Date.now()}.jpg`,
-            profileUpload.progressBar
-          ).then(url => { uploadResults.profilePhotoUrl = url; })
+            `drivers/${firebaseUser.uid}/profile_${timestamp}.jpg`,
+            profileUpload.progressBar,
+            profileUpload.percentage,
+            'profile'
+          ).then(url => { 
+            uploadResults.profilePhotoUrl = url; 
+            console.log('✅ Foto profil uploaded');
+          })
         );
         
-        ktpUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             ktpUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/ktp_${Date.now()}.jpg`,
-            ktpUpload.progressBar
-          ).then(url => { uploadResults.ktpPhotoUrl = url; })
+            `drivers/${firebaseUser.uid}/ktp_${timestamp}.jpg`,
+            ktpUpload.progressBar,
+            ktpUpload.percentage,
+            'ktp'
+          ).then(url => { 
+            uploadResults.ktpPhotoUrl = url; 
+            console.log('✅ KTP uploaded');
+          })
         );
         
-        simUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             simUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/sim_${Date.now()}.jpg`,
-            simUpload.progressBar
-          ).then(url => { uploadResults.simPhotoUrl = url; })
+            `drivers/${firebaseUser.uid}/sim_${timestamp}.jpg`,
+            simUpload.progressBar,
+            simUpload.percentage,
+            'sim'
+          ).then(url => { 
+            uploadResults.simPhotoUrl = url; 
+            console.log('✅ SIM uploaded');
+          })
         );
         
-        stnkUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             stnkUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/stnk_${Date.now()}.jpg`,
-            stnkUpload.progressBar
-          ).then(url => { uploadResults.stnkPhotoUrl = url; })
+            `drivers/${firebaseUser.uid}/stnk_${timestamp}.jpg`,
+            stnkUpload.progressBar,
+            stnkUpload.percentage,
+            'stnk'
+          ).then(url => { 
+            uploadResults.stnkPhotoUrl = url; 
+            console.log('✅ STNK uploaded');
+          })
+        );
+        
+        uploadPromises.push(
+          uploadFile(
+            vehicleFrontUpload.fileInput.files[0], 
+            `drivers/${firebaseUser.uid}/vehicle_front_${timestamp}.jpg`,
+            vehicleFrontUpload.progressBar,
+            vehicleFrontUpload.percentage,
+            'vehicleFront'
+          ).then(url => { 
+            uploadResults.vehicleFrontPhotoUrl = url; 
+            console.log('✅ Vehicle front uploaded');
+          })
+        );
+        
+        uploadPromises.push(
+          uploadFile(
+            vehicleBackUpload.fileInput.files[0], 
+            `drivers/${firebaseUser.uid}/vehicle_back_${timestamp}.jpg`,
+            vehicleBackUpload.progressBar,
+            vehicleBackUpload.percentage,
+            'vehicleBack'
+          ).then(url => { 
+            uploadResults.vehicleBackPhotoUrl = url; 
+            console.log('✅ Vehicle back uploaded');
+          })
         );
         
         await Promise.all(uploadPromises);
@@ -2393,6 +2584,10 @@
         formData.ktpPhotoUrl = uploadResults.ktpPhotoUrl;
         formData.simPhotoUrl = uploadResults.simPhotoUrl;
         formData.stnkPhotoUrl = uploadResults.stnkPhotoUrl;
+        formData.vehicleFrontPhotoUrl = uploadResults.vehicleFrontPhotoUrl;
+        formData.vehicleBackPhotoUrl = uploadResults.vehicleBackPhotoUrl;
+        
+        console.log('📁 All files uploaded, saving to database...');
         
         await saveDriverToDatabase(firebaseUser.uid, driverData, formData);
         
@@ -2414,12 +2609,14 @@
         
         localStorage.setItem('jego_logged_in_driver', JSON.stringify(sessionDriver));
         
+        hideLoading(); // Pastikan loading modal ditutup
         document.getElementById('driverFormStep3').style.display = 'none';
         document.getElementById('successSection').style.display = 'block';
         
         showSuccessMessage('Pendaftaran driver berhasil! Data Anda sedang diverifikasi admin.', true);
         
       } catch (error) {
+        hideLoading(); // Pastikan loading modal ditutup meski error
         console.error('❌ Error in registration process:', error);
         
         let errorMessage = 'Terjadi kesalahan saat menyimpan data. ';
@@ -2455,6 +2652,7 @@
       try {
         setupRecaptcha();
         setupOTPInputs();
+        resetUploadCounters();
         
         modalOverlay.addEventListener('click', function(e) {
           if (e.target === modalOverlay) hidePopup();
