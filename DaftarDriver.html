@@ -1235,7 +1235,6 @@
     let otpCountdown = 60;
     let driverData = null;
     let firebaseUser = null;
-    let driverId = null;
     let currentStep = 1;
 
     // ================================================
@@ -1518,7 +1517,7 @@
     }
     
     // ================================================
-    // FIREBASE FUNCTIONS
+    // FIREBASE FUNCTIONS (KONSISTEN DENGAN USER)
     // ================================================
     
     function setupRecaptcha() {
@@ -1615,13 +1614,37 @@
       }
     }
     
+    // ================================================
+    // FUNGSI DATABASE (KONSISTEN DENGAN USER)
+    // ================================================
+    
     async function checkPhoneNumberExists(phoneNumber) {
       try {
-        console.log('🔍 Checking phone in drivers:', phoneNumber);
+        console.log('🔍 Checking phone in database:', phoneNumber);
         
-        // USER LOGIC REMOVED - hanya cek di drivers
+        // Cek di users terlebih dahulu (konsisten dengan registrasi user)
+        const usersSnapshot = await database.ref('users')
+          .orderByChild('phone')
+          .equalTo(phoneNumber)
+          .once('value');
+        
+        const usersData = usersSnapshot.val();
+        
+        if (usersData) {
+          const userId = Object.keys(usersData)[0];
+          const userData = usersData[userId];
+          
+          return {
+            exists: true,
+            user: userData,
+            userId: userId,
+            type: 'user'
+          };
+        }
+        
+        // Cek di drivers
         const driversSnapshot = await database.ref('drivers')
-          .orderByChild('phoneNumber')
+          .orderByChild('phone')
           .equalTo(phoneNumber)
           .once('value');
         
@@ -1647,7 +1670,86 @@
         return { exists: false, error: error.message };
       }
     }
-
+    
+    async function saveDriverToDatabase(uid, userData, additionalData) {
+      try {
+        console.log('💾 Saving driver to database:', uid);
+        
+        // Cek apakah driver sudah ada di database
+        const driverRef = database.ref('drivers/' + uid);
+        const snapshot = await driverRef.once('value');
+        
+        if (snapshot.exists()) {
+          console.log('ℹ️ Driver already exists in database, skipping save');
+          return {
+            success: true,
+            message: 'Driver already exists',
+            isNewDriver: false,
+            driverData: snapshot.val()
+          };
+        }
+        
+        // Buat data driver baru dengan struktur konsisten
+        const now = new Date();
+        const driverProfile = {
+          // Data dari auth (sama dengan user)
+          firebase_key: uid,
+          uid: uid,
+          active: true,
+          status: "pending", // Status awal pending untuk driver
+          role: "driver",
+          name: userData.fullName,
+          phone: userData.phoneNumber,
+          email: userData.email || "",
+          address: userData.address || "",
+          fotoProfilURL: "",
+          fotoProfilStorage: "default",
+          rating: 5,
+          perjalanan: 0,
+          createdAt: now.toISOString(),
+          createdDate: now.toISOString().split('T')[0],
+          updatedAt: now.toISOString(),
+          
+          // Data khusus driver
+          vehicleType: additionalData.vehicleType || "",
+          vehicleBrand: additionalData.vehicleBrand || "",
+          plateNumber: additionalData.plateNumber || "",
+          idCardNumber: additionalData.idCardNumber || "",
+          driverStatus: "pending", // pending, approved, rejected, blocked
+          Balance: 25000,
+          Potongan: 10,
+          totalOrders: 0,
+          completedOrders: 0,
+          totalEarnings: 0,
+          avgRating: 5.0,
+          ratingCount: 1,
+          completionRate: '0%',
+          isOnline: false,
+          onTrip: false,
+          
+          // URL dokumen (akan diisi setelah upload)
+          profilePhotoUrl: additionalData.profilePhotoUrl || "",
+          ktpPhotoUrl: additionalData.ktpPhotoUrl || "",
+          simPhotoUrl: additionalData.simPhotoUrl || "",
+          stnkPhotoUrl: additionalData.stnkPhotoUrl || ""
+        };
+        
+        // Simpan ke database
+        await driverRef.set(driverProfile);
+        
+        console.log('✅ Driver saved to database');
+        return {
+          success: true,
+          message: 'Driver created successfully',
+          isNewDriver: true,
+          driverData: driverProfile
+        };
+      } catch (error) {
+        console.error('❌ Error saving driver to database:', error);
+        throw error;
+      }
+    }
+    
     // ================================================
     // FUNGSI CEK STATUS DRIVER
     // ================================================
@@ -1853,25 +1955,8 @@
     }
     
     // ================================================
-    // DRIVER DATA FUNCTIONS
+    // VALIDASI DATA
     // ================================================
-    
-    function generateDriverId() {
-      const digits = '0123456789';
-      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      let numPart = '';
-      let letterPart = '';
-      
-      for (let i = 0; i < 8; i++) {
-        numPart += digits.charAt(Math.floor(Math.random() * digits.length));
-      }
-      
-      for (let i = 0; i < 3; i++) {
-        letterPart += letters.charAt(Math.floor(Math.random() * letters.length));
-      }
-      
-      return 'JEGO' + numPart + letterPart;
-    }
     
     function validateDriverData(formData) {
       const requiredFields = [
@@ -1905,48 +1990,6 @@
       return null;
     }
     
-    async function saveDriverToDatabase(driverId, formData, firebaseUserId) {
-      try {
-        showLoading('Menyimpan data driver...');
-        
-        const now = new Date();
-        const driverProfile = {
-          ...formData,
-          uid: firebaseUserId,
-          driverId: driverId,
-          registrationDate: now.toISOString(),
-          registrationTimestamp: Date.now(),
-          status: 'pending',
-          Balance: 25000,
-          Potongan: 10,
-          totalOrders: 0,
-          completedOrders: 0,
-          totalEarnings: 0,
-          avgRating: 5.0,
-          ratingCount: 1,
-          completionRate: '0%',
-          isOnline: false,
-          onTrip: false,
-          updatedAt: now.toISOString()
-        };
-        
-        await database.ref('drivers/' + driverId).set(driverProfile);
-        
-        // DRIVER_BY_PHONE REMOVED - tidak perlu lagi
-        
-        hideLoading();
-        console.log('✅ Driver data saved to database');
-        return {
-          success: true,
-          message: 'Driver data saved successfully'
-        };
-      } catch (error) {
-        hideLoading();
-        console.error('❌ Error saving driver data:', error);
-        throw error;
-      }
-    }
-    
     // ================================================
     // EVENT HANDLERS
     // ================================================
@@ -1968,8 +2011,24 @@
           const phoneInfo = await checkPhoneNumberExists(formattedPhone);
           
           if (phoneInfo.exists) {
-            const nama = phoneInfo.user?.fullName || phoneInfo.user?.name || 'Driver';
-            showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar sebagai driver atas nama ${nama}. Silakan login atau gunakan nomor lain.`, phoneInfo.user);
+            if (phoneInfo.type === 'driver') {
+              const nama = phoneInfo.user?.name || phoneInfo.user?.fullName || 'Driver';
+              const status = phoneInfo.status || 'pending';
+              let message = `Nomor ${formattedPhone} sudah terdaftar sebagai driver atas nama ${nama}.`;
+              
+              if (status === 'pending') {
+                message += ' Status: Menunggu verifikasi.';
+              } else if (status === 'approved') {
+                message += ' Status: Sudah aktif. Silakan login.';
+              } else if (status === 'rejected') {
+                message += ' Status: Ditolak.';
+              }
+              
+              showPhoneStatus('registered', message, phoneInfo.user);
+            } else if (phoneInfo.type === 'user') {
+              const nama = phoneInfo.user?.name || phoneInfo.user?.fullName || 'User';
+              showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar sebagai user atas nama ${nama}. Anda dapat mendaftar sebagai driver dengan nomor ini.`, phoneInfo.user);
+            }
           } else {
             showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran driver.`);
           }
@@ -1998,12 +2057,13 @@
         return;
       }
       
+      // Cek apakah nomor sudah terdaftar sebagai driver dengan status aktif
       try {
         showLoading('Memeriksa nomor telepon...');
         const phoneInfo = await checkPhoneNumberExists(phoneNumber);
         hideLoading();
         
-        if (phoneInfo.exists) {
+        if (phoneInfo.exists && phoneInfo.type === 'driver') {
           const status = phoneInfo.status || 'pending';
           
           if (status === 'approved' || status === 'active') {
@@ -2012,14 +2072,17 @@
                 window.location.href = 'loginDriver.html';
               }
             });
+            return;
           } else if (status === 'pending') {
             showErrorMessage(`Nomor ${phoneNumber} sedang menunggu verifikasi admin.`);
+            return;
           } else if (status === 'rejected') {
             showErrorMessage(`Pendaftaran dengan nomor ${phoneNumber} telah ditolak. Hubungi admin untuk informasi lebih lanjut.`);
+            return;
           } else if (status === 'blocked') {
             showErrorMessage(`Akun dengan nomor ${phoneNumber} telah diblokir. Hubungi admin untuk mengajukan pembukaan blokir.`);
+            return;
           }
-          return;
         }
       } catch (error) {
         hideLoading();
@@ -2137,7 +2200,6 @@
           }
         }
         
-        driverId = generateDriverId();
         const formData = {
           ...driverData,
           vehicleType: document.getElementById('vehicleType').value,
@@ -2161,57 +2223,71 @@
         showLoading('Mengupload foto dan dokumen...');
         
         const uploadPromises = [];
+        const uploadResults = {};
         
         profileUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             profileUpload.fileInput.files[0], 
-            `drivers/${driverId}/profile_${Date.now()}.jpg`,
+            `drivers/${firebaseUser.uid}/profile_${Date.now()}.jpg`,
             profileUpload.progressBar
-          ).then(url => { formData.profilePhotoUrl = url; })
+          ).then(url => { uploadResults.profilePhotoUrl = url; })
         );
         
         ktpUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             ktpUpload.fileInput.files[0], 
-            `drivers/${driverId}/ktp_${Date.now()}.jpg`,
+            `drivers/${firebaseUser.uid}/ktp_${Date.now()}.jpg`,
             ktpUpload.progressBar
-          ).then(url => { formData.ktpPhotoUrl = url; })
+          ).then(url => { uploadResults.ktpPhotoUrl = url; })
         );
         
         simUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             simUpload.fileInput.files[0], 
-            `drivers/${driverId}/sim_${Date.now()}.jpg`,
+            `drivers/${firebaseUser.uid}/sim_${Date.now()}.jpg`,
             simUpload.progressBar
-          ).then(url => { formData.simPhotoUrl = url; })
+          ).then(url => { uploadResults.simPhotoUrl = url; })
         );
         
         stnkUpload.progress.style.display = 'block';
         uploadPromises.push(
           uploadFile(
             stnkUpload.fileInput.files[0], 
-            `drivers/${driverId}/stnk_${Date.now()}.jpg`,
+            `drivers/${firebaseUser.uid}/stnk_${Date.now()}.jpg`,
             stnkUpload.progressBar
-          ).then(url => { formData.stnkPhotoUrl = url; })
+          ).then(url => { uploadResults.stnkPhotoUrl = url; })
         );
         
         await Promise.all(uploadPromises);
         
-        await saveDriverToDatabase(driverId, formData, firebaseUser.uid);
+        // Update formData dengan URL yang sudah diupload
+        formData.profilePhotoUrl = uploadResults.profilePhotoUrl;
+        formData.ktpPhotoUrl = uploadResults.ktpPhotoUrl;
+        formData.simPhotoUrl = uploadResults.simPhotoUrl;
+        formData.stnkPhotoUrl = uploadResults.stnkPhotoUrl;
         
-        sendToKodular({
-          action: 'driver_registered',
-          driver_id: driverId,
-          full_name: formData.fullName,
-          phone_number: formData.phoneNumber,
-          vehicle_type: formData.vehicleType,
-          initial_balance: 25000,
-          potongan_percentage: 10,
-          status: 'pending'
-        });
+        await saveDriverToDatabase(firebaseUser.uid, driverData, formData);
+        
+        // Buat session untuk driver
+        const sessionDriver = {
+          userId: firebaseUser.uid,
+          uid: firebaseUser.uid,
+          name: driverData.fullName,
+          phone: driverData.phoneNumber,
+          email: driverData.email || "",
+          address: driverData.address || "",
+          status: "pending",
+          role: "driver",
+          fotoProfilURL: formData.profilePhotoUrl,
+          rating: 5,
+          perjalanan: 0,
+          createdAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem('jego_logged_in_driver', JSON.stringify(sessionDriver));
         
         document.getElementById('driverFormStep3').style.display = 'none';
         document.getElementById('successSection').style.display = 'block';
