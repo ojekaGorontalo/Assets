@@ -48,7 +48,6 @@ let locationTrackingInterval = null;
 
 let lastSentOrdersCount = null;
 let lastSentOrdersHash = null;
-let isInitialLoad = true;
 
 let autobidProgressInterval = null;
 let autobidProgressTimeLeft = 30;
@@ -63,6 +62,24 @@ let customRadius = 1.0;
 let filterTujuanEnabled = false;
 let filterTujuanText = '';
 let filterTujuanData = null;
+
+// ==================== FUNGSI LOADING ====================
+
+function showLoading() {
+  const loadingEl = document.getElementById('loadingOverlay');
+  if (loadingEl) {
+    loadingEl.style.display = 'flex';
+    setTimeout(() => loadingEl.classList.add('active'), 10);
+  }
+}
+
+function hideLoading() {
+  const loadingEl = document.getElementById('loadingOverlay');
+  if (loadingEl) {
+    loadingEl.classList.remove('active');
+    setTimeout(() => loadingEl.style.display = 'none', 300);
+  }
+}
 
 // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
 
@@ -90,36 +107,37 @@ function initializeFirebase() {
     
     console.log('✅ Firebase berhasil diinisialisasi');
     
+    // Tunggu auth state change tanpa loading awal
     auth.onAuthStateChanged(handleAuthStateChange);
     
     return true;
 
   } catch (error) {
     console.error('❌ Error inisialisasi Firebase:', error);
-    setTimeout(() => {
-      showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
-    }, 1000);
+    showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
     return false;
   }
 }
 
 // ==================== HANDLE AUTH STATE CHANGE ====================
 
-async function handleAuthStateChange(user) {
-  if (user) {
+async function handleAuthStateChange(authUser) {
+  console.log('🔄 Auth state changed:', authUser ? 'User logged in' : 'No user');
+  
+  if (authUser) {
     console.log('✅ Firebase Auth: User signed in', {
-      uid: user.uid,
-      isAnonymous: user.isAnonymous
+      uid: authUser.uid,
+      isAnonymous: authUser.isAnonymous
     });
     
-    if (user.isAnonymous) {
-      console.log('❌ Anonymous auth tidak diizinkan, sign out...');
-      await auth.signOut();
+    if (authUser.isAnonymous) {
+      console.log('❌ Anonymous auth tidak diizinkan');
       redirectToLogin();
       return;
     }
     
-    await loadDriverData(user.uid);
+    showLoading();
+    await loadDriverData(authUser.uid);
     
   } else {
     console.log('🔐 Firebase Auth: No user signed in');
@@ -135,15 +153,18 @@ async function loadDriverData(uid) {
     
     const driverRef = database.ref('drivers/' + uid);
     const snapshot = await driverRef.once('value');
-    const driverData = snapshot.val();
     
-    if (!driverData) {
+    hideLoading();
+    
+    if (!snapshot.exists()) {
       console.error('❌ Data driver tidak ditemukan di Firebase');
       showPopup('Akun driver tidak ditemukan.', 'Error', 'error');
       await auth.signOut();
       redirectToLogin();
       return;
     }
+    
+    const driverData = snapshot.val();
     
     if (driverData.status !== 'accepted') {
       console.error('❌ Status driver tidak aktif:', driverData.status);
@@ -164,8 +185,11 @@ async function loadDriverData(uid) {
     initJeGoApp();
     
   } catch (error) {
+    hideLoading();
     console.error('❌ Error memuat data driver:', error);
     showPopup('Gagal memuat data driver. Periksa koneksi internet.', 'Error', 'error');
+    await auth.signOut();
+    redirectToLogin();
   }
 }
 
@@ -174,15 +198,59 @@ async function loadDriverData(uid) {
 function redirectToLogin() {
   console.log('🔄 Redirect ke halaman login...');
   
+  // Hapus semua listener dan interval sebelum redirect
+  cleanupAll();
+  
   sendToKodular({
     action: "navigate",
     target: "login",
     reason: "not_authenticated"
   });
   
+  // Fallback untuk browser
   if (typeof window.AppInventor === 'undefined') {
-    showPopup('Anda belum login atau akun tidak aktif. Aplikasi akan membuka halaman login.', 'Perhatian', 'warning');
+    // Redirect ke halaman login jika di browser
+    window.location.href = 'daftarDriver.html';
   }
+}
+
+// ==================== CLEANUP FUNCTION ====================
+
+function cleanupAll() {
+  // Hapus semua Firebase listeners
+  if (ordersListener && ordersRef) {
+    ordersRef.off('value', ordersListener);
+    ordersListener = null;
+  }
+  
+  if (balanceListener && currentDriver) {
+    database.ref('drivers/' + currentDriver.uid + '/Balance').off('value', balanceListener);
+    balanceListener = null;
+  }
+  
+  // Hentikan semua interval
+  if (locationTrackingInterval) {
+    clearInterval(locationTrackingInterval);
+    locationTrackingInterval = null;
+  }
+  
+  if (autobidInterval) {
+    clearInterval(autobidInterval);
+    autobidInterval = null;
+  }
+  
+  if (manualCheckInterval) {
+    clearInterval(manualCheckInterval);
+    manualCheckInterval = null;
+  }
+  
+  if (locationWatchId) {
+    navigator.geolocation.clearWatch(locationWatchId);
+    locationWatchId = null;
+  }
+  
+  // Hapus current driver
+  currentDriver = null;
 }
 
 // ==================== FUNGSI UTAMA SEND TO KODULAR ====================
@@ -284,23 +352,20 @@ function initJeGoApp() {
   
   setupEventListeners();
   
+  // Load settings dulu
+  loadSettingsFromStorage();
+  
+  // Kemudian load orders
+  loadOrders();
+  
+  // Setup GPS dan lainnya
   setTimeout(() => {
     startGPSMonitoring();
   }, 1000);
   
-  loadSettingsFromStorage();
-  
   setTimeout(() => {
     loadFilterTujuanFromFirebase();
   }, 1500);
-  
-  setTimeout(() => {
-    loadOrders();
-  }, 500);
-  
-  setTimeout(() => {
-    setupSidebarNavigation();
-  }, 500);
   
   initializeBalanceSystem();
   
@@ -407,7 +472,7 @@ function updateDriverLocation(position) {
 }
 
 function sendLocationToFirebase() {
-  if (!auth || !auth.currentUser || !currentDriver) {
+  if (!auth || !currentDriver) {
     console.log('🔐 Tidak bisa mengirim lokasi: belum login');
     return;
   }
@@ -438,6 +503,8 @@ function sendLocationToFirebase() {
 function updateGPSStatus(isActive, message) {
   const gpsDot = document.getElementById('gpsDot');
   const gpsText = document.getElementById('gpsText');
+
+  if (!gpsDot || !gpsText) return;
 
   if (isActive) {
     gpsDot.className = 'gps-dot gps-active';
@@ -480,8 +547,8 @@ function loadOrders() {
     return;
   }
   
-  if (!auth || !auth.currentUser || !currentDriver) {
-    console.log('🔐 Belum login, tidak bisa load orders');
+  if (!currentDriver) {
+    console.log('🔐 Belum login sebagai driver');
     ordersList.innerHTML = `
       <div class="empty-state">
         <div>🛑</div>
@@ -872,11 +939,6 @@ function showConnectionError() {
       </button>
     </div>
   `;
-
-  sendToKodular({
-    action: 'connection_error',
-    message: 'Tidak terhubung ke server. Periksa koneksi internet.'
-  });
 }
 
 function generateOrdersHash(orders) {
@@ -892,12 +954,6 @@ function sendOrdersToKodular(orders) {
 
   if (currentCount === lastSentOrdersCount && currentHash === lastSentOrdersHash) {
     console.log('🔄 Data orders tidak berubah, skip kirim ke Kodular');
-    return;
-  }
-
-  if (isInitialLoad && currentCount === 0) {
-    console.log('🛑 Initial load tanpa orders, skip kirim ke Kodular');
-    isInitialLoad = false;
     return;
   }
 
@@ -923,7 +979,6 @@ function sendOrdersToKodular(orders) {
 
   lastSentOrdersCount = currentCount;
   lastSentOrdersHash = currentHash;
-  isInitialLoad = false;
 }
 
 // ==================== FUNGSI TOGGLE LOCATION TRACKING ====================
@@ -972,12 +1027,14 @@ function toggleLocationTracking() {
 
 function updateLocationToggleButton() {
   const locationToggleBtn = document.getElementById('locationToggleBtn');
-  if (locationTrackingEnabled) {
-    locationToggleBtn.innerHTML = '<span>📍</span> ON';
-    locationToggleBtn.classList.add('active');
-  } else {
-    locationToggleBtn.innerHTML = '<span>📍</span> OFF';
-    locationToggleBtn.classList.remove('active');
+  if (locationToggleBtn) {
+    if (locationTrackingEnabled) {
+      locationToggleBtn.innerHTML = '<span>📍</span> ON';
+      locationToggleBtn.classList.add('active');
+    } else {
+      locationToggleBtn.innerHTML = '<span>📍</span> OFF';
+      locationToggleBtn.classList.remove('active');
+    }
   }
 }
 
@@ -1516,7 +1573,7 @@ function checkFilterTujuan(order) {
 }
 
 function loadFilterTujuanFromFirebase() {
-  if (!auth || !auth.currentUser) {
+  if (!currentDriver) {
     console.log('🔐 Belum login, tidak bisa load filter tujuan');
     return;
   }
@@ -1542,15 +1599,17 @@ function loadFilterTujuanFromFirebase() {
         }
 
         const filterInput = document.getElementById('filterTujuanInput');
-        filterInput.disabled = !filterTujuanEnabled;
-        filterInput.placeholder = filterTujuanEnabled ?
-          'Contoh: Kota Gorontalo, Tilongkabila, Limboto' :
-          'Tidak diizinkan untuk driver Anda';
+        if (filterInput) {
+          filterInput.disabled = !filterTujuanEnabled;
+          filterInput.placeholder = filterTujuanEnabled ?
+            'Contoh: Kota Gorontalo, Tilongkabila, Limboto' :
+            'Tidak diizinkan untuk driver Anda';
 
-        if (!filterTujuanEnabled) {
-          document.getElementById('filterTujuanContainer').style.opacity = '0.6';
-        } else {
-          document.getElementById('filterTujuanContainer').style.opacity = '1';
+          if (!filterTujuanEnabled) {
+            document.getElementById('filterTujuanContainer').style.opacity = '0.6';
+          } else {
+            document.getElementById('filterTujuanContainer').style.opacity = '1';
+          }
         }
       }
     }
@@ -1591,36 +1650,6 @@ function updateActiveNavItem(screen) {
   });
 }
 
-function setupSidebarNavigation() {
-  const sidebarNavButtons = document.querySelectorAll('.sidebar-nav-button');
-
-  sidebarNavButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const screen = this.getAttribute('data-screen');
-      const buttonId = this.getAttribute('id');
-      const buttonTitle = this.querySelector('.sidebar-nav-button-title').textContent;
-
-      console.log(`🔄 Tombol sidebar diklik: ${buttonId} (${screen})`);
-
-      const success = sendToKodular({
-        action: "navigate",
-        target: screen,
-        button_id: buttonId,
-        button_title: buttonTitle,
-        timestamp: new Date().getTime()
-      });
-
-      console.log(`📤 Hasil pengiriman ke Kodular: ${success ? 'Berhasil' : 'Gagal'}`);
-
-      closeSidebar();
-
-      if (!success) {
-        showPopup(`Navigasi ke "${buttonTitle}" - Mode browser aktif`, 'Info', 'info');
-      }
-    });
-  });
-}
-
 // ==================== FUNGSI SIDEBAR ====================
 
 function openSidebar() {
@@ -1646,13 +1675,17 @@ function loadSettingsToUI() {
     acceptKurirEnabled = true;
   }
 
-  document.getElementById('autobidToggle').checked = autobidEnabled;
-  document.getElementById('acceptKurirToggle').checked = acceptKurirEnabled;
-  document.getElementById('radiusInput').value = customRadius = savedRadius ? parseFloat(savedRadius) : 1.0;
+  const autobidToggle = document.getElementById('autobidToggle');
+  const acceptKurirToggle = document.getElementById('acceptKurirToggle');
+  const radiusInput = document.getElementById('radiusInput');
+  const filterTujuanInput = document.getElementById('filterTujuanInput');
 
-  if (savedFilterTujuan) {
+  if (autobidToggle) autobidToggle.checked = autobidEnabled;
+  if (acceptKurirToggle) acceptKurirToggle.checked = acceptKurirEnabled;
+  if (radiusInput) radiusInput.value = customRadius = savedRadius ? parseFloat(savedRadius) : 1.0;
+  if (filterTujuanInput && savedFilterTujuan) {
     const filterData = JSON.parse(savedFilterTujuan);
-    document.getElementById('filterTujuanInput').value = filterTujuanText = filterData.text || '';
+    filterTujuanInput.value = filterTujuanText = filterData.text || '';
   }
 
   updateAutobidToggleStatus();
@@ -1662,13 +1695,17 @@ function saveSettings() {
   console.log('💾 Menyimpan pengaturan...');
 
   try {
-    acceptKurirEnabled = document.getElementById('acceptKurirToggle').checked;
-    customRadius = parseFloat(document.getElementById('radiusInput').value);
-    filterTujuanText = document.getElementById('filterTujuanInput').value;
+    const acceptKurirToggle = document.getElementById('acceptKurirToggle');
+    const radiusInput = document.getElementById('radiusInput');
+    const filterTujuanInput = document.getElementById('filterTujuanInput');
+
+    acceptKurirEnabled = acceptKurirToggle ? acceptKurirToggle.checked : true;
+    customRadius = radiusInput ? parseFloat(radiusInput.value) : 1.0;
+    filterTujuanText = filterTujuanInput ? filterTujuanInput.value : '';
 
     if (isNaN(customRadius) || customRadius < 0.1 || customRadius > 10) {
       showPopup('Jarak radius harus antara 0.1 - 10 km', 'Validasi Error', 'warning');
-      document.getElementById('radiusInput').value = 1.0;
+      if (radiusInput) radiusInput.value = 1.0;
       customRadius = 1.0;
       return;
     }
@@ -1704,26 +1741,32 @@ function saveSettings() {
 }
 
 function updateStatusInfo() {
-  document.getElementById('gpsStatusInfo').textContent =
-    driverLocation.latitude ? 'Aktif' : 'Tidak aktif';
-  document.getElementById('gpsStatusInfo').style.color =
-    driverLocation.latitude ? '#28a745' : '#dc3545';
+  const gpsStatusInfo = document.getElementById('gpsStatusInfo');
+  const trackingStatusInfo = document.getElementById('trackingStatusInfo');
+  const balanceStatusInfo = document.getElementById('balanceStatusInfo');
 
-  document.getElementById('trackingStatusInfo').textContent =
-    locationTrackingEnabled ? 'ON' : 'OFF';
-  document.getElementById('trackingStatusInfo').style.color =
-    locationTrackingEnabled ? '#28a745' : '#dc3545';
+  if (gpsStatusInfo) {
+    gpsStatusInfo.textContent = driverLocation.latitude ? 'Aktif' : 'Tidak aktif';
+    gpsStatusInfo.style.color = driverLocation.latitude ? '#28a745' : '#dc3545';
+  }
 
-  document.getElementById('balanceStatusInfo').textContent =
-    `Rp ${currentDriverBalance.toLocaleString('id-ID')}`;
-  document.getElementById('balanceStatusInfo').style.color =
-    currentDriverBalance > 10000 ? '#28a745' : '#ff6b6b';
+  if (trackingStatusInfo) {
+    trackingStatusInfo.textContent = locationTrackingEnabled ? 'ON' : 'OFF';
+    trackingStatusInfo.style.color = locationTrackingEnabled ? '#28a745' : '#dc3545';
+  }
+
+  if (balanceStatusInfo) {
+    balanceStatusInfo.textContent = `Rp ${currentDriverBalance.toLocaleString('id-ID')}`;
+    balanceStatusInfo.style.color = currentDriverBalance > 10000 ? '#28a745' : '#ff6b6b';
+  }
 }
 
 // ==================== FUNGSI MAP ====================
 
 function initModalMap() {
   const mapElement = document.getElementById('modalMap');
+  if (!mapElement) return;
+  
   modalMap = new google.maps.Map(mapElement, {
     zoom: 12,
     center: { lat: 0.5441, lng: 123.0595 },
@@ -1742,7 +1785,7 @@ function initModalMap() {
 }
 
 function showRouteOnMap(order) {
-  if (!order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) return;
+  if (!modalMap || !order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) return;
 
   const from = new google.maps.LatLng(order.from_lat, order.from_lng);
   const to = new google.maps.LatLng(order.to_lat, order.to_lng);
@@ -1770,6 +1813,8 @@ function showCustomerPhoto(photoUrl, customerName) {
   const largePhoto = document.getElementById('largeCustomerPhoto');
   const largeName = document.getElementById('largeCustomerName');
 
+  if (!photoModal || !largePhoto || !largeName) return;
+
   largePhoto.src = photoUrl;
   largePhoto.alt = customerName;
   largeName.textContent = customerName;
@@ -1786,8 +1831,10 @@ function closePhotoModal() {
 function playNewOrderSound() {
   try {
     const audio = document.getElementById('newOrderSound');
-    audio.currentTime = 0;
-    audio.play().catch(e => console.log('Gagal memutar suara order baru:', e));
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(e => console.log('Gagal memutar suara order baru:', e));
+    }
   } catch (error) {
     console.error('Error memutar suara order baru:', error);
   }
@@ -1796,8 +1843,10 @@ function playNewOrderSound() {
 function playAutobidSound() {
   try {
     const audio = document.getElementById('autobidSound');
-    audio.currentTime = 0;
-    audio.play().catch(e => console.log('Gagal memutar suara autobid:', e));
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(e => console.log('Gagal memutar suara autobid:', e));
+    }
   } catch (error) {
     console.error('Error memutar suara autobid:', error);
   }
@@ -1806,8 +1855,10 @@ function playAutobidSound() {
 function playOrderAcceptedSound() {
   try {
     const audio = document.getElementById('orderAcceptedSound');
-    audio.currentTime = 0;
-    audio.play().catch(e => console.log('Gagal memutar suara order diterima:', e));
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(e => console.log('Gagal memutar suara order diterima:', e));
+    }
 
     if (currentSelectedOrder) {
       const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
@@ -1841,16 +1892,20 @@ function refreshData() {
 }
 
 function closeModal() {
-  document.getElementById('orderModal').style.display = 'none';
+  const orderModal = document.getElementById('orderModal');
+  if (orderModal) orderModal.style.display = 'none';
+  
   if (countdownInterval) {
     clearInterval(countdownInterval);
     countdownInterval = null;
   }
+  
   if (offerListenerRef && offerListener) {
     offerListenerRef.off('value', offerListener);
     offerListenerRef = null;
     offerListener = null;
   }
+  
   currentSelectedOrder = null;
   isAutobidProcessing = false;
 }
@@ -1872,7 +1927,8 @@ function setupEventListeners() {
 
   const clearFilterTujuan = document.getElementById('clearFilterTujuan');
   if (clearFilterTujuan) clearFilterTujuan.addEventListener('click', function() {
-    document.getElementById('filterTujuanInput').value = '';
+    const filterInput = document.getElementById('filterTujuanInput');
+    if (filterInput) filterInput.value = '';
     filterTujuanText = '';
   });
 
@@ -1999,41 +2055,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==================== CLEANUP SAAT UNLOAD ====================
 
 window.addEventListener('beforeunload', () => {
-  if (locationWatchId) {
-    navigator.geolocation.clearWatch(locationWatchId);
-  }
-  
-  if (locationTrackingInterval) {
-    clearInterval(locationTrackingInterval);
-  }
-  
-  if (autobidInterval) {
-    clearInterval(autobidInterval);
-  }
-  
-  if (autobidProgressInterval) {
-    clearInterval(autobidProgressInterval);
-  }
-  
-  if (manualCheckInterval) {
-    clearInterval(manualCheckInterval);
-  }
-  
-  if (balanceListener && currentDriver && currentDriver.uid) {
-    const balanceRef = database.ref('drivers/' + currentDriver.uid + '/Balance');
-    balanceRef.off('value', balanceListener);
-  }
-  
-  if (auth && auth.currentUser) {
-    auth.signOut();
-  }
+  cleanupAll();
 });
 
-// ==================== FUNGSI TAMBAHAN YANG MASIH DIBUTUHKAN ====================
-
-// Catatan: Beberapa fungsi seperti sendAutobidOffer, sendDriverOffer, checkActiveOrderForDriver, dll
-// masih diperlukan tetapi karena panjang kode, saya sertakan template singkatnya.
-// Anda perlu mengadaptasinya untuk menggunakan currentDriver yang konsisten.
+// ==================== FUNGSI TAMBAHAN YANG DIPERLUKAN ====================
 
 function sendDriverOffer() {
   if (!currentSelectedOrder || !currentDriver) return;
@@ -2052,17 +2077,14 @@ function sendDriverOffer() {
     }
   }
 
-  if (!auth || !auth.currentUser) {
-    showPopup('Silakan login terlebih dahulu', 'Auth Required', 'warning');
-    return;
-  }
-
   const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
   const driverId = currentDriver.uid;
   const ambilBtn = document.getElementById('ambilBtn');
 
-  ambilBtn.disabled = true;
-  ambilBtn.textContent = 'Mengirim...';
+  if (ambilBtn) {
+    ambilBtn.disabled = true;
+    ambilBtn.textContent = 'Mengirim...';
+  }
 
   const orderRef = database.ref('orders/' + orderId);
   orderRef.once('value').then((snapshot) => {
@@ -2096,19 +2118,23 @@ function sendDriverOffer() {
         });
         startCountdown(orderId, driverId);
         listenForOrderResponse(orderId, driverId);
-        ambilBtn.textContent = 'Menunggu Konfirmasi';
+        if (ambilBtn) ambilBtn.textContent = 'Menunggu Konfirmasi';
       })
       .catch((error) => {
         console.error('Gagal mengirim penawaran:', error);
         showPopup('Gagal mengirim penawaran. Silakan coba lagi.', 'Error', 'error');
-        ambilBtn.disabled = false;
-        ambilBtn.textContent = 'Kirim Penawaran';
+        if (ambilBtn) {
+          ambilBtn.disabled = false;
+          ambilBtn.textContent = 'Kirim Penawaran';
+        }
       });
   }).catch((error) => {
     console.error('Error checking order status:', error);
     showPopup('Gagal memeriksa status order. Silakan coba lagi.', 'Error', 'error');
-    ambilBtn.disabled = false;
-    ambilBtn.textContent = 'Kirim Penawaran';
+    if (ambilBtn) {
+      ambilBtn.disabled = false;
+      ambilBtn.textContent = 'Kirim Penawaran';
+    }
   });
 }
 
@@ -2166,8 +2192,11 @@ function checkActiveOrderForDriver() {
 }
 
 function closeModalAndRefresh() {
-  document.getElementById('orderModal').style.display = 'none';
-  document.getElementById('autobidModal').style.display = 'none';
+  const orderModal = document.getElementById('orderModal');
+  const autobidModal = document.getElementById('autobidModal');
+  
+  if (orderModal) orderModal.style.display = 'none';
+  if (autobidModal) autobidModal.style.display = 'none';
 
   if (countdownInterval) {
     clearInterval(countdownInterval);
@@ -2181,17 +2210,15 @@ function closeModalAndRefresh() {
   }
 
   isAutobidModal = false;
-  document.getElementById('closeModal').classList.remove('disabled');
+  const closeModalBtn = document.getElementById('closeModal');
+  if (closeModalBtn) closeModalBtn.classList.remove('disabled');
 
   currentSelectedOrder = null;
   isAutobidProcessing = false;
   loadOrders();
 }
 
-// ==================== FUNGSI TAMBAHAN YANG DISEDERHANAKAN ====================
-
 function sendAutobidOffer() {
-  // Implementasi sederhana - sesuaikan dengan kebutuhan
   if (!currentSelectedOrder || !currentDriver) {
     isAutobidProcessing = false;
     closeAutobidModal();
@@ -2249,14 +2276,14 @@ function startAutobidProgressBar() {
   const progressBar = document.getElementById('autobidProgressBar');
   const progressText = document.getElementById('autobidProgressText');
 
-  progressBar.style.width = '100%';
-  progressText.textContent = 'Menunggu konfirmasi customer...';
+  if (progressBar) progressBar.style.width = '100%';
+  if (progressText) progressText.textContent = 'Menunggu konfirmasi customer...';
 
   autobidProgressInterval = setInterval(() => {
     autobidProgressTimeLeft--;
 
     const progressPercent = (autobidProgressTimeLeft / 30) * 100;
-    progressBar.style.width = `${progressPercent}%`;
+    if (progressBar) progressBar.style.width = `${progressPercent}%`;
 
     if (autobidProgressTimeLeft <= 0) {
       clearInterval(autobidProgressInterval);
@@ -2266,7 +2293,8 @@ function startAutobidProgressBar() {
 }
 
 function closeAutobidModal() {
-  document.getElementById('autobidModal').style.display = 'none';
+  const autobidModal = document.getElementById('autobidModal');
+  if (autobidModal) autobidModal.style.display = 'none';
   stopAutobidProgressBar();
   currentSelectedOrder = null;
   isAutobidProcessing = false;
@@ -2282,15 +2310,20 @@ function stopAutobidProgressBar() {
 // ==================== FUNGSI START COUNTDOWN ====================
 
 function startCountdown(orderId, driverId) {
+  const countdownTimer = document.getElementById('countdownTimer');
+  const countdownContainer = document.getElementById('countdownContainer');
+  
+  if (!countdownTimer || !countdownContainer) return;
+  
   let timeLeft = 30;
-  document.getElementById('countdownTimer').textContent = timeLeft;
-  document.getElementById('countdownContainer').style.display = 'block';
+  countdownTimer.textContent = timeLeft;
+  countdownContainer.style.display = 'block';
 
   if (countdownInterval) clearInterval(countdownInterval);
 
   countdownInterval = setInterval(() => {
     timeLeft--;
-    document.getElementById('countdownTimer').textContent = timeLeft;
+    countdownTimer.textContent = timeLeft;
 
     if (timeLeft <= 0) {
       clearInterval(countdownInterval);
