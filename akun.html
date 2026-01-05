@@ -4,9 +4,11 @@
   <meta charset="utf-8" />
   <title>Akun Driver - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- Firebase SDK (VERSI SAMA) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <style>
     :root {
       --primary: #FF9800;    /* Orange */
@@ -19,10 +21,6 @@
       --warning: #FFC107;    /* Yellow */
       --info: #2196F3;       /* Blue */
       --gray: #9E9E9E;       /* Gray */
-      --basic: #6c757d;
-      --standard: #17a2b8;
-      --regular: #28a745;
-      --essential: #ffc107;
     }
 
     * {
@@ -37,10 +35,10 @@
       color: #333;
       line-height: 1.4;
       font-size: 0.85rem;
-      padding-bottom: 70px;
+      padding-bottom: 20px;
     }
 
-    /* Header Styles */
+    /* Header Styles (SAMA) */
     .header {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
@@ -57,7 +55,6 @@
     .logo-container {
       display: flex;
       align-items: center;
-      gap: 10px;
     }
 
     .logo {
@@ -68,9 +65,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-right: 10px;
       font-weight: bold;
       font-size: 16px;
       color: var(--primary);
+    }
+
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 600;
     }
 
     .back-btn {
@@ -86,24 +89,37 @@
       align-items: center;
       gap: 5px;
       font-size: 0.85rem;
+      text-decoration: none;
     }
 
     .back-btn:hover {
       background: rgba(255,255,255,0.3);
     }
 
-    .header-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-
-    /* Container Styles */
+    /* Container Styles (SAMA) */
     .container {
       max-width: 100%;
       padding: 15px;
     }
 
-    /* Profile Card Styles */
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .form-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    /* Profile Card Styles (DIUPDATE) */
     .profile-card {
       background: white;
       border-radius: 12px;
@@ -128,7 +144,20 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
 
-    /* Priority Badge Styles */
+    .profile-name {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .profile-vehicle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    /* Badge Styles (DIUPDATE SESUAI WARNA) */
     .priority-badge {
       display: inline-block;
       padding: 6px 14px;
@@ -139,34 +168,27 @@
       margin: 8px 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       letter-spacing: 0.5px;
-    }
-
-    .priority-basic {
-      background: linear-gradient(135deg, var(--basic), #5a6268);
       color: white;
-      border: 2px solid #5a6268;
     }
 
-    .priority-standard {
-      background: linear-gradient(135deg, var(--standard), #138496);
-      color: white;
-      border: 2px solid #138496;
+    .priority-badge.basic {
+      background: linear-gradient(135deg, var(--gray), #757575);
     }
 
-    .priority-regular {
-      background: linear-gradient(135deg, var(--regular), #1e7e34);
-      color: white;
-      border: 2px solid #1e7e34;
+    .priority-badge.standard {
+      background: linear-gradient(135deg, var(--info), #1976d2);
     }
 
-    .priority-essential {
-      background: linear-gradient(135deg, var(--essential), #e0a800);
+    .priority-badge.regular {
+      background: linear-gradient(135deg, var(--success), #388e3c);
+    }
+
+    .priority-badge.essential {
+      background: linear-gradient(135deg, var(--warning), #ff8f00);
       color: #333;
-      border: 2px solid #e0a800;
-      font-weight: 800;
     }
 
-    /* Priority Badge Small (di foto profil) */
+    /* Priority Badge Small */
     #priorityBadgeSmall {
       position: absolute;
       bottom: 0px;
@@ -178,20 +200,7 @@
       letter-spacing: 0.3px;
     }
 
-    .profile-name {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 5px;
-    }
-
-    .profile-vehicle {
-      color: #666;
-      font-size: 0.9rem;
-      margin-bottom: 8px;
-    }
-
-    /* Balance Styles */
+    /* Balance Styles (DIUPDATE) */
     .balance-container {
       background: linear-gradient(135deg, var(--info), #0d8dd9);
       color: white;
@@ -267,6 +276,7 @@
       font-size: 0.8rem;
     }
 
+    /* Stats */
     .profile-stats {
       display: flex;
       justify-content: center;
@@ -301,7 +311,7 @@
       margin-top: 2px;
     }
 
-    /* Info Card Styles */
+    /* Info Cards */
     .info-cards-container {
       display: grid;
       grid-template-columns: 1fr;
@@ -360,6 +370,44 @@
       display: none;
     }
 
+    /* Form Elements (SAMA) */
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    /* Info Items */
     .info-item {
       display: flex;
       justify-content: space-between;
@@ -389,7 +437,7 @@
       gap: 8px;
     }
 
-    /* Copy Button Styles */
+    /* Copy Button */
     .copy-btn {
       background: none;
       border: none;
@@ -408,12 +456,7 @@
       transform: scale(1.1);
     }
 
-    .copy-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-
-    /* Action Buttons */
+    /* Action Buttons (DIUPDATE SESUAI) */
     .action-buttons {
       display: flex;
       flex-direction: column;
@@ -421,42 +464,38 @@
       margin-top: 20px;
     }
 
-    .btn {
-      padding: 14px;
+    .submit-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
       border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
       font-weight: 600;
-      font-size: 0.9rem;
       cursor: pointer;
       transition: all 0.3s;
-      border: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      width: 100%;
     }
 
-    .btn-primary {
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      color: white;
-    }
-
-    .btn-danger {
-      background: var(--danger);
-      color: white;
-    }
-
-    .btn-info {
-      background: var(--info);
-      color: white;
-    }
-
-    .btn:hover {
+    .submit-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
     }
 
-    /* Status Badge */
+    .submit-btn.btn-info {
+      background: linear-gradient(to right, var(--info), #1976d2);
+    }
+
+    .submit-btn.btn-danger {
+      background: linear-gradient(to right, var(--danger), #d32f2f);
+    }
+
+    /* Status Badge (DIUPDATE) */
     .status-badge {
       display: inline-block;
       padding: 4px 10px;
@@ -490,7 +529,199 @@
       border: 1px solid var(--gray);
     }
 
-    /* Loading spinner */
+    /* Modal Styles (SAMA DENGAN daftarDriver.html) */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .modal-title {
+      display: flex;
+      align-items: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .modal-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .modal-icon.success {
+      background-color: var(--success);
+    }
+
+    .modal-icon.error {
+      background-color: var(--danger);
+    }
+
+    .modal-icon.warning {
+      background-color: var(--warning);
+    }
+
+    .modal-icon.info {
+      background-color: var(--info);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6c757d;
+      line-height: 1;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s;
+    }
+
+    .close-btn:hover {
+      background-color: #f8f9fa;
+      color: var(--dark);
+    }
+
+    .modal-body {
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid #e9ecef;
+      background-color: #f8f9fa;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 15px;
+    }
+
+    .modal-btn.confirm {
+      background-color: var(--primary);
+      color: white;
+      margin-left: 10px;
+    }
+
+    .modal-btn.confirm:hover {
+      background-color: var(--secondary);
+    }
+
+    .modal-btn.cancel {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .modal-btn.cancel:hover {
+      background-color: #5a6268;
+    }
+
+    .modal.success .modal-header {
+      background-color: rgba(76, 175, 80, 0.1);
+    }
+
+    .modal.error .modal-header {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+
+    .modal.warning .modal-header {
+      background-color: rgba(255, 193, 7, 0.1);
+    }
+
+    .modal.info .modal-header {
+      background-color: rgba(33, 150, 243, 0.1);
+    }
+
+    /* Loading Modal */
+    .loading-modal .modal-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 152, 0, 0.1);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    .loading-text {
+      font-size: 16px;
+      color: var(--dark);
+      text-align: center;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Loading State */
     .loading {
       display: flex;
       justify-content: center;
@@ -499,6 +730,7 @@
       background: white;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      flex-direction: column;
     }
 
     .spinner {
@@ -508,13 +740,10 @@
       border-radius: 50%;
       border-top-color: var(--primary);
       animation: spin 1s ease-in-out infinite;
+      margin-bottom: 15px;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Empty state */
+    /* Error State */
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -529,100 +758,23 @@
       margin: 10px 0;
     }
 
-    /* Popup Styles */
-    .popup-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .popup-content {
-      background: white;
-      border-radius: 12px;
-      padding: 25px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      animation: popup-appear 0.3s ease-out;
-    }
-
-    @keyframes popup-appear {
-      from {
-        opacity: 0;
-        transform: scale(0.9);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
-
-    .popup-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 10px;
-    }
-
-    .popup-message {
-      color: #555;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .popup-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-    }
-
-    .popup-btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      min-width: 80px;
-    }
-
-    .popup-btn-cancel {
-      background: #f8f9fa;
-      color: #333;
-      border: 1px solid #ddd;
-    }
-
-    .popup-btn-confirm {
-      background: var(--danger);
-      color: white;
-    }
-
-    .popup-btn-info {
-      background: var(--info);
-      color: white;
-    }
-
-    .popup-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    /* Responsive adjustments */
+    /* Responsive */
     @media (max-width: 768px) {
+      .header-title {
+        font-size: 1rem;
+      }
+      
       body {
         font-size: 0.8rem;
       }
       
-      .profile-card {
+      .form-container {
         padding: 15px;
+      }
+      
+      .form-row {
+        flex-direction: column;
+        gap: 0;
       }
       
       .profile-photo {
@@ -632,25 +784,6 @@
       
       .info-card {
         padding: 15px;
-      }
-      
-      .btn {
-        padding: 12px;
-        font-size: 0.85rem;
-      }
-      
-      .balance-amount {
-        font-size: 1.3rem;
-      }
-      
-      .popup-content {
-        padding: 20px;
-      }
-    }
-
-    @media (max-width: 576px) {
-      .container {
-        padding: 10px;
       }
       
       .info-item {
@@ -666,353 +799,65 @@
         justify-content: space-between;
       }
       
+      .modal {
+        width: 95%;
+        max-width: 95%;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .form-title {
+        font-size: 1.3rem;
+      }
+      
       .profile-stats {
         flex-direction: column;
         gap: 10px;
-      }
-      
-      .popup-buttons {
-        flex-direction: column;
-      }
-      
-      .popup-btn {
-        width: 100%;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header (SAMA) -->
   <div class="header">
     <div class="logo-container">
       <div class="logo">JG</div>
-      <div class="header-title">Driver JeGo</div>
+      <div class="header-title">Akun Driver - JeGo</div>
     </div>
-    <button class="back-btn" id="backBtn">
+    <a href="list.html" class="back-btn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M19 12H5M12 19l-7-7 7-7"/>
       </svg>
       Kembali
-    </button>
+    </a>
   </div>
 
   <!-- Container -->
-  <div class="container" id="mainContainer">
-    <!-- Profile Card -->
-    <div class="profile-card">
-      <div class="profile-photo-container">
-        <img id="profilePhoto" class="profile-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Foto Profil">
-        <!-- Badge Level Prioritas di foto profil -->
-        <div class="priority-badge priority-basic" id="priorityBadgeSmall">Basic</div>
-      </div>
-      <div class="profile-name" id="profileName">-</div>
-      <div class="profile-vehicle" id="profileVehicle">-</div>
+  <div class="container">
+    <div class="form-container">
+      <h1 class="form-title">Profil Driver</h1>
       
-      <!-- Balance Display - Menambahkan id untuk balanceContainer -->
-      <div class="balance-container" id="balanceContainer">
-        <div class="balance-label">Saldo Deposit</div>
-        <div class="balance-amount" id="balanceAmount">Rp 0</div>
-        <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
-      </div>
-      
-      <!-- Rating Display - Clickable -->
-      <div class="profile-rating" id="ratingClickable">
-        <div class="rating-stars" id="ratingStars"></div>
-        <div class="rating-value" id="ratingValue">0.0</div>
-        <div class="rating-count" id="ratingCount">(0 rating)</div>
-      </div>
-      
-      <div class="profile-stats">
-        <div class="stat-item" id="todayEarningsStat">
-          <div class="stat-value" id="todayEarnings">Rp 0</div>
-          <div class="stat-label">Pendapatan Hari Ini</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Container untuk kartu informasi -->
-    <div class="info-cards-container">
-      <!-- Informasi Pribadi -->
-      <div class="info-card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Informasi Pribadi
-          </div>
-          <button class="toggle-btn" data-target="personalInfo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
-        </div>
-        <div class="card-content" id="personalInfo">
-          <div class="info-item">
-            <div class="info-label">Nama Lengkap</div>
-            <div class="info-value" id="fullName">-</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Email</div>
-            <div class="info-value" id="email">-</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">No. Telepon</div>
-            <div class="info-value" id="phoneNumberContainer">
-              <span id="phoneNumber">-</span>
-              <button class="copy-btn" data-copy-target="phoneNumber" title="Salin nomor telepon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Alamat</div>
-            <div class="info-value" id="address">-</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">No. KTP</div>
-            <div class="info-value" id="idCardNumber">-</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Informasi Kendaraan -->
-      <div class="info-card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="7" cy="17" r="2"></circle>
-              <circle cx="17" cy="17" r="2"></circle>
-              <path d="M5 17H3v-6l2-5h9l4 5h3v6h-2m-8 0H9m4 0h2"></path>
-            </svg>
-            Informasi Kendaraan
-          </div>
-          <button class="toggle-btn" data-target="vehicleInfo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
-        </div>
-        <div class="card-content" id="vehicleInfo">
-          <div class="info-item">
-            <div class="info-label">Jenis Kendaraan</div>
-            <div class="info-value" id="vehicleType">-</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Merek Kendaraan</div>
-            <div class="info-value" id="vehicleBrand">-</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Plat Nomor</div>
-            <div class="info-value" id="plateNumber">-</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Informasi Akun -->
-      <div class="info-card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-            Informasi Akun
-          </div>
-          <button class="toggle-btn" data-target="accountInfo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
-        </div>
-        <div class="card-content" id="accountInfo">
-          <div class="info-item">
-            <div class="info-label">ID Driver</div>
-            <div class="info-value" id="driverIdContainer">
-              <span id="driverId">-</span>
-              <button class="copy-btn" data-copy-target="driverId" title="Salin ID Driver">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Tanggal Daftar</div>
-            <div class="info-value" id="registrationDate">-</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Status Akun</div>
-            <div class="info-value" id="verificationStatus">
-              <span class="status-badge status-pending">-</span>
-            </div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Total Order</div>
-            <div class="info-value" id="totalOrders">0</div>
-          </div>
-          
-          <div class="info-item">
-            <div class="info-label">Order Selesai</div>
-            <div class="info-value" id="completedOrders">0</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-      <button class="btn btn-info" id="editProfileBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-        Edit Profil
-      </button>
-      <button class="btn btn-danger" id="logoutBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16,17 21,12 16,7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-        Keluar
-      </button>
-    </div>
-  </div>
-
-  <!-- Popup Konfirmasi Logout -->
-  <div class="popup-overlay" id="logoutPopup" style="display: none;">
-    <div class="popup-content">
-      <div class="popup-title">Konfirmasi Keluar</div>
-      <div class="popup-message">Apakah Anda yakin ingin keluar dari akun driver JeGo?</div>
-      <div class="popup-buttons">
-        <button class="popup-btn popup-btn-cancel" id="cancelLogoutBtn">Batal</button>
-        <button class="popup-btn popup-btn-confirm" id="confirmLogoutBtn">Ya, Keluar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Popup Informasi -->
-  <div class="popup-overlay" id="infoPopup" style="display: none;">
-    <div class="popup-content">
-      <div class="popup-title" id="infoPopupTitle">Informasi</div>
-      <div class="popup-message" id="infoPopupMessage"></div>
-      <div class="popup-buttons">
-        <button class="popup-btn popup-btn-info" id="closeInfoPopupBtn">Tutup</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-  // Firebase Configuration - SAMA dengan daftarDriver.html
-  const firebaseConfig = {
-    apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
-    authDomain: "game-balap-simpel.firebaseapp.com",
-    databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
-    projectId: "game-balap-simpel",
-    storageBucket: "game-balap-simpel.firebasestorage.app",
-    messagingSenderId: "864576853495",
-    appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
-    measurementId: "G-YWJPK7Y3J4"
-  };
-
-  // Initialize Firebase
-  let database;
-  let isFirebaseInitialized = false;
-
-  try {
-    firebase.initializeApp(firebaseConfig);
-    database = firebase.database();
-    isFirebaseInitialized = true;
-    console.log('✅ Firebase berhasil diinisialisasi');
-  } catch (error) {
-    console.error('❌ Error inisialisasi Firebase:', error);
-    isFirebaseInitialized = false;
-  }
-
-  // Variabel global
-  let currentDriverData = null;
-  let retryCount = 0;
-  const MAX_RETRIES = 3;
-  let driverOrders = [];
-  let driverRatings = [];
-
-  // ==================== FUNGSI POPUP ====================
-  
-  // Fungsi untuk menampilkan popup konfirmasi logout
-  function showLogoutPopup() {
-    const logoutPopup = document.getElementById('logoutPopup');
-    if (logoutPopup) {
-      logoutPopup.style.display = 'flex';
-    }
-  }
-
-  // Fungsi untuk menyembunyikan popup konfirmasi logout
-  function hideLogoutPopup() {
-    const logoutPopup = document.getElementById('logoutPopup');
-    if (logoutPopup) {
-      logoutPopup.style.display = 'none';
-    }
-  }
-
-  // Fungsi untuk menampilkan popup informasi
-  function showInfoPopup(title, message) {
-    const infoPopup = document.getElementById('infoPopup');
-    const infoPopupTitle = document.getElementById('infoPopupTitle');
-    const infoPopupMessage = document.getElementById('infoPopupMessage');
-    
-    if (infoPopup && infoPopupTitle && infoPopupMessage) {
-      infoPopupTitle.textContent = title;
-      infoPopupMessage.textContent = message;
-      infoPopup.style.display = 'flex';
-    }
-  }
-
-  // Fungsi untuk menyembunyikan popup informasi
-  function hideInfoPopup() {
-    const infoPopup = document.getElementById('infoPopup');
-    if (infoPopup) {
-      infoPopup.style.display = 'none';
-    }
-  }
-
-  // ==================== FUNGSI RESTORE UI ====================
-  function restoreMainUI() {
-    const container = document.getElementById('mainContainer');
-    
-    // Kembalikan struktur UI asli akun.html dengan tema baru
-    container.innerHTML = `
       <!-- Profile Card -->
       <div class="profile-card">
         <div class="profile-photo-container">
           <img id="profilePhoto" class="profile-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Foto Profil">
-          <!-- Badge Level Prioritas di foto profil -->
-          <div class="priority-badge priority-basic" id="priorityBadgeSmall">Basic</div>
+          <div class="priority-badge basic" id="priorityBadgeSmall">Basic</div>
         </div>
         <div class="profile-name" id="profileName">-</div>
         <div class="profile-vehicle" id="profileVehicle">-</div>
         
-        <!-- Balance Display - Menambahkan id untuk balanceContainer -->
+        <!-- Balance Display -->
         <div class="balance-container" id="balanceContainer">
           <div class="balance-label">Saldo Deposit</div>
           <div class="balance-amount" id="balanceAmount">Rp 0</div>
           <div class="commission-info">Potongan Komisi: <span id="commissionRate">0%</span></div>
         </div>
         
-        <!-- Rating Display - Clickable -->
+        <!-- Rating Display -->
         <div class="profile-rating" id="ratingClickable">
           <div class="rating-stars" id="ratingStars"></div>
           <div class="rating-value" id="ratingValue">0.0</div>
@@ -1027,7 +872,7 @@
         </div>
       </div>
 
-      <!-- Container untuk kartu informasi -->
+      <!-- Info Cards Container -->
       <div class="info-cards-container">
         <!-- Informasi Pribadi -->
         <div class="info-card">
@@ -1172,14 +1017,14 @@
 
       <!-- Action Buttons -->
       <div class="action-buttons">
-        <button class="btn btn-info" id="editProfileBtn">
+        <button class="submit-btn btn-info" id="editProfileBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
           Edit Profil
         </button>
-        <button class="btn btn-danger" id="logoutBtn">
+        <button class="submit-btn btn-danger" id="logoutBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16,17 21,12 16,7"></polyline>
@@ -1188,162 +1033,380 @@
           Keluar
         </button>
       </div>
-    `;
+    </div>
+  </div>
+
+  <!-- Modal Popup (SAMA) -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div id="modal" class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span id="modalIcon" class="modal-icon">!</span>
+          <span id="modalTitleText">Judul Modal</span>
+        </h3>
+        <button id="modalCloseBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Isi pesan modal akan ditampilkan di sini.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="modalCancelBtn" class="modal-btn cancel" style="display: none;">Batal</button>
+        <button id="modalConfirmBtn" class="modal-btn confirm">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Modal (SAMA) -->
+  <div id="loadingModal" class="modal-overlay">
+    <div class="modal loading-modal">
+      <div class="modal-body">
+        <div class="loading-spinner"></div>
+        <p id="loadingText" class="loading-text">Sedang memproses...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================================================
+    // KONFIGURASI (SAMA)
+    // ================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
+    };
+
+    // ================================================
+    // INISIALISASI FIREBASE (SAMA)
+    // ================================================
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const database = firebase.database();
+    const storage = firebase.storage();
+    const auth = firebase.auth();
+
+    // ================================================
+    // VARIABEL GLOBAL
+    // ================================================
+    let currentDriverData = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let driverOrders = [];
+    let driverRatings = [];
+
+    // ================================================
+    // ELEMEN DOM
+    // ================================================
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitleText = document.getElementById('modalTitleText');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const loadingModal = document.getElementById('loadingModal');
+    const loadingText = document.getElementById('loadingText');
+
+    // ================================================
+    // FUNGSI UTILITAS (SAMA)
+    // ================================================
     
-    console.log('✅ UI asli berhasil direstore dengan tema baru');
-    
-    // Inisialisasi ulang tombol setelah UI direstore
-    initButtons();
-    
-    // Update badge prioritas jika data sudah dimuat
-    if (driverRatings && driverRatings.length > 0) {
-      const avgRating = calculateAverageRating(driverRatings);
-      updatePriorityBadge(avgRating);
+    function showPopup(title, message, type = 'info', options = {}) {
+      modalTitleText.textContent = title;
+      modalMessage.innerHTML = message;
+      modal.className = 'modal ' + type;
+      modalIcon.className = 'modal-icon ' + type;
+      modalIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '!' : 'i';
+      modalConfirmBtn.textContent = options.confirmText || 'OK';
+      
+      if (options.showCancel) {
+        modalCancelBtn.style.display = 'inline-block';
+        modalCancelBtn.textContent = options.cancelText || 'Batal';
+      } else {
+        modalCancelBtn.style.display = 'none';
+      }
+      
+      modalConfirmBtn.onclick = function() {
+        hidePopup();
+        if (options.onConfirm) options.onConfirm();
+      };
+      
+      modalCancelBtn.onclick = function() {
+        hidePopup();
+        if (options.onCancel) options.onCancel();
+      };
+      
+      modalCloseBtn.onclick = function() {
+        hidePopup();
+        if (options.onCancel) options.onCancel();
+      };
+      
+      modalOverlay.classList.add('active');
+      
+      if (options.autoHide) {
+        setTimeout(() => {
+          hidePopup();
+          if (options.onAutoHide) options.onAutoHide();
+        }, options.autoHideDelay || 3000);
+      }
     }
-  }
-
-  // ==================== FUNGSI UTAMA ====================
-
-  // Fungsi untuk memuat data driver dari Firebase
-  function loadDriverData() {
-    // Cek apakah driver sudah login
-    const driverData = getDriverDataFromStorage();
     
-    if (!driverData || !driverData.driverId) {
-      console.error('❌ Driver belum login atau data tidak valid');
-      showErrorState('Anda belum login. Silakan login terlebih dahulu.');
-      return;
+    function hidePopup() {
+      modalOverlay.classList.remove('active');
+    }
+    
+    function showLoading(message = 'Sedang memproses...') {
+      loadingText.textContent = message;
+      loadingModal.classList.add('active');
+    }
+    
+    function hideLoading() {
+      loadingModal.classList.remove('active');
+    }
+    
+    function showErrorMessage(message) {
+      showPopup('Error', message, 'error');
+    }
+    
+    function showSuccessMessage(message, autoHide = false) {
+      showPopup('Sukses', message, 'success', { autoHide: autoHide, autoHideDelay: 2000 });
+    }
+    
+    function showInfoMessage(message, autoHide = false) {
+      showPopup('Informasi', message, 'info', { autoHide: autoHide, autoHideDelay: 3000 });
     }
 
-    // Cek koneksi Firebase
-    if (!isFirebaseInitialized || !database) {
-      console.error('❌ Firebase tidak terinisialisasi');
-      showErrorState('Koneksi database gagal. Periksa koneksi internet.');
-      return;
+    function formatCurrency(amount) {
+      if (!amount && amount !== 0) return 'Rp 0';
+      
+      try {
+        return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+      } catch (error) {
+        console.error('Error formatting currency:', error);
+        return 'Rp 0';
+      }
     }
 
-    const driverId = driverData.driverId;
-    console.log('🔄 Memuat data driver:', driverId);
-
-    // Tampilkan loading state
-    showLoadingState();
-
-    // Ambil data driver dari Firebase
-    const driverRef = database.ref('drivers/' + driverId);
-    
-    driverRef.once('value')
-      .then((snapshot) => {
-        const driverData = snapshot.val();
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          return '-';
+        }
         
-        if (driverData) {
-          console.log('✅ Data driver berhasil dimuat:', driverData);
-          currentDriverData = driverData;
+        return date.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        return '-';
+      }
+    }
+
+    function maskIdCard(idCard) {
+      if (!idCard || idCard === '-') return '-';
+      
+      const idString = idCard.toString();
+      if (idString.length <= 8) {
+        return idString;
+      }
+      
+      const firstPart = idString.substring(0, 4);
+      const lastPart = idString.substring(idString.length - 4);
+      const maskedPart = '*'.repeat(idString.length - 8);
+      
+      return firstPart + maskedPart + lastPart;
+    }
+
+    function generateStarRating(rating, starClass = 'star') {
+      const fullStars = Math.floor(rating);
+      const hasHalfStar = rating % 1 >= 0.5;
+      const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+      
+      let starsHTML = '';
+      
+      for (let i = 0; i < fullStars; i++) {
+        starsHTML += `<span class="${starClass} filled">★</span>`;
+      }
+      
+      if (hasHalfStar) {
+        starsHTML += `<span class="${starClass} filled">★</span>`;
+      }
+      
+      for (let i = 0; i < emptyStars; i++) {
+        starsHTML += `<span class="${starClass}">☆</span>`;
+      }
+      
+      return starsHTML;
+    }
+
+    function getStatusBadge(status) {
+      const statusText = getStatusText(status);
+      const statusClass = getStatusClass(status);
+      return `<span class="status-badge ${statusClass}">${statusText}</span>`;
+    }
+
+    function getStatusText(status) {
+      const statusMap = {
+        'active': 'Aktif',
+        'accepted': 'Diterima',
+        'pending': 'Menunggu',
+        'rejected': 'Ditolak',
+        'blocked': 'Diblokir'
+      };
+      return statusMap[status] || status;
+    }
+
+    function getStatusClass(status) {
+      const classMap = {
+        'active': 'status-active',
+        'accepted': 'status-active',
+        'pending': 'status-pending',
+        'rejected': 'status-rejected',
+        'blocked': 'status-blocked'
+      };
+      return classMap[status] || 'status-pending';
+    }
+
+    function getVehicleTypeText(vehicleType) {
+      const vehicleMap = {
+        'motor': 'Motor',
+        'bentor': 'Bentor',
+        'mobil': 'Mobil',
+        'kurir_motor': 'Kurir Motor',
+        'kurir_bentor': 'Kurir Bentor'
+      };
+      return vehicleMap[vehicleType] || vehicleType;
+    }
+
+    function getPriorityBadge(rating) {
+      if (rating >= 4.5) {
+        return { level: 'Essential', class: 'priority-badge essential' };
+      } else if (rating >= 4.0) {
+        return { level: 'Regular', class: 'priority-badge regular' };
+      } else if (rating >= 3.0) {
+        return { level: 'Standard', class: 'priority-badge standard' };
+      } else {
+        return { level: 'Basic', class: 'priority-badge basic' };
+      }
+    }
+
+    // ================================================
+    // FUNGSI DATABASE
+    // ================================================
+    
+    function getDriverDataFromStorage() {
+      try {
+        return JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
+      } catch (error) {
+        console.error('❌ Error parsing driver data from storage:', error);
+        return {};
+      }
+    }
+
+    function updateDriverDataInStorage(data) {
+      try {
+        const currentData = getDriverDataFromStorage();
+        const updatedData = { ...currentData, ...data };
+        localStorage.setItem('jego_driver_data', JSON.stringify(updatedData));
+        console.log('✅ Data driver diupdate di localStorage');
+      } catch (error) {
+        console.error('❌ Error updating driver data in storage:', error);
+      }
+    }
+
+    async function loadDriverData() {
+      const driverData = getDriverDataFromStorage();
+      
+      if (!driverData || !driverData.driverId) {
+        console.error('❌ Driver belum login atau data tidak valid');
+        showErrorState('Anda belum login. Silakan login terlebih dahulu.');
+        return;
+      }
+
+      const driverId = driverData.driverId;
+      console.log('🔄 Memuat data driver:', driverId);
+
+      showLoadingState();
+
+      try {
+        const driverRef = database.ref('drivers/' + driverId);
+        const snapshot = await driverRef.once('value');
+        const driverDataFromDB = snapshot.val();
+        
+        if (driverDataFromDB) {
+          console.log('✅ Data driver berhasil dimuat:', driverDataFromDB);
+          currentDriverData = driverDataFromDB;
           
-          // Update localStorage dengan data terbaru
-          updateDriverDataInStorage(driverData);
+          updateDriverDataInStorage(driverDataFromDB);
           
-          // Restore UI sebelum menampilkan data
-          restoreMainUI();
+          displayDriverData(driverDataFromDB);
           
-          // Tampilkan data di UI
-          displayDriverData(driverData);
-          
-          // Muat data balance deposit dan potongan komisi
           loadBalanceAndCommission(driverId);
-          
-          // Muat data ratings untuk perhitungan yang akurat
           loadDriverRatings(driverId);
-          
-          // Muat data orders untuk statistik
           loadDriverOrders(driverId);
           
-          retryCount = 0; // Reset retry count jika berhasil
+          retryCount = 0;
         } else {
           console.error('❌ Data driver tidak ditemukan di Firebase');
           showErrorState('Data driver tidak ditemukan. Silakan coba lagi.');
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('❌ Error memuat data driver:', error);
         retryCount++;
         
         if (retryCount <= MAX_RETRIES) {
           console.log(`🔄 Mencoba ulang... (${retryCount}/${MAX_RETRIES})`);
-          setTimeout(loadDriverData, 2000); // Retry after 2 seconds
+          setTimeout(loadDriverData, 2000);
         } else {
           showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
         }
-      });
-  }
-
-  // PERUBAHAN: Fungsi untuk memuat data balance deposit dan potongan komisi dari Firebase
-  function loadBalanceAndCommission(driverId) {
-    if (!isFirebaseInitialized || !database) {
-      console.error('❌ Firebase tidak terinisialisasi');
-      return;
+      }
     }
 
-    console.log('🔄 Memuat data balance deposit dan potongan komisi untuk driver:', driverId);
+    async function loadBalanceAndCommission(driverId) {
+      console.log('🔄 Memuat data balance deposit dan potongan komisi untuk driver:', driverId);
 
-    // Ambil data balance deposit dan potongan komisi dari Firebase
-    const balanceRef = database.ref('drivers/' + driverId + '/Balance');
-    const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
-    
-    Promise.all([
-      balanceRef.once('value'),
-      potonganRef.once('value')
-    ])
-    .then(([balanceSnapshot, potonganSnapshot]) => {
-      const balance = balanceSnapshot.val() || 0;
-      const potonganRate = potonganSnapshot.val() || 0;
-      
-      console.log('✅ Data balance deposit dan potongan komisi berhasil dimuat:', {
-        balance: balance,
-        potonganRate: potonganRate
-      });
-      
-      // Update UI dengan data balance dan potongan komisi
-      updateBalanceDisplay(balance, potonganRate);
-    })
-    .catch((error) => {
-      console.error('❌ Error memuat data balance dan potongan komisi:', error);
-      // Tetap update UI dengan nilai default
-      updateBalanceDisplay(0, 0);
-    });
-  }
+      try {
+        const [balanceSnapshot, potonganSnapshot] = await Promise.all([
+          database.ref('drivers/' + driverId + '/Balance').once('value'),
+          database.ref('drivers/' + driverId + '/Potongan').once('value')
+        ]);
 
-  // Fungsi untuk update tampilan balance dan potongan komisi
-  function updateBalanceDisplay(balance, potonganRate) {
-    const balanceAmount = document.getElementById('balanceAmount');
-    const commissionRateElement = document.getElementById('commissionRate');
-    
-    if (balanceAmount) {
-      balanceAmount.textContent = formatCurrency(balance);
-    }
-    
-    if (commissionRateElement) {
-      commissionRateElement.textContent = potonganRate + '%';
-    }
-  }
-
-  // Fungsi untuk memuat data ratings driver
-  function loadDriverRatings(driverId) {
-    if (!isFirebaseInitialized || !database) {
-      console.error('❌ Firebase tidak terinisialisasi');
-      return;
+        const balance = balanceSnapshot.val() || 0;
+        const potonganRate = potonganSnapshot.val() || 0;
+        
+        console.log('✅ Data balance deposit dan potongan komisi berhasil dimuat:', {
+          balance: balance,
+          potonganRate: potonganRate
+        });
+        
+        updateBalanceDisplay(balance, potonganRate);
+      } catch (error) {
+        console.error('❌ Error memuat data balance dan potongan komisi:', error);
+        updateBalanceDisplay(0, 0);
+      }
     }
 
-    console.log('🔄 Memuat data ratings untuk driver:', driverId);
+    async function loadDriverRatings(driverId) {
+      console.log('🔄 Memuat data ratings untuk driver:', driverId);
 
-    const ratingsRef = database.ref('drivers/' + driverId + '/ratings');
-    
-    ratingsRef.once('value')
-      .then((snapshot) => {
+      try {
+        const ratingsRef = database.ref('drivers/' + driverId + '/ratings');
+        const snapshot = await ratingsRef.once('value');
         const ratingsData = snapshot.val();
         driverRatings = [];
         
         if (ratingsData) {
-          // Konversi object menjadi array dan tambahkan key sebagai id
           Object.keys(ratingsData).forEach(key => {
             const rating = ratingsData[key];
             driverRatings.push({
@@ -1353,42 +1416,30 @@
           });
           
           console.log(`✅ ${driverRatings.length} ratings berhasil dimuat`);
-          
-          // Update rating display dengan perhitungan real-time
           updateRatingDisplay();
           
-          // Update badge prioritas berdasarkan perhitungan real-time
           const avgRating = calculateAverageRating(driverRatings);
           updatePriorityBadge(avgRating);
         } else {
           console.log('❌ Tidak ada data ratings ditemukan');
           updateRatingDisplay();
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('❌ Error memuat data ratings:', error);
         updateRatingDisplay();
-      });
-  }
-
-  // Fungsi untuk memuat data orders driver
-  function loadDriverOrders(driverId) {
-    if (!isFirebaseInitialized || !database) {
-      console.error('❌ Firebase tidak terinisialisasi');
-      return;
+      }
     }
 
-    console.log('🔄 Memuat data orders untuk driver:', driverId);
+    async function loadDriverOrders(driverId) {
+      console.log('🔄 Memuat data orders untuk driver:', driverId);
 
-    const ordersRef = database.ref('orders');
-    
-    ordersRef.once('value')
-      .then((snapshot) => {
+      try {
+        const ordersRef = database.ref('orders');
+        const snapshot = await ordersRef.once('value');
         const ordersData = snapshot.val();
         driverOrders = [];
         
         if (ordersData) {
-          // Filter orders yang dimiliki oleh driver ini
           Object.values(ordersData).forEach(order => {
             if (order.selected_driver && order.selected_driver.driver_id === driverId) {
               driverOrders.push(order);
@@ -1396,688 +1447,451 @@
           });
           
           console.log(`✅ ${driverOrders.length} orders berhasil dimuat`);
-          
-          // Update statistik pendapatan hari ini
           updateTodayEarnings();
-          
-          // Update statistik total dan completed orders
           updateOrderStats();
         } else {
           console.log('❌ Tidak ada data orders ditemukan');
           updateTodayEarnings();
           updateOrderStats();
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('❌ Error memuat data orders:', error);
         updateTodayEarnings();
         updateOrderStats();
-      });
-  }
-
-  // Fungsi untuk update statistik order
-  function updateOrderStats() {
-    const totalOrders = driverOrders.length;
-    const completedOrders = driverOrders.filter(order => 
-      order.status === 'completed' || order.status === 'selesai'
-    ).length;
-    
-    const totalOrdersElement = document.getElementById('totalOrders');
-    const completedOrdersElement = document.getElementById('completedOrders');
-    
-    if (totalOrdersElement) totalOrdersElement.textContent = totalOrders;
-    if (completedOrdersElement) completedOrdersElement.textContent = completedOrders;
-  }
-
-  // Fungsi untuk menghitung rata-rata rating dari data ratings individual
-  function calculateAverageRating(ratings) {
-    if (!ratings || ratings.length === 0) {
-      return 0;
-    }
-    
-    const totalRating = ratings.reduce((sum, rating) => sum + (rating.rating || 0), 0);
-    return totalRating / ratings.length;
-  }
-
-  // Fungsi untuk update tampilan rating
-  function updateRatingDisplay() {
-    const avgRating = calculateAverageRating(driverRatings);
-    const ratingCount = driverRatings.length;
-    
-    // Update rating stars
-    const ratingStars = document.getElementById('ratingStars');
-    if (ratingStars) ratingStars.innerHTML = generateStarRating(avgRating);
-    
-    // Update rating value
-    const ratingValue = document.getElementById('ratingValue');
-    if (ratingValue) ratingValue.textContent = avgRating.toFixed(1);
-    
-    // Update rating count
-    const ratingCountElement = document.getElementById('ratingCount');
-    if (ratingCountElement) ratingCountElement.textContent = `(${ratingCount} rating)`;
-  }
-
-  // Fungsi untuk update pendapatan hari ini - VERSI WITA
-  function updateTodayEarnings() {
-    if (!driverOrders || driverOrders.length === 0) {
-        document.getElementById('todayEarnings').textContent = 'Rp 0';
-        return;
+      }
     }
 
-    // Dapatkan tanggal hari ini dalam format YYYY-MM-DD untuk WITA
-    const now = new Date();
-    const todayWITA = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // Convert ke WITA (UTC+8)
-    const todayDateString = todayWITA.toISOString().split('T')[0]; // YYYY-MM-DD
-
-    console.log('🔄 Filtering orders for today (WITA):', {
-        todayWITA: todayDateString,
-        totalOrders: driverOrders.length
-    });
-
-    const todayOrders = driverOrders.filter(order => {
-        if (!order.completed_at) {
-            return false;
-        }
-        
-        try {
-            // Convert order date ke WITA dan ambil tanggalnya
-            const orderDate = new Date(order.completed_at);
-            const orderDateWITA = new Date(orderDate.getTime() + (8 * 60 * 60 * 1000));
-            const orderDateString = orderDateWITA.toISOString().split('T')[0];
-            
-            const isToday = orderDateString === todayDateString;
-            
-            if (isToday) {
-                console.log('✅ Order included:', {
-                    order_id: order.order_id,
-                    completed_at: order.completed_at,
-                    order_date_wita: orderDateString,
-                    harga_total: order.harga_total
-                });
-            }
-            
-            return isToday;
-        } catch (error) {
-            console.error('Error parsing order date:', error, order);
-            return false;
-        }
-    });
-
-    console.log(`📈 Found ${todayOrders.length} orders for today in WITA`);
-
-    // Hitung total pendapatan hari ini
-    const todayEarnings = todayOrders.reduce((sum, order) => {
-        const earnings = parseInt(order.harga_total) || 0;
-        return sum + earnings;
-    }, 0);
-
-    console.log(`💰 Total earnings today (WITA): Rp ${todayEarnings}`);
-
-    // Update UI
-    const todayEarningsElement = document.getElementById('todayEarnings');
-    if (todayEarningsElement) todayEarningsElement.textContent = formatCurrency(todayEarnings);
-  }
-
-  // Fungsi untuk mendapatkan data driver dari localStorage
-  function getDriverDataFromStorage() {
-    try {
-      return JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
-    } catch (error) {
-      console.error('❌ Error parsing driver data from storage:', error);
-      return {};
-    }
-  }
-
-  // Fungsi untuk update data driver di localStorage
-  function updateDriverDataInStorage(data) {
-    try {
-      const currentData = getDriverDataFromStorage();
-      const updatedData = { ...currentData, ...data };
-      localStorage.setItem('jego_driver_data', JSON.stringify(updatedData));
-      console.log('✅ Data driver diupdate di localStorage');
-    } catch (error) {
-      console.error('❌ Error updating driver data in storage:', error);
-    }
-  }
-
-  // Fungsi untuk menampilkan data driver di UI dengan safe default values
-  function displayDriverData(data) {
-    if (!data) {
-      console.error('❌ Data driver tidak valid untuk ditampilkan');
-      return;
-    }
-
-    // Safe data dengan default values - SESUAI dengan contoh data driver
-    const safeData = {
-      fullName: data.fullName || '-',
-      email: data.email || '-',
-      phoneNumber: data.phoneNumber || '-',
-      address: data.address || '-',
-      idCardNumber: data.idCardNumber || '-',
-      vehicleType: data.vehicleType || '-',
-      vehicleBrand: data.vehicleBrand || '-',
-      plateNumber: data.plateNumber || '-',
-      driverId: data.driverId || '-',
-      status: data.status || 'pending',
-      profilePhotoUrl: data.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-      registrationDate: data.registrationDate || null,
-      totalOrders: data.totalOrders || 0,
-      completedOrders: data.completedOrders || 0,
-      totalEarnings: data.totalEarnings || 0
-    };
-
-    // Foto profil dengan error handling
-    const profilePhoto = document.getElementById('profilePhoto');
-    if (profilePhoto && safeData.profilePhotoUrl) {
-      profilePhoto.src = safeData.profilePhotoUrl;
-      // Handle error loading image
-      profilePhoto.onerror = function() {
-        if (profilePhoto) {
-          profilePhoto.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-        }
-      };
-    }
-
-    // Nama dan kendaraan
-    const profileName = document.getElementById('profileName');
-    const profileVehicle = document.getElementById('profileVehicle');
-    if (profileName) profileName.textContent = safeData.fullName;
-    if (profileVehicle) profileVehicle.textContent = `${getVehicleTypeText(safeData.vehicleType)} - ${safeData.vehicleBrand}`;
-
-    // Informasi pribadi
-    const fullName = document.getElementById('fullName');
-    const email = document.getElementById('email');
-    const phoneNumber = document.getElementById('phoneNumber');
-    const address = document.getElementById('address');
-    const idCardNumber = document.getElementById('idCardNumber');
-    
-    if (fullName) fullName.textContent = safeData.fullName;
-    if (email) email.textContent = safeData.email;
-    if (phoneNumber) phoneNumber.textContent = safeData.phoneNumber;
-    if (address) address.textContent = safeData.address;
-    if (idCardNumber) idCardNumber.textContent = maskIdCard(safeData.idCardNumber);
-    
-    // Pastikan tombol copy sudah ada di container nomor telepon
-    const phoneNumberContainer = document.getElementById('phoneNumberContainer');
-    if (phoneNumberContainer && !phoneNumberContainer.querySelector('.copy-btn')) {
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn';
-      copyBtn.setAttribute('data-copy-target', 'phoneNumber');
-      copyBtn.setAttribute('title', 'Salin nomor telepon');
-      copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-      </svg>`;
-      phoneNumberContainer.appendChild(copyBtn);
-    }
-
-    // Informasi kendaraan
-    const vehicleType = document.getElementById('vehicleType');
-    const vehicleBrand = document.getElementById('vehicleBrand');
-    const plateNumber = document.getElementById('plateNumber');
-    
-    if (vehicleType) vehicleType.textContent = getVehicleTypeText(safeData.vehicleType);
-    if (vehicleBrand) vehicleBrand.textContent = safeData.vehicleBrand;
-    if (plateNumber) plateNumber.textContent = safeData.plateNumber;
-
-    // Informasi akun
-    const driverId = document.getElementById('driverId');
-    const registrationDate = document.getElementById('registrationDate');
-    const verificationStatus = document.getElementById('verificationStatus');
-    const totalOrdersElement = document.getElementById('totalOrders');
-    const completedOrdersElement = document.getElementById('completedOrders');
-    
-    if (driverId) driverId.textContent = safeData.driverId;
-    if (registrationDate) registrationDate.textContent = formatDate(safeData.registrationDate);
-    if (verificationStatus) {
-      verificationStatus.innerHTML = getStatusBadge(safeData.status);
-    }
-    if (totalOrdersElement) totalOrdersElement.textContent = safeData.totalOrders;
-    if (completedOrdersElement) completedOrdersElement.textContent = safeData.completedOrders;
-    
-    // Pastikan tombol copy sudah ada di container ID driver
-    const driverIdContainer = document.getElementById('driverIdContainer');
-    if (driverIdContainer && !driverIdContainer.querySelector('.copy-btn')) {
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn';
-      copyBtn.setAttribute('data-copy-target', 'driverId');
-      copyBtn.setAttribute('title', 'Salin ID Driver');
-      copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-      </svg>`;
-      driverIdContainer.appendChild(copyBtn);
-    }
-  }
-
-  // ==================== FUNGSI PRIORITAS BERDASARKAN RATING ====================
-
-  // Fungsi untuk menentukan badge prioritas berdasarkan rating
-  function getPriorityBadge(rating) {
-    if (rating >= 4.5) {
-      return { level: 'Essential', class: 'priority-essential' };
-    } else if (rating >= 4.0) {
-      return { level: 'Regular', class: 'priority-regular' };
-    } else if (rating >= 3.0) {
-      return { level: 'Standard', class: 'priority-standard' };
-    } else {
-      return { level: 'Basic', class: 'priority-basic' };
-    }
-  }
-
-  // Fungsi untuk update badge prioritas
-  function updatePriorityBadge(rating) {
-    const priority = getPriorityBadge(rating);
-    
-    // Update badge kecil di foto profil
-    const priorityBadgeSmall = document.getElementById('priorityBadgeSmall');
-    if (priorityBadgeSmall) {
-      priorityBadgeSmall.textContent = priority.level;
-      priorityBadgeSmall.className = `priority-badge ${priority.class}`;
-    }
-  }
-
-  // ==================== FUNGSI BANTUAN ====================
-
-  // Fungsi untuk menyembunyikan sebagian nomor KTP
-  function maskIdCard(idCard) {
-    if (!idCard || idCard === '-') return '-';
-    
-    const idString = idCard.toString();
-    if (idString.length <= 8) {
-      return idString; // Tidak perlu disembunyikan jika terlalu pendek
-    }
-    
-    const firstPart = idString.substring(0, 4);
-    const lastPart = idString.substring(idString.length - 4);
-    const maskedPart = '*'.repeat(idString.length - 8);
-    
-    return firstPart + maskedPart + lastPart;
-  }
-
-  // Fungsi untuk menghasilkan bintang rating
-  function generateStarRating(rating, starClass = 'star') {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    
-    let starsHTML = '';
-    
-    // Bintang penuh
-    for (let i = 0; i < fullStars; i++) {
-      starsHTML += `<span class="${starClass} filled">★</span>`;
-    }
-    
-    // Bintang setengah (jika ada)
-    if (hasHalfStar) {
-      starsHTML += `<span class="${starClass} filled">★</span>`;
-    }
-    
-    // Bintang kosong
-    for (let i = 0; i < emptyStars; i++) {
-      starsHTML += `<span class="${starClass}">☆</span>`;
-    }
-    
-    return starsHTML;
-  }
-
-  // Fungsi untuk mendapatkan badge status
-  function getStatusBadge(status) {
-    const statusText = getStatusText(status);
-    const statusClass = getStatusClass(status);
-    return `<span class="status-badge ${statusClass}">${statusText}</span>`;
-  }
-
-  // Fungsi untuk mendapatkan teks status
-  function getStatusText(status) {
-    const statusMap = {
-      'active': 'Aktif',
-      'accepted': 'Diterima',
-      'pending': 'Menunggu',
-      'rejected': 'Ditolak',
-      'blocked': 'Diblokir'
-    };
-    return statusMap[status] || status;
-  }
-
-  // Fungsi untuk mendapatkan class status
-  function getStatusClass(status) {
-    const classMap = {
-      'active': 'status-active',
-      'accepted': 'status-active',
-      'pending': 'status-pending',
-      'rejected': 'status-rejected',
-      'blocked': 'status-blocked'
-    };
-    return classMap[status] || 'status-pending';
-  }
-
-  // Fungsi untuk mendapatkan teks jenis kendaraan
-  function getVehicleTypeText(vehicleType) {
-    const vehicleMap = {
-      'motor': 'Motor',
-      'bentor': 'Bentor',
-      'mobil': 'Mobil',
-      'kurir_motor': 'Kurir Motor',
-      'kurir_bentor': 'Kurir Bentor'
-    };
-    return vehicleMap[vehicleType] || vehicleType;
-  }
-
-  // Fungsi untuk memformat tanggal dengan error handling
-  function formatDate(dateString) {
-    if (!dateString) return '-';
-    
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return '-';
+    function calculateAverageRating(ratings) {
+      if (!ratings || ratings.length === 0) {
+        return 0;
       }
       
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return '-';
-    }
-  }
-
-  // Fungsi untuk memformat mata uang
-  function formatCurrency(amount) {
-    if (!amount && amount !== 0) return 'Rp 0';
-    
-    try {
-      return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
-    } catch (error) {
-      console.error('Error formatting currency:', error);
-      return 'Rp 0';
-    }
-  }
-
-  // ==================== FUNGSI UI STATES ====================
-
-  // Fungsi untuk menampilkan state loading
-  function showLoadingState() {
-    const container = document.getElementById('mainContainer');
-    container.innerHTML = `
-      <div class="loading">
-        <div class="spinner"></div>
-        <div style="margin-left: 15px;">Memuat data driver...</div>
-      </div>
-    `;
-  }
-
-  // Fungsi untuk menampilkan state error
-  function showErrorState(message) {
-    const container = document.getElementById('mainContainer');
-    container.innerHTML = `
-      <div class="empty-state">
-        <div style="font-size: 3rem;">⚠️</div>
-        <div class="error-message">${message}</div>
-        <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
-        <button class="btn btn-primary" id="retryBtn" style="margin-top: 15px;">
-          Coba Lagi
-        </button>
-      </div>
-    `;
-    
-    const retryBtn = document.getElementById('retryBtn');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', function () {
-        retryCount = 0;
-        loadDriverData();
-      });
-    }
-  }
-
-  // ==================== FUNGSI INISIALISASI TOMBOL ====================
-
-  // Fungsi untuk menginisialisasi semua event listener tombol
-  function initButtons() {
-    console.log('🔄 Menginisialisasi tombol...');
-    
-    // Event listeners untuk tombol utama
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-      backBtn.addEventListener('click', goBack);
-      console.log('✅ Tombol kembali diinisialisasi');
+      const totalRating = ratings.reduce((sum, rating) => sum + (rating.rating || 0), 0);
+      return totalRating / ratings.length;
     }
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', showLogoutPopup);
-      console.log('✅ Tombol logout diinisialisasi');
-    }
-    
-    const editProfileBtn = document.getElementById('editProfileBtn');
-    if (editProfileBtn) {
-      editProfileBtn.addEventListener('click', function() {
-        sendToKodular({
-          action: 'edit_profile',
-          message: 'Buka halaman edit profil'
-        });
-        console.log('✅ Mengirim permintaan buka halaman edit profil ke Kodular');
-      });
-    }
-    
-    // Event listener untuk rating - kirim data ke Kodular
-    const ratingClickable = document.getElementById('ratingClickable');
-    if (ratingClickable) {
-      ratingClickable.addEventListener('click', function() {
-        sendToKodular({
-          action: 'open_ratings',
-          message: 'Buka halaman penilaian layanan'
-        });
-        console.log('✅ Mengirim permintaan buka halaman penilaian ke Kodular');
-      });
+    function updateRatingDisplay() {
+      const avgRating = calculateAverageRating(driverRatings);
+      const ratingCount = driverRatings.length;
+      
+      const ratingStars = document.getElementById('ratingStars');
+      if (ratingStars) ratingStars.innerHTML = generateStarRating(avgRating);
+      
+      const ratingValue = document.getElementById('ratingValue');
+      if (ratingValue) ratingValue.textContent = avgRating.toFixed(1);
+      
+      const ratingCountElement = document.getElementById('ratingCount');
+      if (ratingCountElement) ratingCountElement.textContent = `(${ratingCount} rating)`;
     }
 
-    // Event listener untuk pendapatan hari ini - kirim data ke Kodular
-    const todayEarningsStat = document.getElementById('todayEarningsStat');
-    if (todayEarningsStat) {
-      todayEarningsStat.addEventListener('click', function() {
-        sendToKodular({
-          action: 'open_earnings',
-          message: 'Buka halaman pendapatan'
-        });
-        console.log('✅ Mengirim permintaan buka halaman pendapatan ke Kodular');
-      });
+    function updatePriorityBadge(rating) {
+      const priority = getPriorityBadge(rating);
+      
+      const priorityBadgeSmall = document.getElementById('priorityBadgeSmall');
+      if (priorityBadgeSmall) {
+        priorityBadgeSmall.textContent = priority.level;
+        priorityBadgeSmall.className = priority.class;
+      }
     }
-    
-    // Event listener untuk balance container - kirim data ke Kodular
-    const balanceContainer = document.getElementById('balanceContainer');
-    if (balanceContainer) {
-      balanceContainer.addEventListener('click', function() {
-        sendToKodular({
-          action: 'open_payment',
-          message: 'Buka halaman pembayaran'
-        });
-        console.log('✅ Mengirim permintaan buka halaman pembayaran ke Kodular');
-      });
+
+    function updateBalanceDisplay(balance, potonganRate) {
+      const balanceAmount = document.getElementById('balanceAmount');
+      const commissionRateElement = document.getElementById('commissionRate');
+      
+      if (balanceAmount) {
+        balanceAmount.textContent = formatCurrency(balance);
+      }
+      
+      if (commissionRateElement) {
+        commissionRateElement.textContent = potonganRate + '%';
+      }
     }
-    
-    // Event listeners untuk toggle buttons
-    const toggleButtons = document.querySelectorAll('.toggle-btn');
-    toggleButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const targetId = this.getAttribute('data-target');
-        const content = document.getElementById(targetId);
-        if (content) {
-          content.classList.toggle('collapsed');
-          
-          // Rotate arrow icon
-          const icon = this.querySelector('svg');
-          if (icon) {
-            icon.style.transform = content.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
-          }
-        }
-      });
-    });
-    
-    // Event listeners untuk tombol copy
-    const copyButtons = document.querySelectorAll('.copy-btn');
-    copyButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const targetId = this.getAttribute('data-copy-target');
-        const targetElement = document.getElementById(targetId);
+
+    function updateOrderStats() {
+      const totalOrders = driverOrders.length;
+      const completedOrders = driverOrders.filter(order => 
+        order.status === 'completed' || order.status === 'selesai'
+      ).length;
+      
+      const totalOrdersElement = document.getElementById('totalOrders');
+      const completedOrdersElement = document.getElementById('completedOrders');
+      
+      if (totalOrdersElement) totalOrdersElement.textContent = totalOrders;
+      if (completedOrdersElement) completedOrdersElement.textContent = completedOrders;
+    }
+
+    function updateTodayEarnings() {
+      if (!driverOrders || driverOrders.length === 0) {
+        document.getElementById('todayEarnings').textContent = 'Rp 0';
+        return;
+      }
+
+      const now = new Date();
+      const todayWITA = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      const todayDateString = todayWITA.toISOString().split('T')[0];
+
+      const todayOrders = driverOrders.filter(order => {
+        if (!order.completed_at) return false;
         
-        if (targetElement) {
-          const textToCopy = targetElement.textContent;
-          
-          // Gunakan Clipboard API jika tersedia
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(textToCopy)
-              .then(() => {
-                showInfoPopup('Berhasil Disalin', `"${textToCopy}" telah disalin ke clipboard`);
-                console.log('✅ Teks berhasil disalin:', textToCopy);
-              })
-              .catch(err => {
-                console.error('❌ Gagal menyalin teks:', err);
-                showInfoPopup('Gagal Menyalin', 'Gagal menyalin teks ke clipboard');
-              });
-          } else {
-            // Fallback untuk browser yang tidak mendukung Clipboard API
-            const textArea = document.createElement('textarea');
-            textArea.value = textToCopy;
-            document.body.appendChild(textArea);
-            textArea.select();
-            
-            try {
-              const successful = document.execCommand('copy');
-              if (successful) {
-                showInfoPopup('Berhasil Disalin', `"${textToCopy}" telah disalin ke clipboard`);
-                console.log('✅ Teks berhasil disalin (fallback):', textToCopy);
-              } else {
-                throw new Error('Gagal menyalin');
-              }
-            } catch (err) {
-              console.error('❌ Gagal menyalin teks (fallback):', err);
-              showInfoPopup('Gagal Menyalin', 'Gagal menyalin teks ke clipboard');
-            }
-            
-            document.body.removeChild(textArea);
-          }
+        try {
+          const orderDate = new Date(order.completed_at);
+          const orderDateWITA = new Date(orderDate.getTime() + (8 * 60 * 60 * 1000));
+          const orderDateString = orderDateWITA.toISOString().split('T')[0];
+          return orderDateString === todayDateString;
+        } catch (error) {
+          console.error('Error parsing order date:', error, order);
+          return false;
         }
       });
-    });
-    
-    // Event listeners untuk popup logout
-    const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
-    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
-    
-    if (cancelLogoutBtn) {
-      cancelLogoutBtn.addEventListener('click', hideLogoutPopup);
-    }
-    
-    if (confirmLogoutBtn) {
-      confirmLogoutBtn.addEventListener('click', logout);
-    }
-    
-    // Event listener untuk popup informasi
-    const closeInfoPopupBtn = document.getElementById('closeInfoPopupBtn');
-    if (closeInfoPopupBtn) {
-      closeInfoPopupBtn.addEventListener('click', hideInfoPopup);
-    }
-    
-    console.log('✅ Semua tombol berhasil diinisialisasi');
-  }
 
-  // Fungsi untuk mengirim data ke Kodular
-  function sendToKodular(data) {
-    console.log('Mengirim data ke Kodular:', data);
-    
-    if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
-      try {
-        window.AppInventor.setWebViewString(JSON.stringify(data));
-        console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
-      } catch (error) {
-        console.error('Error mengirim data via AppInventor:', error);
+      const todayEarnings = todayOrders.reduce((sum, order) => {
+        const earnings = parseInt(order.harga_total) || 0;
+        return sum + earnings;
+      }, 0);
+
+      const todayEarningsElement = document.getElementById('todayEarnings');
+      if (todayEarningsElement) todayEarningsElement.textContent = formatCurrency(todayEarnings);
+    }
+
+    function displayDriverData(data) {
+      if (!data) {
+        console.error('❌ Data driver tidak valid untuk ditampilkan');
+        return;
+      }
+
+      const safeData = {
+        fullName: data.name || data.fullName || '-',
+        email: data.email || '-',
+        phoneNumber: data.phone || data.phoneNumber || '-',
+        address: data.address || '-',
+        idCardNumber: data.idCardNumber || '-',
+        vehicleType: data.vehicleType || '-',
+        vehicleBrand: data.vehicleBrand || '-',
+        plateNumber: data.plateNumber || '-',
+        driverId: data.uid || data.driverId || '-',
+        status: data.status || data.driverStatus || 'pending',
+        profilePhotoUrl: data.profilePhotoUrl || data.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        registrationDate: data.createdAt || data.registrationDate || null,
+        totalOrders: data.totalOrders || 0,
+        completedOrders: data.completedOrders || 0
+      };
+
+      const profilePhoto = document.getElementById('profilePhoto');
+      if (profilePhoto && safeData.profilePhotoUrl) {
+        profilePhoto.src = safeData.profilePhotoUrl;
+        profilePhoto.onerror = function() {
+          if (profilePhoto) {
+            profilePhoto.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+          }
+        };
+      }
+
+      const profileName = document.getElementById('profileName');
+      const profileVehicle = document.getElementById('profileVehicle');
+      if (profileName) profileName.textContent = safeData.fullName;
+      if (profileVehicle) profileVehicle.textContent = `${getVehicleTypeText(safeData.vehicleType)} - ${safeData.vehicleBrand}`;
+
+      // Informasi pribadi
+      const fullName = document.getElementById('fullName');
+      const email = document.getElementById('email');
+      const phoneNumber = document.getElementById('phoneNumber');
+      const address = document.getElementById('address');
+      const idCardNumber = document.getElementById('idCardNumber');
+      
+      if (fullName) fullName.textContent = safeData.fullName;
+      if (email) email.textContent = safeData.email;
+      if (phoneNumber) phoneNumber.textContent = safeData.phoneNumber;
+      if (address) address.textContent = safeData.address;
+      if (idCardNumber) idCardNumber.textContent = maskIdCard(safeData.idCardNumber);
+      
+      // Informasi kendaraan
+      const vehicleType = document.getElementById('vehicleType');
+      const vehicleBrand = document.getElementById('vehicleBrand');
+      const plateNumber = document.getElementById('plateNumber');
+      
+      if (vehicleType) vehicleType.textContent = getVehicleTypeText(safeData.vehicleType);
+      if (vehicleBrand) vehicleBrand.textContent = safeData.vehicleBrand;
+      if (plateNumber) plateNumber.textContent = safeData.plateNumber;
+
+      // Informasi akun
+      const driverId = document.getElementById('driverId');
+      const registrationDate = document.getElementById('registrationDate');
+      const verificationStatus = document.getElementById('verificationStatus');
+      const totalOrdersElement = document.getElementById('totalOrders');
+      const completedOrdersElement = document.getElementById('completedOrders');
+      
+      if (driverId) driverId.textContent = safeData.driverId;
+      if (registrationDate) registrationDate.textContent = formatDate(safeData.registrationDate);
+      if (verificationStatus) {
+        verificationStatus.innerHTML = getStatusBadge(safeData.status);
+      }
+      if (totalOrdersElement) totalOrdersElement.textContent = safeData.totalOrders;
+      if (completedOrdersElement) completedOrdersElement.textContent = safeData.completedOrders;
+    }
+
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      }
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+          console.log('✅ Data berhasil dikirim ke Kodular');
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      }
+      else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
       }
     }
-    else if (typeof window.android !== 'undefined' && window.android.receiveData) {
-      try {
-        window.android.receiveData(JSON.stringify(data));
-        console.log('✅ Data berhasil dikirim ke Kodular via window.android');
-      } catch (error) {
-        console.error('Error mengirim data via window.android:', error);
+
+    function showLoadingState() {
+      const container = document.querySelector('.form-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <div style="margin-top: 15px;">Memuat data driver...</div>
+          </div>
+        `;
       }
     }
-    else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
-      try {
-        window.webkit.messageHandlers.observe.postMessage(data);
-        console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
-      } catch (error) {
-        console.error('Error mengirim data via webkit.messageHandlers:', error);
+
+    function showErrorState(message) {
+      const container = document.querySelector('.form-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size: 3rem;">⚠️</div>
+            <div class="error-message">${message}</div>
+            <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
+            <button class="submit-btn" id="retryBtn" style="margin-top: 15px;">
+              Coba Lagi
+            </button>
+          </div>
+        `;
+        
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', function () {
+            retryCount = 0;
+            loadDriverData();
+          });
+        }
       }
     }
-    else {
-      console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
-      // Fallback: tampilkan data di console untuk debugging
-      console.log('Data untuk Kodular:', JSON.stringify(data));
+
+    // ================================================
+    // EVENT HANDLERS
+    // ================================================
+    
+    function initEventListeners() {
+      console.log('🔄 Menginisialisasi event listeners...');
+      
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) {
+        backBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          sendToKodular({
+            action: 'navigate_back'
+          });
+          window.location.href = "list.html";
+        });
+      }
+
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+          showPopup(
+            'Konfirmasi Keluar', 
+            'Apakah Anda yakin ingin keluar dari akun driver JeGo?',
+            'warning',
+            {
+              showCancel: true,
+              confirmText: 'Ya, Keluar',
+              cancelText: 'Batal',
+              onConfirm: function() {
+                // Hapus data dari localStorage
+                localStorage.removeItem('jego_driver_data');
+                localStorage.removeItem('jego_driver_location');
+                localStorage.removeItem('jego_autobid_enabled');
+                localStorage.removeItem('jego_driver_accepted_order');
+                
+                // Kirim perintah logout ke Kodular
+                sendToKodular({
+                  action: 'logout',
+                  message: 'Driver berhasil logout'
+                });
+
+                // Tampilkan pesan konfirmasi
+                showSuccessMessage('Anda telah berhasil keluar dari akun driver JeGo.', true);
+
+                // Tunggu popup tampil dulu, lalu redirect
+                setTimeout(() => {
+                  window.location.href = "loginDriver.html";
+                }, 1200);
+              }
+            }
+          );
+        });
+      }
+      
+      const editProfileBtn = document.getElementById('editProfileBtn');
+      if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', function() {
+          sendToKodular({
+            action: 'edit_profile',
+            message: 'Buka halaman edit profil'
+          });
+          console.log('✅ Mengirim permintaan buka halaman edit profil ke Kodular');
+        });
+      }
+      
+      const ratingClickable = document.getElementById('ratingClickable');
+      if (ratingClickable) {
+        ratingClickable.addEventListener('click', function() {
+          sendToKodular({
+            action: 'open_ratings',
+            message: 'Buka halaman penilaian layanan'
+          });
+          console.log('✅ Mengirim permintaan buka halaman penilaian ke Kodular');
+        });
+      }
+
+      const todayEarningsStat = document.getElementById('todayEarningsStat');
+      if (todayEarningsStat) {
+        todayEarningsStat.addEventListener('click', function() {
+          sendToKodular({
+            action: 'open_earnings',
+            message: 'Buka halaman pendapatan'
+          });
+          console.log('✅ Mengirim permintaan buka halaman pendapatan ke Kodular');
+        });
+      }
+      
+      const balanceContainer = document.getElementById('balanceContainer');
+      if (balanceContainer) {
+        balanceContainer.addEventListener('click', function() {
+          sendToKodular({
+            action: 'open_payment',
+            message: 'Buka halaman pembayaran'
+          });
+          console.log('✅ Mengirim permintaan buka halaman pembayaran ke Kodular');
+        });
+      }
+      
+      const toggleButtons = document.querySelectorAll('.toggle-btn');
+      toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const content = document.getElementById(targetId);
+          if (content) {
+            content.classList.toggle('collapsed');
+            
+            const icon = this.querySelector('svg');
+            if (icon) {
+              icon.style.transform = content.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
+            }
+          }
+        });
+      });
+      
+      const copyButtons = document.querySelectorAll('.copy-btn');
+      copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-copy-target');
+          const targetElement = document.getElementById(targetId);
+          
+          if (targetElement) {
+            const textToCopy = targetElement.textContent;
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                  showSuccessMessage(`"${textToCopy}" telah disalin ke clipboard`, true);
+                  console.log('✅ Teks berhasil disalin:', textToCopy);
+                })
+                .catch(err => {
+                  console.error('❌ Gagal menyalin teks:', err);
+                  showErrorMessage('Gagal menyalin teks ke clipboard');
+                });
+            } else {
+              const textArea = document.createElement('textarea');
+              textArea.value = textToCopy;
+              document.body.appendChild(textArea);
+              textArea.select();
+              
+              try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                  showSuccessMessage(`"${textToCopy}" telah disalin ke clipboard`, true);
+                  console.log('✅ Teks berhasil disalin (fallback):', textToCopy);
+                } else {
+                  throw new Error('Gagal menyalin');
+                }
+              } catch (err) {
+                console.error('❌ Gagal menyalin teks (fallback):', err);
+                showErrorMessage('Gagal menyalin teks ke clipboard');
+              }
+              
+              document.body.removeChild(textArea);
+            }
+          }
+        });
+      });
+      
+      modalOverlay.addEventListener('click', function(e) {
+        if (e.target === modalOverlay) hidePopup();
+      });
+      
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup();
+      });
+      
+      console.log('✅ Semua event listeners berhasil diinisialisasi');
     }
-  }
 
-  // ==================== EVENT HANDLERS ====================
-
-  // Fungsi untuk kembali ke halaman sebelumnya
-  function goBack() {
-    sendToKodular({
-        action: 'navigate_back'
+    // ================================================
+    // INITIALIZATION
+    // ================================================
+    
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 Halaman Akun Driver dimuat');
+      
+      try {
+        initEventListeners();
+        loadDriverData();
+        
+        console.log('✅ Halaman Akun Driver siap digunakan');
+        
+      } catch (error) {
+        console.error('❌ Error inisialisasi:', error);
+        showErrorMessage('Gagal menginisialisasi aplikasi. Silakan refresh halaman.');
+      }
     });
 
-    // Tetap redirect ke list.html sebagai fallback
-    window.location.href = "list.html";
-  }
-
-  // Fungsi untuk logout
-  function logout() {
-    // Sembunyikan popup logout
-    hideLogoutPopup();
-    
-    // Hapus data dari localStorage
-    localStorage.removeItem('jego_driver_data');
-    localStorage.removeItem('jego_driver_location');
-    localStorage.removeItem('jego_autobid_enabled');
-    localStorage.removeItem('jego_driver_accepted_order');
-    
-    // Kirim perintah logout ke Kodular
-    sendToKodular({
-      action: 'logout',
-      message: 'Driver berhasil logout'
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        console.log('🔄 Halaman menjadi aktif, memuat ulang data...');
+        loadDriverData();
+      }
     });
-
-    // Tampilkan pesan konfirmasi
-    showInfoPopup('Berhasil Logout', 'Anda telah berhasil keluar dari akun driver JeGo.');
-
-    // Tunggu popup tampil dulu, lalu redirect
-    setTimeout(() => {
-      window.location.href = "loginDriver.html";
-    }, 1200); // delay 1.2 detik
-  }
-  
-  // ==================== INISIALISASI APLIKASI ====================
-
-  // Inisialisasi saat halaman dimuat
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Halaman Akun Driver dimuat');
-    
-    // Inisialisasi tombol pertama kali
-    initButtons();
-    
-    // Muat data driver
-    loadDriverData();
-  });
-
-  // Handle visibility change (tab menjadi aktif kembali)
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-      console.log('🔄 Halaman menjadi aktif, memuat ulang data...');
-      loadDriverData();
-    }
-  });
   </script>
 </body>
 </html>
