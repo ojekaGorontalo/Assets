@@ -1357,7 +1357,7 @@
       return phoneRegex.test(phone);
     }
     
-    function showPhoneStatus(type, message, userData = null, canRegisterAsDriver = false) {
+    function showPhoneStatus(type, message, phoneInfo = null) {
       phoneStatus.className = 'phone-status';
       phoneStatusActions.innerHTML = '';
       
@@ -1371,36 +1371,41 @@
         phoneStatusIcon.textContent = 'ℹ️';
         phoneStatusText.textContent = message;
         
-        // Jika user ditemukan tapi BOLEH daftar sebagai driver
-        if (canRegisterAsDriver) {
-          const continueBtn = document.createElement('button');
-          continueBtn.className = 'phone-status-btn primary';
-          continueBtn.textContent = 'Lanjutkan Daftar Driver';
-          continueBtn.onclick = () => {
-            phoneStatus.style.display = 'none';
-          };
-          
-          phoneStatusActions.appendChild(continueBtn);
-        } else {
-          // Jika sudah terdaftar sebagai driver
-          const loginBtn = document.createElement('button');
-          loginBtn.className = 'phone-status-btn primary';
-          loginBtn.textContent = 'Login Driver';
-          loginBtn.onclick = () => {
-            window.location.href = 'loginDriver.html?phone=' + encodeURIComponent(document.getElementById('phoneNumber').value);
-          };
-          
-          const clearBtn = document.createElement('button');
-          clearBtn.className = 'phone-status-btn secondary';
-          clearBtn.textContent = 'Ganti Nomor';
-          clearBtn.onclick = () => {
-            document.getElementById('phoneNumber').value = '';
-            document.getElementById('phoneNumber').focus();
-            phoneStatus.style.display = 'none';
-          };
-          
-          phoneStatusActions.appendChild(loginBtn);
-          phoneStatusActions.appendChild(clearBtn);
+        if (phoneInfo) {
+          if (phoneInfo.type === 'user') {
+            // User ditemukan - BOLEH daftar sebagai driver
+            const continueBtn = document.createElement('button');
+            continueBtn.className = 'phone-status-btn primary';
+            continueBtn.textContent = 'Lanjutkan Daftar Driver';
+            continueBtn.onclick = () => {
+              phoneStatus.style.display = 'none';
+            };
+            phoneStatusActions.appendChild(continueBtn);
+          } else if (phoneInfo.type === 'driver') {
+            // Driver ditemukan - TIDAK BOLEH daftar ulang
+            const status = phoneInfo.status || 'pending';
+            
+            if (status === 'approved' || status === 'active') {
+              const loginBtn = document.createElement('button');
+              loginBtn.className = 'phone-status-btn primary';
+              loginBtn.textContent = 'Login Driver';
+              loginBtn.onclick = () => {
+                window.location.href = 'loginDriver.html?phone=' + encodeURIComponent(document.getElementById('phoneNumber').value);
+              };
+              phoneStatusActions.appendChild(loginBtn);
+            }
+            
+            // Tombol ganti nomor untuk semua kasus
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'phone-status-btn secondary';
+            clearBtn.textContent = 'Ganti Nomor';
+            clearBtn.onclick = () => {
+              document.getElementById('phoneNumber').value = '';
+              document.getElementById('phoneNumber').focus();
+              phoneStatus.style.display = 'none';
+            };
+            phoneStatusActions.appendChild(clearBtn);
+          }
         }
       }
       else if (type === 'error') {
@@ -1653,7 +1658,8 @@
             user: driverData,
             userId: driverId,
             type: 'driver',
-            status: status
+            status: status,
+            canRegisterAsDriver: false // TIDAK BOLEH DAFTAR LAGI
           };
         }
         
@@ -2031,7 +2037,9 @@
         return;
       }
       
-      setTimeout(async () => {
+      // Debounce untuk mengurangi request berlebihan
+      clearTimeout(this.checkTimeout);
+      this.checkTimeout = setTimeout(async () => {
         try {
           const phoneInfo = await checkPhoneNumberExists(formattedPhone);
           
@@ -2042,30 +2050,33 @@
               let message = `Nomor ${formattedPhone} sudah terdaftar sebagai driver atas nama ${nama}.`;
               
               if (status === 'pending') {
-                message += ' Status: Menunggu verifikasi.';
-              } else if (status === 'approved') {
+                message += ' Status: Menunggu verifikasi admin.';
+              } else if (status === 'approved' || status === 'active') {
                 message += ' Status: Sudah aktif. Silakan login.';
               } else if (status === 'rejected') {
-                message += ' Status: Ditolak.';
+                message += ' Status: Ditolak. Hubungi admin untuk informasi lebih lanjut.';
+              } else if (status === 'blocked') {
+                message += ' Status: Diblokir. Hubungi admin untuk mengajukan pembukaan blokir.';
               }
               
-              showPhoneStatus('registered', message, phoneInfo.user, false);
+              // Tampilkan status dengan tombol login/ganti nomor
+              showPhoneStatus('registered', message, phoneInfo);
             } else if (phoneInfo.type === 'user') {
               const nama = phoneInfo.user?.name || phoneInfo.user?.fullName || 'User';
+              // User ditemukan - BOLEH daftar sebagai driver
               showPhoneStatus('registered', 
                 `Nomor ${formattedPhone} sudah terdaftar sebagai user atas nama ${nama}. Anda dapat mendaftar sebagai driver dengan nomor ini.`, 
-                phoneInfo.user, 
-                true
+                phoneInfo
               );
             }
           } else {
-            showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran driver.`);
+            showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran driver.`, null);
           }
         } catch (error) {
           console.error('Error checking phone:', error);
-          showPhoneStatus('error', 'Gagal memeriksa nomor telepon. Silakan coba lagi.');
+          showPhoneStatus('error', 'Gagal memeriksa nomor telepon. Silakan coba lagi.', null);
         }
-      }, 1000);
+      }, 800);
     });
     
     document.getElementById('sendOtpBtn').addEventListener('click', async function() {
@@ -2086,32 +2097,35 @@
         return;
       }
       
-      // Cek apakah nomor sudah terdaftar sebagai driver dengan status aktif
+      // CEK STATUS NOMOR TELEPON - PERUBAHAN PENTING!
       try {
         showLoading('Memeriksa nomor telepon...');
         const phoneInfo = await checkPhoneNumberExists(phoneNumber);
         hideLoading();
         
+        // JIKA SUDAH TERDAFTAR SEBAGAI DRIVER (APAPUN STATUSNYA) - TOLAK!
         if (phoneInfo.exists && phoneInfo.type === 'driver') {
           const status = phoneInfo.status || 'pending';
+          let errorMsg = `Nomor ${phoneNumber} sudah terdaftar sebagai driver.`;
           
           if (status === 'approved' || status === 'active') {
-            showErrorMessage(`Nomor ${phoneNumber} sudah terdaftar sebagai driver aktif. Silakan login di halaman login driver.`, {
+            errorMsg += " Status: Aktif. Silakan login di halaman login driver.";
+            showErrorMessage(errorMsg, {
               onConfirm: () => {
                 window.location.href = 'loginDriver.html';
               }
             });
-            return;
           } else if (status === 'pending') {
-            showErrorMessage(`Nomor ${phoneNumber} sedang menunggu verifikasi admin.`);
-            return;
+            errorMsg += " Status: Menunggu verifikasi admin.";
+            showErrorMessage(errorMsg);
           } else if (status === 'rejected') {
-            showErrorMessage(`Pendaftaran dengan nomor ${phoneNumber} telah ditolak. Hubungi admin untuk informasi lebih lanjut.`);
-            return;
+            errorMsg += " Status: Ditolak. Hubungi admin untuk informasi lebih lanjut.";
+            showErrorMessage(errorMsg);
           } else if (status === 'blocked') {
-            showErrorMessage(`Akun dengan nomor ${phoneNumber} telah diblokir. Hubungi admin untuk mengajukan pembukaan blokir.`);
-            return;
+            errorMsg += " Status: Diblokir. Hubungi admin untuk mengajukan pembukaan blokir.";
+            showErrorMessage(errorMsg);
           }
+          return; // STOP PROSES - TIDAK BOLEH LANJUT
         }
         
         // Jika user ditemukan, TETAP BOLEH lanjut (satu nomor untuk user dan driver)
