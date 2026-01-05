@@ -709,6 +709,7 @@
     let currentDriverData = null;
     let formattedPhoneNumber = '';
     let currentDriverId = null;
+    let firebaseUser = null;
 
     // ================================================
     // ELEMEN DOM
@@ -836,14 +837,15 @@
         phoneStatusIcon.textContent = 'ℹ️';
         phoneStatusText.textContent = message;
         
-        const loginBtn = document.createElement('button');
-        loginBtn.className = 'phone-status-btn primary';
-        loginBtn.textContent = 'Kirim OTP';
-        loginBtn.onclick = () => {
-          document.getElementById('sendOtpBtn').click();
-        };
-        
-        phoneStatusActions.appendChild(loginBtn);
+        if (phoneInfo && phoneInfo.type === 'driver') {
+          const loginBtn = document.createElement('button');
+          loginBtn.className = 'phone-status-btn primary';
+          loginBtn.textContent = 'Kirim OTP';
+          loginBtn.onclick = () => {
+            document.getElementById('sendOtpBtn').click();
+          };
+          phoneStatusActions.appendChild(loginBtn);
+        }
       }
       else if (type === 'error') {
         phoneStatus.classList.add('error');
@@ -931,6 +933,74 @@
     }
 
     // ================================================
+    // FUNGSI HELPER KODULAR (KONSISTEN DENGAN DAFTARDRIVER.HTML)
+    // ================================================
+    
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
+          return true;
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+          return false;
+        }
+      }
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular via window.android');
+          return true;
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+          return false;
+        }
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
+          return true;
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+          return false;
+        }
+      }
+      else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        return false;
+      }
+    }
+    
+    function openDashboard(driverData) {
+      const data = {
+        action: "open_dashboard",
+        role: "driver",
+        uid: driverData.uid || driverData.firebase_key,
+        name: driverData.name || driverData.fullName,
+        phone: driverData.phone,
+        status: driverData.status
+      };
+      
+      if (typeof window.AppInventor !== 'undefined') {
+        console.log('📱 Dibuka dari Kodular, mengirim data...');
+        const sent = sendToKodular(data);
+        if (sent) {
+          console.log('✅ Data driver berhasil dikirim ke Kodular');
+        } else {
+          console.error('❌ Gagal mengirim data ke Kodular, redirect ke list1.html');
+          window.location.href = 'list1.html';
+        }
+      } else {
+        console.log('🌐 Dibuka dari browser, redirect ke list1.html');
+        window.location.href = 'list1.html';
+      }
+    }
+
+    // ================================================
     // FUNGSI DATABASE (KONSISTEN DENGAN DAFTARDRIVER.HTML)
     // ================================================
     
@@ -991,7 +1061,81 @@
         };
       }
     }
+
+    // ================================================
+    // FUNGSI CEK STATUS DRIVER (KONSISTEN DENGAN DAFTARDRIVER.HTML)
+    // ================================================
     
+    async function checkDriverStatus() {
+      try {
+        const user = auth.currentUser;
+        
+        if (!user) {
+          return;
+        }
+        
+        const driversSnapshot = await database.ref('drivers')
+          .orderByChild('uid')
+          .equalTo(user.uid)
+          .once('value');
+        
+        const driversData = driversSnapshot.val();
+        
+        if (!driversData) {
+          return;
+        }
+        
+        const driverId = Object.keys(driversData)[0];
+        const driverData = driversData[driverId];
+        const status = driverData.status || 'pending';
+        
+        console.log(`🔍 Status driver: ${status}`);
+        
+        switch(status) {
+          case 'accepted':
+          case 'approved':
+          case 'active':
+            console.log('✅ Driver diterima, membuka dashboard...');
+            openDashboard(driverData);
+            break;
+            
+          case 'rejected':
+            hideAllForms();
+            showPopup('Pendaftaran Ditolak', 
+              'Pendaftaran Anda telah ditolak oleh admin.<br><br>' +
+              'Alasan: ' + (driverData.rejectionReason || 'Tidak memenuhi syarat') + '<br>' +
+              'Silakan hubungi admin untuk informasi lebih lanjut.',
+              'error');
+            break;
+            
+          case 'blocked':
+            hideAllForms();
+            showPopup('Akun Diblokir',
+              'Akun Anda telah diblokir oleh admin.<br><br>' +
+              'Alasan: ' + (driverData.blockReason || 'Melanggar aturan') + '<br>' +
+              'Hubungi admin untuk mengajukan pembukaan blokir.',
+              'error');
+            break;
+            
+          case 'pending':
+            console.log('⏳ Status pending, menunggu verifikasi admin');
+            showInfoMessage('Status: Menunggu verifikasi admin.');
+            break;
+            
+          default:
+            console.warn(`⚠️ Status tidak dikenal: ${status}`);
+            showInfoMessage(`Status: ${status}. Silakan hubungi admin.`);
+        }
+      } catch (error) {
+        console.error('❌ Error checking driver status:', error);
+      }
+    }
+    
+    function hideAllForms() {
+      phoneForm.style.display = 'none';
+      otpSection.style.display = 'none';
+    }
+
     // ================================================
     // FIREBASE FUNCTIONS (KONSISTEN DENGAN DAFTARDRIVER.HTML)
     // ================================================
@@ -1089,16 +1233,16 @@
         return null;
       }
     }
-    
+
     // ================================================
-    // FUNGSI CEK STATUS DRIVER
+    // FUNGSI CEK STATUS DRIVER (KONSISTEN)
     // ================================================
     
     function handleDriverStatus(status, driverData) {
       switch(status) {
+        case 'accepted':
         case 'approved':
         case 'active':
-        case 'accepted':
           // Driver aktif, boleh login
           return { allowed: true, message: 'Driver aktif' };
           
@@ -1136,7 +1280,7 @@
           };
       }
     }
-    
+
     // ================================================
     // FUNGSI LOGIN BERHASIL (KONSISTEN DENGAN DAFTARDRIVER.HTML)
     // ================================================
@@ -1162,21 +1306,22 @@
         idCardNumber: driverData.idCardNumber || "",
         driverStatus: driverData.driverStatus || "pending",
         Balance: driverData.Balance || 10000,
-        Potongan: driverData.Potongan || 10
+        Potongan: driverData.Potongan || 10,
+        firebase_key: driverData.firebase_key || firebaseUser.uid
       };
       
       // Simpan di localStorage (sama dengan daftarDriver.html)
       localStorage.setItem('jego_logged_in_driver', JSON.stringify(sessionDriver));
       localStorage.setItem('jego_driver_id', driverId);
       localStorage.setItem('jego_driver_data', JSON.stringify(driverData));
-      localStorage.setItem('jego_driver_status', driverData.status || 'active');
+      localStorage.setItem('jego_driver_status', driverData.status || 'pending');
       
       // Tampilkan pesan sukses
       showSuccessMessage('Login berhasil! Mengalihkan ke dashboard...', true);
       
-      // Redirect ke list1.html setelah 2 detik
+      // Gunakan openDashboard yang sama dengan daftarDriver.html
       setTimeout(() => {
-        window.location.href = 'list1.html';
+        openDashboard(sessionDriver);
       }, 2000);
     }
 
@@ -1210,7 +1355,7 @@
               
               if (status === 'pending') {
                 message += ' Status: Menunggu verifikasi admin.';
-              } else if (status === 'approved' || status === 'active') {
+              } else if (status === 'accepted' || status === 'approved' || status === 'active') {
                 message += ' Status: Aktif. Silakan login.';
               } else if (status === 'rejected') {
                 message += ' Status: Ditolak. Hubungi admin untuk informasi lebih lanjut.';
@@ -1332,6 +1477,8 @@
         return;
       }
       
+      firebaseUser = user;
+      
       // Login berhasil - gunakan data driver yang sudah disimpan
       if (currentDriverId && currentDriverData) {
         handleLoginSuccess(currentDriverId, currentDriverData, user);
@@ -1374,6 +1521,7 @@
       currentDriverData = null;
       currentDriverId = null;
       formattedPhoneNumber = '';
+      firebaseUser = null;
     });
     
     document.getElementById('registerBtn').addEventListener('click', function() {
@@ -1396,11 +1544,11 @@
             const driverData = JSON.parse(loggedInDriver);
             const status = driverData.status || 'pending';
             
-            // Hanya redirect jika status driver aktif/approved
-            if (status === 'approved' || status === 'active') {
+            // Hanya redirect jika status driver aktif/approved/accepted
+            if (status === 'accepted' || status === 'approved' || status === 'active') {
               showInfoMessage('Anda sudah login. Mengalihkan ke dashboard...', true);
               setTimeout(() => {
-                window.location.href = 'list1.html';
+                openDashboard(driverData);
               }, 2000);
             }
           } catch (e) {
@@ -1433,6 +1581,15 @@
               document.getElementById('verifyOtpBtn').click();
             }
           });
+        });
+        
+        // Auth state listener (konsisten dengan daftarDriver.html)
+        auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            firebaseUser = user;
+            // Cek status driver setelah login
+            await checkDriverStatus();
+          }
         });
         
         console.log('✅ Aplikasi Login Driver siap digunakan');
