@@ -1357,7 +1357,7 @@
       return phoneRegex.test(phone);
     }
     
-    function showPhoneStatus(type, message, userData = null) {
+    function showPhoneStatus(type, message, userData = null, canRegisterAsDriver = false) {
       phoneStatus.className = 'phone-status';
       phoneStatusActions.innerHTML = '';
       
@@ -1371,24 +1371,37 @@
         phoneStatusIcon.textContent = 'ℹ️';
         phoneStatusText.textContent = message;
         
-        const loginBtn = document.createElement('button');
-        loginBtn.className = 'phone-status-btn primary';
-        loginBtn.textContent = 'Login';
-        loginBtn.onclick = () => {
-          window.location.href = 'loginDriver.html?phone=' + encodeURIComponent(document.getElementById('phoneNumber').value);
-        };
-        
-        const clearBtn = document.createElement('button');
-        clearBtn.className = 'phone-status-btn secondary';
-        clearBtn.textContent = 'Ganti Nomor';
-        clearBtn.onclick = () => {
-          document.getElementById('phoneNumber').value = '';
-          document.getElementById('phoneNumber').focus();
-          phoneStatus.style.display = 'none';
-        };
-        
-        phoneStatusActions.appendChild(loginBtn);
-        phoneStatusActions.appendChild(clearBtn);
+        // Jika user ditemukan tapi BOLEH daftar sebagai driver
+        if (canRegisterAsDriver) {
+          const continueBtn = document.createElement('button');
+          continueBtn.className = 'phone-status-btn primary';
+          continueBtn.textContent = 'Lanjutkan Daftar Driver';
+          continueBtn.onclick = () => {
+            phoneStatus.style.display = 'none';
+          };
+          
+          phoneStatusActions.appendChild(continueBtn);
+        } else {
+          // Jika sudah terdaftar sebagai driver
+          const loginBtn = document.createElement('button');
+          loginBtn.className = 'phone-status-btn primary';
+          loginBtn.textContent = 'Login Driver';
+          loginBtn.onclick = () => {
+            window.location.href = 'loginDriver.html?phone=' + encodeURIComponent(document.getElementById('phoneNumber').value);
+          };
+          
+          const clearBtn = document.createElement('button');
+          clearBtn.className = 'phone-status-btn secondary';
+          clearBtn.textContent = 'Ganti Nomor';
+          clearBtn.onclick = () => {
+            document.getElementById('phoneNumber').value = '';
+            document.getElementById('phoneNumber').focus();
+            phoneStatus.style.display = 'none';
+          };
+          
+          phoneStatusActions.appendChild(loginBtn);
+          phoneStatusActions.appendChild(clearBtn);
+        }
       }
       else if (type === 'error') {
         phoneStatus.classList.add('error');
@@ -1622,27 +1635,7 @@
       try {
         console.log('🔍 Checking phone in database:', phoneNumber);
         
-        // Cek di users terlebih dahulu (konsisten dengan registrasi user)
-        const usersSnapshot = await database.ref('users')
-          .orderByChild('phone')
-          .equalTo(phoneNumber)
-          .once('value');
-        
-        const usersData = usersSnapshot.val();
-        
-        if (usersData) {
-          const userId = Object.keys(usersData)[0];
-          const userData = usersData[userId];
-          
-          return {
-            exists: true,
-            user: userData,
-            userId: userId,
-            type: 'user'
-          };
-        }
-        
-        // Cek di drivers
+        // 1. Cek di DRIVERS terlebih dahulu (untuk pendaftaran driver)
         const driversSnapshot = await database.ref('drivers')
           .orderByChild('phone')
           .equalTo(phoneNumber)
@@ -1664,10 +1657,42 @@
           };
         }
         
-        return { exists: false };
+        // 2. Jika tidak ada di drivers, cek di users
+        const usersSnapshot = await database.ref('users')
+          .orderByChild('phone')
+          .equalTo(phoneNumber)
+          .once('value');
+        
+        const usersData = usersSnapshot.val();
+        
+        if (usersData) {
+          const userId = Object.keys(usersData)[0];
+          const userData = usersData[userId];
+          
+          // User ditemukan, tapi OTOMATIS BOLEH daftar sebagai driver
+          // dengan nomor yang sama (satu nomor bisa untuk user dan driver)
+          return {
+            exists: true,
+            user: userData,
+            userId: userId,
+            type: 'user',
+            canRegisterAsDriver: true // Flag khusus
+          };
+        }
+        
+        // 3. Tidak ditemukan sama sekali
+        return { 
+          exists: false,
+          canRegisterAsDriver: true // Boleh daftar
+        };
+        
       } catch (error) {
         console.error('❌ Error checking phone number:', error);
-        return { exists: false, error: error.message };
+        return { 
+          exists: false, 
+          error: error.message,
+          canRegisterAsDriver: true // Default boleh daftar
+        };
       }
     }
     
@@ -1780,7 +1805,7 @@
         switch(status) {
           case 'approved':
           case 'active':
-            window.location.href = 'list1.html';
+            window.location.href = 'driverDashboard.html';
             break;
             
           case 'rejected':
@@ -2024,10 +2049,14 @@
                 message += ' Status: Ditolak.';
               }
               
-              showPhoneStatus('registered', message, phoneInfo.user);
+              showPhoneStatus('registered', message, phoneInfo.user, false);
             } else if (phoneInfo.type === 'user') {
               const nama = phoneInfo.user?.name || phoneInfo.user?.fullName || 'User';
-              showPhoneStatus('registered', `Nomor ${formattedPhone} sudah terdaftar sebagai user atas nama ${nama}. Anda dapat mendaftar sebagai driver dengan nomor ini.`, phoneInfo.user);
+              showPhoneStatus('registered', 
+                `Nomor ${formattedPhone} sudah terdaftar sebagai user atas nama ${nama}. Anda dapat mendaftar sebagai driver dengan nomor ini.`, 
+                phoneInfo.user, 
+                true
+              );
             }
           } else {
             showPhoneStatus('available', `Nomor ${formattedPhone} tersedia untuk pendaftaran driver.`);
@@ -2084,6 +2113,10 @@
             return;
           }
         }
+        
+        // Jika user ditemukan, TETAP BOLEH lanjut (satu nomor untuk user dan driver)
+        // Tidak ada return di sini, biarkan lanjut
+        
       } catch (error) {
         hideLoading();
         console.error('Error checking phone:', error);
