@@ -822,18 +822,13 @@
   </style>
 </head>
 <body>
-  <!-- Header (SAMA) -->
+  <!-- Header (DIUBAH: tombol kembali dihapus) -->
   <div class="header">
     <div class="logo-container">
       <div class="logo">JG</div>
       <div class="header-title">Akun Driver - JeGo</div>
     </div>
-    <a href="list.html" class="back-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      Kembali
-    </a>
+    <!-- Tombol Kembali dihapus -->
   </div>
 
   <!-- Container -->
@@ -1015,22 +1010,15 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
+      <!-- Action Buttons (DIUBAH: hanya tombol Logout) -->
       <div class="action-buttons">
-        <button class="submit-btn btn-info" id="editProfileBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          Edit Profil
-        </button>
         <button class="submit-btn btn-danger" id="logoutBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16,17 21,12 16,7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          Keluar
+          Logout
         </button>
       </div>
     </div>
@@ -1066,7 +1054,9 @@
     </div>
   </div>
 
-  // KONFIGURASI (SAMA)
+  <script>
+    // ================================================
+    // KONFIGURASI FIREBASE
     // ================================================
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
@@ -1080,7 +1070,7 @@
     };
 
     // ================================================
-    // INISIALISASI FIREBASE (SAMA)
+    // INISIALISASI FIREBASE
     // ================================================
     firebase.initializeApp(FIREBASE_CONFIG);
     const database = firebase.database();
@@ -1095,6 +1085,7 @@
     const MAX_RETRIES = 3;
     let driverOrders = [];
     let driverRatings = [];
+    let authStateInitialized = false;
 
     // ================================================
     // ELEMEN DOM
@@ -1111,11 +1102,193 @@
     const loadingText = document.getElementById('loadingText');
 
     // ================================================
-    // FUNGSI UTILITAS (DIPERBAIKI)
+    // FUNGSI UTILITAS
     // ================================================
     
-    // ... [Fungsi utilitas lainnya tetap sama] ...
+    function showPopup(title, message, type = 'info', options = {}) {
+      modalTitleText.textContent = title;
+      modalMessage.innerHTML = message;
+      modal.className = 'modal ' + type;
+      modalIcon.className = 'modal-icon ' + type;
+      modalIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '!' : 'i';
+      modalConfirmBtn.textContent = options.confirmText || 'OK';
+      
+      if (options.showCancel) {
+        modalCancelBtn.style.display = 'inline-block';
+        modalCancelBtn.textContent = options.cancelText || 'Batal';
+      } else {
+        modalCancelBtn.style.display = 'none';
+      }
+      
+      modalConfirmBtn.onclick = function() {
+        hidePopup();
+        if (options.onConfirm) options.onConfirm();
+      };
+      
+      modalCancelBtn.onclick = function() {
+        hidePopup();
+        if (options.onCancel) options.onCancel();
+      };
+      
+      modalCloseBtn.onclick = function() {
+        hidePopup();
+        if (options.onCancel) options.onCancel();
+      };
+      
+      modalOverlay.classList.add('active');
+      
+      if (options.autoHide) {
+        setTimeout(() => {
+          hidePopup();
+          if (options.onAutoHide) options.onAutoHide();
+        }, options.autoHideDelay || 3000);
+      }
+    }
     
+    function hidePopup() {
+      modalOverlay.classList.remove('active');
+    }
+    
+    function showLoading(message = 'Sedang memproses...') {
+      loadingText.textContent = message;
+      loadingModal.classList.add('active');
+    }
+    
+    function hideLoading() {
+      loadingModal.classList.remove('active');
+    }
+    
+    function showErrorMessage(message) {
+      showPopup('Error', message, 'error');
+    }
+    
+    function showSuccessMessage(message, autoHide = false) {
+      showPopup('Sukses', message, 'success', { autoHide: autoHide, autoHideDelay: 2000 });
+    }
+    
+    function showInfoMessage(message, autoHide = false) {
+      showPopup('Informasi', message, 'info', { autoHide: autoHide, autoHideDelay: 3000 });
+    }
+
+    function formatCurrency(amount) {
+      if (!amount && amount !== 0) return 'Rp 0';
+      
+      try {
+        return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
+      } catch (error) {
+        console.error('Error formatting currency:', error);
+        return 'Rp 0';
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          return '-';
+        }
+        
+        return date.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        return '-';
+      }
+    }
+
+    function maskIdCard(idCard) {
+      if (!idCard || idCard === '-') return '-';
+      
+      const idString = idCard.toString();
+      if (idString.length <= 8) {
+        return idString;
+      }
+      
+      const firstPart = idString.substring(0, 4);
+      const lastPart = idString.substring(idString.length - 4);
+      const maskedPart = '*'.repeat(idString.length - 8);
+      
+      return firstPart + maskedPart + lastPart;
+    }
+
+    function generateStarRating(rating, starClass = 'star') {
+      const fullStars = Math.floor(rating);
+      const hasHalfStar = rating % 1 >= 0.5;
+      const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+      
+      let starsHTML = '';
+      
+      for (let i = 0; i < fullStars; i++) {
+        starsHTML += `<span class="${starClass} filled">★</span>`;
+      }
+      
+      if (hasHalfStar) {
+        starsHTML += `<span class="${starClass} filled">★</span>`;
+      }
+      
+      for (let i = 0; i < emptyStars; i++) {
+        starsHTML += `<span class="${starClass}">☆</span>`;
+      }
+      
+      return starsHTML;
+    }
+
+    function getStatusBadge(status) {
+      const statusText = getStatusText(status);
+      const statusClass = getStatusClass(status);
+      return `<span class="status-badge ${statusClass}">${statusText}</span>`;
+    }
+
+    function getStatusText(status) {
+      const statusMap = {
+        'active': 'Aktif',
+        'accepted': 'Diterima',
+        'pending': 'Menunggu',
+        'rejected': 'Ditolak',
+        'blocked': 'Diblokir'
+      };
+      return statusMap[status] || status;
+    }
+
+    function getStatusClass(status) {
+      const classMap = {
+        'active': 'status-active',
+        'accepted': 'status-active',
+        'pending': 'status-pending',
+        'rejected': 'status-rejected',
+        'blocked': 'status-blocked'
+      };
+      return classMap[status] || 'status-pending';
+    }
+
+    function getVehicleTypeText(vehicleType) {
+      const vehicleMap = {
+        'motor': 'Motor',
+        'bentor': 'Bentor',
+        'mobil': 'Mobil',
+        'kurir_motor': 'Kurir Motor',
+        'kurir_bentor': 'Kurir Bentor'
+      };
+      return vehicleMap[vehicleType] || vehicleType;
+    }
+
+    function getPriorityBadge(rating) {
+      if (rating >= 4.5) {
+        return { level: 'Essential', class: 'priority-badge essential' };
+      } else if (rating >= 4.0) {
+        return { level: 'Regular', class: 'priority-badge regular' };
+      } else if (rating >= 3.0) {
+        return { level: 'Standard', class: 'priority-badge standard' };
+      } else {
+        return { level: 'Basic', class: 'priority-badge basic' };
+      }
+    }
+
     // ================================================
     // FUNGSI CEK STATUS LOGIN & VERIFIKASI
     // ================================================
@@ -1257,7 +1430,7 @@
     }
 
     // ================================================
-    // FUNGSI DATABASE (DIPERBAIKI)
+    // FUNGSI DATABASE
     // ================================================
     
     function getDriverDataFromStorage() {
@@ -1365,8 +1538,339 @@
       }
     }
 
+    async function loadBalanceAndCommission(driverId) {
+      console.log('🔄 Memuat data balance deposit dan potongan komisi untuk driver:', driverId);
+
+      try {
+        const [balanceSnapshot, potonganSnapshot] = await Promise.all([
+          database.ref('drivers/' + driverId + '/Balance').once('value'),
+          database.ref('drivers/' + driverId + '/Potongan').once('value')
+        ]);
+
+        const balance = balanceSnapshot.val() || 0;
+        const potonganRate = potonganSnapshot.val() || 0;
+        
+        console.log('✅ Data balance deposit dan potongan komisi berhasil dimuat:', {
+          balance: balance,
+          potonganRate: potonganRate
+        });
+        
+        updateBalanceDisplay(balance, potonganRate);
+      } catch (error) {
+        console.error('❌ Error memuat data balance dan potongan komisi:', error);
+        updateBalanceDisplay(0, 0);
+      }
+    }
+
+    async function loadDriverRatings(driverId) {
+      console.log('🔄 Memuat data ratings untuk driver:', driverId);
+
+      try {
+        const ratingsRef = database.ref('drivers/' + driverId + '/ratings');
+        const snapshot = await ratingsRef.once('value');
+        const ratingsData = snapshot.val();
+        driverRatings = [];
+        
+        if (ratingsData) {
+          Object.keys(ratingsData).forEach(key => {
+            const rating = ratingsData[key];
+            driverRatings.push({
+              id: key,
+              ...rating
+            });
+          });
+          
+          console.log(`✅ ${driverRatings.length} ratings berhasil dimuat`);
+          updateRatingDisplay();
+          
+          const avgRating = calculateAverageRating(driverRatings);
+          updatePriorityBadge(avgRating);
+        } else {
+          console.log('❌ Tidak ada data ratings ditemukan');
+          updateRatingDisplay();
+        }
+      } catch (error) {
+        console.error('❌ Error memuat data ratings:', error);
+        updateRatingDisplay();
+      }
+    }
+
+    async function loadDriverOrders(driverId) {
+      console.log('🔄 Memuat data orders untuk driver:', driverId);
+
+      try {
+        const ordersRef = database.ref('orders');
+        const snapshot = await ordersRef.once('value');
+        const ordersData = snapshot.val();
+        driverOrders = [];
+        
+        if (ordersData) {
+          Object.values(ordersData).forEach(order => {
+            if (order.selected_driver && order.selected_driver.driver_id === driverId) {
+              driverOrders.push(order);
+            }
+          });
+          
+          console.log(`✅ ${driverOrders.length} orders berhasil dimuat`);
+          updateTodayEarnings();
+          updateOrderStats();
+        } else {
+          console.log('❌ Tidak ada data orders ditemukan');
+          updateTodayEarnings();
+          updateOrderStats();
+        }
+      } catch (error) {
+        console.error('❌ Error memuat data orders:', error);
+        updateTodayEarnings();
+        updateOrderStats();
+      }
+    }
+
+    function calculateAverageRating(ratings) {
+      if (!ratings || ratings.length === 0) {
+        return 0;
+      }
+      
+      const totalRating = ratings.reduce((sum, rating) => sum + (rating.rating || 0), 0);
+      return totalRating / ratings.length;
+    }
+
+    function updateRatingDisplay() {
+      const avgRating = calculateAverageRating(driverRatings);
+      const ratingCount = driverRatings.length;
+      
+      const ratingStars = document.getElementById('ratingStars');
+      if (ratingStars) ratingStars.innerHTML = generateStarRating(avgRating);
+      
+      const ratingValue = document.getElementById('ratingValue');
+      if (ratingValue) ratingValue.textContent = avgRating.toFixed(1);
+      
+      const ratingCountElement = document.getElementById('ratingCount');
+      if (ratingCountElement) ratingCountElement.textContent = `(${ratingCount} rating)`;
+    }
+
+    function updatePriorityBadge(rating) {
+      const priority = getPriorityBadge(rating);
+      
+      const priorityBadgeSmall = document.getElementById('priorityBadgeSmall');
+      if (priorityBadgeSmall) {
+        priorityBadgeSmall.textContent = priority.level;
+        priorityBadgeSmall.className = priority.class;
+      }
+    }
+
+    function updateBalanceDisplay(balance, potonganRate) {
+      const balanceAmount = document.getElementById('balanceAmount');
+      const commissionRateElement = document.getElementById('commissionRate');
+      
+      if (balanceAmount) {
+        balanceAmount.textContent = formatCurrency(balance);
+      }
+      
+      if (commissionRateElement) {
+        commissionRateElement.textContent = potonganRate + '%';
+      }
+    }
+
+    function updateOrderStats() {
+      const totalOrders = driverOrders.length;
+      const completedOrders = driverOrders.filter(order => 
+        order.status === 'completed' || order.status === 'selesai'
+      ).length;
+      
+      const totalOrdersElement = document.getElementById('totalOrders');
+      const completedOrdersElement = document.getElementById('completedOrders');
+      
+      if (totalOrdersElement) totalOrdersElement.textContent = totalOrders;
+      if (completedOrdersElement) completedOrdersElement.textContent = completedOrders;
+    }
+
+    function updateTodayEarnings() {
+      if (!driverOrders || driverOrders.length === 0) {
+        document.getElementById('todayEarnings').textContent = 'Rp 0';
+        return;
+      }
+
+      const now = new Date();
+      const todayWITA = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      const todayDateString = todayWITA.toISOString().split('T')[0];
+
+      const todayOrders = driverOrders.filter(order => {
+        if (!order.completed_at) return false;
+        
+        try {
+          const orderDate = new Date(order.completed_at);
+          const orderDateWITA = new Date(orderDate.getTime() + (8 * 60 * 60 * 1000));
+          const orderDateString = orderDateWITA.toISOString().split('T')[0];
+          return orderDateString === todayDateString;
+        } catch (error) {
+          console.error('Error parsing order date:', error, order);
+          return false;
+        }
+      });
+
+      const todayEarnings = todayOrders.reduce((sum, order) => {
+        const earnings = parseInt(order.harga_total) || 0;
+        return sum + earnings;
+      }, 0);
+
+      const todayEarningsElement = document.getElementById('todayEarnings');
+      if (todayEarningsElement) todayEarningsElement.textContent = formatCurrency(todayEarnings);
+    }
+
+    function displayDriverData(data) {
+      if (!data) {
+        console.error('❌ Data driver tidak valid untuk ditampilkan');
+        return;
+      }
+
+      const safeData = {
+        fullName: data.name || data.fullName || '-',
+        email: data.email || '-',
+        phoneNumber: data.phone || data.phoneNumber || '-',
+        address: data.address || '-',
+        idCardNumber: data.idCardNumber || '-',
+        vehicleType: data.vehicleType || '-',
+        vehicleBrand: data.vehicleBrand || '-',
+        plateNumber: data.plateNumber || '-',
+        driverId: data.uid || data.driverId || '-',
+        status: data.status || data.driverStatus || 'pending',
+        profilePhotoUrl: data.profilePhotoUrl || data.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        registrationDate: data.createdAt || data.registrationDate || null,
+        totalOrders: data.totalOrders || 0,
+        completedOrders: data.completedOrders || 0
+      };
+
+      const profilePhoto = document.getElementById('profilePhoto');
+      if (profilePhoto && safeData.profilePhotoUrl) {
+        profilePhoto.src = safeData.profilePhotoUrl;
+        profilePhoto.onerror = function() {
+          if (profilePhoto) {
+            profilePhoto.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+          }
+        };
+      }
+
+      const profileName = document.getElementById('profileName');
+      const profileVehicle = document.getElementById('profileVehicle');
+      if (profileName) profileName.textContent = safeData.fullName;
+      if (profileVehicle) profileVehicle.textContent = `${getVehicleTypeText(safeData.vehicleType)} - ${safeData.vehicleBrand}`;
+
+      // Informasi pribadi
+      const fullName = document.getElementById('fullName');
+      const email = document.getElementById('email');
+      const phoneNumber = document.getElementById('phoneNumber');
+      const address = document.getElementById('address');
+      const idCardNumber = document.getElementById('idCardNumber');
+      
+      if (fullName) fullName.textContent = safeData.fullName;
+      if (email) email.textContent = safeData.email;
+      if (phoneNumber) phoneNumber.textContent = safeData.phoneNumber;
+      if (address) address.textContent = safeData.address;
+      if (idCardNumber) idCardNumber.textContent = maskIdCard(safeData.idCardNumber);
+      
+      // Informasi kendaraan
+      const vehicleType = document.getElementById('vehicleType');
+      const vehicleBrand = document.getElementById('vehicleBrand');
+      const plateNumber = document.getElementById('plateNumber');
+      
+      if (vehicleType) vehicleType.textContent = getVehicleTypeText(safeData.vehicleType);
+      if (vehicleBrand) vehicleBrand.textContent = safeData.vehicleBrand;
+      if (plateNumber) plateNumber.textContent = safeData.plateNumber;
+
+      // Informasi akun
+      const driverId = document.getElementById('driverId');
+      const registrationDate = document.getElementById('registrationDate');
+      const verificationStatus = document.getElementById('verificationStatus');
+      const totalOrdersElement = document.getElementById('totalOrders');
+      const completedOrdersElement = document.getElementById('completedOrders');
+      
+      if (driverId) driverId.textContent = safeData.driverId;
+      if (registrationDate) registrationDate.textContent = formatDate(safeData.registrationDate);
+      if (verificationStatus) {
+        verificationStatus.innerHTML = getStatusBadge(safeData.status);
+      }
+      if (totalOrdersElement) totalOrdersElement.textContent = safeData.totalOrders;
+      if (completedOrdersElement) completedOrdersElement.textContent = safeData.completedOrders;
+    }
+
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+          return true;
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+          return false;
+        }
+      }
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+          console.log('✅ Data berhasil dikirim ke Kodular');
+          return true;
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+          return false;
+        }
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+          console.log('✅ Data berhasil dikirim ke Kodular');
+          return true;
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+          return false;
+        }
+      }
+      else {
+        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        return false;
+      }
+    }
+
+    function showLoadingState() {
+      const container = document.querySelector('.form-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <div style="margin-top: 15px;">Memuat data driver...</div>
+          </div>
+        `;
+      }
+    }
+
+    function showErrorState(message) {
+      const container = document.querySelector('.form-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size: 3rem;">⚠️</div>
+            <div class="error-message">${message}</div>
+            <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
+            <button class="submit-btn" id="retryBtn" style="margin-top: 15px;">
+              Coba Lagi
+            </button>
+          </div>
+        `;
+        
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', function () {
+            retryCount = 0;
+            loadDriverData();
+          });
+        }
+      }
+    }
+
     // ================================================
-    // FUNGSI LOGOUT (DIPERBAIKI)
+    // FUNGSI LOGOUT
     // ================================================
     
     async function logoutDriver() {
@@ -1386,13 +1890,16 @@
         hideLoading();
         
         // Kirim perintah logout ke Kodular
-        sendToKodular({
+        const kodularData = {
           action: 'logout',
-          message: 'Driver berhasil logout'
-        });
+          message: 'Driver berhasil logout',
+          redirect_to: 'loginDriver.html'
+        };
+        
+        sendToKodular(kodularData);
 
         // Tampilkan pesan konfirmasi
-        showSuccessMessage('Anda telah berhasil keluar dari akun driver JeGo.', true);
+        showSuccessMessage('Anda telah berhasil logout dari akun driver JeGo.', true);
 
         // Redirect ke halaman login
         setTimeout(() => {
@@ -1407,24 +1914,22 @@
     }
 
     // ================================================
-    // EVENT HANDLERS (DIPERBAIKI)
+    // EVENT HANDLERS
     // ================================================
     
     function initEventListeners() {
       console.log('🔄 Menginisialisasi event listeners...');
       
-      // ... [Event listener lainnya tetap sama] ...
-      
       const logoutBtn = document.getElementById('logoutBtn');
       if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
           showPopup(
-            'Konfirmasi Keluar', 
-            'Apakah Anda yakin ingin keluar dari akun driver JeGo?',
+            'Konfirmasi Logout', 
+            'Apakah Anda yakin ingin logout dari akun driver JeGo?',
             'warning',
             {
               showCancel: true,
-              confirmText: 'Ya, Keluar',
+              confirmText: 'Ya, Logout',
               cancelText: 'Batal',
               onConfirm: function() {
                 logoutDriver();
@@ -1434,11 +1939,112 @@
         });
       }
       
-      // ... [Event listener lainnya tetap sama] ...
+      const ratingClickable = document.getElementById('ratingClickable');
+      if (ratingClickable) {
+        ratingClickable.addEventListener('click', function() {
+          sendToKodular({
+            action: 'open_ratings',
+            message: 'Buka halaman penilaian layanan'
+          });
+          console.log('✅ Mengirim permintaan buka halaman penilaian ke Kodular');
+        });
+      }
+
+      const todayEarningsStat = document.getElementById('todayEarningsStat');
+      if (todayEarningsStat) {
+        todayEarningsStat.addEventListener('click', function() {
+          sendToKodular({
+            action: 'open_earnings',
+            message: 'Buka halaman pendapatan'
+          });
+          console.log('✅ Mengirim permintaan buka halaman pendapatan ke Kodular');
+        });
+      }
+      
+      const balanceContainer = document.getElementById('balanceContainer');
+      if (balanceContainer) {
+        balanceContainer.addEventListener('click', function() {
+          sendToKodular({
+            action: 'open_payment',
+            message: 'Buka halaman pembayaran'
+          });
+          console.log('✅ Mengirim permintaan buka halaman pembayaran ke Kodular');
+        });
+      }
+      
+      const toggleButtons = document.querySelectorAll('.toggle-btn');
+      toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const content = document.getElementById(targetId);
+          if (content) {
+            content.classList.toggle('collapsed');
+            
+            const icon = this.querySelector('svg');
+            if (icon) {
+              icon.style.transform = content.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
+            }
+          }
+        });
+      });
+      
+      const copyButtons = document.querySelectorAll('.copy-btn');
+      copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-copy-target');
+          const targetElement = document.getElementById(targetId);
+          
+          if (targetElement) {
+            const textToCopy = targetElement.textContent;
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                  showSuccessMessage(`"${textToCopy}" telah disalin ke clipboard`, true);
+                  console.log('✅ Teks berhasil disalin:', textToCopy);
+                })
+                .catch(err => {
+                  console.error('❌ Gagal menyalin teks:', err);
+                  showErrorMessage('Gagal menyalin teks ke clipboard');
+                });
+            } else {
+              const textArea = document.createElement('textarea');
+              textArea.value = textToCopy;
+              document.body.appendChild(textArea);
+              textArea.select();
+              
+              try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                  showSuccessMessage(`"${textToCopy}" telah disalin ke clipboard`, true);
+                  console.log('✅ Teks berhasil disalin (fallback):', textToCopy);
+                } else {
+                  throw new Error('Gagal menyalin');
+                }
+              } catch (err) {
+                console.error('❌ Gagal menyalin teks (fallback):', err);
+                showErrorMessage('Gagal menyalin teks ke clipboard');
+              }
+              
+              document.body.removeChild(textArea);
+            }
+          }
+        });
+      });
+      
+      modalOverlay.addEventListener('click', function(e) {
+        if (e.target === modalOverlay) hidePopup();
+      });
+      
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup();
+      });
+      
+      console.log('✅ Semua event listeners berhasil diinisialisasi');
     }
 
     // ================================================
-    // INITIALIZATION (DIPERBAIKI)
+    // INITIALIZATION
     // ================================================
     
     document.addEventListener('DOMContentLoaded', async function() {
@@ -1500,20 +2106,23 @@
         console.log('🔄 Halaman menjadi aktif, memeriksa sesi...');
         
         // Validasi sesi
-        auth.currentUser?.reload().then(() => {
-          console.log('✅ Auth state direfresh');
-          loadDriverData();
-        }).catch(error => {
-          console.error('❌ Error refreshing auth state:', error);
-          
-          // Jika token expired, logout
-          if (error.code === 'auth/user-token-expired') {
-            showInfoMessage('Session telah berakhir. Silakan login kembali.', true);
-            setTimeout(() => {
-              logoutDriver();
-            }, 2000);
-          }
-        });
+        const user = auth.currentUser;
+        if (user) {
+          user.reload().then(() => {
+            console.log('✅ Auth state direfresh');
+            loadDriverData();
+          }).catch(error => {
+            console.error('❌ Error refreshing auth state:', error);
+            
+            // Jika token expired, logout
+            if (error.code === 'auth/user-token-expired') {
+              showInfoMessage('Session telah berakhir. Silakan login kembali.', true);
+              setTimeout(() => {
+                logoutDriver();
+              }, 2000);
+            }
+          });
+        }
       }
     });
 
