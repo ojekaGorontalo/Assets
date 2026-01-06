@@ -66,9 +66,9 @@ function getDriverData() {
     console.log("🔍 [DEBUG] Memulai getDriverData");
     
     try {
-        // 1. UTAMAKAN: jego_driver_data (format baru)
-        const loggedInUser = localStorage.getItem('jego_driver_data');
-        console.log("ℹ️ [DEBUG] jego_driver_data di localStorage:", loggedInUser ? "Ada" : "Tidak ada");
+        // 1. UTAMAKAN: jeggo_logged_in_driver (format baru)
+        const loggedInUser = localStorage.getItem('jeggo_logged_in_driver');
+        console.log("ℹ️ [DEBUG] jeggo_logged_in_driver di localStorage:", loggedInUser ? "Ada" : "Tidak ada");
         
         if (loggedInUser) {
             const driverData = JSON.parse(loggedInUser);
@@ -190,7 +190,7 @@ function getDriverData() {
             };
             
             // Simpan ke format baru untuk konsistensi
-            localStorage.setItem('jego_driver_data', JSON.stringify(mappedDriverData));
+            localStorage.setItem('jeggo_logged_in_driver', JSON.stringify(mappedDriverData));
             localStorage.setItem('jego_driver_logged_in', 'true');
             localStorage.setItem('jego_driver_status', driverData.status === 'pending' ? 'active' : driverData.status || 'active');
             
@@ -244,7 +244,7 @@ async function fetchLatestDriverData(driverKey) {
     
     // Update cache localStorage
     try {
-      localStorage.setItem('jego_driver_data', JSON.stringify(updatedDriverData));
+      localStorage.setItem('jeggo_logged_in_driver', JSON.stringify(updatedDriverData));
       
       // Update juga di jego_drivers jika ada
       const jegoDrivers = JSON.parse(localStorage.getItem('jego_drivers')) || {};
@@ -293,7 +293,7 @@ function checkIfDriverLoggedIn() {
     console.log("🔍 [DEBUG] Memeriksa status login driver...");
     
     // Cek format baru (utama)
-    const loggedInDriver = localStorage.getItem('jego_driver_data');
+    const loggedInDriver = localStorage.getItem('jeggo_logged_in_driver');
     const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
     const driverStatus = localStorage.getItem('jego_driver_status');
     
@@ -338,7 +338,7 @@ function checkIfDriverLoggedIn() {
             };
             
             // Simpan ke format baru untuk konsistensi
-            localStorage.setItem('jego_driver_data', JSON.stringify(convertedData));
+            localStorage.setItem('jeggo_logged_in_driver', JSON.stringify(convertedData));
             localStorage.setItem('jego_driver_logged_in', 'true');
             // PERBAIKAN: Jika status pending, tetap set sebagai 'active' sementara agar bisa login
             localStorage.setItem('jego_driver_status', driverData.status === 'pending' ? 'active' : driverData.status || 'active');
