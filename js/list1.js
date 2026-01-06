@@ -2,10 +2,9 @@
 
 function initApp() {
   console.log('✅ Google Maps API berhasil di-load');
+  
   // Inisialisasi Firebase setelah Google Maps siap
   initializeFirebase();
-  // Panggil fungsi inisialisasi aplikasi
-  initJeGoApp();
 }
 
 // ==================== KONFIGURASI FIREBASE ====================
@@ -25,6 +24,7 @@ const FIREBASE_CONFIG = {
 let database;
 let auth;
 let firebaseApp;
+let firebaseAuthReady = false;
 
 function initializeFirebase() {
   try {
@@ -44,12 +44,35 @@ function initializeFirebase() {
     
     database = firebase.database();
     auth = firebase.auth();
+    
     console.log('✅ Firebase berhasil diinisialisasi');
+    
+    // Setup auth state listener
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        console.log('⚠️ Tidak ada user, login anonim...');
+        auth.signInAnonymously()
+          .then(() => {
+            console.log('✅ Login anonim berhasil');
+          })
+          .catch(error => {
+            console.error('❌ Gagal login anonim:', error);
+            showPopup('Gagal terhubung ke server autentikasi.', 'Error', 'error');
+          });
+        return;
+      }
+      
+      console.log('✅ Firebase auth siap:', user.uid);
+      firebaseAuthReady = true;
+      
+      // Setelah auth siap, inisialisasi aplikasi
+      initJeGoApp();
+    });
+    
     return true;
     
   } catch (error) {
     console.error('❌ Error inisialisasi Firebase:', error);
-    // Tampilkan pesan error yang lebih user-friendly
     setTimeout(() => {
       showPopup('Gagal terhubung ke server. Periksa koneksi internet Anda.', 'Koneksi Error', 'error');
     }, 1000);
@@ -154,6 +177,11 @@ async function fetchLatestDriverData(driverKey) {
     return currentUserData;
   }
   
+  if (!firebaseAuthReady) {
+    console.log("⚠️ Firebase auth belum siap, tunggu...");
+    return currentUserData;
+  }
+  
   try {
     console.log("🔍 [DEBUG] Memulai fetchLatestDriverData untuk key:", driverKey);
     const driverRef = database.ref('drivers/' + driverKey);
@@ -216,7 +244,7 @@ function startDriverDataRefresh() {
   
   // Refresh setiap 30 detik jika driver sedang aktif
   userDataRefreshInterval = setInterval(async () => {
-    if (currentUserData && currentUserData.driverId) {
+    if (currentUserData && currentUserData.driverId && firebaseAuthReady) {
       console.log("🔄 [DEBUG] Auto-refresh driver data dari Firebase...");
       currentUserData = await fetchLatestDriverData(currentUserData.driverId);
     }
@@ -260,7 +288,7 @@ function checkIfDriverLoggedIn() {
     }
     
     // Cek juga dari Firebase Auth (fallback)
-    if (auth && auth.currentUser) {
+    if (auth && auth.currentUser && firebaseAuthReady) {
         console.log("✅ [DEBUG] Driver login via Firebase Auth");
         
         // Buat data minimal dari Firebase Auth
@@ -1028,6 +1056,11 @@ function updateStatusInfo() {
 
 // ==================== FUNGSI LOAD FILTER TUJUAN DARI FIREBASE ====================
 function loadFilterTujuanFromFirebase() {
+    if (!firebaseAuthReady) {
+        console.log('⚠️ Firebase auth belum siap, tunggu...');
+        return;
+    }
+    
     const filterRef = database.ref('DataJego/Filter');
     
     filterRef.once('value').then(snapshot => {
@@ -1250,6 +1283,11 @@ function checkOrdersForManualPopup() {
         return;
     }
     
+    if (!firebaseAuthReady) {
+        console.log("🚫 Firebase auth belum siap");
+        return;
+    }
+    
     if (!locationTrackingEnabled || autobidEnabled || 
         !currentDriverData || isAutobidProcessing || 
         !driverLocation.latitude || !driverLocation.longitude) {
@@ -1320,6 +1358,11 @@ function checkOrdersForAutobid() {
     // GUARD 1: Validasi sistem otomatis
     if (!canSystemProcessOrder("auto")) {
         console.log("🚫 Autobid dihentikan: Tracking OFF");
+        return;
+    }
+    
+    if (!firebaseAuthReady) {
+        console.log("🚫 Firebase auth belum siap");
         return;
     }
     
@@ -2208,6 +2251,15 @@ function loadOrders() {
     }
 
     try {
+        // Pindahkan akses orders ke dalam auth state handler
+        if (!firebaseAuthReady) {
+            console.log('⚠️ Firebase auth belum siap, tunggu...');
+            clearTimeout(loadingTimeout);
+            ordersList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Menyiapkan koneksi...</p></div>';
+            return;
+        }
+        
+        console.log('✅ Firebase auth siap, mulai load orders');
         ordersRef = database.ref('orders');
         
         ordersListener = ordersRef.on('value', (snapshot) => {
@@ -2659,6 +2711,11 @@ function startCountdown(orderId, driverId) {
 }
 
 function removeDriverOffer(orderId, driverId) {
+    if (!firebaseAuthReady) {
+        console.log('⚠️ Firebase auth belum siap, skip hapus offer');
+        return;
+    }
+    
     const orderRef = database.ref('orders/' + orderId);
     orderRef.child('driver_offers').child(driverId).remove()
         .then(() => console.log('Data driver dihapus karena waktu habis:', driverId))
@@ -2692,6 +2749,11 @@ function closeModalAndRefresh() {
 function listenForOrderResponse(orderId, driverId) {
     if (offerListenerRef && offerListener) {
         offerListenerRef.off('value', offerListener);
+    }
+    
+    if (!firebaseAuthReady) {
+        console.log('⚠️ Firebase auth belum siap, tidak bisa listen order response');
+        return;
     }
     
     offerListenerRef = database.ref('orders/' + orderId);
@@ -2797,6 +2859,14 @@ function sendDriverOffer() {
     
     ambilBtn.disabled = true;
     ambilBtn.textContent = 'Mengirim...';
+    
+    if (!firebaseAuthReady) {
+        console.log('⚠️ Firebase auth belum siap, tidak bisa kirim offer');
+        showPopup('Koneksi server belum siap. Silakan coba lagi.', 'Error', 'error');
+        ambilBtn.disabled = false;
+        ambilBtn.textContent = 'Kirim Penawaran';
+        return;
+    }
     
     const orderRef = database.ref('orders/' + orderId);
     orderRef.once('value').then((snapshot) => {
@@ -3034,6 +3104,11 @@ function checkActiveOrderForDriver() {
 
     console.log('🔍 Mengecek order berjalan untuk driver:', currentDriverData.driverId);
 
+    if (!firebaseAuthReady) {
+        console.log('⚠️ Firebase auth belum siap, tunggu...');
+        return;
+    }
+    
     const ordersRef = database.ref('orders');
     ordersRef.once('value').then(snapshot => {
         const orders = snapshot.val();
@@ -3091,6 +3166,11 @@ function startActiveOrderListener(orderId) {
     stopActiveOrderListener();
 
     console.log('👂 Mulai listen untuk order aktif:', orderId);
+    
+    if (!firebaseAuthReady) {
+        console.log('⚠️ Firebase auth belum siap, tidak bisa listen order aktif');
+        return;
+    }
     
     activeOrderListenerRef = database.ref('orders/' + orderId);
     activeOrderListener = activeOrderListenerRef.on('value', (snapshot) => {
@@ -3254,9 +3334,13 @@ function initJeGoApp() {
         loadFilterTujuanFromFirebase();
     }, 1500);
     
-    // Load orders
+    // Load orders - akan dipanggil setelah auth siap
     setTimeout(() => {
-        loadOrders();
+        if (firebaseAuthReady) {
+            loadOrders();
+        } else {
+            console.log('⚠️ Menunggu Firebase auth siap untuk load orders...');
+        }
     }, 500);
     
     // Setup sidebar navigation
@@ -3271,6 +3355,7 @@ function initJeGoApp() {
     }
     
     console.log('🔧 STATUS SISTEM FINAL:');
+    console.log('- Firebase Auth:', firebaseAuthReady ? '✅ Siap' : '❌ Belum siap');
     console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
@@ -3429,15 +3514,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const firebaseInitialized = initializeFirebase();
         
         if (firebaseInitialized) {
-            console.log('✅ Firebase siap, inisialisasi aplikasi...');
-            // Google Maps API akan memanggil initApp() saat siap
-            // initApp() akan memanggil initJeGoApp()
+            console.log('✅ Firebase diinisialisasi, tunggu auth siap...');
+            // initJeGoApp akan dipanggil setelah auth siap di onAuthStateChanged
         } else {
             console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
-            // Tunda inisialisasi
-            setTimeout(() => {
-                initJeGoApp();
-            }, 2000);
         }
     }, 500);
 });
