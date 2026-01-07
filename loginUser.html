@@ -1,429 +1,2485 @@
 <!DOCTYPE html>
+
 <html lang="id">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JeGo - Ojek Gorontalo</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  <meta charset="utf-8" />
+
+  <title>Login - JeGo (Integrated)</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  
+
+  <!-- Load Firebase SDK (Compat version like registrasi_jego.html) -->
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+
+
+  <script>
+
+    // ================================================
+
+    // KONFIGURASI
+
+    // ================================================
+
+    
+
+    // Firebase Configuration
+
+    const FIREBASE_CONFIG = {
+
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+
+      authDomain: "game-balap-simpel.firebaseapp.com",
+
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+
+      projectId: "game-balap-simpel",
+
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+
+      messagingSenderId: "864576853495",
+
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+
+      measurementId: "G-YWJPK7Y3J4"
+
+    };
+
+    
+
+    // ================================================
+
+    // VARIABEL GLOBAL
+
+    // ================================================
+
+    let firebaseApp = null;
+
+    let firebaseAuth = null;
+
+    let firebaseDatabase = null;
+
+    let recaptchaVerifier = null;
+
+    let confirmationResult = null;
+
+    let currentUser = null;
+
+    let otpTimer = null;
+
+    let otpCountdown = 60;
+
+    
+
+    // ================================================
+
+    // FUNGSI UTILITAS
+
+    // ================================================
+
+    
+
+    function showNotification(title, message, type = 'info') {
+
+      const notification = document.getElementById('notificationPopup');
+
+      const notificationTitle = document.getElementById('notificationTitle');
+
+      const notificationMessage = document.getElementById('notificationMessage');
+
+      
+
+      notificationTitle.textContent = title;
+
+      notificationMessage.textContent = message;
+
+      notification.className = `notification ${type}`;
+
+      notification.style.display = 'block';
+
+      
+
+      setTimeout(() => {
+
+        notification.style.display = 'none';
+
+      }, 5000);
+
+    }
+
+    
+
+    function showStatus(message, type) {
+
+      const statusElement = document.getElementById('statusMessage');
+
+      statusElement.textContent = message;
+
+      statusElement.className = 'status-message';
+
+      statusElement.classList.add(`status-${type}`);
+
+      statusElement.style.display = 'block';
+
+      
+
+      if (type === 'success') {
+
+        setTimeout(() => {
+
+          statusElement.style.display = 'none';
+
+        }, 5000);
+
+      }
+
+    }
+
+    
+
+    function showSmsStatus(message, type = 'sending') {
+
+      const smsStatus = document.getElementById('smsStatus');
+
+      smsStatus.textContent = message;
+
+      smsStatus.className = 'sms-status';
+
+      smsStatus.classList.add(type);
+
+      smsStatus.style.display = 'block';
+
+    }
+
+    
+
+    function hideSmsStatus() {
+
+      const smsStatus = document.getElementById('smsStatus');
+
+      smsStatus.style.display = 'none';
+
+    }
+
+    
+
+    function showProgress(percent) {
+
+      const progressContainer = document.getElementById('progressContainer');
+
+      const progressBar = document.getElementById('progressBar');
+
+      
+
+      progressContainer.style.display = 'block';
+
+      progressBar.style.width = percent + '%';
+
+    }
+
+    
+
+    function hideProgress() {
+
+      const progressContainer = document.getElementById('progressContainer');
+
+      progressContainer.style.display = 'none';
+
+    }
+
+    
+
+    function formatPhoneNumber(phone) {
+
+      let cleaned = phone.replace(/\D/g, '');
+
+      
+
+      console.log(' Pembersihan nomor:', phone, '', cleaned);
+
+      
+
+      // Handle berbagai format
+
+      if (cleaned.startsWith('0')) {
+
+        cleaned = '+62' + cleaned.substring(1);
+
+      } else if (cleaned.startsWith('62')) {
+
+        cleaned = '+' + cleaned;
+
+      } else if (!cleaned.startsWith('+')) {
+
+        cleaned = '+62' + cleaned;
+
+      }
+
+      
+
+      console.log(' Hasil format:', cleaned);
+
+      return cleaned;
+
+    }
+
+    
+
+    function validatePhoneFormat(phone) {
+
+      const phoneRegex = /^\+62[0-9]{9,12}$/;
+
+      return phoneRegex.test(phone);
+
+    }
+
+    
+
+    function setupOTPInput() {
+
+      const otpInput = document.getElementById('otpInput');
+
+      
+
+      otpInput.addEventListener('input', function(e) {
+
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+
+        
+
+        if (e.target.value.length > 6) {
+
+          e.target.value = e.target.value.substring(0, 6);
+
         }
 
-        body {
-            background: #f5f5f5;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        
+
+        if (e.target.value.length === 6) {
+
+          e.target.classList.add('filled');
+
+        } else {
+
+          e.target.classList.remove('filled');
+
         }
 
-        .container {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
+      });
+
+      
+
+      otpInput.addEventListener('paste', function(e) {
+
+        e.preventDefault();
+
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+
+        const numbersOnly = pastedText.replace(/[^0-9]/g, '');
+
+        
+
+        if (numbersOnly.length >= 6) {
+
+          e.target.value = numbersOnly.substring(0, 6);
+
+          e.target.classList.add('filled');
+
         }
 
-        .logo-container {
-            text-align: center;
-            margin-bottom: 30px;
+      });
+
+    }
+
+    
+
+    function getEnteredOTP() {
+
+      return document.getElementById('otpInput').value;
+
+    }
+
+    
+
+    function clearOTPInput() {
+
+      document.getElementById('otpInput').value = '';
+
+      document.getElementById('otpInput').classList.remove('filled');
+
+    }
+
+    
+
+    function startResendCountdown(seconds) {
+
+      const resendLink = document.getElementById('resendOtpLink');
+
+      const countdownText = document.getElementById('countdownText');
+
+      const countdownElement = document.getElementById('countdown');
+
+      
+
+      resendLink.classList.add('disabled');
+
+      countdownText.style.display = 'inline';
+
+      
+
+      let countdown = seconds;
+
+      countdownElement.textContent = countdown;
+
+      
+
+      const countdownInterval = setInterval(() => {
+
+        countdown--;
+
+        countdownElement.textContent = countdown;
+
+        
+
+        if (countdown <= 0) {
+
+          clearInterval(countdownInterval);
+
+          resendLink.classList.remove('disabled');
+
+          countdownText.style.display = 'none';
+
         }
 
-        .logo {
-            background: linear-gradient(135deg, #00C853, #64DD17);
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            padding: 15px 30px;
-            border-radius: 50px;
-            display: inline-block;
-            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.3);
-            letter-spacing: 1px;
+      }, 1000);
+
+    }
+
+    
+
+    // ================================================
+
+    // FIREBASE FUNCTIONS (100% CLIENT-SIDE)
+
+    // ================================================
+
+    
+
+    async function initializeFirebase() {
+
+      try {
+
+        console.log(' Menginisialisasi Firebase...');
+
+        
+
+        if (typeof firebase === 'undefined') {
+
+          throw new Error('Firebase SDK belum dimuat');
+
         }
 
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
+        
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+        // Initialize Firebase
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #666;
-            font-weight: 500;
-        }
+        firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
 
-        .form-control {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
+        firebaseAuth = firebase.auth();
 
-        .form-control:focus {
-            outline: none;
-            border-color: #00C853;
-        }
+        firebaseDatabase = firebase.database();
 
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-        }
+        
 
-        .btn-primary {
-            background: linear-gradient(135deg, #00C853, #64DD17);
-            color: white;
-        }
+        console.log(' Firebase diinisialisasi');
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 200, 83, 0.4);
-        }
+        return true;
 
-        .btn-secondary {
-            background: #757575;
-            color: white;
-        }
+      } catch (error) {
 
-        .btn-secondary:hover {
-            background: #616161;
-        }
+        console.error(' Error menginisialisasi Firebase:', error);
 
-        .btn-danger {
-            background: #ff4444;
-            color: white;
-        }
+        showNotification('Error', 'Gagal menginisialisasi Firebase. Silakan refresh halaman.', 'error');
 
-        .btn-danger:hover {
-            background: #cc0000;
-        }
+        return false;
 
-        .otp-container {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 20px 0;
-        }
+      }
 
-        .otp-input {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            background: #fafafa;
-        }
+    }
 
-        .otp-input:focus {
-            border-color: #00C853;
-            outline: none;
-        }
+    
 
-        .user-card {
-            background: linear-gradient(135deg, #f8f9fa, #ffffff);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 5px solid #00C853;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
+    function setupRecaptcha() {
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+      try {
 
-        .avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00C853, #64DD17);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 20px;
-        }
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
 
-        .user-details h3 {
-            color: #333;
-            margin-bottom: 5px;
-        }
+          'size': 'normal',
 
-        .user-details p {
-            color: #666;
-            font-size: 14px;
-            margin: 3px 0;
-        }
+          'callback': function(response) {
 
-        .rating {
-            color: #FF9800;
-            font-weight: bold;
-        }
+            console.log(' reCAPTCHA verified');
 
-        .perjalanan {
-            color: #2196F3;
-            font-weight: bold;
-        }
+          },
 
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 5px;
-        }
+          'expired-callback': function() {
 
-        .badge-active {
-            background: #C8E6C9;
-            color: #1B5E20;
-        }
+            console.log(' reCAPTCHA expired');
 
-        .badge-inactive {
-            background: #FFCDD2;
-            color: #B71C1C;
-        }
+            showNotification('Error', 'reCAPTCHA telah kadaluarsa. Silakan coba lagi.', 'error');
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
+          }
 
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-        }
+        });
 
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
+        
 
-        .tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
-            background: none;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #757575;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+        recaptchaVerifier.render();
 
-        .tab.active {
-            color: #00C853;
-            border-bottom: 3px solid #00C853;
-        }
+        console.log(' reCAPTCHA diatur');
 
-        .tab-content {
-            display: none;
-        }
+      } catch (error) {
 
-        .tab-content.active {
-            display: block;
-        }
+        console.error(' Error setting up reCAPTCHA:', error);
 
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
+        showNotification('Error', 'Gagal mengatur reCAPTCHA. Silakan refresh halaman.', 'error');
 
-        .error-message {
-            background: #FFEBEE;
-            color: #C62828;
-            padding: 10px;
-            border-radius: 10px;
-            margin: 10px 0;
-            display: none;
-        }
+      }
 
-        @media (max-width: 480px) {
-            .container {
-                padding: 10px;
-            }
+    }
+
+    
+
+    async function checkPhoneNumberInDatabase(phoneNumber) {
+
+      try {
+
+        console.log(' Mencari nomor di database:', phoneNumber);
+
+        
+
+        // METHOD 1: Coba query langsung ke users collection
+
+        try {
+
+          const snapshot = await firebaseDatabase.ref('users')
+
+            .orderByChild('phone')
+
+            .equalTo(phoneNumber)
+
+            .once('value');
+
+          
+
+          const data = snapshot.val();
+
+          
+
+          if (data) {
+
+            // Ambil user pertama yang ditemukan
+
+            const userId = Object.keys(data)[0];
+
+            const userData = data[userId];
+
             
-            .card {
-                padding: 20px;
-            }
-            
-            .logo {
-                font-size: 24px;
-                padding: 12px 24px;
-            }
+
+            console.log(' User ditemukan via query:', userId);
+
+            return {
+
+              exists: true,
+
+              user: userData,
+
+              userId: userId
+
+            };
+
+          }
+
+        } catch (queryError) {
+
+          console.log(' Query error, coba metode lain:', queryError.message);
+
         }
-    </style>
+
+        
+
+        // METHOD 2: Ambil semua user dan cari manual
+
+        console.log(' Fallback: manual search...');
+
+        const allUsersSnapshot = await firebaseDatabase.ref('users').once('value');
+
+        const allUsers = allUsersSnapshot.val();
+
+        
+
+        if (!allUsers) {
+
+          console.log(' Database users kosong');
+
+          return { exists: false, user: null, userId: null };
+
+        }
+
+        
+
+        console.log(` Total ${Object.keys(allUsers).length} user ditemukan`);
+
+        
+
+        // Cari dengan berbagai format nomor
+
+        const searchPatterns = [
+
+          phoneNumber, // Format asli (+62...)
+
+          phoneNumber.replace('+62', '0'), // 0823...
+
+          phoneNumber.replace('+62', '62'), // 62823...
+
+          '0' + phoneNumber.substring(3), // 0823... (alternatif)
+
+          '62' + phoneNumber.substring(3), // 62823... (alternatif)
+
+        ];
+
+        
+
+        for (const userId in allUsers) {
+
+          const user = allUsers[userId];
+
+          const dbPhone = user.phone || '';
+
+          
+
+          console.log(` Cek user ${userId}: ${dbPhone}`);
+
+          
+
+          // Cek exact match dengan berbagai pola
+
+          for (const pattern of searchPatterns) {
+
+            if (dbPhone === pattern) {
+
+              console.log(` Match ditemukan! Pattern: ${pattern}`);
+
+              return {
+
+                exists: true,
+
+                user: user,
+
+                userId: userId
+
+              };
+
+            }
+
+          }
+
+          
+
+          // Cek dengan trim whitespace
+
+          const trimmedDbPhone = dbPhone.trim();
+
+          const trimmedSearch = phoneNumber.trim();
+
+          
+
+          if (trimmedDbPhone && trimmedDbPhone === trimmedSearch) {
+
+            console.log(` Match setelah trim whitespace`);
+
+            return {
+
+              exists: true,
+
+              user: user,
+
+              userId: userId
+
+            };
+
+          }
+
+        }
+
+        
+
+        console.log(' Nomor tidak ditemukan di database');
+
+        return { exists: false, user: null, userId: null };
+
+        
+
+      } catch (error) {
+
+        console.error(' Error mencari nomor telepon:', error);
+
+        return {
+
+          exists: false,
+
+          error: error.message
+
+        };
+
+      }
+
+    }
+
+    
+
+    async function sendFirebaseOTP(phoneNumber) {
+
+      try {
+
+        showSmsStatus(' Mengirim OTP...', 'sending');
+
+        
+
+        if (!recaptchaVerifier) {
+
+          throw new Error('reCAPTCHA belum diatur');
+
+        }
+
+        
+
+        confirmationResult = await firebaseAuth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
+
+        
+
+        showSmsStatus(' OTP berhasil dikirim via SMS', 'success');
+
+        console.log(' Kode OTP dikirim via Firebase');
+
+        return true;
+
+      } catch (error) {
+
+        console.error(' Error sending OTP:', error);
+
+        
+
+        let errorMessage = 'Gagal mengirim kode OTP. ';
+
+        switch (error.code) {
+
+          case 'auth/invalid-phone-number':
+
+            errorMessage += 'Format nomor telepon tidak valid.';
+
+            break;
+
+          case 'auth/too-many-requests':
+
+            errorMessage += 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
+
+            break;
+
+          case 'auth/quota-exceeded':
+
+            errorMessage += 'Kuota SMS telah habis. Silakan hubungi administrator.';
+
+            break;
+
+          case 'auth/captcha-check-failed':
+
+            errorMessage += 'Verifikasi keamanan gagal. Silakan refresh halaman.';
+
+            break;
+
+          default:
+
+            errorMessage += error.message || 'Silakan coba lagi.';
+
+        }
+
+        
+
+        showSmsStatus(' ' + errorMessage, 'error');
+
+        return false;
+
+      }
+
+    }
+
+    
+
+    async function verifyFirebaseOTP(code) {
+
+      try {
+
+        showSmsStatus(' Memverifikasi OTP...', 'sending');
+
+        
+
+        if (!confirmationResult) {
+
+          throw new Error('Sesi OTP tidak valid. Silakan minta OTP baru.');
+
+        }
+
+        
+
+        const userCredential = await confirmationResult.confirm(code);
+
+        const user = userCredential.user;
+
+        
+
+        showSmsStatus(' OTP berhasil diverifikasi', 'success');
+
+        console.log(' OTP verified, user:', user.uid);
+
+        return user;
+
+      } catch (error) {
+
+        console.error(' Error verifying OTP:', error);
+
+        
+
+        let errorMessage = 'Gagal memverifikasi OTP. ';
+
+        switch (error.code) {
+
+          case 'auth/invalid-verification-code':
+
+            errorMessage += 'Kode OTP tidak valid.';
+
+            break;
+
+          case 'auth/code-expired':
+
+            errorMessage += 'Kode OTP telah kadaluarsa.';
+
+            break;
+
+          default:
+
+            errorMessage += error.message || 'Silakan coba lagi.';
+
+        }
+
+        
+
+        showSmsStatus(' ' + errorMessage, 'error');
+
+        return null;
+
+      }
+
+    }
+
+    
+
+    // ================================================
+
+    // EVENT HANDLERS
+
+    // ================================================
+
+    
+
+    async function handleLoginSubmit(e) {
+
+      e.preventDefault();
+
+      
+
+      const loginBtn = document.getElementById('loginBtn');
+
+      const telepon = document.getElementById('teleponInput').value.trim();
+
+      
+
+      console.log(' Input pengguna:', telepon);
+
+      
+
+      if (!telepon) {
+
+        showStatus('Harap masukkan nomor telepon.', 'error');
+
+        return;
+
+      }
+
+      
+
+      // Format nomor telepon
+
+      const formattedPhone = formatPhoneNumber(telepon);
+
+      
+
+      console.log(' Nomor setelah format:', formattedPhone);
+
+      console.log(' Validasi format:', validatePhoneFormat(formattedPhone));
+
+      
+
+      if (!validatePhoneFormat(formattedPhone)) {
+
+        showStatus('Format nomor telepon tidak valid. Gunakan format: 08123456789', 'error');
+
+        return;
+
+      }
+
+      
+
+      // Disable button
+
+      loginBtn.disabled = true;
+
+      loginBtn.classList.add('btn-loading');
+
+      loginBtn.textContent = 'Mengecek...';
+
+      showProgress(20);
+
+      
+
+      try {
+
+        // 1. Cek apakah nomor terdaftar di database
+
+        showProgress(40);
+
+        console.log(' Memulai pencarian di database...');
+
+        
+
+        const phoneInfo = await checkPhoneNumberInDatabase(formattedPhone);
+
+        
+
+        console.log(' Hasil pencarian:', phoneInfo);
+
+        
+
+        if (phoneInfo.exists) {
+
+          const userData = phoneInfo.user;
+
+          
+
+          console.log(' Data user ditemukan:', userData);
+
+          
+
+          // Cek status akun
+
+          const userStatus = userData.status || 'active';
+
+          
+
+          if (userStatus === 'blocked_permanent' || userStatus === 'banned') {
+
+            showStatus('Akun diblokir permanen. Tidak dapat login.', 'error');
+
+            return;
+
+          }
+
+          
+
+          if (userStatus === 'inactive') {
+
+            showStatus('Akun tidak aktif. Hubungi administrator.', 'error');
+
+            return;
+
+          }
+
+          
+
+          // Simpan data user sementara
+
+          currentUser = {
+
+            userId: phoneInfo.userId,
+
+            phone: formattedPhone,
+
+            userData: userData
+
+          };
+
+          
+
+          console.log(' Current user set:', currentUser);
+
+          
+
+          // 2. Kirim OTP
+
+          showProgress(60);
+
+          console.log(' Mengirim OTP...');
+
+          
+
+          const otpSent = await sendFirebaseOTP(formattedPhone);
+
+          
+
+          if (otpSent) {
+
+            // 3. Tampilkan OTP section
+
+            document.getElementById('loginForm').style.display = 'none';
+
+            document.getElementById('otpSection').style.display = 'block';
+
+            document.getElementById('otpInput').focus();
+
+            
+
+            startResendCountdown(60);
+
+            showProgress(100);
+
+            showNotification('OTP Dikirim', 'Kode OTP telah dikirim via SMS.', 'info');
+
+          }
+
+          
+
+        } else {
+
+          console.log(' Nomor tidak terdaftar');
+
+          showStatus('Nomor telepon tidak terdaftar.', 'error');
+
+          showNotification('Info', 'Nomor tidak terdaftar. Silakan daftar terlebih dahulu.', 'info');
+
+        }
+
+        
+
+      } catch (error) {
+
+        console.error('Login error:', error);
+
+        showStatus(`Error: ${error.message}`, 'error');
+
+      } finally {
+
+        setTimeout(() => {
+
+          loginBtn.disabled = false;
+
+          loginBtn.classList.remove('btn-loading');
+
+          loginBtn.textContent = 'Kirim Kode OTP';
+
+          hideProgress();
+
+        }, 1000);
+
+      }
+
+    }
+
+    
+
+    async function handleVerifyOtp() {
+
+      const verifyBtn = document.getElementById('verifyOtpBtn');
+
+      const enteredOtp = getEnteredOTP();
+
+      
+
+      if (enteredOtp.length !== 6) {
+
+        showStatus('Harap masukkan kode OTP 6 digit lengkap.', 'error');
+
+        return;
+
+      }
+
+      
+
+      if (!currentUser) {
+
+        showStatus('Sesi tidak valid.', 'error');
+
+        return;
+
+      }
+
+      
+
+      verifyBtn.disabled = true;
+
+      verifyBtn.classList.add('btn-loading');
+
+      verifyBtn.textContent = 'Memverifikasi...';
+
+      
+
+      try {
+
+        // 1. Verify OTP dengan Firebase
+
+        const firebaseUser = await verifyFirebaseOTP(enteredOtp);
+
+        
+
+        if (firebaseUser) {
+
+          // 2. AMBIL DATA USER DARI FIREBASE DATABASE
+
+          const userRef = firebaseDatabase.ref('users/' + firebaseUser.uid);
+
+          const snapshot = await userRef.once('value');
+
+          const dbUser = snapshot.val();
+
+          
+
+          if (!dbUser) {
+
+            showStatus('Data user tidak ditemukan.', 'error');
+
+            return;
+
+          }
+
+          
+
+          // 3. BUAT SESSION DENGAN STRUKTUR STANDAR
+
+          const sessionUser = {
+
+            userId: firebaseUser.uid,
+
+            uid: firebaseUser.uid,
+
+            name: dbUser.name || '',
+
+            phone: dbUser.phone || '',
+
+            email: dbUser.email || '',
+
+            gender: dbUser.gender || '',
+
+            address: dbUser.address || '',
+
+            status: dbUser.status || "active",
+
+            photoURL: dbUser.fotoProfilURL || "",
+
+            rating: dbUser.rating || 5,
+
+            perjalanan: dbUser.perjalanan || 0,
+
+            createdAt: dbUser.createdAt || new Date().toISOString()
+
+          };
+
+          
+
+          // 4. SIMPAN KE LOCALSTORAGE (KEY STANDAR)
+
+          localStorage.setItem('jego_logged_in_user', JSON.stringify(sessionUser));
+
+          
+
+          // 5. Tampilkan success
+
+          showStatus('Login berhasil! Mengalihkan...', 'success');
+
+          showNotification('Login Berhasil', 'Login berhasil!', 'success');
+
+          
+
+          // 6. Redirect ke halaman utama
+
+          setTimeout(() => {
+
+            window.location.href = 'jenis_kenderaan.html';
+
+          }, 1500);
+
+        }
+
+      } catch (error) {
+
+        console.error('Verify error:', error);
+
+        showStatus(`Gagal: ${error.message}`, 'error');
+
+        clearOTPInput();
+
+        document.getElementById('otpInput').focus();
+
+      } finally {
+
+        setTimeout(() => {
+
+          verifyBtn.disabled = false;
+
+          verifyBtn.classList.remove('btn-loading');
+
+          verifyBtn.textContent = 'Verifikasi OTP';
+
+        }, 1000);
+
+      }
+
+    }
+
+    
+
+    async function handleResendOtp() {
+
+      const resendLink = document.getElementById('resendOtpLink');
+
+      
+
+      if (resendLink.classList.contains('disabled')) {
+
+        return;
+
+      }
+
+      
+
+      if (!currentUser) {
+
+        showStatus('Sesi tidak valid.', 'error');
+
+        return;
+
+      }
+
+      
+
+      resendLink.classList.add('disabled');
+
+      showSmsStatus(' Mengirim ulang OTP...', 'sending');
+
+      
+
+      try {
+
+        await sendFirebaseOTP(currentUser.phone);
+
+        
+
+        showStatus('OTP baru telah dikirim.', 'info');
+
+        clearOTPInput();
+
+        document.getElementById('otpInput').focus();
+
+        startResendCountdown(60);
+
+        
+
+      } catch (error) {
+
+        console.error('Resend error:', error);
+
+        showStatus(`Gagal: ${error.message}`, 'error');
+
+        resendLink.classList.remove('disabled');
+
+      }
+
+    }
+
+    
+
+    async function checkExistingSession() {
+
+      // Cek localStorage dengan KEY STANDAR
+
+      const localUser = localStorage.getItem('jego_logged_in_user');
+
+      if (localUser) {
+
+        try {
+
+          const user = JSON.parse(localUser);
+
+          showStatus(`Selamat datang kembali, ${user.name}`, 'info');
+
+          
+
+          setTimeout(() => {
+
+            window.location.href = 'jenis_kenderaan.html';
+
+          }, 1500);
+
+          return true;
+
+        } catch (error) {
+
+          console.error('Error parsing user:', error);
+
+          // Hapus session yang corrupt
+
+          localStorage.removeItem('jego_logged_in_user');
+
+        }
+
+      }
+
+      
+
+      return false;
+
+    }
+
+    
+
+    function setupAuthListener() {
+
+      firebaseAuth.onAuthStateChanged((user) => {
+
+        if (user) {
+
+          console.log(' User already logged in via Firebase Auth:', user.uid);
+
+        }
+
+      });
+
+    }
+
+
+
+    // Fungsi debug untuk cek struktur database
+
+    window.debugDatabase = async function() {
+
+      console.log(' DEBUG MODE - Database Check');
+
+      
+
+      try {
+
+        // Cek apakah bisa akses users
+
+        const snapshot = await firebaseDatabase.ref('users').once('value');
+
+        const users = snapshot.val();
+
+        
+
+        if (!users) {
+
+          console.log(' Database users kosong');
+
+          return;
+
+        }
+
+        
+
+        console.log(` Total users: ${Object.keys(users).length}`);
+
+        
+
+        // Tampilkan semua user dengan nomor telepon
+
+        console.log(' Daftar semua user:');
+
+        for (const uid in users) {
+
+          const user = users[uid];
+
+          console.log(`  ${uid}:`);
+
+          console.log(`    Nama: ${user.name || '(no name)'}`);
+
+          console.log(`    Phone: ${user.phone || '(no phone)'}`);
+
+          console.log(`    Status: ${user.status || 'active'}`);
+
+          console.log('---');
+
+        }
+
+        
+
+        // Cari spesifik untuk nomor +6282311640444
+
+        console.log(' Mencari spesifik +6282311640444...');
+
+        let found = false;
+
+        for (const uid in users) {
+
+          if (users[uid].phone === "+6282311640444") {
+
+            console.log(` DITEMUKAN di UID: ${uid}`);
+
+            console.log('User data:', users[uid]);
+
+            found = true;
+
+          }
+
+        }
+
+        
+
+        if (!found) {
+
+          console.log(' Nomor +6282311640444 TIDAK ditemukan');
+
+          console.log('Mungkin ada perbedaan format:');
+
+          for (const uid in users) {
+
+            const phone = users[uid].phone;
+
+            if (phone && phone.includes("82311640444")) {
+
+              console.log(`  Mungkin ini: ${phone} (UID: ${uid})`);
+
+            }
+
+          }
+
+        }
+
+        
+
+      } catch (error) {
+
+        console.error(' Debug error:', error);
+
+      }
+
+    };
+
+    
+
+    // ================================================
+
+    // INITIALIZATION
+
+    // ================================================
+
+    
+
+    document.addEventListener('DOMContentLoaded', async () => {
+
+      console.log(' DOM fully loaded, initializing...');
+
+      
+
+      setupOTPInput();
+
+      
+
+      // Initialize Firebase
+
+      const firebaseReady = await initializeFirebase();
+
+      
+
+      if (firebaseReady) {
+
+        console.log(' Firebase ready, setting up reCAPTCHA...');
+
+        setupAuthListener();
+
+        
+
+        // Setup reCAPTCHA dengan delay untuk memastikan library siap
+
+        setTimeout(() => {
+
+          setupRecaptcha();
+
+        }, 1000);
+
+      }
+
+      
+
+      // Event Listeners
+
+      document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
+
+      document.getElementById('verifyOtpBtn').addEventListener('click', handleVerifyOtp);
+
+      document.getElementById('resendOtpLink').addEventListener('click', handleResendOtp);
+
+      document.getElementById('registerBtn').addEventListener('click', () => {
+
+        window.location.href = 'registrasi_jego.html';
+
+      });
+
+      
+
+      // Enter key support
+
+      document.getElementById('teleponInput').addEventListener('keypress', (e) => {
+
+        if (e.key === 'Enter') {
+
+          document.getElementById('loginBtn').click();
+
+        }
+
+      });
+
+      
+
+      document.getElementById('otpInput').addEventListener('keypress', (e) => {
+
+        if (e.key === 'Enter') {
+
+          document.getElementById('verifyOtpBtn').click();
+
+        }
+
+      });
+
+      
+
+      // Auto-focus
+
+      document.getElementById('teleponInput').focus();
+
+      
+
+      // Check if already logged in
+
+      checkExistingSession();
+
+    });
+
+  </script>
+
+
+
+  <style>
+
+    /* STYLE CSS YANG SAMA DENGAN SEBELUMNYA */
+
+    :root {
+
+      --primary: #1e6f5c;
+
+      --secondary: #289672;
+
+      --accent: #e6dd3b;
+
+      --light: #f8f9fa;
+
+      --dark: #343a40;
+
+      --success: #28a745;
+
+      --danger: #dc3545;
+
+      --warning: #ffc107;
+
+      --info: #17a2b8;
+
+    }
+
+
+
+    * {
+
+      box-sizing: border-box;
+
+      margin: 0;
+
+      padding: 0;
+
+    }
+
+
+
+    body {
+
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+      background-color: #f5f5f5;
+
+      color: #333;
+
+      line-height: 1.4;
+
+      font-size: 0.85rem;
+
+    }
+
+
+
+    /* Header Styles */
+
+    .header {
+
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+
+      color: white;
+
+      padding: 15px 20px;
+
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      position: sticky;
+
+      top: 0;
+
+      z-index: 100;
+
+    }
+
+
+
+    .logo-container {
+
+      display: flex;
+
+      align-items: center;
+
+    }
+
+
+
+    .logo {
+
+      width: 40px;
+
+      height: 40px;
+
+      background-color: var(--accent);
+
+      border-radius: 50%;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      margin-right: 10px;
+
+      font-weight: bold;
+
+      font-size: 16px;
+
+      color: var(--primary);
+
+    }
+
+
+
+    .header-title {
+
+      font-size: 1.2rem;
+
+      font-weight: 600;
+
+    }
+
+
+
+    /* Container Styles */
+
+    .container {
+
+      max-width: 100%;
+
+      padding: 15px;
+
+    }
+
+
+
+    .form-container {
+
+      background: white;
+
+      border-radius: 8px;
+
+      padding: 20px;
+
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+
+      max-width: 500px;
+
+      margin: 0 auto;
+
+    }
+
+
+
+    .form-title {
+
+      font-size: 1.5rem;
+
+      font-weight: 600;
+
+      color: var(--primary);
+
+      margin-bottom: 20px;
+
+      text-align: center;
+
+    }
+
+
+
+    .form-group {
+
+      margin-bottom: 15px;
+
+    }
+
+
+
+    .form-label {
+
+      display: block;
+
+      margin-bottom: 5px;
+
+      font-weight: 600;
+
+      color: var(--dark);
+
+      font-size: 0.9rem;
+
+    }
+
+
+
+    .form-input {
+
+      width: 100%;
+
+      padding: 10px 12px;
+
+      border: 1px solid #ddd;
+
+      border-radius: 6px;
+
+      font-size: 0.9rem;
+
+      transition: border-color 0.3s;
+
+    }
+
+
+
+    .form-input:focus {
+
+      outline: none;
+
+      border-color: var(--primary);
+
+      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.1);
+
+    }
+
+
+
+    .submit-btn {
+
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+
+      color: white;
+
+      border: none;
+
+      border-radius: 8px;
+
+      padding: 12px 25px;
+
+      font-size: 1rem;
+
+      font-weight: 600;
+
+      cursor: pointer;
+
+      transition: all 0.3s;
+
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+
+      width: 100%;
+
+    }
+
+
+
+    .submit-btn:hover:not(:disabled) {
+
+      transform: translateY(-2px);
+
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+
+    }
+
+
+
+    .submit-btn:disabled {
+
+      background: #cccccc;
+
+      cursor: not-allowed;
+
+      transform: none;
+
+      box-shadow: none;
+
+    }
+
+
+
+    .secondary-btn {
+
+      background: transparent;
+
+      color: var(--primary);
+
+      border: 1px solid var(--primary);
+
+      border-radius: 8px;
+
+      padding: 12px 25px;
+
+      font-size: 1rem;
+
+      font-weight: 600;
+
+      cursor: pointer;
+
+      transition: all 0.3s;
+
+      width: 100%;
+
+      margin-top: 10px;
+
+    }
+
+
+
+    .secondary-btn:hover {
+
+      background: rgba(30, 111, 92, 0.05);
+
+    }
+
+
+
+    /* Status Messages */
+
+    .status-message {
+
+      padding: 12px;
+
+      border-radius: 6px;
+
+      margin-bottom: 15px;
+
+      display: none;
+
+    }
+
+
+
+    .status-success {
+
+      background-color: #d4edda;
+
+      color: #155724;
+
+      border: 1px solid #c3e6cb;
+
+    }
+
+
+
+    .status-error {
+
+      background-color: #f8d7da;
+
+      color: #721c24;
+
+      border: 1px solid #f5c6cb;
+
+    }
+
+
+
+    .status-info {
+
+      background-color: #d1ecf1;
+
+      color: #0c5460;
+
+      border: 1px solid #bee5eb;
+
+    }
+
+
+
+    /* OTP Section */
+
+    .otp-section {
+
+      display: none;
+
+      margin-top: 20px;
+
+      padding-top: 20px;
+
+      border-top: 1px solid #eee;
+
+    }
+
+
+
+    .otp-title {
+
+      font-size: 1.2rem;
+
+      font-weight: 600;
+
+      color: var(--primary);
+
+      margin-bottom: 15px;
+
+      text-align: center;
+
+    }
+
+
+
+    .otp-info {
+
+      margin-bottom: 20px;
+
+      font-size: 0.9rem;
+
+      text-align: center;
+
+      color: #666;
+
+    }
+
+
+
+    /* SINGLE OTP INPUT */
+
+    .otp-single-input {
+
+      width: 100%;
+
+      padding: 15px;
+
+      text-align: center;
+
+      font-size: 1.8rem;
+
+      font-weight: bold;
+
+      letter-spacing: 10px;
+
+      border: 2px solid #ddd;
+
+      border-radius: 8px;
+
+      transition: all 0.3s;
+
+      font-family: 'Courier New', monospace;
+
+    }
+
+
+
+    .otp-single-input:focus {
+
+      border-color: var(--primary);
+
+      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.2);
+
+      outline: none;
+
+    }
+
+
+
+    .otp-single-input.filled {
+
+      border-color: var(--primary);
+
+      background-color: #f8fff9;
+
+    }
+
+
+
+    .resend-otp {
+
+      text-align: center;
+
+      margin-top: 15px;
+
+      font-size: 0.85rem;
+
+    }
+
+
+
+    .resend-link {
+
+      color: var(--primary);
+
+      cursor: pointer;
+
+      text-decoration: underline;
+
+    }
+
+
+
+    .resend-link:hover {
+
+      color: var(--secondary);
+
+    }
+
+
+
+    .resend-link.disabled {
+
+      color: #999;
+
+      cursor: not-allowed;
+
+      text-decoration: none;
+
+    }
+
+
+
+    /* Badge Lokal */
+
+    .local-badge {
+
+      display: inline-block;
+
+      background-color: var(--accent);
+
+      color: var(--dark);
+
+      padding: 5px 15px;
+
+      border-radius: 20px;
+
+      font-weight: bold;
+
+      margin-top: 10px;
+
+      font-size: 0.8rem;
+
+      text-align: center;
+
+      width: 100%;
+
+    }
+
+
+
+    .app-info {
+
+      text-align: center;
+
+      margin: 15px 0;
+
+      font-size: 0.85rem;
+
+      color: var(--dark);
+
+      opacity: 0.8;
+
+    }
+
+
+
+    /* Loading State */
+
+    .btn-loading {
+
+      position: relative;
+
+      color: transparent !important;
+
+    }
+
+
+
+    .btn-loading::after {
+
+      content: "";
+
+      position: absolute;
+
+      top: 50%;
+
+      left: 50%;
+
+      width: 20px;
+
+      height: 20px;
+
+      margin-top: -10px;
+
+      margin-left: -10px;
+
+      border: 2px solid rgba(255, 255, 255, 0.3);
+
+      border-top-color: white;
+
+      border-radius: 50%;
+
+      animation: spin 1s linear infinite;
+
+    }
+
+
+
+    @keyframes spin {
+
+      to { transform: rotate(360deg); }
+
+    }
+
+
+
+    /* Progress Bar */
+
+    .progress-container {
+
+      height: 4px;
+
+      background-color: #e0e0e0;
+
+      border-radius: 2px;
+
+      margin: 10px 0;
+
+      overflow: hidden;
+
+      display: none;
+
+    }
+
+
+
+    .progress-bar {
+
+      height: 100%;
+
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+
+      width: 0%;
+
+      transition: width 0.3s ease;
+
+    }
+
+
+
+    /* Notification Popup */
+
+    .notification {
+
+      position: fixed;
+
+      top: 20px;
+
+      right: 20px;
+
+      background: white;
+
+      padding: 15px 20px;
+
+      border-radius: 8px;
+
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+      border-left: 4px solid var(--primary);
+
+      z-index: 1000;
+
+      display: none;
+
+      max-width: 300px;
+
+    }
+
+
+
+    .notification.success {
+
+      border-left-color: var(--success);
+
+    }
+
+
+
+    .notification.error {
+
+      border-left-color: var(--danger);
+
+    }
+
+
+
+    .notification.info {
+
+      border-left-color: var(--primary);
+
+    }
+
+
+
+    .notification-title {
+
+      font-weight: 600;
+
+      margin-bottom: 5px;
+
+    }
+
+
+
+    .notification-message {
+
+      font-size: 0.85rem;
+
+      color: #666;
+
+    }
+
+
+
+    /* SMS Status Indicator */
+
+    .sms-status {
+
+      padding: 10px;
+
+      border-radius: 6px;
+
+      margin-bottom: 15px;
+
+      text-align: center;
+
+      font-size: 0.9rem;
+
+      display: none;
+
+    }
+
+
+
+    .sms-status.success {
+
+      background-color: #e8f5e9;
+
+      color: #2e7d32;
+
+      border: 1px solid #c8e6c9;
+
+    }
+
+
+
+    .sms-status.error {
+
+      background-color: #ffebee;
+
+      color: #c62828;
+
+      border: 1px solid #ffcdd2;
+
+    }
+
+
+
+    .sms-status.sending {
+
+      background-color: #e3f2fd;
+
+      color: #1565c0;
+
+      border: 1px solid #bbdefb;
+
+    }
+
+
+
+    /* Recaptcha Container */
+
+    #recaptcha-container {
+
+      margin: 20px 0;
+
+      display: flex;
+
+      justify-content: center;
+
+      min-height: 80px;
+
+    }
+
+
+
+    /* Responsive */
+
+    @media (max-width: 768px) {
+
+      .header-title {
+
+        font-size: 1rem;
+
+      }
+
+      
+
+      body {
+
+        font-size: 0.8rem;
+
+      }
+
+      
+
+      .form-container {
+
+        padding: 15px;
+
+      }
+
+      
+
+      .otp-single-input {
+
+        font-size: 1.5rem;
+
+        letter-spacing: 8px;
+
+        padding: 12px;
+
+      }
+
+    }
+
+  </style>
+
 </head>
+
 <body>
-    <div class="container">
-        <!-- Logo Header -->
-        <div class="logo-container">
-            <div class="logo">JeGo</div>
-            <p style="color: #666; margin-top: 10px;">Ojek Gorontalo</p>
-        </div>
 
-        <!-- Login Card -->
-        <div class="card" id="loginCard">
-            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">Masuk ke JeGo</h2>
-            
-            <div class="error-message" id="errorMessage"></div>
-            
-            <!-- Nomor Telepon -->
-            <div class="form-group">
-                <label for="phoneNumber">Nomor Telepon</label>
-                <input type="tel" id="phoneNumber" class="form-control" placeholder="+628xxxxxxxxxx">
-            </div>
+  <!-- Header -->
 
-            <!-- OTP Input (Hidden Initially) -->
-            <div id="otpSection" style="display: none;">
-                <div class="form-group">
-                    <label>Kode OTP</label>
-                    <div class="otp-container">
-                        <input type="text" class="otp-input" maxlength="1" data-index="1">
-                        <input type="text" class="otp-input" maxlength="1" data-index="2">
-                        <input type="text" class="otp-input" maxlength="1" data-index="3">
-                        <input type="text" class="otp-input" maxlength="1" data-index="4">
-                        <input type="text" class="otp-input" maxlength="1" data-index="5">
-                        <input type="text" class="otp-input" maxlength="1" data-index="6">
-                    </div>
-                    <p style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
-                        Kode OTP telah dikirim via SMS
-                    </p>
-                </div>
-            </div>
+  <div class="header">
 
-            <!-- Submit Button -->
-            <button id="submitBtn" class="btn btn-primary">
-                Dapatkan Kode OTP
-            </button>
+    <div class="logo-container">
 
-            <!-- Resend OTP -->
-            <div id="resendSection" style="display: none; text-align: center; margin-top: 15px;">
-                <p style="color: #666;">Tidak menerima kode? <a href="#" id="resendBtn" style="color: #00C853;">Kirim ulang</a></p>
-            </div>
-        </div>
+      <div class="logo">JG</div>
 
-        <!-- User Dashboard (Hidden Initially) -->
-        <div class="card" id="dashboard" style="display: none;">
-            <div class="tab-container">
-                <button class="tab active" data-tab="profile">Profil</button>
-                <button class="tab" data-tab="users">Pengguna</button>
-            </div>
+      <div class="header-title">JeGo</div>
 
-            <!-- Profile Tab -->
-            <div id="profileTab" class="tab-content active">
-                <div class="user-card">
-                    <div class="user-info">
-                        <div class="avatar" id="avatarInitial">J</div>
-                        <div class="user-details">
-                            <h3 id="userName">Loading...</h3>
-                            <p id="userPhone">+62...</p>
-                            <p>Perjalanan: <span class="perjalanan" id="userPerjalanan">0</span></p>
-                            <p>Rating: <span class="rating" id="userRating">5.0</span> ⭐</p>
-                            <span class="badge badge-active" id="userStatus">Aktif</span>
-                        </div>
-                    </div>
-                </div>
-
-                <button id="editProfileBtn" class="btn btn-secondary" style="margin-top: 15px;">
-                    Edit Profil
-                </button>
-                <button id="logoutBtn" class="btn btn-danger" style="margin-top: 10px;">
-                    Keluar
-                </button>
-            </div>
-
-            <!-- Users Tab -->
-            <div id="usersTab" class="tab-content">
-                <div id="usersList">
-                    <div class="loading">Memuat data pengguna...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Edit Profile Modal -->
-        <div class="modal" id="editModal">
-            <div class="modal-content">
-                <h3 style="margin-bottom: 20px; color: #333;">Edit Profil</h3>
-                
-                <div class="form-group">
-                    <label for="editName">Nama Lengkap</label>
-                    <input type="text" id="editName" class="form-control">
-                </div>
-
-                <div class="form-group">
-                    <label for="editAddress">Alamat</label>
-                    <textarea id="editAddress" class="form-control" rows="3"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Jenis Kelamin</label>
-                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                        <label style="display: flex; align-items: center;">
-                            <input type="radio" name="gender" value="Laki-laki" style="margin-right: 5px;">
-                            Laki-laki
-                        </label>
-                        <label style="display: flex; align-items: center;">
-                            <input type="radio" name="gender" value="Perempuan" style="margin-right: 5px;">
-                            Perempuan
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="editStatus">Status</label>
-                    <select id="editStatus" class="form-control">
-                        <option value="Aktif">Aktif</option>
-                        <option value="Tidak Aktif">Tidak Aktif</option>
-                        <option value="Dalam Perjalanan">Dalam Perjalanan</option>
-                    </select>
-                </div>
-
-                <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 20px;">
-                    Simpan Perubahan
-                </button>
-                <button id="cancelEditBtn" class="btn btn-secondary" style="margin-top: 10px;">
-                    Batal
-                </button>
-            </div>
-        </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+  </div>
+
+
+
+  <!-- Container -->
+
+  <div class="container">
+
+    <div class="form-container">
+
+      <h1 class="form-title">Login User</h1>
+
+      <div class="local-badge">100% CLIENT-SIDE DENGAN FIREBASE</div>
+
+      <div class="app-info">
+
+        JeGo - Jasa Ekspedisi Gorontalo
+
+      </div>
+
+      
+
+      <!-- SMS Status Indicator -->
+
+      <div class="sms-status" id="smsStatus"></div>
+
+      
+
+      <!-- Status Message -->
+
+      <div class="status-message" id="statusMessage"></div>
+
+      
+
+      <!-- Recaptcha Container -->
+
+      <div id="recaptcha-container"></div>
+
+      
+
+      <!-- Progress Bar -->
+
+      <div class="progress-container" id="progressContainer">
+
+        <div class="progress-bar" id="progressBar"></div>
+
+      </div>
+
+      
+
+      <!-- Form Login -->
+
+      <form id="loginForm">
+
+        <div class="form-group">
+
+          <label class="form-label" for="teleponInput">Nomor Telepon *</label>
+
+          <input type="tel" class="form-input" id="teleponInput" placeholder="Contoh: 08123456789" required inputmode="numeric" pattern="[0-9]*">
+
+          <small style="color: #666; font-size: 0.8rem; margin-top: 5px; display: block;">
+
+            Pastikan nomor aktif dan dapat menerima SMS
+
+          </small>
+
+        </div>
+
+        
+
+        <button type="submit" class="submit-btn" id="loginBtn">Kirim Kode OTP</button>
+
+        
+
+        <button type="button" class="secondary-btn" id="registerBtn">Belum punya akun? Daftar Sekarang</button>
+
+      </form>
+
+      
+
+      <!-- OTP Verification Section -->
+
+      <div class="otp-section" id="otpSection">
+
+        <h2 class="otp-title">Verifikasi OTP</h2>
+
+        
+
+        <div class="otp-info">
+
+          <p>Kode OTP telah dikirim via SMS ke nomor Anda.</p>
+
+          <p>Masukkan kode OTP 6 digit untuk melanjutkan.</p>
+
+        </div>
+
+        
+
+        <!-- SINGLE OTP INPUT -->
+
+        <input type="text" 
+
+               class="otp-single-input" 
+
+               id="otpInput" 
+
+               maxlength="6" 
+
+               inputmode="numeric" 
+
+               pattern="[0-9]*" 
+
+               placeholder="000000"
+
+               autocomplete="one-time-code">
+
+        
+
+        <button type="button" class="submit-btn" id="verifyOtpBtn">Verifikasi OTP</button>
+
+        
+
+        <div class="resend-otp">
+
+          <span id="resendText">Tidak menerima kode? </span>
+
+          <span class="resend-link" id="resendOtpLink">Kirim ulang OTP</span>
+
+          <span id="countdownText" style="display: none;"> (Tunggu <span id="countdown">60</span> detik)</span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Notification Popup -->
+
+  <div class="notification" id="notificationPopup">
+
+    <div class="notification-title" id="notificationTitle">Informasi</div>
+
+    <div class="notification-message" id="notificationMessage"></div>
+
+  </div>
+
 </body>
+
 </html>
