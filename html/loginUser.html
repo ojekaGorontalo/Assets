@@ -3,325 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="JeGo - Ojek Gorontalo, aplikasi ojek online dengan login OTP SMS">
     <title>JeGo - Ojek Gorontalo</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: #f5f5f5;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-        }
-
-        .logo-container {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo {
-            background: linear-gradient(135deg, #00C853, #64DD17);
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            padding: 15px 30px;
-            border-radius: 50px;
-            display: inline-block;
-            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.3);
-            letter-spacing: 1px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #00C853;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #00C853, #64DD17);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 200, 83, 0.4);
-        }
-
-        .btn-secondary {
-            background: #757575;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #616161;
-        }
-
-        .btn-danger {
-            background: #ff4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #cc0000;
-        }
-
-        .otp-container {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-
-        .otp-input {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            background: #fafafa;
-        }
-
-        .otp-input:focus {
-            border-color: #00C853;
-            outline: none;
-        }
-
-        .user-card {
-            background: linear-gradient(135deg, #f8f9fa, #ffffff);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 5px solid #00C853;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00C853, #64DD17);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 20px;
-        }
-
-        .user-details h3 {
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .user-details p {
-            color: #666;
-            font-size: 14px;
-            margin: 3px 0;
-        }
-
-        .rating {
-            color: #FF9800;
-            font-weight: bold;
-        }
-
-        .perjalanan {
-            color: #2196F3;
-            font-weight: bold;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-top: 5px;
-        }
-
-        .badge-active {
-            background: #C8E6C9;
-            color: #1B5E20;
-        }
-
-        .badge-inactive {
-            background: #FFCDD2;
-            color: #B71C1C;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
-            background: none;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #757575;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            color: #00C853;
-            border-bottom: 3px solid #00C853;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        .error-message {
-            background: #FFEBEE;
-            color: #C62828;
-            padding: 10px;
-            border-radius: 10px;
-            margin: 10px 0;
-            display: none;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .logo {
-                font-size: 24px;
-                padding: 12px 24px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/loginuser.css">
+    <!-- Firebase CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Logo Header -->
         <div class="logo-container">
-            <div class="logo">JeGo</div>
-            <p style="color: #666; margin-top: 10px;">Ojek Gorontalo</p>
+            <div class="logo">
+                <span class="logo-text">Je</span>
+                <span class="logo-text-go">Go</span>
+            </div>
+            <p class="logo-subtitle">Ojek Gorontalo</p>
         </div>
 
         <!-- Login Card -->
         <div class="card" id="loginCard">
-            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">Masuk ke JeGo</h2>
+            <h2 class="card-title">Masuk ke JeGo</h2>
             
             <div class="error-message" id="errorMessage"></div>
             
-            <!-- Nomor Telepon -->
+            <!-- Phone Number Input -->
             <div class="form-group">
-                <label for="phoneNumber">Nomor Telepon</label>
-                <input type="tel" id="phoneNumber" class="form-control" placeholder="+628xxxxxxxxxx">
+                <label for="phoneNumber" class="form-label">
+                    <span class="icon">📱</span> Nomor Telepon
+                </label>
+                <input type="tel" id="phoneNumber" class="form-control" 
+                       placeholder="081234567890" pattern="[0-9]{10,13}">
+                <small class="form-hint">Contoh: 081234567890</small>
             </div>
 
             <!-- OTP Input (Hidden Initially) -->
-            <div id="otpSection" style="display: none;">
+            <div id="otpSection" class="hidden">
                 <div class="form-group">
-                    <label>Kode OTP</label>
+                    <label class="form-label">
+                        <span class="icon">🔒</span> Kode OTP
+                    </label>
                     <div class="otp-container">
-                        <input type="text" class="otp-input" maxlength="1" data-index="1">
-                        <input type="text" class="otp-input" maxlength="1" data-index="2">
-                        <input type="text" class="otp-input" maxlength="1" data-index="3">
-                        <input type="text" class="otp-input" maxlength="1" data-index="4">
-                        <input type="text" class="otp-input" maxlength="1" data-index="5">
-                        <input type="text" class="otp-input" maxlength="1" data-index="6">
+                        <input type="text" class="otp-input" maxlength="1" data-index="1" inputmode="numeric">
+                        <input type="text" class="otp-input" maxlength="1" data-index="2" inputmode="numeric">
+                        <input type="text" class="otp-input" maxlength="1" data-index="3" inputmode="numeric">
+                        <input type="text" class="otp-input" maxlength="1" data-index="4" inputmode="numeric">
+                        <input type="text" class="otp-input" maxlength="1" data-index="5" inputmode="numeric">
+                        <input type="text" class="otp-input" maxlength="1" data-index="6" inputmode="numeric">
                     </div>
-                    <p style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
+                    <p class="otp-hint">
                         Kode OTP telah dikirim via SMS
                     </p>
                 </div>
@@ -329,49 +60,150 @@
 
             <!-- Submit Button -->
             <button id="submitBtn" class="btn btn-primary">
-                Dapatkan Kode OTP
+                <span class="btn-text">Dapatkan Kode OTP</span>
+                <span class="btn-icon">→</span>
             </button>
 
             <!-- Resend OTP -->
-            <div id="resendSection" style="display: none; text-align: center; margin-top: 15px;">
-                <p style="color: #666;">Tidak menerima kode? <a href="#" id="resendBtn" style="color: #00C853;">Kirim ulang</a></p>
+            <div id="resendSection" class="hidden">
+                <p class="resend-text">
+                    Tidak menerima kode? 
+                    <a href="#" id="resendBtn" class="resend-link">Kirim ulang</a>
+                </p>
+                <p class="timer" id="timer">(60)</p>
             </div>
         </div>
 
-        <!-- User Dashboard (Hidden Initially) -->
-        <div class="card" id="dashboard" style="display: none;">
-            <div class="tab-container">
-                <button class="tab active" data-tab="profile">Profil</button>
-                <button class="tab" data-tab="users">Pengguna</button>
+        <!-- Dashboard (Hidden Initially) -->
+        <div class="card hidden" id="dashboard">
+            <!-- User Profile Header -->
+            <div class="profile-header">
+                <div class="avatar-large" id="avatarInitial">J</div>
+                <div class="profile-info">
+                    <h2 id="userName" class="profile-name">Pengguna JeGo</h2>
+                    <p id="userPhone" class="profile-phone">+62...</p>
+                    <div class="profile-stats">
+                        <span class="stat">
+                            <span class="stat-icon">🚗</span>
+                            <span class="stat-value" id="userPerjalanan">0</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-icon">⭐</span>
+                            <span class="stat-value" id="userRating">5.0</span>
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Profile Tab -->
+            <!-- Tab Navigation -->
+            <div class="tab-container">
+                <button class="tab active" data-tab="profile">
+                    <span class="tab-icon">👤</span>
+                    <span class="tab-text">Profil</span>
+                </button>
+                <button class="tab" data-tab="settings">
+                    <span class="tab-icon">⚙️</span>
+                    <span class="tab-text">Pengaturan</span>
+                </button>
+                <button class="tab" data-tab="history">
+                    <span class="tab-icon">📋</span>
+                    <span class="tab-text">Riwayat</span>
+                </button>
+            </div>
+
+            <!-- Profile Tab Content -->
             <div id="profileTab" class="tab-content active">
-                <div class="user-card">
-                    <div class="user-info">
-                        <div class="avatar" id="avatarInitial">J</div>
-                        <div class="user-details">
-                            <h3 id="userName">Loading...</h3>
-                            <p id="userPhone">+62...</p>
-                            <p>Perjalanan: <span class="perjalanan" id="userPerjalanan">0</span></p>
-                            <p>Rating: <span class="rating" id="userRating">5.0</span> ⭐</p>
-                            <span class="badge badge-active" id="userStatus">Aktif</span>
-                        </div>
+                <div class="info-card">
+                    <h3 class="info-title">Informasi Pribadi</h3>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Nama Lengkap</span>
+                        <span id="infoName" class="info-value">Loading...</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Alamat</span>
+                        <span id="infoAddress" class="info-value">Loading...</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Jenis Kelamin</span>
+                        <span id="infoGender" class="info-value">Loading...</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Status</span>
+                        <span id="infoStatus" class="info-value badge badge-active">Aktif</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Terdaftar Sejak</span>
+                        <span id="infoCreatedAt" class="info-value">Loading...</span>
                     </div>
                 </div>
 
-                <button id="editProfileBtn" class="btn btn-secondary" style="margin-top: 15px;">
-                    Edit Profil
-                </button>
-                <button id="logoutBtn" class="btn btn-danger" style="margin-top: 10px;">
-                    Keluar
-                </button>
+                <div class="action-buttons">
+                    <button id="editProfileBtn" class="btn btn-secondary">
+                        <span class="btn-icon">✏️</span>
+                        <span class="btn-text">Edit Profil</span>
+                    </button>
+                    <button id="logoutBtn" class="btn btn-danger">
+                        <span class="btn-icon">🚪</span>
+                        <span class="btn-text">Keluar</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Users Tab -->
-            <div id="usersTab" class="tab-content">
-                <div id="usersList">
-                    <div class="loading">Memuat data pengguna...</div>
+            <!-- Settings Tab Content -->
+            <div id="settingsTab" class="tab-content">
+                <div class="info-card">
+                    <h3 class="info-title">Pengaturan Akun</h3>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label">Notifikasi</span>
+                        <label class="switch">
+                            <input type="checkbox" id="notifToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label">Tema Gelap</span>
+                        <label class="switch">
+                            <input type="checkbox" id="darkModeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label">Bahasa</span>
+                        <select class="form-control" id="languageSelect">
+                            <option value="id">Bahasa Indonesia</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label">Versi Aplikasi</span>
+                        <span class="setting-value">v1.0.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab Content -->
+            <div id="historyTab" class="tab-content">
+                <div class="info-card">
+                    <h3 class="info-title">Riwayat Perjalanan</h3>
+                    
+                    <div class="empty-state" id="emptyHistory">
+                        <div class="empty-icon">🚗</div>
+                        <h4>Belum ada perjalanan</h4>
+                        <p>Mulai perjalanan pertama Anda dengan JeGo!</p>
+                    </div>
+                    
+                    <div class="history-list" id="historyList">
+                        <!-- History items will be added here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -379,51 +211,72 @@
         <!-- Edit Profile Modal -->
         <div class="modal" id="editModal">
             <div class="modal-content">
-                <h3 style="margin-bottom: 20px; color: #333;">Edit Profil</h3>
+                <div class="modal-header">
+                    <h3 class="modal-title">Edit Profil</h3>
+                    <button class="modal-close" id="closeModalBtn">&times;</button>
+                </div>
                 
-                <div class="form-group">
-                    <label for="editName">Nama Lengkap</label>
-                    <input type="text" id="editName" class="form-control">
-                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editName" class="form-label">Nama Lengkap</label>
+                        <input type="text" id="editName" class="form-control">
+                    </div>
 
-                <div class="form-group">
-                    <label for="editAddress">Alamat</label>
-                    <textarea id="editAddress" class="form-control" rows="3"></textarea>
-                </div>
+                    <div class="form-group">
+                        <label for="editAddress" class="form-label">Alamat</label>
+                        <textarea id="editAddress" class="form-control" rows="3"></textarea>
+                    </div>
 
-                <div class="form-group">
-                    <label>Jenis Kelamin</label>
-                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                        <label style="display: flex; align-items: center;">
-                            <input type="radio" name="gender" value="Laki-laki" style="margin-right: 5px;">
-                            Laki-laki
-                        </label>
-                        <label style="display: flex; align-items: center;">
-                            <input type="radio" name="gender" value="Perempuan" style="margin-right: 5px;">
-                            Perempuan
-                        </label>
+                    <div class="form-group">
+                        <label class="form-label">Jenis Kelamin</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="gender" value="Laki-laki">
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">Laki-laki</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="gender" value="Perempuan">
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">Perempuan</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editStatus" class="form-label">Status</label>
+                        <select id="editStatus" class="form-control">
+                            <option value="Aktif">Aktif</option>
+                            <option value="Tidak Aktif">Tidak Aktif</option>
+                            <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+                        </select>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="editStatus">Status</label>
-                    <select id="editStatus" class="form-control">
-                        <option value="Aktif">Aktif</option>
-                        <option value="Tidak Aktif">Tidak Aktif</option>
-                        <option value="Dalam Perjalanan">Dalam Perjalanan</option>
-                    </select>
+                
+                <div class="modal-footer">
+                    <button id="saveProfileBtn" class="btn btn-primary">
+                        <span class="btn-text">Simpan Perubahan</span>
+                    </button>
+                    <button id="cancelEditBtn" class="btn btn-secondary">
+                        <span class="btn-text">Batal</span>
+                    </button>
                 </div>
-
-                <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 20px;">
-                    Simpan Perubahan
-                </button>
-                <button id="cancelEditBtn" class="btn btn-secondary" style="margin-top: 10px;">
-                    Batal
-                </button>
             </div>
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <!-- Firebase Config -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script src="js/loginUser.js"></script>
+    
+    <!-- Success Notification Template -->
+    <template id="successTemplate">
+        <div class="success-notification">
+            <div class="success-icon">✓</div>
+            <div class="success-message"></div>
+        </div>
+    </template>
 </body>
 </html>
