@@ -1,4 +1,5 @@
 // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
+
 function initApp() {
   console.log('✅ Google Maps API berhasil di-load');
   // Inisialisasi Firebase setelah Google Maps siap
@@ -61,88 +62,25 @@ function initializeFirebase() {
 let userDataRefreshInterval = null;
 let currentUserData = null;
 
-// FUNGSI BARU: Ambil data user dari localStorage dengan konsistensi yang sama dengan rute.html
+// FUNGSI BARU: Ambil data user dari localStorage dengan konsistensi yang sama dengan loginDriver.html
 function getDriverData() {
     console.log("🔍 [DEBUG] Memulai getDriverData");
     
     try {
-        // 1. UTAMAKAN: jeggo_logged_in_driver (format baru)
-        const loggedInUser = localStorage.getItem('jeggo_logged_in_driver');
-        console.log("ℹ️ [DEBUG] jeggo_logged_in_driver di localStorage:", loggedInUser ? "Ada" : "Tidak ada");
+        // 1. UTAMAKAN: jego_logged_in_driver (dari loginDriver.html)
+        const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
+        console.log("ℹ️ [DEBUG] jego_logged_in_driver di localStorage:", loggedInDriver ? "Ada" : "Tidak ada");
         
-        if (loggedInUser) {
-            const driverData = JSON.parse(loggedInUser);
-            console.log("✅ [DEBUG] Driver data ditemukan (format baru):", {
-                name: driverData.fullName,
-                phone: driverData.phoneNumber,
-                driverId: driverData.driverId,
-                rating: driverData.avgRating,
-                perjalanan: driverData.totalTrips
+        if (loggedInDriver) {
+            const driverData = JSON.parse(loggedInDriver);
+            console.log("✅ [DEBUG] Driver data ditemukan dari loginDriver.html:", {
+                name: driverData.name || driverData.fullName,
+                phone: driverData.phone,
+                uid: driverData.uid,
+                status: driverData.status
             });
             
-            // Mapping field dari registrasi ke format yang diharapkan
-            const mappedDriverData = {
-                // Field utama
-                firebase_key: driverData.driverId || driverData.uid,
-                uid: driverData.driverId || driverData.uid,
-                key: driverData.driverId || driverData.uid,
-                
-                // Field identitas
-                name: driverData.fullName || driverData.name,
-                fullName: driverData.fullName || driverData.name,
-                phone: driverData.phoneNumber || driverData.phone,
-                email: driverData.email || '',
-                address: driverData.address || '',
-                
-                // Field rating/perjalanan
-                rating: driverData.avgRating || driverData.rating || 5,
-                perjalanan: driverData.totalTrips || driverData.perjalanan || 0,
-                avgRating: driverData.avgRating || driverData.rating || 5,
-                totalTrips: driverData.totalTrips || driverData.perjalanan || 0,
-                
-                // Field foto profil
-                fotoProfilURL: driverData.profilePhotoUrl || driverData.fotoProfilURL || '',
-                fotoProfilStorage: driverData.fotoProfilStorage || 'default',
-                profilePhotoUrl: driverData.profilePhotoUrl || driverData.fotoProfilURL || '',
-                
-                // Field kendaraan driver
-                vehicle_type: driverData.vehicleType,
-                vehicle_brand: driverData.vehicleBrand,
-                plate_number: driverData.plateNumber,
-                vehicleType: driverData.vehicleType,
-                vehicleBrand: driverData.vehicleBrand,
-                plateNumber: driverData.plateNumber,
-                
-                // Field status/role
-                status: driverData.status || 'active',
-                role: 'driver',
-                
-                // Metadata
-                createdAt: driverData.createdAt || new Date().toISOString(),
-                last_updated: new Date().toISOString(),
-                
-                // Data driver lengkap
-                ...driverData
-            };
-            
-            console.log("✅ [DEBUG] Driver data setelah mapping:", mappedDriverData);
-            return mappedDriverData;
-        }
-        
-    } catch (error) {
-        console.error('❌ [DEBUG] Error mengambil data driver:', error);
-    }
-    
-    // 2. PERBAIKAN: Coba format legacy dari daftarDriver.html
-    try {
-        const legacyDriverData = localStorage.getItem('jego_logged_in_driver');
-        console.log("ℹ️ [DEBUG] Cek jego_logged_in_driver (format daftarDriver):", legacyDriverData ? "Ada" : "Tidak ada");
-        
-        if (legacyDriverData) {
-            const driverData = JSON.parse(legacyDriverData);
-            console.log("✅ [DEBUG] Driver data ditemukan (format legacy):", driverData);
-            
-            // Mapping dari format legacy ke format baru
+            // Mapping field dari loginDriver.html ke format yang diharapkan list1.js
             const mappedDriverData = {
                 // Field utama
                 firebase_key: driverData.uid || driverData.userId,
@@ -169,7 +107,7 @@ function getDriverData() {
                 fotoProfilStorage: 'default',
                 profilePhotoUrl: driverData.fotoProfilURL || '',
                 
-                // Field kendaraan (default, karena tidak ada di format legacy)
+                // Field kendaraan
                 vehicle_type: driverData.vehicleType || '',
                 vehicle_brand: driverData.vehicleBrand || '',
                 plate_number: driverData.plateNumber || '',
@@ -180,25 +118,30 @@ function getDriverData() {
                 // Field status/role
                 status: driverData.status || 'pending',
                 role: 'driver',
+                driverStatus: driverData.driverStatus || driverData.status || 'pending',
                 
                 // Metadata
                 createdAt: driverData.createdAt || new Date().toISOString(),
                 last_updated: new Date().toISOString(),
                 
-                // Data asli dari legacy
+                // Data asli
                 ...driverData
             };
             
-            // Simpan ke format baru untuk konsistensi
-            localStorage.setItem('jeggo_logged_in_driver', JSON.stringify(mappedDriverData));
-            localStorage.setItem('jego_driver_logged_in', 'true');
-            localStorage.setItem('jego_driver_status', driverData.status === 'pending' ? 'active' : driverData.status || 'active');
-            
-            console.log("✅ [DEBUG] Driver data legacy dikonversi ke format baru");
+            console.log("✅ [DEBUG] Driver data berhasil diparsing");
             return mappedDriverData;
         }
+        
+        // 2. Fallback untuk kompatibilitas dengan format lama (jeggo_logged_in_driver)
+        const legacyData = localStorage.getItem('jeggo_logged_in_driver');
+        if (legacyData) {
+            console.log("⚠️ [DEBUG] Menggunakan fallback: jeggo_logged_in_driver");
+            const driverData = JSON.parse(legacyData);
+            return driverData;
+        }
+        
     } catch (error) {
-        console.error('❌ [DEBUG] Error mengambil data driver legacy:', error);
+        console.error('❌ [DEBUG] Error mengambil data driver:', error);
     }
     
     console.log("❌ [DEBUG] Tidak ada data driver ditemukan di localStorage");
@@ -244,7 +187,7 @@ async function fetchLatestDriverData(driverKey) {
     
     // Update cache localStorage
     try {
-      localStorage.setItem('jeggo_logged_in_driver', JSON.stringify(updatedDriverData));
+      localStorage.setItem('jego_logged_in_driver', JSON.stringify(updatedDriverData));
       
       // Update juga di jego_drivers jika ada
       const jegoDrivers = JSON.parse(localStorage.getItem('jego_drivers')) || {};
@@ -288,69 +231,36 @@ function stopDriverDataRefresh() {
   }
 }
 
-// FUNGSI BARU: Cek jika driver sudah login (konsisten dengan rute.html)
+// FUNGSI BARU: Cek jika driver sudah login (konsisten dengan loginDriver.html)
 function checkIfDriverLoggedIn() {
     console.log("🔍 [DEBUG] Memeriksa status login driver...");
     
-    // Cek format baru (utama)
-    const loggedInDriver = localStorage.getItem('jeggo_logged_in_driver');
-    const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
-    const driverStatus = localStorage.getItem('jego_driver_status');
+    // Cek utamanya dari jego_logged_in_driver
+    const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
     
-    if (loggedInDriver && isLoggedIn === 'true' && driverStatus === 'active') {
+    if (loggedInDriver) {
         try {
             const driverData = JSON.parse(loggedInDriver);
-            console.log("✅ [DEBUG] Driver sudah login (format baru):", driverData.fullName || driverData.phoneNumber);
-            return true;
+            const status = driverData.status || 'pending';
+            
+            // Hanya izinkan login jika status accepted/approved/active
+            if (status === 'accepted' || status === 'approved' || status === 'active') {
+                console.log("✅ [DEBUG] Driver sudah login (aktif):", driverData.name || driverData.fullName);
+                return true;
+            } else if (status === 'pending') {
+                console.log("⚠️ [DEBUG] Driver login tapi status pending, tetap izinkan akses");
+                // Tetap izinkan akses meski pending (untuk melihat order)
+                return true;
+            } else {
+                console.log("❌ [DEBUG] Driver login tapi status tidak aktif:", status);
+                return false;
+            }
         } catch (error) {
             console.error('❌ [DEBUG] Error parsing logged in driver:', error);
         }
     }
     
-    // PERBAIKAN: Cek format dari daftarDriver.html
-    const legacyDriverData = localStorage.getItem('jego_logged_in_driver');
-    if (legacyDriverData) {
-        try {
-            const driverData = JSON.parse(legacyDriverData);
-            console.log("✅ [DEBUG] Driver sudah login (format daftarDriver):", driverData.name || driverData.fullName);
-            
-            // Auto-konversi ke format baru untuk kompatibilitas
-            const convertedData = {
-                ...driverData,
-                // Mapping field yang diperlukan
-                driverId: driverData.uid || driverData.userId,
-                fullName: driverData.name || driverData.fullName,
-                phoneNumber: driverData.phone,
-                email: driverData.email || '',
-                address: driverData.address || '',
-                profilePhotoUrl: driverData.fotoProfilURL || driverData.profilePhotoUrl || '',
-                status: driverData.status || 'pending',
-                avgRating: driverData.rating || 5,
-                totalTrips: driverData.perjalanan || 0,
-                rating: driverData.rating || 5,
-                perjalanan: driverData.perjalanan || 0,
-                vehicleType: driverData.vehicleType || '',
-                vehicleBrand: driverData.vehicleBrand || '',
-                plateNumber: driverData.plateNumber || '',
-                role: 'driver',
-                createdAt: driverData.createdAt || new Date().toISOString(),
-                last_updated: new Date().toISOString()
-            };
-            
-            // Simpan ke format baru untuk konsistensi
-            localStorage.setItem('jeggo_logged_in_driver', JSON.stringify(convertedData));
-            localStorage.setItem('jego_driver_logged_in', 'true');
-            // PERBAIKAN: Jika status pending, tetap set sebagai 'active' sementara agar bisa login
-            localStorage.setItem('jego_driver_status', driverData.status === 'pending' ? 'active' : driverData.status || 'active');
-            
-            console.log("✅ [DEBUG] Data driver dikonversi ke format baru");
-            return true;
-        } catch (error) {
-            console.error('❌ [DEBUG] Error parsing legacy driver data:', error);
-        }
-    }
-    
-    // Cek juga dari Firebase Auth
+    // Fallback: Cek dari Firebase Auth
     if (auth && auth.currentUser) {
         console.log("✅ [DEBUG] Driver login via Firebase Auth");
         return true;
@@ -554,7 +464,7 @@ function canSystemProcessOrder(source) {
 
 // ==================== CEK LOGIN DAN KIRIM EVENT KE KODULAR ====================
 function checkLoginStatus() {
-    // PERBAIKAN: Gunakan fungsi baru yang konsisten dengan rute.html
+    // PERBAIKAN: Gunakan fungsi baru yang konsisten dengan loginDriver.html
     if (!checkIfDriverLoggedIn()) {
         console.log('❌ Driver belum login atau tidak aktif, kirim event ke Kodular');
         
@@ -2494,14 +2404,10 @@ function checkDriverData() {
     try {
         // PERBAIKAN: Gunakan fungsi getDriverData yang baru
         const driverData = getDriverData();
-        const isLoggedIn = localStorage.getItem('jego_driver_logged_in');
-        const driverStatus = localStorage.getItem('jego_driver_status');
         
-        console.log('📝 Data driver dari getDriverData:', driverData);
-        console.log('📝 Status login:', isLoggedIn);
-        console.log('📝 Status driver:', driverStatus);
+        console.log('📝 Data driver dari getDriverData:', driverData ? 'Ada' : 'Tidak ada');
         
-        if (!driverData || isLoggedIn !== 'true' || driverStatus !== 'active') {
+        if (!driverData) {
             console.log('❌ Tidak ada data driver valid di localStorage');
             showDriverNotRegistered();
             return false;
@@ -2509,7 +2415,7 @@ function checkDriverData() {
         
         console.log('👤 Parsed driver data:', driverData);
         
-        if (driverData.driverId && driverData.fullName) {
+        if (driverData.uid || driverData.driverId) {
             currentDriverData = driverData;
             currentUserData = driverData; // Simpan juga di currentUserData untuk konsistensi
             
@@ -2553,7 +2459,7 @@ function checkDriverData() {
             console.log('✅ Driver data valid dan diterima');
             
             // MULAI AUTO-REFRESH DATA DRIVER
-            if (driverData.driverId) {
+            if (driverData.driverId || driverData.uid) {
                 startDriverDataRefresh();
             }
             
@@ -2578,7 +2484,7 @@ function showDriverNotRegistered() {
                 <div>🚫</div>
                 <p>Anda belum terdaftar sebagai driver atau belum login</p>
                 <p style="margin-top: 10px; font-size: 0.8rem;">
-                    <a href="javascript:void(0)" onclick="sendToKodular({action: 'navigate', target: 'login'})" style="color: var(--primary); text-decoration: underline;">
+                    <a href="loginDriver.html" style="color: var(--primary); text-decoration: underline;">
                         Login sebagai Driver
                     </a>
                 </p>
