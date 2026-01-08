@@ -1290,7 +1290,7 @@
     }
 
     // ================================================
-    // FUNGSI CEK STATUS LOGIN & VERIFIKASI
+    // FUNGSI CEK STATUS LOGIN & VERIFIKASI - DIPERBAIKI
     // ================================================
     
     async function checkDriverLogin() {
@@ -1305,7 +1305,25 @@
         
         console.log('✅ User login di Firebase Auth:', user.uid);
         
-        // Cek apakah user adalah driver
+        // Cek di localStorage terlebih dahulu untuk performa lebih baik
+        const storedData = localStorage.getItem('jego_logged_in_driver');
+        if (storedData) {
+          try {
+            const driverData = JSON.parse(storedData);
+            if (driverData.uid === user.uid) {
+              console.log('✅ Data driver ditemukan di localStorage');
+              return { 
+                isLoggedIn: true, 
+                driverData: driverData,
+                firebaseUser: user 
+              };
+            }
+          } catch (e) {
+            console.log('⚠️ Error parsing localStorage data:', e);
+          }
+        }
+        
+        // Cek apakah user adalah driver di database
         const driverRef = database.ref('drivers/' + user.uid);
         const snapshot = await driverRef.once('value');
         const driverData = snapshot.val();
@@ -1315,19 +1333,13 @@
           return { isLoggedIn: false, reason: 'not_driver' };
         }
         
-        // Cek status driver
-        const driverStatus = driverData.status || driverData.driverStatus || 'pending';
+        // Simpan ke localStorage untuk akses lebih cepat
+        localStorage.setItem('jego_logged_in_driver', JSON.stringify({
+          ...driverData,
+          uid: user.uid
+        }));
         
-        if (driverStatus === 'blocked' || driverStatus === 'rejected') {
-          console.log(`❌ Driver ${driverStatus}, tidak dapat mengakses`);
-          return { 
-            isLoggedIn: false, 
-            reason: driverStatus,
-            driverData: driverData 
-          };
-        }
-        
-        console.log(`✅ Driver valid dengan status: ${driverStatus}`);
+        console.log(`✅ Driver valid ditemukan`);
         return { 
           isLoggedIn: true, 
           driverData: driverData,
@@ -1341,111 +1353,149 @@
     }
     
     async function validateSessionAndRedirect() {
-      const loginCheck = await checkDriverLogin();
+      // Cek Firebase Auth terlebih dahulu
+      const user = auth.currentUser;
       
-      if (!loginCheck.isLoggedIn) {
-        switch (loginCheck.reason) {
-          case 'not_logged_in':
-            showPopup(
-              'Session Expired', 
-              'Anda belum login atau session telah berakhir.<br>Silakan login kembali.',
-              'warning',
-              {
-                showCancel: false,
-                confirmText: 'Login',
-                onConfirm: function() {
-                  // Hapus semua data localStorage
-                  localStorage.removeItem('jego_driver_data');
-                  localStorage.removeItem('jego_driver_location');
-                  localStorage.removeItem('jego_autobid_enabled');
-                  localStorage.removeItem('jego_driver_accepted_order');
-                  
-                  // Redirect ke halaman login
-                  window.location.href = 'loginDriver.html';
-                }
+      if (!user) {
+        // Cek localStorage sebagai fallback
+        const storedData = localStorage.getItem('jego_logged_in_driver');
+        if (storedData) {
+          console.log('⚠️ Firebase session expired, but localStorage data exists');
+          showPopup(
+            'Session Expired', 
+            'Session Anda telah berakhir.<br>Silakan login kembali.',
+            'warning',
+            {
+              showCancel: false,
+              confirmText: 'Login',
+              onConfirm: function() {
+                localStorage.removeItem('jego_logged_in_driver');
+                localStorage.removeItem('jego_driver_data');
+                localStorage.removeItem('jego_driver_location');
+                localStorage.removeItem('jego_autobid_enabled');
+                localStorage.removeItem('jego_driver_accepted_order');
+                window.location.href = 'loginDriver.html';
               }
-            );
-            break;
-            
-          case 'not_driver':
-            showPopup(
-              'Akses Ditolak', 
-              'Akun Anda tidak terdaftar sebagai driver.<br>Silakan daftar sebagai driver terlebih dahulu.',
-              'error',
-              {
-                showCancel: false,
-                confirmText: 'Daftar Driver',
-                onConfirm: function() {
-                  window.location.href = 'daftarDriver.html';
-                }
-              }
-            );
-            break;
-            
-          case 'blocked':
-            showPopup(
-              'Akun Diblokir', 
-              'Akun driver Anda telah diblokir.<br>' + 
-              (loginCheck.driverData?.blockReason ? `Alasan: ${loginCheck.driverData.blockReason}<br>` : '') +
-              'Silakan hubungi admin untuk informasi lebih lanjut.',
-              'error',
-              {
-                showCancel: false,
-                confirmText: 'OK',
-                onConfirm: function() {
-                  // Logout dan redirect ke halaman utama
-                  auth.signOut().then(() => {
-                    localStorage.clear();
-                    window.location.href = 'list.html';
-                  });
-                }
-              }
-            );
-            break;
-            
-          case 'rejected':
-            showPopup(
-              'Pendaftaran Ditolak', 
-              'Pendaftaran Anda sebagai driver telah ditolak.<br>' + 
-              (loginCheck.driverData?.rejectionReason ? `Alasan: ${loginCheck.driverData.rejectionReason}<br>` : '') +
-              'Silakan hubungi admin untuk informasi lebih lanjut.',
-              'error',
-              {
-                showCancel: false,
-                confirmText: 'OK',
-                onConfirm: function() {
-                  window.location.href = 'list.html';
-                }
-              }
-            );
-            break;
-            
-          default:
-            showErrorMessage('Terjadi kesalahan saat memverifikasi sesi. Silakan coba lagi.');
+            }
+          );
+        } else {
+          window.location.href = 'loginDriver.html';
         }
         return false;
       }
       
-      return true;
+      // Cek apakah user adalah driver yang valid
+      try {
+        const driverRef = database.ref('drivers/' + user.uid);
+        const snapshot = await driverRef.once('value');
+        const driverData = snapshot.val();
+        
+        if (!driverData) {
+          showPopup(
+            'Akses Ditolak', 
+            'Akun Anda tidak terdaftar sebagai driver.<br>Silakan daftar sebagai driver terlebih dahulu.',
+            'error',
+            {
+              showCancel: false,
+              confirmText: 'Daftar Driver',
+              onConfirm: function() {
+                window.location.href = 'daftarDriver.html';
+              }
+            }
+          );
+          return false;
+        }
+        
+        const driverStatus = driverData.status || driverData.driverStatus || 'pending';
+        
+        // Cek status driver
+        if (driverStatus === 'blocked') {
+          showPopup(
+            'Akun Diblokir', 
+            'Akun driver Anda telah diblokir.<br>' + 
+            (driverData?.blockReason ? `Alasan: ${driverData.blockReason}<br>` : '') +
+            'Silakan hubungi admin untuk informasi lebih lanjut.',
+            'error',
+            {
+              showCancel: false,
+              confirmText: 'OK',
+              onConfirm: function() {
+                auth.signOut().then(() => {
+                  localStorage.clear();
+                  window.location.href = 'loginDriver.html';
+                });
+              }
+            }
+          );
+          return false;
+        }
+        
+        if (driverStatus === 'rejected') {
+          showPopup(
+            'Pendaftaran Ditolak', 
+            'Pendaftaran Anda sebagai driver telah ditolak.<br>' + 
+            (driverData?.rejectionReason ? `Alasan: ${driverData.rejectionReason}<br>` : '') +
+            'Silakan hubungi admin untuk informasi lebih lanjut.',
+            'error',
+            {
+              showCancel: false,
+              confirmText: 'OK',
+              onConfirm: function() {
+                window.location.href = 'loginDriver.html';
+              }
+            }
+          );
+          return false;
+        }
+        
+        // Simpan data ke localStorage
+        localStorage.setItem('jego_logged_in_driver', JSON.stringify({
+          ...driverData,
+          uid: user.uid
+        }));
+        
+        return true;
+        
+      } catch (error) {
+        console.error('❌ Error validating session:', error);
+        
+        // Fallback: cek localStorage jika Firebase error
+        const storedData = localStorage.getItem('jego_logged_in_driver');
+        if (storedData) {
+          try {
+            const driverData = JSON.parse(storedData);
+            if (driverData.uid === user.uid) {
+              console.log('⚠️ Using cached data due to Firebase error');
+              return true;
+            }
+          } catch (e) {
+            // Continue to error
+          }
+        }
+        
+        return false;
+      }
     }
 
     // ================================================
-    // FUNGSI DATABASE
+    // FUNGSI DATABASE - DIPERBAIKI
     // ================================================
     
     function getDriverDataFromStorage() {
       try {
-        const data = JSON.parse(localStorage.getItem('jego_driver_data') || '{}');
-        
-        // Validasi data di localStorage dengan Firebase Auth
-        const user = auth.currentUser;
-        if (user && data.uid && data.uid !== user.uid) {
-          console.warn('⚠️ Data localStorage tidak sesuai dengan user login, membersihkan...');
-          localStorage.removeItem('jego_driver_data');
-          return {};
+        // Prioritaskan data dari key yang digunakan loginDriver.html
+        let data = localStorage.getItem('jego_logged_in_driver');
+        if (data) {
+          return JSON.parse(data);
         }
-        
-        return data;
+
+        // Fallback ke key lama
+        data = localStorage.getItem('jego_driver_data');
+        if (data) {
+          return JSON.parse(data);
+        }
+
+        return {};
       } catch (error) {
         console.error('❌ Error parsing driver data from storage:', error);
         return {};
@@ -1454,12 +1504,13 @@
 
     function updateDriverDataInStorage(data) {
       try {
-        // Pastikan data yang disimpan memiliki UID yang sesuai dengan user login
         const user = auth.currentUser;
         if (user) {
           data.uid = user.uid;
         }
         
+        // Simpan ke kedua key untuk kompatibilitas
+        localStorage.setItem('jego_logged_in_driver', JSON.stringify(data));
         localStorage.setItem('jego_driver_data', JSON.stringify(data));
         console.log('✅ Data driver diupdate di localStorage');
       } catch (error) {
@@ -1484,18 +1535,28 @@
       const driverId = user.uid;
       console.log('🔄 Memuat data driver:', driverId);
 
-      showLoadingState();
+      showLoading('Memuat data driver...');
 
       try {
+        // Coba gunakan data dari localStorage terlebih dahulu untuk loading cepat
+        const cachedData = getDriverDataFromStorage();
+        if (cachedData && cachedData.uid === driverId) {
+          console.log('✅ Menggunakan data driver dari cache');
+          currentDriverData = cachedData;
+          displayDriverData(cachedData);
+          hideLoading();
+        }
+
+        // Selalu sync dengan Firebase untuk data terbaru
         const driverRef = database.ref('drivers/' + driverId);
         const snapshot = await driverRef.once('value');
         const driverDataFromDB = snapshot.val();
         
         if (driverDataFromDB) {
-          console.log('✅ Data driver berhasil dimuat:', driverDataFromDB);
+          console.log('✅ Data driver berhasil dimuat dari Firebase:', driverDataFromDB);
           currentDriverData = driverDataFromDB;
           
-          // Update data di localStorage dengan verifikasi UID
+          // Update data di localStorage
           updateDriverDataInStorage(driverDataFromDB);
           
           // Tampilkan data
@@ -1507,26 +1568,26 @@
           loadDriverOrders(driverId);
           
           retryCount = 0;
+          hideLoading();
         } else {
+          hideLoading();
           console.error('❌ Data driver tidak ditemukan di Firebase');
-          showErrorState('Data driver tidak ditemukan. Anda mungkin belum terdaftar sebagai driver.');
-          
-          // Tampilkan tombol untuk daftar sebagai driver
-          const container = document.querySelector('.form-container');
-          if (container) {
-            const errorDiv = container.querySelector('.empty-state') || container;
-            const daftarBtn = document.createElement('button');
-            daftarBtn.className = 'submit-btn';
-            daftarBtn.textContent = 'Daftar sebagai Driver';
-            daftarBtn.style.marginTop = '15px';
-            daftarBtn.onclick = function() {
-              window.location.href = 'daftarDriver.html';
-            };
-            errorDiv.appendChild(daftarBtn);
-          }
+          showErrorState('Data driver tidak ditemukan di database.');
         }
       } catch (error) {
+        hideLoading();
         console.error('❌ Error memuat data driver:', error);
+        
+        // Jika masih ada data di localStorage, tampilkan itu
+        const cachedData = getDriverDataFromStorage();
+        if (cachedData && cachedData.uid === driverId) {
+          console.log('⚠️ Menggunakan data cache karena error Firebase');
+          currentDriverData = cachedData;
+          displayDriverData(cachedData);
+          showInfoMessage('Menggunakan data cache. Beberapa data mungkin tidak terbaru.', true);
+          return;
+        }
+        
         retryCount++;
         
         if (retryCount <= MAX_RETRIES) {
@@ -1846,6 +1907,8 @@
     }
 
     function showErrorState(message) {
+      hideLoading();
+      
       const container = document.querySelector('.form-container');
       if (container) {
         container.innerHTML = `
@@ -1853,9 +1916,14 @@
             <div style="font-size: 3rem;">⚠️</div>
             <div class="error-message">${message}</div>
             <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
-            <button class="submit-btn" id="retryBtn" style="margin-top: 15px;">
-              Coba Lagi
-            </button>
+            <div style="margin-top: 20px; display: flex; gap: 10px; flex-direction: column;">
+              <button class="submit-btn" id="retryBtn">
+                Coba Lagi
+              </button>
+              <button class="submit-btn btn-info" id="logoutErrorBtn">
+                Login Ulang
+              </button>
+            </div>
           </div>
         `;
         
@@ -1864,6 +1932,13 @@
           retryBtn.addEventListener('click', function () {
             retryCount = 0;
             loadDriverData();
+          });
+        }
+        
+        const logoutErrorBtn = document.getElementById('logoutErrorBtn');
+        if (logoutErrorBtn) {
+          logoutErrorBtn.addEventListener('click', function() {
+            logoutDriver();
           });
         }
       }
@@ -1877,7 +1952,8 @@
       showLoading('Logout...');
       
       try {
-        // Hapus data dari localStorage
+        // Hapus semua data dari localStorage
+        localStorage.removeItem('jego_logged_in_driver');
         localStorage.removeItem('jego_driver_data');
         localStorage.removeItem('jego_driver_location');
         localStorage.removeItem('jego_autobid_enabled');
@@ -2044,21 +2120,24 @@
     }
 
     // ================================================
-    // INITIALIZATION
+    // INITIALIZATION - DIPERBAIKI
     // ================================================
     
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('🚀 Halaman Akun Driver dimuat');
       
       try {
+        // Setup event listeners terlebih dahulu
+        initEventListeners();
+        
         // Setup auth state listener
         auth.onAuthStateChanged(async (user) => {
           if (!user) {
             // Tidak ada user yang login
-            console.log('❌ Tidak ada user login, redirect ke login');
+            console.log('❌ Tidak ada user login');
             
-            // Cek jika ada data di localStorage (kasus session expired)
-            const storedData = localStorage.getItem('jego_driver_data');
+            // Cek localStorage
+            const storedData = localStorage.getItem('jego_logged_in_driver');
             if (storedData) {
               showPopup(
                 'Session Expired', 
@@ -2082,15 +2161,18 @@
           
           console.log('✅ User login terdeteksi:', user.uid);
           
-          // Inisialisasi setelah user login
-          initEventListeners();
+          // Load data driver
           await loadDriverData();
           
           console.log('✅ Halaman Akun Driver siap digunakan');
         });
         
         // Cek auth state saat ini
-        if (!auth.currentUser) {
+        const user = auth.currentUser;
+        if (user) {
+          console.log('✅ User sudah login, memuat data...');
+          await loadDriverData();
+        } else {
           console.log('⚠️ Tidak ada user yang login, menunggu auth state change...');
         }
         
@@ -2110,6 +2192,7 @@
         if (user) {
           user.reload().then(() => {
             console.log('✅ Auth state direfresh');
+            // Refresh data driver
             loadDriverData();
           }).catch(error => {
             console.error('❌ Error refreshing auth state:', error);
