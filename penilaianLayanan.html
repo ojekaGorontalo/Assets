@@ -4,8 +4,9 @@
   <meta charset="utf-8" />
   <title>Penilaian Layanan - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK - KONSISTEN dengan loginDriver.html -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     :root {
@@ -323,154 +324,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Modal Styles - Konsisten dengan loginDriver.html */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-    }
-
-    .modal-overlay.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .modal {
-      background-color: white;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      transform: translateY(-20px);
-      transition: transform 0.3s ease;
-      overflow: hidden;
-    }
-
-    .modal-overlay.active .modal {
-      transform: translateY(0);
-    }
-
-    .modal-header {
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #e9ecef;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-    }
-
-    .modal-title {
-      display: flex;
-      align-items: center;
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .modal-icon {
-      width: 24px;
-      height: 24px;
-      margin-right: 10px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      background-color: white;
-    }
-
-    .modal-icon.success {
-      background-color: var(--success);
-    }
-
-    .modal-icon.error {
-      background-color: var(--danger);
-    }
-
-    .modal-icon.warning {
-      background-color: var(--warning);
-    }
-
-    .modal-icon.info {
-      background-color: var(--info);
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: white;
-      line-height: 1;
-      padding: 0;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.3s;
-    }
-
-    .close-btn:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .modal-body {
-      padding: 20px;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-
-    .modal-footer {
-      padding: 15px 20px;
-      display: flex;
-      justify-content: flex-end;
-      border-top: 1px solid #e9ecef;
-      background-color: #f8f9fa;
-    }
-
-    .modal-btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-size: 15px;
-    }
-
-    .modal-btn.confirm {
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      color: white;
-      margin-left: 10px;
-    }
-
-    .modal-btn.confirm:hover {
-      opacity: 0.9;
-    }
-
-    .modal-btn.cancel {
-      background-color: #6c757d;
-      color: white;
-    }
-
-    .modal-btn.cancel:hover {
-      background-color: #5a6268;
-    }
-
     /* Responsive adjustments */
     @media (max-width: 768px) {
       body {
@@ -514,11 +367,6 @@
         padding: 6px 10px;
         font-size: 0.8rem;
       }
-      
-      .modal {
-        width: 95%;
-        max-width: 95%;
-      }
     }
   </style>
 </head>
@@ -542,26 +390,6 @@
     <!-- Loading state akan ditampilkan di sini -->
   </div>
 
-  <!-- Modal Popup - Konsisten dengan loginDriver.html -->
-  <div id="modalOverlay" class="modal-overlay">
-    <div id="modal" class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          <span id="modalIcon" class="modal-icon">!</span>
-          <span id="modalTitleText">Judul Modal</span>
-        </h3>
-        <button id="modalCloseBtn" class="close-btn">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p id="modalMessage">Isi pesan modal akan ditampilkan di sini.</p>
-      </div>
-      <div class="modal-footer">
-        <button id="modalCancelBtn" class="modal-btn cancel" style="display: none;">Batal</button>
-        <button id="modalConfirmBtn" class="modal-btn confirm">OK</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     // ================================================
     // KONFIGURASI FIREBASE (KONSISTEN DENGAN LOGINDRIVER.HTML)
@@ -581,18 +409,25 @@
     // INISIALISASI FIREBASE DENGAN GUARD
     // ================================================
     console.log('🚀 Memulai inisialisasi Firebase...');
+    let database;
+    let auth;
+    
     try {
+      // Gunakan guard untuk menghindari inisialisasi berulang
       if (!firebase.apps.length) {
         firebase.initializeApp(FIREBASE_CONFIG);
         console.log('✅ Firebase berhasil diinisialisasi');
       } else {
         console.log('✅ Firebase sudah diinisialisasi sebelumnya');
       }
+      
+      database = firebase.database();
+      auth = firebase.auth();
+      
     } catch (error) {
       console.error('❌ Error inisialisasi Firebase:', error);
+      showErrorState('Gagal menginisialisasi Firebase. Silakan refresh halaman.');
     }
-    
-    const database = firebase.database();
 
     // ================================================
     // VARIABEL GLOBAL
@@ -601,136 +436,21 @@
     let driverId = null;
 
     // ================================================
-    // ELEMEN DOM
-    // ================================================
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modal = document.getElementById('modal');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalTitleText = document.getElementById('modalTitleText');
-    const modalMessage = document.getElementById('modalMessage');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
-    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-    const modalCancelBtn = document.getElementById('modalCancelBtn');
-
-    // ================================================
-    // FUNGSI UTILITAS (KONSISTEN DENGAN LOGINDRIVER.HTML)
-    // ================================================
-    
-    function showPopup(title, message, type = 'info', options = {}) {
-      modalTitleText.textContent = title;
-      modalMessage.innerHTML = message;
-      modal.className = 'modal ' + type;
-      modalIcon.className = 'modal-icon ' + type;
-      modalIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '!' : 'i';
-      modalConfirmBtn.textContent = options.confirmText || 'OK';
-      
-      if (options.showCancel) {
-        modalCancelBtn.style.display = 'inline-block';
-        modalCancelBtn.textContent = options.cancelText || 'Batal';
-      } else {
-        modalCancelBtn.style.display = 'none';
-      }
-      
-      modalConfirmBtn.onclick = function() {
-        hidePopup();
-        if (options.onConfirm) options.onConfirm();
-      };
-      
-      modalCancelBtn.onclick = function() {
-        hidePopup();
-        if (options.onCancel) options.onCancel();
-      };
-      
-      modalCloseBtn.onclick = function() {
-        hidePopup();
-        if (options.onCancel) options.onCancel();
-      };
-      
-      modalOverlay.classList.add('active');
-      
-      if (options.autoHide) {
-        setTimeout(() => {
-          hidePopup();
-          if (options.onAutoHide) options.onAutoHide();
-        }, options.autoHideDelay || 3000);
-      }
-    }
-    
-    function hidePopup() {
-      modalOverlay.classList.remove('active');
-    }
-    
-    function showErrorMessage(message) {
-      showPopup('Error', message, 'error');
-    }
-    
-    function showSuccessMessage(message, autoHide = false) {
-      showPopup('Sukses', message, 'success', { autoHide: autoHide, autoHideDelay: 2000 });
-    }
-    
-    function showInfoMessage(message, autoHide = false) {
-      showPopup('Informasi', message, 'info', { autoHide: autoHide, autoHideDelay: 3000 });
-    }
-
-    // ================================================
-    // FUNGSI HELPER KODULAR (KONSISTEN DENGAN LOGINDRIVER.HTML)
-    // ================================================
-    
-    function sendToKodular(data) {
-      console.log('Mengirim data ke Kodular:', data);
-      
-      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
-        try {
-          window.AppInventor.setWebViewString(JSON.stringify(data));
-          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
-          return true;
-        } catch (error) {
-          console.error('Error mengirim data via AppInventor:', error);
-          return false;
-        }
-      }
-      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
-        try {
-          window.android.receiveData(JSON.stringify(data));
-          console.log('✅ Data berhasil dikirim ke Kodular via window.android');
-          return true;
-        } catch (error) {
-          console.error('Error mengirim data via window.android:', error);
-          return false;
-        }
-      }
-      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
-        try {
-          window.webkit.messageHandlers.observe.postMessage(data);
-          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
-          return true;
-        } catch (error) {
-          console.error('Error mengirim data via webkit.messageHandlers:', error);
-          return false;
-        }
-      }
-      else {
-        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
-        return false;
-      }
-    }
-
-    // ================================================
-    // FUNGSI UTAMA
+    // FUNGSI UTAMA - DIPERBARUI SESUAI RULES FIREBASE
     // ================================================
 
     // Fungsi untuk memuat data rating dari Firebase
-    function loadRatingsData() {
-      // Cek apakah driver sudah login - Gunakan key yang sama dengan loginDriver.html
-      const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
-      
-      if (!loggedInDriver) {
-        console.error('❌ Driver belum login atau data tidak valid');
-        showErrorState('Anda belum login. Silakan login terlebih dahulu.');
-        return;
-      }
-
+    async function loadRatingsData() {
       try {
+        // Cek apakah driver sudah login - Gunakan key yang sama dengan loginDriver.html
+        const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
+        
+        if (!loggedInDriver) {
+          console.error('❌ Driver belum login');
+          showErrorState('Anda belum login. Silakan login terlebih dahulu.');
+          return;
+        }
+
         const driverData = JSON.parse(loggedInDriver);
         driverId = driverData.uid || driverData.firebase_key;
         
@@ -744,47 +464,119 @@
         // Tampilkan loading state
         showLoadingState();
 
-        // Ambil data rating dari path drivers/{driverId}/ratings
-        const ratingsRef = database.ref('drivers/' + driverId + '/ratings');
+        // MENURUT RULES FIREBASE ANDA:
+        // "drivers": { ".read": "auth != null || query.orderByChild === 'phone'" }
+        // Jadi kita perlu query dengan orderByChild
         
-        ratingsRef.once('value')
+        // Karena rules tidak mengizinkan akses langsung ke /drivers/{driverId}/ratings,
+        // kita perlu mengambil data driver dulu, lalu mengambil ratings
+        
+        // Cek apakah user terautentikasi
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          console.log('🔐 User tidak terautentikasi, mencoba autentikasi ulang...');
+          // Coba gunakan data dari localStorage untuk autentikasi
+          // Atau minta user login ulang
+          showErrorState('Sesi telah berakhir. Silakan login ulang.');
+          setTimeout(() => {
+            window.location.href = 'loginDriver.html';
+          }, 3000);
+          return;
+        }
+
+        // Method 1: Coba akses dengan query orderByChild
+        // Kita akan query drivers dengan phone number yang sesuai
+        const driverPhone = driverData.phone;
+        if (!driverPhone) {
+          showErrorState('Data nomor telepon tidak ditemukan.');
+          return;
+        }
+
+        // Query drivers dengan phone yang sesuai
+        const driversRef = database.ref('drivers');
+        const query = driversRef.orderByChild('phone').equalTo(driverPhone);
+        
+        query.once('value')
           .then((snapshot) => {
-            const ratingsData = snapshot.val();
-            driverRatings = [];
+            const driversData = snapshot.val();
             
-            if (ratingsData) {
-              // Konversi object menjadi array dan tambahkan key sebagai id
-              Object.keys(ratingsData).forEach(key => {
-                const rating = ratingsData[key];
-                driverRatings.push({
-                  id: key,
-                  ...rating
-                });
-              });
-              
-              console.log(`✅ ${driverRatings.length} rating berhasil dimuat`);
-              
-              // Urutkan rating berdasarkan timestamp terbaru pertama (descending)
-              driverRatings.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-              
-              // Tampilkan data di UI
-              displayRatingsData();
-            } else {
-              console.log('ℹ️ Tidak ada data rating ditemukan');
-              displayRatingsData();
+            if (!driversData) {
+              console.log('❌ Driver tidak ditemukan dengan phone:', driverPhone);
+              showEmptyState();
+              return;
             }
+            
+            // Dapatkan driverId dari hasil query
+            const foundDriverId = Object.keys(driversData)[0];
+            const driverDetails = driversData[foundDriverId];
+            
+            console.log('✅ Driver ditemukan:', foundDriverId);
+            
+            // Sekarang coba ambil ratings dari driver tersebut
+            // PERHATIAN: Rules Firebase Anda mungkin tidak mengizinkan akses ke /drivers/{driverId}/ratings
+            // Mari kita coba dulu
+            
+            const ratingsRef = database.ref('drivers/' + foundDriverId + '/ratings');
+            
+            ratingsRef.once('value')
+              .then((ratingsSnapshot) => {
+                const ratingsData = ratingsSnapshot.val();
+                driverRatings = [];
+                
+                if (ratingsData) {
+                  // Konversi object menjadi array
+                  Object.keys(ratingsData).forEach(key => {
+                    const rating = ratingsData[key];
+                    driverRatings.push({
+                      id: key,
+                      ...rating
+                    });
+                  });
+                  
+                  console.log(`✅ ${driverRatings.length} rating berhasil dimuat`);
+                  
+                  // Urutkan rating berdasarkan timestamp terbaru pertama
+                  driverRatings.sort((a, b) => {
+                    const timeA = a.timestamp || a.rated_at || 0;
+                    const timeB = b.timestamp || b.rated_at || 0;
+                    return timeB - timeA;
+                  });
+                  
+                  // Tampilkan data di UI
+                  displayRatingsData();
+                } else {
+                  console.log('ℹ️ Tidak ada data rating ditemukan untuk driver ini');
+                  displayRatingsData();
+                }
+              })
+              .catch((error) => {
+                console.error('❌ Error memuat data rating:', error);
+                
+                // Fallback: Coba ambil ratings dari node terpisah (jika ada)
+                // Atau tampilkan pesan sesuai error
+                if (error.code === 'PERMISSION_DENIED') {
+                  showErrorState('Akses ditolak. Aturan Firebase tidak mengizinkan akses ke data rating.');
+                  console.log('⚠️ Tips: Periksa rules Firebase untuk mengizinkan akses ke /drivers/{driverId}/ratings');
+                } else {
+                  showErrorState('Gagal memuat data rating. Periksa koneksi internet Anda.');
+                }
+              });
           })
           .catch((error) => {
-            console.error('❌ Error memuat data rating:', error);
-            showErrorState('Gagal memuat data rating. Periksa koneksi internet Anda.');
+            console.error('❌ Error query driver:', error);
+            showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
           });
+          
       } catch (error) {
         console.error('❌ Error parsing driver data:', error);
         showErrorState('Data session tidak valid. Silakan login ulang.');
       }
     }
 
-    // Fungsi untuk menampilkan data rating di UI
+    // ================================================
+    // FUNGSI TAMPILAN UI
+    // ================================================
+
     function displayRatingsData() {
       const container = document.getElementById('mainContainer');
       
@@ -849,7 +641,6 @@
       initButtons();
     }
 
-    // Fungsi untuk mengelompokkan rating berdasarkan tanggal DENGAN H+1 untuk grup
     function groupRatingsByDate(ratings) {
       const groups = {};
       const nowWITA = convertToWITA(new Date());
@@ -880,12 +671,11 @@
       return groups;
     }
 
-    // Fungsi untuk menghasilkan kartu rating
     function generateRatingCard(ratingData) {
       const satisfactionEmoji = getSatisfactionEmoji(ratingData.rating);
       const passengerInitial = (ratingData.passengerName || 'Passenger').charAt(0).toUpperCase();
       
-      // Konversi waktu ke WITA (TANPA H+1 untuk tampilan kartu)
+      // Konversi waktu ke WITA
       const originalDate = new Date(ratingData.rated_at || ratingData.timestamp || Date.now());
       const witaDate = convertToWITA(originalDate);
       
@@ -907,16 +697,16 @@
       `;
     }
 
-    // ==================== FUNGSI BANTUAN ====================
+    // ================================================
+    // FUNGSI BANTUAN
+    // ================================================
 
-    // Fungsi untuk mengonversi waktu ke WITA (UTC+8)
     function convertToWITA(date) {
-      const offset = 8 * 60; // WITA adalah UTC+8 (dalam menit)
+      const offset = 8 * 60; // WITA adalah UTC+8
       const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
       return new Date(utc + (3600000 * offset / 60));
     }
 
-    // Fungsi untuk menghasilkan bintang rating
     function generateStarRating(rating, starClass = 'star') {
       const fullStars = Math.floor(rating);
       const hasHalfStar = rating % 1 >= 0.5;
@@ -924,17 +714,14 @@
       
       let starsHTML = '';
       
-      // Bintang penuh
       for (let i = 0; i < fullStars; i++) {
         starsHTML += `<span class="${starClass} filled">★</span>`;
       }
       
-      // Bintang setengah (jika ada)
       if (hasHalfStar) {
         starsHTML += `<span class="${starClass} filled">★</span>`;
       }
       
-      // Bintang kosong
       for (let i = 0; i < emptyStars; i++) {
         starsHTML += `<span class="${starClass}">☆</span>`;
       }
@@ -942,7 +729,6 @@
       return starsHTML;
     }
 
-    // Fungsi untuk mendapatkan emoji kepuasan berdasarkan rating
     function getSatisfactionEmoji(rating) {
       if (rating >= 4.5) return '😍';
       if (rating >= 4) return '☺️';
@@ -951,19 +737,16 @@
       return '🥴';
     }
 
-    // Fungsi untuk memformat kunci tanggal (YYYY-MM-DD)
     function formatDateKey(date) {
       return date.toISOString().split('T')[0];
     }
 
-    // Fungsi untuk memformat tanggal tampilan
     function formatDisplayDate(dateString) {
       const date = new Date(dateString);
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       
-      // Konversi ke WITA untuk perbandingan
       const witaToday = convertToWITA(today);
       const witaYesterday = convertToWITA(yesterday);
       const witaDate = convertToWITA(date);
@@ -982,7 +765,6 @@
       }
     }
 
-    // Fungsi untuk memformat waktu
     function formatTime(date) {
       return date.toLocaleTimeString('id-ID', {
         hour: '2-digit',
@@ -991,9 +773,10 @@
       });
     }
 
-    // ==================== FUNGSI UI STATES ====================
+    // ================================================
+    // FUNGSI UI STATES
+    // ================================================
 
-    // Fungsi untuk menampilkan state loading
     function showLoadingState() {
       const container = document.getElementById('mainContainer');
       container.innerHTML = `
@@ -1004,7 +787,25 @@
       `;
     }
 
-    // Fungsi untuk menampilkan state error
+    function showEmptyState() {
+      const container = document.getElementById('mainContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⭐</div>
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Belum Ada Penilaian</h3>
+          <p>Anda belum memiliki penilaian dari penumpang.</p>
+          <button class="policy-btn" id="refreshBtn" style="margin-top: 15px;">
+            Muat Ulang
+          </button>
+        </div>
+      `;
+      
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadRatingsData);
+      }
+    }
+
     function showErrorState(message) {
       const container = document.getElementById('mainContainer');
       container.innerHTML = `
@@ -1020,19 +821,15 @@
       
       const retryBtn = document.getElementById('retryBtn');
       if (retryBtn) {
-        retryBtn.addEventListener('click', function () {
-          loadRatingsData();
-        });
+        retryBtn.addEventListener('click', loadRatingsData);
       }
     }
 
-    // ==================== FUNGSI INISIALISASI TOMBOL ====================
+    // ================================================
+    // FUNGSI INISIALISASI TOMBOL
+    // ================================================
 
-    // Fungsi untuk menginisialisasi semua event listener tombol
     function initButtons() {
-      console.log('🔘 Menginisialisasi tombol...');
-      
-      // Event listeners untuk tombol utama
       const backBtn = document.getElementById('backBtn');
       if (backBtn) {
         backBtn.addEventListener('click', goBack);
@@ -1042,51 +839,42 @@
       if (policyBtn) {
         policyBtn.addEventListener('click', openRatingPolicy);
       }
-      
-      console.log('✅ Semua tombol berhasil diinisialisasi');
     }
 
-    // ==================== NAVIGATION FUNCTIONS ====================
+    // ================================================
+    // NAVIGATION FUNCTIONS
+    // ================================================
 
-    // Fungsi untuk kembali ke halaman sebelumnya
     function goBack() {
-      sendToKodular({
-        action: 'back_pressed',
-        screen: 'ratings',
-        message: 'Kembali dari halaman penilaian'
-      });
+      // Coba kirim data ke Kodular
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify({
+            action: 'back_pressed',
+            screen: 'ratings'
+          }));
+        } catch (error) {
+          console.error('Error sending to Kodular:', error);
+        }
+      }
       window.location.href = "akun.html";
     }
 
-    // Fungsi untuk membuka kebijakan ulasan
     function openRatingPolicy() {
-      sendToKodular({
-        action: 'open_rating_policy',
-        message: 'Membuka halaman kebijakan ulasan'
-      });
       window.location.href = "kebijakanUlasan.html";
     }
 
-    // ==================== INISIALISASI APLIKASI ====================
+    // ================================================
+    // INISIALISASI APLIKASI
+    // ================================================
 
-    // Inisialisasi saat halaman dimuat
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 Halaman Penilaian Layanan dimuat');
-      
-      // Setup modal event listeners (konsisten dengan loginDriver.html)
-      modalOverlay.addEventListener('click', function(e) {
-        if (e.target === modalOverlay) hidePopup();
-      });
-      
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup();
-      });
       
       // Muat data rating
       loadRatingsData();
     });
 
-    // Handle visibility change (tab menjadi aktif kembali)
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden) {
         console.log('🔄 Halaman menjadi aktif, memuat ulang data...');
