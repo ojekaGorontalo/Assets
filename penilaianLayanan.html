@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Firebase SDK - KONSISTEN dengan loginDriver.html -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     :root {
@@ -410,7 +409,6 @@
     // ================================================
     console.log('🚀 Memulai inisialisasi Firebase...');
     let database;
-    let auth;
     
     try {
       // Gunakan guard untuk menghindari inisialisasi berulang
@@ -422,7 +420,6 @@
       }
       
       database = firebase.database();
-      auth = firebase.auth();
       
     } catch (error) {
       console.error('❌ Error inisialisasi Firebase:', error);
@@ -440,136 +437,241 @@
     // ================================================
 
     // Fungsi untuk memuat data rating dari Firebase
-    async function loadRatingsData() {
+    function loadRatingsData() {
       try {
         // Cek apakah driver sudah login - Gunakan key yang sama dengan loginDriver.html
         const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
         
         if (!loggedInDriver) {
-          console.error('❌ Driver belum login');
+          console.error('❌ Driver belum login - tidak ada data di jego_logged_in_driver');
+          console.log('🔍 Isi localStorage:', localStorage);
           showErrorState('Anda belum login. Silakan login terlebih dahulu.');
           return;
         }
 
         const driverData = JSON.parse(loggedInDriver);
-        driverId = driverData.uid || driverData.firebase_key;
+        console.log('📋 Data driver dari localStorage:', driverData);
+        
+        driverId = driverData.uid || driverData.firebase_key || driverData.userId;
         
         if (!driverId) {
+          console.error('❌ Driver ID tidak ditemukan dalam data driver');
           showErrorState('Data driver tidak valid. Silakan login ulang.');
           return;
         }
 
-        console.log('📊 Memuat data rating untuk driver:', driverId);
+        console.log('📊 Memuat data rating untuk driver ID:', driverId);
 
         // Tampilkan loading state
         showLoadingState();
 
-        // MENURUT RULES FIREBASE ANDA:
+        // Menurut rules Firebase Anda:
         // "drivers": { ".read": "auth != null || query.orderByChild === 'phone'" }
-        // Jadi kita perlu query dengan orderByChild
+        // Jadi kita perlu query dengan orderByChild untuk mendapatkan driver
         
-        // Karena rules tidak mengizinkan akses langsung ke /drivers/{driverId}/ratings,
-        // kita perlu mengambil data driver dulu, lalu mengambil ratings
+        // METHOD 1: Coba akses langsung ke ratings dengan driverId
+        // Mungkin data ratings disimpan di path yang berbeda
+        console.log('🔍 Mencoba mengakses ratings dengan beberapa metode...');
         
-        // Cek apakah user terautentikasi
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          console.log('🔐 User tidak terautentikasi, mencoba autentikasi ulang...');
-          // Coba gunakan data dari localStorage untuk autentikasi
-          // Atau minta user login ulang
-          showErrorState('Sesi telah berakhir. Silakan login ulang.');
-          setTimeout(() => {
-            window.location.href = 'loginDriver.html';
-          }, 3000);
-          return;
-        }
-
-        // Method 1: Coba akses dengan query orderByChild
-        // Kita akan query drivers dengan phone number yang sesuai
-        const driverPhone = driverData.phone;
-        if (!driverPhone) {
-          showErrorState('Data nomor telepon tidak ditemukan.');
-          return;
-        }
-
-        // Query drivers dengan phone yang sesuai
-        const driversRef = database.ref('drivers');
-        const query = driversRef.orderByChild('phone').equalTo(driverPhone);
-        
-        query.once('value')
+        // Coba metode 1: akses langsung ke drivers/{driverId}/ratings
+        const ratingsRef1 = database.ref('drivers/' + driverId + '/ratings');
+        ratingsRef1.once('value')
           .then((snapshot) => {
-            const driversData = snapshot.val();
+            console.log('✅ Metode 1: Akses langsung berhasil');
+            processRatingsData(snapshot.val());
+          })
+          .catch((error1) => {
+            console.log('❌ Metode 1 gagal:', error1.message);
             
-            if (!driversData) {
-              console.log('❌ Driver tidak ditemukan dengan phone:', driverPhone);
-              showEmptyState();
+            // Coba metode 2: cari driver berdasarkan phone terlebih dahulu
+            const driverPhone = driverData.phone;
+            if (!driverPhone) {
+              console.error('❌ Nomor telepon tidak ditemukan di data driver');
+              showErrorState('Data driver tidak lengkap. Silakan login ulang.');
               return;
             }
             
-            // Dapatkan driverId dari hasil query
-            const foundDriverId = Object.keys(driversData)[0];
-            const driverDetails = driversData[foundDriverId];
+            console.log('🔍 Mencoba metode 2 dengan phone:', driverPhone);
+            const driversRef = database.ref('drivers');
+            const query = driversRef.orderByChild('phone').equalTo(driverPhone);
             
-            console.log('✅ Driver ditemukan:', foundDriverId);
-            
-            // Sekarang coba ambil ratings dari driver tersebut
-            // PERHATIAN: Rules Firebase Anda mungkin tidak mengizinkan akses ke /drivers/{driverId}/ratings
-            // Mari kita coba dulu
-            
-            const ratingsRef = database.ref('drivers/' + foundDriverId + '/ratings');
-            
-            ratingsRef.once('value')
-              .then((ratingsSnapshot) => {
-                const ratingsData = ratingsSnapshot.val();
-                driverRatings = [];
+            query.once('value')
+              .then((snapshot) => {
+                const driversData = snapshot.val();
                 
-                if (ratingsData) {
-                  // Konversi object menjadi array
-                  Object.keys(ratingsData).forEach(key => {
-                    const rating = ratingsData[key];
-                    driverRatings.push({
-                      id: key,
-                      ...rating
-                    });
-                  });
-                  
-                  console.log(`✅ ${driverRatings.length} rating berhasil dimuat`);
-                  
-                  // Urutkan rating berdasarkan timestamp terbaru pertama
-                  driverRatings.sort((a, b) => {
-                    const timeA = a.timestamp || a.rated_at || 0;
-                    const timeB = b.timestamp || b.rated_at || 0;
-                    return timeB - timeA;
-                  });
-                  
-                  // Tampilkan data di UI
-                  displayRatingsData();
-                } else {
-                  console.log('ℹ️ Tidak ada data rating ditemukan untuk driver ini');
-                  displayRatingsData();
+                if (!driversData) {
+                  console.log('❌ Driver tidak ditemukan dengan phone:', driverPhone);
+                  showEmptyState();
+                  return;
                 }
+                
+                // Dapatkan driverId dari hasil query
+                const foundDriverId = Object.keys(driversData)[0];
+                console.log('✅ Driver ditemukan dengan ID:', foundDriverId);
+                
+                // Coba akses ratings
+                const ratingsRef2 = database.ref('drivers/' + foundDriverId + '/ratings');
+                ratingsRef2.once('value')
+                  .then((ratingsSnapshot) => {
+                    console.log('✅ Metode 2: Akses ratings berhasil');
+                    processRatingsData(ratingsSnapshot.val());
+                  })
+                  .catch((error2) => {
+                    console.error('❌ Metode 2 gagal akses ratings:', error2.message);
+                    
+                    if (error2.code === 'PERMISSION_DENIED') {
+                      console.log('⚠️ Akses ditolak. Cek struktur data di Firebase...');
+                      
+                      // Coba metode 3: cari di node 'ratings' global
+                      console.log('🔍 Mencoba metode 3: Node ratings global');
+                      const globalRatingsRef = database.ref('ratings');
+                      const ratingsQuery = globalRatingsRef.orderByChild('driverId').equalTo(foundDriverId);
+                      
+                      ratingsQuery.once('value')
+                        .then((globalSnapshot) => {
+                          const globalRatingsData = globalSnapshot.val();
+                          console.log('✅ Metode 3: Data dari global ratings:', globalRatingsData);
+                          
+                          if (globalRatingsData) {
+                            processRatingsData(globalRatingsData);
+                          } else {
+                            // Coba alternatif lain: ratings mungkin disimpan di orders
+                            console.log('🔍 Mencoba metode 4: Cari di orders');
+                            searchRatingsInOrders(foundDriverId, driverPhone);
+                          }
+                        })
+                        .catch((error3) => {
+                          console.error('❌ Metode 3 gagal:', error3.message);
+                          searchRatingsInOrders(foundDriverId, driverPhone);
+                        });
+                    } else {
+                      searchRatingsInOrders(foundDriverId, driverPhone);
+                    }
+                  });
               })
-              .catch((error) => {
-                console.error('❌ Error memuat data rating:', error);
-                
-                // Fallback: Coba ambil ratings dari node terpisah (jika ada)
-                // Atau tampilkan pesan sesuai error
-                if (error.code === 'PERMISSION_DENIED') {
-                  showErrorState('Akses ditolak. Aturan Firebase tidak mengizinkan akses ke data rating.');
-                  console.log('⚠️ Tips: Periksa rules Firebase untuk mengizinkan akses ke /drivers/{driverId}/ratings');
-                } else {
-                  showErrorState('Gagal memuat data rating. Periksa koneksi internet Anda.');
-                }
+              .catch((queryError) => {
+                console.error('❌ Error query driver:', queryError.message);
+                showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
               });
-          })
-          .catch((error) => {
-            console.error('❌ Error query driver:', error);
-            showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
           });
           
       } catch (error) {
         console.error('❌ Error parsing driver data:', error);
         showErrorState('Data session tidak valid. Silakan login ulang.');
+      }
+    }
+
+    // Fungsi untuk mencari ratings di orders
+    function searchRatingsInOrders(driverId, driverPhone) {
+      console.log('🔍 Mencari ratings di orders untuk driver:', driverId);
+      
+      const ordersRef = database.ref('orders');
+      
+      // Cari orders dengan driverId atau driverPhone
+      ordersRef.orderByChild('driverId').equalTo(driverId).once('value')
+        .then((snapshot) => {
+          const ordersData = snapshot.val();
+          let ratingsFromOrders = [];
+          
+          if (ordersData) {
+            Object.keys(ordersData).forEach(orderId => {
+              const order = ordersData[orderId];
+              if (order.rating && order.rating !== '') {
+                ratingsFromOrders.push({
+                  id: orderId,
+                  rating: parseFloat(order.rating) || 0,
+                  comment: order.ratingComment || 'Tidak ada komentar',
+                  passengerName: order.userName || 'Passenger',
+                  timestamp: order.createdAt || Date.now(),
+                  rated_at: order.ratedAt || order.createdAt || Date.now()
+                });
+              }
+            });
+          }
+          
+          if (ratingsFromOrders.length > 0) {
+            console.log(`✅ Ditemukan ${ratingsFromOrders.length} rating dari orders`);
+            driverRatings = ratingsFromOrders;
+            driverRatings.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            displayRatingsData();
+          } else {
+            // Coba dengan driverPhone
+            console.log('🔍 Mencari dengan driverPhone:', driverPhone);
+            ordersRef.orderByChild('driverPhone').equalTo(driverPhone).once('value')
+              .then((phoneSnapshot) => {
+                const phoneOrdersData = phoneSnapshot.val();
+                let phoneRatings = [];
+                
+                if (phoneOrdersData) {
+                  Object.keys(phoneOrdersData).forEach(orderId => {
+                    const order = phoneOrdersData[orderId];
+                    if (order.rating && order.rating !== '') {
+                      phoneRatings.push({
+                        id: orderId,
+                        rating: parseFloat(order.rating) || 0,
+                        comment: order.ratingComment || 'Tidak ada komentar',
+                        passengerName: order.userName || 'Passenger',
+                        timestamp: order.createdAt || Date.now(),
+                        rated_at: order.ratedAt || order.createdAt || Date.now()
+                      });
+                    }
+                  });
+                }
+                
+                if (phoneRatings.length > 0) {
+                  console.log(`✅ Ditemukan ${phoneRatings.length} rating dari orders (by phone)`);
+                  driverRatings = phoneRatings;
+                  driverRatings.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                  displayRatingsData();
+                } else {
+                  console.log('ℹ️ Tidak ada rating ditemukan di orders');
+                  showEmptyState();
+                }
+              })
+              .catch((phoneError) => {
+                console.error('❌ Error query orders by phone:', phoneError.message);
+                showEmptyState();
+              });
+          }
+        })
+        .catch((ordersError) => {
+          console.error('❌ Error query orders:', ordersError.message);
+          showEmptyState();
+        });
+    }
+
+    // Fungsi untuk memproses data ratings
+    function processRatingsData(ratingsData) {
+      driverRatings = [];
+      
+      if (ratingsData) {
+        // Konversi object menjadi array
+        Object.keys(ratingsData).forEach(key => {
+          const rating = ratingsData[key];
+          driverRatings.push({
+            id: key,
+            rating: rating.rating || rating.value || 0,
+            comment: rating.comment || rating.feedback || 'Tidak ada komentar',
+            passengerName: rating.passengerName || rating.userName || 'Passenger',
+            timestamp: rating.timestamp || rating.createdAt || rating.rated_at || Date.now(),
+            rated_at: rating.rated_at || rating.timestamp || rating.createdAt || Date.now()
+          });
+        });
+        
+        console.log(`✅ ${driverRatings.length} rating berhasil dimuat`);
+        
+        // Urutkan rating berdasarkan timestamp terbaru pertama
+        driverRatings.sort((a, b) => {
+          const timeA = a.timestamp || a.rated_at || 0;
+          const timeB = b.timestamp || b.rated_at || 0;
+          return timeB - timeA;
+        });
+        
+        // Tampilkan data di UI
+        displayRatingsData();
+      } else {
+        console.log('ℹ️ Tidak ada data rating ditemukan');
+        showEmptyState();
       }
     }
 
@@ -673,7 +775,8 @@
 
     function generateRatingCard(ratingData) {
       const satisfactionEmoji = getSatisfactionEmoji(ratingData.rating);
-      const passengerInitial = (ratingData.passengerName || 'Passenger').charAt(0).toUpperCase();
+      const passengerName = ratingData.passengerName || 'Passenger';
+      const passengerInitial = passengerName.charAt(0).toUpperCase();
       
       // Konversi waktu ke WITA
       const originalDate = new Date(ratingData.rated_at || ratingData.timestamp || Date.now());
@@ -684,7 +787,7 @@
           <div class="rating-header">
             <div class="passenger-info">
               <div class="passenger-avatar">${passengerInitial}</div>
-              <div class="passenger-name">${ratingData.passengerName || 'Passenger'}</div>
+              <div class="passenger-name">${passengerName}</div>
             </div>
             <div class="rating-meta">
               <div class="satisfaction-emoji">${satisfactionEmoji}</div>
@@ -812,9 +915,11 @@
         <div class="empty-state">
           <div class="empty-state-icon">⚠️</div>
           <div style="color: var(--danger); margin: 10px 0; font-weight: 600;">${message}</div>
-          <p>Silakan coba lagi atau periksa koneksi internet Anda.</p>
           <button class="policy-btn" id="retryBtn" style="margin-top: 15px;">
             Coba Lagi
+          </button>
+          <button class="policy-btn" id="logoutBtn" style="margin-top: 10px; background: #6c757d;">
+            Login Ulang
           </button>
         </div>
       `;
@@ -822,6 +927,14 @@
       const retryBtn = document.getElementById('retryBtn');
       if (retryBtn) {
         retryBtn.addEventListener('click', loadRatingsData);
+      }
+      
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+          localStorage.removeItem('jego_logged_in_driver');
+          window.location.href = 'loginDriver.html';
+        });
       }
     }
 
@@ -870,6 +983,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 Halaman Penilaian Layanan dimuat');
+      console.log('🔍 Memeriksa localStorage:', localStorage);
       
       // Muat data rating
       loadRatingsData();
