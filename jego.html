@@ -5,17 +5,18 @@
   <title>JeGo - Aplikasi Transportasi Lokal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    /* STYLE CSS SAMA SEPERTI SEBELUMNYA */
     :root {
-      --primary: #FF9800;    /* Orange */
-      --secondary: #FF5722;   /* Red-Orange */
-      --accent: #FFC107;     /* Amber/Yellow */
+      --primary: #FF9800;
+      --secondary: #FF5722;
+      --accent: #FFC107;
       --light: #f8f9fa;
       --dark: #343a40;
-      --success: #4CAF50;    /* Green */
-      --danger: #f44336;     /* Red */
-      --warning: #FFC107;    /* Yellow */
-      --info: #2196F3;       /* Blue */
-      --gray: #9E9E9E;       /* Gray */
+      --success: #4CAF50;
+      --danger: #f44336;
+      --warning: #FFC107;
+      --info: #2196F3;
+      --gray: #9E9E9E;
     }
 
     * {
@@ -43,7 +44,7 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       position: relative;
     }
 
@@ -75,6 +76,76 @@
       font-size: 0.9rem;
       opacity: 0.9;
       margin-top: 2px;
+    }
+
+    /* Login Status Badge */
+    .login-badge {
+      display: inline-block;
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-left: 10px;
+    }
+
+    .login-badge.user {
+      border: 1px solid #FF9800;
+      color: #FFC107;
+    }
+
+    .login-badge.driver {
+      border: 1px solid #2196F3;
+      color: #90CAF9;
+    }
+
+    /* Warning Banner */
+    .warning-banner {
+      background-color: #FFF3CD;
+      color: #856404;
+      padding: 12px 20px;
+      margin: 10px 20px;
+      border-radius: 8px;
+      border-left: 4px solid #FFC107;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: slideIn 0.5s ease;
+    }
+
+    .warning-banner.hidden {
+      display: none;
+    }
+
+    .warning-icon {
+      font-size: 1.2rem;
+      margin-right: 10px;
+    }
+
+    .warning-message {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+
+    .warning-action {
+      background-color: #856404;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-left: 10px;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Main Content */
@@ -129,11 +200,18 @@
       flex-direction: column;
       align-items: center;
       border: 1px solid #e9ecef;
+      cursor: pointer;
+      position: relative;
     }
 
     .selection-card:hover {
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       transform: translateY(-2px);
+    }
+
+    .selection-card.logged-in {
+      border: 2px solid var(--success);
+      box-shadow: 0 2px 10px rgba(76, 175, 80, 0.2);
     }
 
     .card-icon {
@@ -172,31 +250,20 @@
       text-align: center;
     }
 
-    .selection-btn {
-      background: linear-gradient(to right, var(--primary), var(--secondary));
+    /* Login Status Indicator */
+    .login-status {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: var(--success);
       color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 25px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-      width: 100%;
-      max-width: 250px;
-      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: bold;
     }
 
-    .selection-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-    }
-
-    .driver .selection-btn {
-      background: linear-gradient(to right, #2196F3, #0d8bf2);
-    }
-
+    /* Card Features */
     .card-features {
       text-align: left;
       width: 100%;
@@ -222,37 +289,6 @@
 
     .driver .card-features li:before {
       color: #2196F3;
-    }
-
-    /* Login Status Indicator */
-    .login-status {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 15px;
-      padding: 8px 15px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      width: 100%;
-      max-width: 200px;
-    }
-
-    .user-logged-in {
-      background-color: rgba(76, 175, 80, 0.1);
-      color: var(--success);
-      border: 1px solid rgba(76, 175, 80, 0.3);
-    }
-
-    .driver-logged-in {
-      background-color: rgba(33, 150, 243, 0.1);
-      color: var(--info);
-      border: 1px solid rgba(33, 150, 243, 0.3);
-    }
-
-    .login-status-icon {
-      margin-right: 8px;
-      font-size: 1rem;
     }
 
     /* Footer */
@@ -300,6 +336,16 @@
       .card-title {
         font-size: 1.3rem;
       }
+      
+      .warning-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .warning-action {
+        margin-top: 10px;
+        margin-left: 0;
+      }
     }
 
     @media (max-width: 576px) {
@@ -333,29 +379,37 @@
         <div class="header-subtitle">Jasa Ekspedisi Gorontalo</div>
       </div>
     </div>
+    <div id="headerLoginStatus"></div>
+  </div>
+
+  <!-- Warning Banner untuk Login Ganda -->
+  <div id="dualLoginWarning" class="warning-banner hidden">
+    <div style="display: flex; align-items: center;">
+      <span class="warning-icon">⚠️</span>
+      <div class="warning-message">
+        <strong>Login Ganda Terdeteksi!</strong> Anda login sebagai User dan Driver. 
+        Pilih salah satu peran untuk melanjutkan.
+      </div>
+    </div>
+    <button id="forceLogoutBtn" class="warning-action">Logout Semua</button>
   </div>
 
   <!-- Main Content -->
   <div class="main-content">
     <div class="welcome-section">
-      <h1 class="welcome-title">Selamat Datang di JeGo</h1>
-      <p class="welcome-text">Solusi transportasi lokal terpercaya dari Gorontalo</p>
+      <h1 class="welcome-title" id="welcomeTitle">Selamat Datang di JeGo</h1>
+      <p class="welcome-text" id="welcomeText">Solusi transportasi lokal terpercaya dari Gorontalo</p>
       <p class="welcome-text">Silakan pilih peran Anda untuk melanjutkan</p>
     </div>
 
     <div class="selection-container">
       <!-- User Card -->
-      <div class="selection-card user">
+      <div class="selection-card user" id="userCard">
+        <div class="login-status" id="userLoginStatus" style="display: none;">✓ LOGIN</div>
         <div class="card-icon">
           👤
         </div>
-        <h2 class="card-title">Pengguna (User)</h2>
-        
-        <!-- Login Status Indicator -->
-        <div id="userStatusIndicator" class="login-status user-logged-in" style="display: none;">
-          <span class="login-status-icon">✅</span>
-          <span id="userStatusText">Sudah Login</span>
-        </div>
+        <h2 class="card-title">Penumpang</h2>
         
         <p class="card-description" id="userDescription">
           Login sebagai pengguna untuk memesan layanan transportasi dengan mudah, cepat, dan aman.
@@ -369,22 +423,15 @@
             <li>Beri rating dan ulasan untuk driver</li>
           </ul>
         </div>
-        
-        <button class="selection-btn" id="userBtn">Login sebagai User</button>
       </div>
 
       <!-- Driver Card -->
-      <div class="selection-card driver">
+      <div class="selection-card driver" id="driverCard">
+        <div class="login-status" id="driverLoginStatus" style="display: none;">✓ LOGIN</div>
         <div class="card-icon">
           🚗
         </div>
-        <h2 class="card-title">Pengemudi (Driver)</h2>
-        
-        <!-- Login Status Indicator -->
-        <div id="driverStatusIndicator" class="login-status driver-logged-in" style="display: none;">
-          <span class="login-status-icon">✅</span>
-          <span id="driverStatusText">Sudah Login</span>
-        </div>
+        <h2 class="card-title">Driver</h2>
         
         <p class="card-description" id="driverDescription">
           Login sebagai driver untuk menerima pesanan dan mendapatkan penghasilan tambahan.
@@ -398,8 +445,6 @@
             <li>Dukungan 24/7 dari tim JeGo</li>
           </ul>
         </div>
-        
-        <button class="selection-btn" id="driverBtn">Login sebagai Driver</button>
       </div>
     </div>
   </div>
@@ -412,259 +457,418 @@
   </div>
 
   <script>
+    // ================================================
+    // FUNGSI UTILITAS
+    // ================================================
+    
     // Fungsi untuk mengirim data ke Kodular
-    function sendToKodular(data, action = 'screen_navigation') {
+    function sendToKodular(data) {
       const kodularData = {
-        action: action,
+        action: 'screen_navigation',
         timestamp: new Date().toISOString(),
         ...data
       };
       
-      console.log('Data yang akan dikirim ke Kodular:', kodularData);
+      console.log('Data ke Kodular:', kodularData);
       
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
           window.AppInventor.setWebViewString(JSON.stringify(kodularData));
           console.log('✅ Data berhasil dikirim ke Kodular');
+          return true;
         } catch (error) {
           console.error('Error mengirim data via AppInventor:', error);
         }
-      } else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+      } 
+      
+      if (typeof window.android !== 'undefined' && window.android.receiveData) {
         try {
           window.android.receiveData(JSON.stringify(kodularData));
           console.log('✅ Data berhasil dikirim ke Kodular');
+          return true;
         } catch (error) {
           console.error('Error mengirim data via window.android:', error);
         }
-      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+      } 
+      
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
         try {
           window.webkit.messageHandlers.observe.postMessage(kodularData);
           console.log('✅ Data berhasil dikirim ke Kodular');
+          return true;
         } catch (error) {
           console.error('Error mengirim data via webkit.messageHandlers:', error);
         }
-      } else {
-        console.warn('⚠️ Tidak ada metode yang berhasil mengirim data ke Kodular');
-        
-        // Simulasi navigasi untuk pengujian di browser
-        if (data.target === 'user_dashboard') {
-          window.location.href = 'userDashboard.html';
-        } else if (data.target === 'driver_dashboard') {
-          window.location.href = 'driverDashboard.html';
-        } else if (data.target === 'user_login') {
-          window.location.href = 'loginUser.html';
-        } else if (data.target === 'driver_login') {
-          window.location.href = 'loginDriver.html';
-        }
       }
+      
+      console.warn('⚠️ Tidak ada metode Kodular yang berhasil');
+      return false;
     }
 
-    // Fungsi untuk mengecek status login
-    function checkLoginStatus() {
+    // Fungsi untuk membuka halaman login User
+    function openUserLogin() {
+      console.log('Membuka halaman login User...');
+      
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
-      const driverLoggedIn = localStorage.getItem('jego_driver_logged_in') === 'true';
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      console.log('Status login - User:', userLoggedIn ? 'Ya' : 'Tidak', 'Driver:', driverLoggedIn ? 'Ya' : 'Tidak');
-      
-      // Update UI untuk user
-      if (userLoggedIn) {
-        document.getElementById('userStatusIndicator').style.display = 'flex';
-        document.getElementById('userStatusText').textContent = 'Sudah Login';
-        document.getElementById('userDescription').textContent = 'Anda sudah login. Buka dashboard untuk memesan layanan transportasi.';
-        document.getElementById('userBtn').textContent = 'Buka Dashboard User';
-      } else {
-        document.getElementById('userStatusIndicator').style.display = 'none';
-        document.getElementById('userDescription').textContent = 'Login sebagai pengguna untuk memesan layanan transportasi dengan mudah, cepat, dan aman.';
-        document.getElementById('userBtn').textContent = 'Login sebagai User';
-      }
-      
-      // Update UI untuk driver
-      if (driverLoggedIn) {
-        document.getElementById('driverStatusIndicator').style.display = 'flex';
-        document.getElementById('driverStatusText').textContent = 'Sudah Login';
-        document.getElementById('driverDescription').textContent = 'Anda sudah login. Buka dashboard untuk menerima pesanan.';
-        document.getElementById('driverBtn').textContent = 'Buka Dashboard Driver';
-      } else {
-        document.getElementById('driverStatusIndicator').style.display = 'none';
-        document.getElementById('driverDescription').textContent = 'Login sebagai driver untuk menerima pesanan dan mendapatkan penghasilan tambahan.';
-        document.getElementById('driverBtn').textContent = 'Login sebagai Driver';
-      }
-    }
-
-    // Fungsi untuk navigasi otomatis jika sudah login
-    function autoNavigateIfLoggedIn() {
-      const userLoggedIn = localStorage.getItem('jego_logged_in_user');
-      const driverLoggedIn = localStorage.getItem('jego_driver_logged_in') === 'true';
-      
-      // Jika keduanya login, tampilkan pilihan (tidak redirect otomatis)
+      // SKENARIO 1: User sudah login, driver juga login (LOGIN GANDA)
       if (userLoggedIn && driverLoggedIn) {
-        console.log('Kedua akun login, menampilkan pilihan manual');
-        return;
-      }
-      
-      // Jika hanya user yang login, redirect otomatis ke dashboard user
-      if (userLoggedIn && !driverLoggedIn) {
-        console.log('Hanya user login, redirect otomatis ke dashboard user');
-        sendToKodular({
-          target: 'user_dashboard',
-          screen: 'Screen2',
-          auto_login: true,
-          message: 'Auto-navigate ke dashboard user'
-        });
-        return;
-      }
-      
-      // Jika hanya driver yang login, redirect otomatis ke dashboard driver
-      if (!userLoggedIn && driverLoggedIn) {
-        console.log('Hanya driver login, redirect otomatis ke dashboard driver');
-        sendToKodular({
-          target: 'driver_dashboard',
-          screen: 'Screen3',
-          auto_login: true,
-          message: 'Auto-navigate ke dashboard driver'
-        });
-        return;
-      }
-    }
-
-    // Handle User button click
-    document.getElementById('userBtn').addEventListener('click', function() {
-      console.log('User button clicked');
-      
-      const userLoggedIn = localStorage.getItem('jego_logged_in_user');
-      const driverLoggedIn = localStorage.getItem('jego_driver_logged_in') === 'true';
-      
-      // Jika user sudah login, langsung ke dashboard
-      if (userLoggedIn) {
-        sendToKodular({
-          target: 'user_dashboard',
-          screen: 'Screen2',
-          auto_login: true,
-          message: 'Navigasi ke dashboard user (sudah login)'
-        });
-      } 
-      // Jika user belum login tetapi driver sudah login
-      else if (!userLoggedIn && driverLoggedIn) {
-        // Tanyakan konfirmasi apakah ingin logout dari driver dulu
-        if (confirm('Anda sudah login sebagai driver. Apakah Anda ingin logout dari driver dan login sebagai user?')) {
+        console.log('⚠️ Login ganda terdeteksi!');
+        
+        // Tampilkan konfirmasi
+        if (confirm(
+          'Anda login sebagai User dan Driver.\n\n' +
+          'Untuk login sebagai User, Anda perlu logout dari Driver terlebih dahulu.\n\n' +
+          'Lanjutkan?'
+        )) {
           // Logout driver terlebih dahulu
-          localStorage.removeItem('jego_driver_logged_in');
-          localStorage.removeItem('jego_driver_data');
-          console.log('Driver logged out');
+          localStorage.removeItem('jego_logged_in_driver');
+          console.log('✅ Driver logged out');
           
           // Update UI
-          checkLoginStatus();
+          updateLoginStatus();
           
-          // Kemudian ke halaman login user
+          // Redirect ke dashboard user (karena user masih login)
+          sendToKodular({
+            target: 'user_dashboard',
+            screen: 'Screen2',
+            auto_login: true,
+            message: 'Navigasi ke dashboard user (setelah logout driver)'
+          });
+        }
+        return;
+      }
+      
+      // SKENARIO 2: Hanya user yang sudah login
+      if (userLoggedIn) {
+        console.log('User sudah login, langsung ke dashboard');
+        sendToKodular({
+          target: 'user_dashboard',
+          screen: 'Screen2',
+          auto_login: true,
+          message: 'Navigasi ke dashboard user'
+        });
+        return;
+      }
+      
+      // SKENARIO 3: Hanya driver yang login, user belum login
+      if (!userLoggedIn && driverLoggedIn) {
+        console.log('Driver login, user belum login - tanyakan konfirmasi');
+        
+        if (confirm(
+          'Anda sudah login sebagai Driver.\n\n' +
+          'Apakah Anda ingin logout dari Driver dan login sebagai User?\n\n' +
+          'Jika tidak, Anda akan tetap sebagai Driver.'
+        )) {
+          // Logout driver terlebih dahulu
+          localStorage.removeItem('jego_logged_in_driver');
+          console.log('✅ Driver logged out');
+          
+          // Update UI
+          updateLoginStatus();
+          
+          // Redirect ke login user
           sendToKodular({
             target: 'user_login',
-            screen: 'Screen2',
-            auto_login: false,
-            message: 'Navigasi ke halaman login user (setelah logout driver)'
+            screen: 'loginUser',
+            message: 'Navigasi ke login user'
           });
-        } else {
-          console.log('User memilih untuk tetap sebagai driver');
         }
+        return;
       }
-      // Jika belum login sama sekali
-      else {
-        sendToKodular({
-          target: 'user_login',
-          screen: 'Screen2',
-          auto_login: false,
-          message: 'Navigasi ke halaman login user'
-        });
-      }
-    });
+      
+      // SKENARIO 4: Belum login sama sekali
+      sendToKodular({
+        target: 'user_login',
+        screen: 'loginUser',
+        message: 'Navigasi ke halaman login user'
+      });
+    }
 
-    // Handle Driver button click
-    document.getElementById('driverBtn').addEventListener('click', function() {
-      console.log('Driver button clicked');
+    // Fungsi untuk membuka halaman login Driver
+    function openDriverLogin() {
+      console.log('Membuka halaman login Driver...');
       
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
-      const driverLoggedIn = localStorage.getItem('jego_driver_logged_in') === 'true';
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      // Jika driver sudah login, langsung ke dashboard
+      // SKENARIO 1: Driver sudah login, user juga login (LOGIN GANDA)
+      if (userLoggedIn && driverLoggedIn) {
+        console.log('⚠️ Login ganda terdeteksi!');
+        
+        // Tampilkan konfirmasi
+        if (confirm(
+          'Anda login sebagai User dan Driver.\n\n' +
+          'Untuk login sebagai Driver, Anda perlu logout dari User terlebih dahulu.\n\n' +
+          'Lanjutkan?'
+        )) {
+          // Logout user terlebih dahulu
+          localStorage.removeItem('jego_logged_in_user');
+          console.log('✅ User logged out');
+          
+          // Update UI
+          updateLoginStatus();
+          
+          // Redirect ke dashboard driver (karena driver masih login)
+          sendToKodular({
+            target: 'driver_dashboard',
+            screen: 'Screen3',
+            auto_login: true,
+            message: 'Navigasi ke dashboard driver (setelah logout user)'
+          });
+        }
+        return;
+      }
+      
+      // SKENARIO 2: Hanya driver yang sudah login
       if (driverLoggedIn) {
+        console.log('Driver sudah login, langsung ke dashboard');
         sendToKodular({
           target: 'driver_dashboard',
           screen: 'Screen3',
           auto_login: true,
-          message: 'Navigasi ke dashboard driver (sudah login)'
+          message: 'Navigasi ke dashboard driver'
         });
-      } 
-      // Jika driver belum login tetapi user sudah login
-      else if (!driverLoggedIn && userLoggedIn) {
-        // Tanyakan konfirmasi apakah ingin logout dari user dulu
-        if (confirm('Anda sudah login sebagai user. Apakah Anda ingin logout dari user dan login sebagai driver?')) {
+        return;
+      }
+      
+      // SKENARIO 3: Hanya user yang login, driver belum login
+      if (userLoggedIn && !driverLoggedIn) {
+        console.log('User login, driver belum login - tanyakan konfirmasi');
+        
+        if (confirm(
+          'Anda sudah login sebagai User.\n\n' +
+          'Apakah Anda ingin logout dari User dan login sebagai Driver?\n\n' +
+          'Jika tidak, Anda akan tetap sebagai User.'
+        )) {
           // Logout user terlebih dahulu
           localStorage.removeItem('jego_logged_in_user');
-          localStorage.removeItem('jego_user_data');
-          console.log('User logged out');
+          console.log('✅ User logged out');
           
           // Update UI
-          checkLoginStatus();
+          updateLoginStatus();
           
-          // Kemudian ke halaman login driver
+          // Redirect ke login driver
           sendToKodular({
             target: 'driver_login',
-            screen: 'Screen3',
-            auto_login: false,
-            message: 'Navigasi ke halaman login driver (setelah logout user)'
+            screen: 'loginDriver',
+            message: 'Navigasi ke login driver'
           });
-        } else {
-          console.log('User memilih untuk tetap sebagai user');
         }
+        return;
       }
-      // Jika belum login sama sekali
-      else {
-        sendToKodular({
-          target: 'driver_login',
-          screen: 'Screen3',
-          auto_login: false,
-          message: 'Navigasi ke halaman login driver'
-        });
-      }
-    });
-
-    // Cek status login saat halaman dimuat
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('Halaman utama JeGo dimuat');
       
-      // Cek dan update status login di UI
-      checkLoginStatus();
-      
-      // Cek apakah perlu redirect otomatis
-      autoNavigateIfLoggedIn();
-    });
-
-    // Fungsi untuk logout semua akun (bisa digunakan jika diperlukan)
-    function logoutAll() {
-      localStorage.removeItem('jego_logged_in_user');
-      localStorage.removeItem('jego_user_data');
-      localStorage.removeItem('jego_driver_logged_in');
-      localStorage.removeItem('jego_driver_data');
-      console.log('Semua akun telah logout');
-      checkLoginStatus();
+      // SKENARIO 4: Belum login sama sekali
+      sendToKodular({
+        target: 'driver_login',
+        screen: 'loginDriver',
+        message: 'Navigasi ke halaman login driver'
+      });
     }
 
-    // Optional: Tambahkan tombol logout semua (untuk debugging)
-    // document.addEventListener('DOMContentLoaded', () => {
-    //   const logoutBtn = document.createElement('button');
-    //   logoutBtn.textContent = 'Logout Semua';
-    //   logoutBtn.style.position = 'fixed';
-    //   logoutBtn.style.bottom = '10px';
-    //   logoutBtn.style.right = '10px';
-    //   logoutBtn.style.zIndex = '1000';
-    //   logoutBtn.style.padding = '5px 10px';
-    //   logoutBtn.style.backgroundColor = 'red';
-    //   logoutBtn.style.color = 'white';
-    //   logoutBtn.style.border = 'none';
-    //   logoutBtn.style.borderRadius = '5px';
-    //   logoutBtn.style.cursor = 'pointer';
-    //   logoutBtn.onclick = logoutAll;
-    //   document.body.appendChild(logoutBtn);
-    // });
+    // Fungsi untuk update status login di UI
+    function updateLoginStatus() {
+      const userLoggedIn = localStorage.getItem('jego_logged_in_user');
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
+      
+      console.log('Update UI - User:', userLoggedIn ? 'Ya' : 'Tidak', 'Driver:', driverLoggedIn ? 'Ya' : 'Tidak');
+      
+      // Update header status
+      const headerStatus = document.getElementById('headerLoginStatus');
+      headerStatus.innerHTML = '';
+      
+      if (userLoggedIn && driverLoggedIn) {
+        // LOGIN GANDA - tampilkan warning
+        headerStatus.innerHTML = `
+          <span class="login-badge user">USER ✓</span>
+          <span class="login-badge driver">DRIVER ✓</span>
+        `;
+        document.getElementById('dualLoginWarning').classList.remove('hidden');
+      } else if (userLoggedIn) {
+        headerStatus.innerHTML = '<span class="login-badge user">USER ✓ LOGIN</span>';
+        document.getElementById('dualLoginWarning').classList.add('hidden');
+      } else if (driverLoggedIn) {
+        headerStatus.innerHTML = '<span class="login-badge driver">DRIVER ✓ LOGIN</span>';
+        document.getElementById('dualLoginWarning').classList.add('hidden');
+      } else {
+        document.getElementById('dualLoginWarning').classList.add('hidden');
+      }
+      
+      // Update card status
+      const userStatus = document.getElementById('userLoginStatus');
+      const driverStatus = document.getElementById('driverLoginStatus');
+      const userCard = document.getElementById('userCard');
+      const driverCard = document.getElementById('driverCard');
+      
+      if (userLoggedIn) {
+        userStatus.style.display = 'block';
+        userCard.classList.add('logged-in');
+        document.getElementById('userDescription').textContent = 
+          'Anda sudah login. Klik untuk membuka dashboard User.';
+      } else {
+        userStatus.style.display = 'none';
+        userCard.classList.remove('logged-in');
+        document.getElementById('userDescription').textContent = 
+          'Login sebagai pengguna untuk memesan layanan transportasi dengan mudah, cepat, dan aman.';
+      }
+      
+      if (driverLoggedIn) {
+        driverStatus.style.display = 'block';
+        driverCard.classList.add('logged-in');
+        document.getElementById('driverDescription').textContent = 
+          'Anda sudah login. Klik untuk membuka dashboard Driver.';
+      } else {
+        driverStatus.style.display = 'none';
+        driverCard.classList.remove('logged-in');
+        document.getElementById('driverDescription').textContent = 
+          'Login sebagai driver untuk menerima pesanan dan mendapatkan penghasilan tambahan.';
+      }
+      
+      // Update welcome message
+      const welcomeTitle = document.getElementById('welcomeTitle');
+      const welcomeText = document.getElementById('welcomeText');
+      
+      if (userLoggedIn && driverLoggedIn) {
+        welcomeTitle.textContent = 'Login Ganda Terdeteksi!';
+        welcomeText.textContent = 'Anda login sebagai User dan Driver. Pilih salah satu untuk melanjutkan.';
+        welcomeText.style.color = '#dc3545';
+        welcomeTitle.style.color = '#dc3545';
+      } else if (userLoggedIn) {
+        welcomeTitle.textContent = 'Selamat Datang Kembali!';
+        welcomeText.textContent = 'Anda login sebagai User. Klik untuk membuka dashboard.';
+        welcomeText.style.color = '#666';
+        welcomeTitle.style.color = '#FF9800';
+      } else if (driverLoggedIn) {
+        welcomeTitle.textContent = 'Selamat Datang Kembali Driver!';
+        welcomeText.textContent = 'Anda login sebagai Driver. Klik untuk membuka dashboard.';
+        welcomeText.style.color = '#666';
+        welcomeTitle.style.color = '#2196F3';
+      } else {
+        welcomeTitle.textContent = 'Selamat Datang di JeGo';
+        welcomeText.textContent = 'Solusi transportasi lokal terpercaya dari Gorontalo';
+        welcomeText.style.color = '#666';
+        welcomeTitle.style.color = '#FF9800';
+      }
+    }
+
+    // Fungsi untuk logout semua akun
+    function logoutAll() {
+      if (confirm('Anda yakin ingin logout dari semua akun?')) {
+        localStorage.removeItem('jego_logged_in_user');
+        localStorage.removeItem('jego_logged_in_driver');
+        console.log('✅ Semua akun telah logout');
+        
+        updateLoginStatus();
+        
+        // Tampilkan pesan sukses
+        alert('Logout berhasil! Anda telah keluar dari semua akun.');
+      }
+    }
+
+    // ================================================
+    // AUTO-REDIRECT JIKA HANYA SATU YANG LOGIN
+    // ================================================
+    function autoRedirectIfSingleLogin() {
+      const userLoggedIn = localStorage.getItem('jego_logged_in_user');
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
+      
+      // JANGAN redirect jika login ganda
+      if (userLoggedIn && driverLoggedIn) {
+        console.log('⚠️ Login ganda, tidak auto-redirect');
+        return;
+      }
+      
+      // Redirect jika hanya user yang login
+      if (userLoggedIn && !driverLoggedIn) {
+        console.log('✅ Hanya user login, auto-redirect ke dashboard user');
+        setTimeout(() => {
+          sendToKodular({
+            target: 'user_dashboard',
+            screen: 'Screen2',
+            auto_login: true,
+            message: 'Auto-navigate ke dashboard user'
+          });
+        }, 1000);
+        return;
+      }
+      
+      // Redirect jika hanya driver yang login
+      if (!userLoggedIn && driverLoggedIn) {
+        console.log('✅ Hanya driver login, auto-redirect ke dashboard driver');
+        setTimeout(() => {
+          sendToKodular({
+            target: 'driver_dashboard',
+            screen: 'Screen3',
+            auto_login: true,
+            message: 'Auto-navigate ke dashboard driver'
+          });
+        }, 1000);
+      }
+    }
+
+    // ================================================
+    // EVENT LISTENERS
+    // ================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🚀 Halaman utama JeGo dimuat');
+      
+      // Update status login
+      updateLoginStatus();
+      
+      // Cek apakah perlu auto-redirect
+      autoRedirectIfSingleLogin();
+      
+      // Event listeners untuk kartu
+      document.getElementById('userCard').addEventListener('click', openUserLogin);
+      document.getElementById('driverCard').addEventListener('click', openDriverLogin);
+      
+      // Event listener untuk tombol logout semua
+      document.getElementById('forceLogoutBtn').addEventListener('click', logoutAll);
+      
+      // Efek hover untuk kartu
+      document.querySelectorAll('.selection-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          if (!this.classList.contains('logged-in')) {
+            this.style.transform = 'translateY(-4px)';
+            this.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+          }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+          this.style.boxShadow = this.classList.contains('logged-in') 
+            ? '0 2px 10px rgba(76, 175, 80, 0.2)' 
+            : '0 2px 6px rgba(0,0,0,0.08)';
+        });
+      });
+      
+      // Tombol debug (opsional)
+      const debugBtn = document.createElement('button');
+      debugBtn.textContent = 'Debug Login';
+      debugBtn.style.position = 'fixed';
+      debugBtn.style.bottom = '10px';
+      debugBtn.style.right = '10px';
+      debugBtn.style.zIndex = '1000';
+      debugBtn.style.padding = '5px 10px';
+      debugBtn.style.backgroundColor = '#6c757d';
+      debugBtn.style.color = 'white';
+      debugBtn.style.border = 'none';
+      debugBtn.style.borderRadius = '5px';
+      debugBtn.style.cursor = 'pointer';
+      debugBtn.style.fontSize = '0.7rem';
+      debugBtn.onclick = () => {
+        console.log('=== DEBUG INFO ===');
+        console.log('User logged in:', localStorage.getItem('jego_logged_in_user') ? 'Ya' : 'Tidak');
+        console.log('Driver logged in:', localStorage.getItem('jego_logged_in_driver') ? 'Ya' : 'Tidak');
+        alert(
+          'Debug Info:\n\n' +
+          'User Login: ' + (localStorage.getItem('jego_logged_in_user') ? 'Ya' : 'Tidak') + '\n' +
+          'Driver Login: ' + (localStorage.getItem('jego_logged_in_driver') ? 'Ya' : 'Tidak')
+        );
+      };
+      document.body.appendChild(debugBtn);
+    });
   </script>
 </body>
 </html>
