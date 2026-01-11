@@ -60,11 +60,10 @@ function setLoadingState(key, value) {
 
 function showLoading(message = 'Menyiapkan aplikasi...') {
     const loadingEl = document.getElementById('loadingOverlay');
-    const loadingText = document.getElementById('loadingText');
     
     if (loadingEl) {
-        loadingEl.style.display = 'flex';
-        if (loadingText) loadingText.textContent = message;
+        // Gunakan radar loading jika tersedia
+        showLoadingRadar(message);
     }
     
     // Set timeout untuk loading lama
@@ -1560,6 +1559,12 @@ function updateDriverLocation(position) {
     if (autobidEnabled && !isAutobidProcessing) {
         checkOrdersForAutobid();
     }
+    
+    // ⭐ PERUBAHAN DI SINI: Mulai radar scanning jika sedang menampilkan radar
+    const radarText = document.querySelector('.radar-text');
+    if (radarText && radarText.textContent.includes('Menunggu lokasi GPS')) {
+        startRadarScanning();
+    }
 }
 
 function saveDriverLocationToStorage() {
@@ -2330,15 +2335,10 @@ function loadOrders() {
 
             if (!orders || Object.keys(orders).length === 0) {
                 console.log('🗑️ Tidak ada orders di Firebase');
-                ordersList.innerHTML = `
-                    <div class="empty-state">
-                        <div>🗑️</div>
-                        <p>Tidak ada permintaan order saat ini</p>
-                        <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
-                            Orders akan muncul di sini ketika ada customer membutuhkan driver
-                        </p>
-                    </div>
-                `;
+                
+                // ⭐ PERUBAHAN DI SINI: Tampilkan radar pencarian
+                showRadarSearch();
+                
                 sendOrdersToKodular([]);
                 setLoadingState('orders', true);
                 return;
@@ -2377,12 +2377,8 @@ function processOrdersData(orders, ordersList) {
         sendOrdersToKodular(sortedOrders);
 
         if (sortedOrders.length === 0) {
-            ordersList.innerHTML = `
-                <div class="empty-state">
-                    <div>🗑️</div>
-                    <p>Tidak ada permintaan order</p>
-                </div>
-            `;
+            // ⭐ PERUBAHAN DI SINI: Tampilkan radar ketika tidak ada order yang sesuai filter
+            showRadarSearch();
             setLoadingState('orders', true);
             return;
         }
@@ -3330,6 +3326,11 @@ function refreshData() {
     console.log('🔍 Refresh data manual');
     loadOrders();
     
+    // ⭐ PERUBAHAN DI SINI: Reset radar scanning
+    setTimeout(() => {
+        startRadarScanning();
+    }, 1000);
+    
     if (locationTrackingEnabled && driverLocation.latitude && driverLocation.longitude) {
         sendLocationToFirebase();
     }
@@ -3349,6 +3350,167 @@ function closeModal() {
     currentSelectedOrder = null;
     currentDriverId = null;
     isAutobidProcessing = false;
+}
+
+// ==================== FUNGSI BARU: ANIMASI RADAR PENCARIAN ====================
+
+// Fungsi untuk membuat elemen radar
+function createRadarAnimation(isSimple = false) {
+    const radarContainer = document.createElement('div');
+    radarContainer.className = 'radar-container';
+    
+    if (isSimple) {
+        radarContainer.innerHTML = `
+            <div class="radar-simple">
+                <div class="radar-simple-scan"></div>
+                <div class="radar-simple-center"></div>
+            </div>
+        `;
+    } else {
+        radarContainer.innerHTML = `
+            <div class="radar-circle radar-circle-1"></div>
+            <div class="radar-circle radar-circle-2"></div>
+            <div class="radar-circle radar-circle-3"></div>
+            <div class="radar-scan"></div>
+            <div class="radar-center"></div>
+            <div class="radar-dot radar-dot-1"></div>
+            <div class="radar-dot radar-dot-2"></div>
+            <div class="radar-dot radar-dot-3"></div>
+            <div class="radar-dot radar-dot-4"></div>
+            <div class="radar-dot radar-dot-5"></div>
+        `;
+    }
+    
+    return radarContainer;
+}
+
+// Fungsi untuk menampilkan radar ketika tidak ada order
+function showRadarSearch() {
+    const ordersList = document.getElementById('ordersList');
+    
+    if (!ordersList) {
+        console.error('❌ Element ordersList tidak ditemukan!');
+        return;
+    }
+    
+    ordersList.innerHTML = `
+        <div class="empty-state-with-radar">
+            <div class="empty-state-title">📡 Mencari Order Terdekat...</div>
+            <div class="empty-state-subtitle">
+                Sistem sedang memindai area sekitar Anda untuk menemukan order yang tersedia.
+            </div>
+        </div>
+    `;
+    
+    const emptyState = ordersList.querySelector('.empty-state-with-radar');
+    
+    // Tambahkan radar animasi
+    const radar = createRadarAnimation(false);
+    emptyState.insertBefore(radar, emptyState.querySelector('.empty-state-subtitle'));
+    
+    // Tambahkan teks animasi di bawah radar
+    const radarText = document.createElement('div');
+    radarText.className = 'radar-text';
+    radarText.textContent = 'Memindai radius ' + customRadius + ' km...';
+    emptyState.appendChild(radarText);
+    
+    // Kirim status ke Kodular
+    sendToKodular({
+        action: 'searching_orders',
+        status: 'no_orders_found',
+        message: 'Sistem sedang mencari order di sekitar Anda',
+        radius: customRadius
+    });
+    
+    // Mulai radar scanning
+    startRadarScanning();
+}
+
+// Fungsi untuk menampilkan radar sederhana di loading
+function showLoadingRadar(message = 'Menyiapkan aplikasi...') {
+    const loadingEl = document.getElementById('loadingOverlay');
+    
+    if (loadingEl) {
+        loadingEl.innerHTML = `
+            <div class="loading-radar">
+                ${createRadarAnimation(true).outerHTML}
+                <div id="loadingText" style="margin-top: 20px; font-weight: 600; color: var(--primary);">
+                    ${message}
+                </div>
+            </div>
+        `;
+        loadingEl.style.display = 'flex';
+    }
+}
+
+// Fungsi untuk memulai radar scanning
+function startRadarScanning() {
+    console.log('📡 Memulai radar scanning...');
+    
+    // Periksa apakah GPS aktif
+    if (!driverLocation.latitude || !driverLocation.longitude) {
+        console.log('📍 GPS tidak aktif, radar scanning menunggu lokasi...');
+        
+        // Update teks radar
+        const radarText = document.querySelector('.radar-text');
+        if (radarText) {
+            radarText.textContent = 'Menunggu lokasi GPS...';
+            radarText.style.color = '#ff9800';
+        }
+        
+        // Coba lagi dalam 3 detik
+        setTimeout(startRadarScanning, 3000);
+        return;
+    }
+    
+    // Jika GPS aktif, update teks radar
+    const radarText = document.querySelector('.radar-text');
+    if (radarText) {
+        radarText.textContent = `Memindai radius ${customRadius} km dari lokasi Anda...`;
+        radarText.style.color = '#4CAF50';
+    }
+    
+    console.log(`📍 Radar scanning aktif dengan radius ${customRadius} km`);
+}
+
+// ==================== FUNGSI BARU: SIMULASI ORDER BARU (UNTUK DEMO) ====================
+
+function simulateNewOrderForDemo() {
+    // Hanya untuk mode demo/browser
+    if (window.location.href.indexOf('file://') !== -1 || 
+        window.location.hostname === 'localhost') {
+        
+        const ordersList = document.getElementById('ordersList');
+        if (!ordersList) return;
+        
+        // Cek apakah sedang menampilkan radar
+        const radar = ordersList.querySelector('.radar-container');
+        if (radar) {
+            console.log('🎮 Mode Demo: Simulasi order baru ditemukan');
+            
+            // Tampilkan pesan order ditemukan
+            ordersList.innerHTML = `
+                <div class="empty-state-with-radar">
+                    <div class="empty-state-title" style="color: #4CAF50;">🎉 ORDER DITEMUKAN!</div>
+                    <div class="empty-state-subtitle">
+                        Radar berhasil menemukan order baru dalam radius Anda. 
+                        Order akan segera muncul di daftar.
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button onclick="refreshData()" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            Muat Ulang Daftar Order
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Kirim notifikasi ke Kodular
+            sendToKodular({
+                action: 'demo_order_found',
+                message: 'Order baru ditemukan dalam radius pencarian'
+            });
+        }
+    }
 }
 
 // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
@@ -3380,6 +3542,11 @@ function initJeGoApp() {
     // Load orders
     setTimeout(() => {
         loadOrders();
+        
+        // ⭐ PERUBAHAN DI SINI: Mulai radar scanning setelah load orders
+        setTimeout(() => {
+            startRadarScanning();
+        }, 2000);
     }, 500);
     
     // Setup sidebar navigation
@@ -3545,6 +3712,36 @@ function setupEventListeners() {
             navigateToScreen(screen);
         });
     });
+    
+    // ⭐ TAMBAHKAN: Tombol demo untuk simulasi order (hanya di mode browser)
+    if (window.location.href.indexOf('file://') !== -1 || 
+        window.location.hostname === 'localhost') {
+        
+        // Tambahkan tombol demo di header jika tidak ada
+        setTimeout(() => {
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls && !document.getElementById('demoOrderBtn')) {
+                const demoBtn = document.createElement('button');
+                demoBtn.id = 'demoOrderBtn';
+                demoBtn.innerHTML = '🎮 DEMO';
+                demoBtn.style.cssText = `
+                    background: rgba(76, 175, 80, 0.2);
+                    color: #4CAF50;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.75rem;
+                    margin-left: 8px;
+                `;
+                demoBtn.title = 'Simulasi order baru (hanya untuk demo)';
+                demoBtn.addEventListener('click', simulateNewOrderForDemo);
+                
+                headerControls.appendChild(demoBtn);
+            }
+        }, 2000);
+    }
 }
 
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
