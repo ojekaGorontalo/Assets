@@ -381,80 +381,6 @@
       font-size: 0.8rem;
     }
 
-    /* ==================== PROMO SECTION STYLES ==================== */
-    .promo-section {
-      padding: 12px 15px;
-      border-bottom: 1px solid #eee;
-      display: none;
-      background: white;
-    }
-
-    .promo-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: linear-gradient(135deg, #ffd700, #ff9800);
-      color: #333;
-      padding: 6px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .promo-details {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: #f8f9fa;
-      padding: 10px;
-      border-radius: 8px;
-      border-left: 4px solid #ffc107;
-    }
-
-    .promo-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.8rem;
-    }
-
-    .promo-label {
-      color: #666;
-      font-weight: 500;
-    }
-
-    .promo-value {
-      font-weight: 600;
-      color: var(--dark);
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-
-    .original-price {
-      text-decoration: line-through;
-      color: #999;
-      font-size: 0.75rem;
-    }
-
-    .discount-badge {
-      background: var(--success);
-      color: white;
-      padding: 3px 8px;
-      border-radius: 10px;
-      font-size: 0.7rem;
-      font-weight: bold;
-      margin-left: 6px;
-    }
-
-    .final-price {
-      color: var(--success);
-      font-weight: 700;
-      font-size: 0.85rem;
-    }
-
-    /* ==================== END PROMO SECTION ==================== */
-
     .delivery-section {
       padding: 12px 15px;
       border-bottom: 1px solid #eee;
@@ -491,6 +417,115 @@
 
     .delivery-item-full {
       grid-column: 1 / span 2;
+    }
+
+    /* MODAL SALDO TIDAK CUKUP */
+    .balance-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 4000;
+      padding: 20px;
+    }
+
+    .balance-modal-container {
+      background: white;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 400px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    .balance-modal-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .balance-modal-header h2 {
+      color: var(--danger);
+      margin-bottom: 8px;
+      font-size: 1.5rem;
+    }
+
+    .balance-modal-content {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+
+    .balance-info-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+
+    .balance-info-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .balance-info-value {
+      color: var(--dark);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .balance-highlight {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .balance-success {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .balance-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .balance-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .cancel-balance-btn {
+      background: #f8f9fa;
+      color: #666;
+      border: 1px solid #ddd;
+    }
+
+    .cancel-balance-btn:hover {
+      background: #e9ecef;
+    }
+
+    .ok-balance-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+    }
+
+    .ok-balance-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
     }
 
     /* Actions Section - Fixed at Bottom */
@@ -1111,7 +1146,7 @@
         height: 100vh;
       }
       
-      .status-section, .customer-section, .route-section, .info-section, .promo-section, .delivery-section {
+      .status-section, .customer-section, .route-section, .info-section, .delivery-section {
         padding: 10px 12px;
       }
       
@@ -1190,6 +1225,19 @@
       
       .rating-header h2 {
         font-size: 1.3rem;
+      }
+
+      .balance-modal-container {
+        margin: 10px;
+        padding: 20px;
+      }
+
+      .balance-modal-header h2 {
+        font-size: 1.3rem;
+      }
+
+      .balance-info-item {
+        font-size: 0.8rem;
       }
     }
   </style>
@@ -1295,33 +1343,6 @@
           </div>
         </div>
 
-        <!-- ==================== SECTION PROMO ==================== -->
-        <div class="promo-section" id="promoSection">
-          <div class="section-title">Promo</div>
-          <div class="promo-details">
-            <div class="promo-item">
-              <span class="promo-label">Kode Promo:</span>
-              <span class="promo-value" id="promoCode">-</span>
-            </div>
-            <div class="promo-item">
-              <span class="promo-label">Harga Asli:</span>
-              <span class="promo-value">
-                <span class="original-price" id="originalPrice">-</span>
-              </span>
-            </div>
-            <div class="promo-item">
-              <span class="promo-label">Diskon:</span>
-              <span class="promo-value">
-                <span class="discount-badge" id="discountPercentage">-</span>
-              </span>
-            </div>
-            <div class="promo-item">
-              <span class="promo-label">Harga Final:</span>
-              <span class="promo-value final-price" id="finalPrice">-</span>
-            </div>
-          </div>
-        </div>
-
         <div class="delivery-section" id="deliverySection">
           <div class="section-title">Informasi Pengiriman</div>
           <div class="delivery-grid">
@@ -1393,6 +1414,44 @@
         <div class="photo-modal-info" id="photoModalInfo">
           <!-- Info customer akan diisi JavaScript -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Saldo Tidak Cukup -->
+  <div class="balance-modal-overlay" id="balanceModalOverlay" style="display: none;">
+    <div class="balance-modal-container">
+      <div class="balance-modal-header">
+        <h2>❌ Saldo Tidak Cukup</h2>
+        <p>Anda tidak memiliki saldo yang cukup untuk memulai perjalanan.</p>
+      </div>
+      
+      <div class="balance-modal-content">
+        <div class="balance-info-item">
+          <span class="balance-info-label">Harga Order:</span>
+          <span class="balance-info-value" id="balanceOrderAmount">Rp 0</span>
+        </div>
+        <div class="balance-info-item">
+          <span class="balance-info-label">Potongan (</span><span id="balancePotonganPercentage">0%</span><span class="balance-info-label">):</span>
+          <span class="balance-info-value balance-highlight" id="balancePotonganAmount">Rp 0</span>
+        </div>
+        <div class="balance-info-item">
+          <span class="balance-info-label">Saldo Anda:</span>
+          <span class="balance-info-value" id="balanceCurrentBalance">Rp 0</span>
+        </div>
+        <div class="balance-info-item">
+          <span class="balance-info-label">Kekurangan:</span>
+          <span class="balance-info-value balance-highlight" id="balanceKekurangan">Rp 0</span>
+        </div>
+        <div class="balance-info-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+          <span class="balance-info-label">Saldo Setelah Potongan:</span>
+          <span class="balance-info-value balance-success" id="balanceAfterDeduction">Rp 0</span>
+        </div>
+      </div>
+      
+      <div class="balance-actions">
+        <button class="balance-btn cancel-balance-btn" onclick="closeBalanceModal()">Tutup</button>
+        <button class="balance-btn ok-balance-btn" onclick="topupBalance()">Topup Saldo</button>
       </div>
     </div>
   </div>
@@ -1546,6 +1605,13 @@
       'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
     };
 
+    // ==================== FUNGSI UTILITAS ====================
+    function getOrderAmount(order) {
+      // Hanya ambil harga_total sebagai satu-satunya sumber harga
+      const amount = order.harga_total;
+      return typeof amount === 'number' ? amount : parseFloat(amount) || 0;
+    }
+
     // ==================== FUNGSI TOAST NOTIFICATION ====================
     function showToast(message, type = 'info') {
       const toast = document.getElementById('toastNotification');
@@ -1635,6 +1701,47 @@
 
     function closePhotoModal() {
       document.getElementById('photoModalOverlay').style.display = 'none';
+    }
+
+    // ==================== FUNGSI MODAL SALDO TIDAK CUKUP ====================
+    function showBalanceModal(orderAmount, requiredFee, currentBalance) {
+      const modal = document.getElementById('balanceModalOverlay');
+      
+      // Hitung kekurangan
+      const kekurangan = requiredFee - currentBalance;
+      const saldoSetelah = currentBalance - requiredFee;
+      
+      // Update konten modal
+      document.getElementById('balanceOrderAmount').textContent = `Rp ${orderAmount.toLocaleString('id-ID')}`;
+      document.getElementById('balancePotonganPercentage').textContent = `${potonganPercentage}%`;
+      document.getElementById('balancePotonganAmount').textContent = `Rp ${requiredFee.toLocaleString('id-ID')}`;
+      document.getElementById('balanceCurrentBalance').textContent = `Rp ${currentBalance.toLocaleString('id-ID')}`;
+      document.getElementById('balanceKekurangan').textContent = `Rp ${kekurangan.toLocaleString('id-ID')}`;
+      document.getElementById('balanceAfterDeduction').textContent = `Rp ${saldoSetelah.toLocaleString('id-ID')}`;
+      
+      // Tampilkan modal
+      modal.style.display = 'flex';
+      
+      modal.onclick = function(event) {
+        if (event.target === modal) {
+          closeBalanceModal();
+        }
+      };
+    }
+
+    function closeBalanceModal() {
+      document.getElementById('balanceModalOverlay').style.display = 'none';
+    }
+
+    function topupBalance() {
+      closeBalanceModal();
+      showToast('Fitur topup akan segera tersedia', 'info');
+      
+      // Kirim ke Kodular untuk membuka halaman topup
+      sendToKodular({
+        action: 'open_topup',
+        message: 'Driver perlu topup saldo'
+      });
     }
 
     // ==================== FUNGSI PETA ====================
@@ -2059,19 +2166,34 @@
     }
 
     function showDebugInfo() {
-      const orderAmount = currentOrderData?.harga_total ? parseFloat(currentOrderData.harga_total) : 0;
+      const orderAmount = getOrderAmount(currentOrderData);
       const requiredFee = calculateFee(orderAmount);
       
-      alert(`💳 INFO SALDO DRIVER\n\n` +
-            `Saldo: Rp ${currentDriverBalance.toLocaleString('id-ID')}\n` +
-            `Potongan: ${potonganPercentage}%\n` +
-            `Driver ID: ${currentDriverData?.driverId || currentDriverData?.uid || 'N/A'}\n` +
-            `Nama: ${currentDriverData?.name || 'N/A'}\n\n` +
-            `=== PERHITUNGAN ===\n` +
-            `Harga order: Rp ${orderAmount.toLocaleString('id-ID')}\n` +
-            `Potongan (${potonganPercentage}%): Rp ${requiredFee.toLocaleString('id-ID')}\n` +
-            `Saldo setelah: Rp ${(currentDriverBalance - requiredFee).toLocaleString('id-ID')}\n` +
-            `Cukup? ${currentDriverBalance >= requiredFee ? '✅ YA' : '❌ TIDAK'}`);
+      // Debug log
+      console.log({
+        saldoSebelum: currentDriverBalance,
+        orderAmount: orderAmount,
+        potonganPercentage: potonganPercentage,
+        potongan: requiredFee,
+        saldoSesudah: currentDriverBalance - requiredFee
+      });
+      
+      const modalContent = `
+💳 INFO SALDO DRIVER
+
+Saldo: Rp ${currentDriverBalance.toLocaleString('id-ID')}
+Potongan: ${potonganPercentage}%
+Driver ID: ${currentDriverData?.driverId || currentDriverData?.uid || 'N/A'}
+Nama: ${currentDriverData?.name || 'N/A'}
+
+=== PERHITUNGAN ===
+Harga order: Rp ${orderAmount.toLocaleString('id-ID')}
+Potongan (${potonganPercentage}%): Rp ${requiredFee.toLocaleString('id-ID')}
+Saldo setelah: Rp ${(currentDriverBalance - requiredFee).toLocaleString('id-ID')}
+Cukup? ${currentDriverBalance >= requiredFee ? '✅ YA' : '❌ TIDAK'}
+      `;
+      
+      alert(modalContent);
     }
 
     // ==================== FUNGSI PERHITUNGAN POTONGAN ====================
@@ -2207,14 +2329,15 @@
     // ==================== FUNGSI START TRIP DIPERBAIKI ====================
     async function startTrip() {
       if (!currentOrderData) {
-        alert('❌ Data order tidak tersedia');
+        showToast('❌ Data order tidak tersedia', 'error');
         return;
       }
       
       console.log('🚗 === MEMULAI PROSES PERJALANAN ===');
       console.log('📋 Data order:', currentOrderData);
       
-      let orderAmount = parseFloat(currentOrderData.harga_total) || 0;
+      // HANYA AMBIL DARI harga_total - TIDAK ADA PROMO LAGI
+      let orderAmount = getOrderAmount(currentOrderData);
       
       console.log(`💰 Harga order: Rp ${orderAmount.toLocaleString('id-ID')}`);
       console.log(`📊 Potongan saat ini: ${potonganPercentage}%`);
@@ -2223,19 +2346,8 @@
       const balanceCheck = checkBalanceForOrder(orderAmount);
       
       if (!balanceCheck.hasSufficientBalance) {
-        const alertMessage = `
-❌ SALDO TIDAK CUKUP
-
-💰 Saldo Anda: Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}
-💸 Biaya layanan (${potonganPercentage}%): Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}
-📦 Harga order: Rp ${orderAmount.toLocaleString('id-ID')}
-🔢 Perhitungan: ${orderAmount.toLocaleString('id-ID')} × ${potonganPercentage}% = ${balanceCheck.requiredFee.toLocaleString('id-ID')}
-➖ Sisa yang dibutuhkan: Rp ${(balanceCheck.requiredFee - balanceCheck.currentBalance).toLocaleString('id-ID')}
-
-⚠️ Anda perlu topup saldo terlebih dahulu.
-        `;
-        
-        alert(alertMessage);
+        // TAMPILKAN MODAL, BUKAN ALERT
+        showBalanceModal(orderAmount, balanceCheck.requiredFee, balanceCheck.currentBalance);
         
         sendToKodular({
           action: 'balance_check_failed',
@@ -2250,6 +2362,7 @@
         return;
       }
       
+      // Konfirmasi dengan modal HTML
       const confirmationMessage = `
 ✅ KONFIRMASI MULAI PERJALANAN
 
@@ -2291,6 +2404,7 @@ Biaya akan langsung dipotong dari saldo Anda.
           deductOrderFee(currentOrderId, orderAmount, driverId);
         } else {
           console.error('❌ Driver ID tidak tersedia untuk pemotongan saldo');
+          showToast('❌ Driver ID tidak ditemukan', 'error');
         }
         
         showToast(`Perjalanan dimulai! Potongan Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`, 'success');
@@ -2313,7 +2427,7 @@ Biaya akan langsung dipotong dari saldo Anda.
         
       } catch (error) {
         console.error('❌ Gagal update status order:', error);
-        alert('❌ Gagal memulai perjalanan. Silakan coba lagi.');
+        showToast('❌ Gagal memulai perjalanan. Silakan coba lagi.', 'error');
       }
     }
 
@@ -2672,44 +2786,12 @@ Biaya akan langsung dipotong dari saldo Anda.
       document.getElementById('tripDistance').textContent = order.jarak || '-';
       document.getElementById('tripDuration').textContent = order.durasi || '-';
       
-      const promoSection = document.getElementById('promoSection');
-      const hasPromoData = order.promo_data || order.harga_asal || order.diskon_persen;
-      
-      if (hasPromoData) {
-        promoSection.style.display = 'block';
-        
-        const promoCode = document.getElementById('promoCode');
-        const originalPrice = document.getElementById('originalPrice');
-        const discountPercentage = document.getElementById('discountPercentage');
-        const finalPrice = document.getElementById('finalPrice');
-        
-        if (order.promo_data && order.promo_data.code) {
-          promoCode.textContent = order.promo_data.code;
-        } else if (order.kode_promo) {
-          promoCode.textContent = order.kode_promo;
-        } else {
-          promoCode.textContent = 'PROMO';
-        }
-        
-        const hargaAsal = order.harga_asal || order.harga_total;
-        originalPrice.textContent = `Rp ${parseInt(hargaAsal).toLocaleString('id-ID')}`;
-        
-        const diskonPersen = order.diskon_persen || (order.promo_data && order.promo_data.discount) || 0;
-        discountPercentage.textContent = `${diskonPersen}%`;
-        
-        const hargaFinal = order.harga_total;
-        finalPrice.textContent = `Rp ${parseInt(hargaFinal).toLocaleString('id-ID')}`;
-        
-        document.getElementById('tripPrice').textContent = `Rp ${parseInt(hargaFinal).toLocaleString('id-ID')}`;
+      // HANYA AMBIL DARI harga_total - TIDAK ADA PROMO LAGI
+      if (order.harga_total) {
+        const harga = getOrderAmount(order);
+        document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
       } else {
-        promoSection.style.display = 'none';
-        
-        if (order.harga_total) {
-          const harga = typeof order.harga_total === 'number' ? order.harga_total : parseInt(order.harga_total);
-          document.getElementById('tripPrice').textContent = `Rp ${harga.toLocaleString('id-ID')}`;
-        } else {
-          document.getElementById('tripPrice').textContent = '-';
-        }
+        document.getElementById('tripPrice').textContent = '-';
       }
       
       if (order.created_at) {
@@ -3041,7 +3123,7 @@ Biaya akan langsung dipotong dari saldo Anda.
         
       }).catch((error) => {
         console.error('❌ Gagal update status order:', error);
-        alert('Gagal menyelesaikan order. Silakan coba lagi.');
+        showToast('❌ Gagal menyelesaikan order. Silakan coba lagi.', 'error');
       });
     }
 
@@ -3156,7 +3238,7 @@ Biaya akan langsung dipotong dari saldo Anda.
           order_id: currentOrderId,
           alamat_a: currentOrderData.alamat_a,
           alamat_b: currentOrderData.alamat_b,
-          harga_total: currentOrderData.harga_total,
+          harga_total: getOrderAmount(currentOrderData), // HANYA harga_total
           status: 'completed',
           user_data: currentOrderData.user_data || {},
           service_type: currentOrderData.vehicle_name,
@@ -3279,7 +3361,7 @@ Biaya akan langsung dipotong dari saldo Anda.
 
     async function submitRating() {
       if (!selectedRating) {
-        alert('Silakan pilih rating terlebih dahulu');
+        showToast('Silakan pilih rating terlebih dahulu', 'error');
         return;
       }
       
@@ -3310,7 +3392,7 @@ Biaya akan langsung dipotong dari saldo Anda.
         
       } catch (error) {
         console.error('❌ Error dalam submit rating:', error);
-        alert('Gagal mengirim rating. Silakan coba lagi.');
+        showToast('Gagal mengirim rating. Silakan coba lagi.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Kirim Rating';
       }
