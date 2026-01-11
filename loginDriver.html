@@ -1071,7 +1071,7 @@
     }
 
     // ================================================
-    // FUNGSI CEK STATUS DRIVER (KONSISTEN DENGAN DAFTARDRIVER.HTML)
+    // FUNGSI CEK STATUS DRIVER - DIPERBARUI (SAMA DENGAN SPLASH1.HTML)
     // ================================================
     
     async function checkDriverStatus() {
@@ -1082,6 +1082,7 @@
           return;
         }
         
+        // METODE 1: Cari dengan uid Firebase
         const driversSnapshot = await database.ref('drivers')
           .orderByChild('uid')
           .equalTo(user.uid)
@@ -1090,52 +1091,144 @@
         const driversData = driversSnapshot.val();
         
         if (!driversData) {
+          // METODE 2: Cari dengan nomor telepon dari user yang login
+          const userPhone = user.phoneNumber;
+          if (userPhone) {
+            const phoneQuery = await database.ref('drivers')
+              .orderByChild('phone')
+              .equalTo(userPhone.replace('+', ''))
+              .once('value');
+            
+            const phoneData = phoneQuery.val();
+            if (phoneData) {
+              const driverId = Object.keys(phoneData)[0];
+              const driverData = phoneData[driverId];
+              handleDriverStatusResult(driverId, driverData);
+              return;
+            }
+          }
+          
+          console.log('❌ Driver tidak ditemukan di database');
+          showErrorMessage('Data driver tidak ditemukan. Silakan login ulang.');
           return;
         }
         
         const driverId = Object.keys(driversData)[0];
         const driverData = driversData[driverId];
-        const status = driverData.status || 'pending';
         
-        console.log(`🔍 Status driver: ${status}`);
+        handleDriverStatusResult(driverId, driverData);
         
-        switch(status) {
-          case 'accepted':
-          case 'approved':
-          case 'active':
-            console.log('✅ Driver diterima, membuka dashboard...');
-            openDashboard(driverData);
-            break;
-            
-          case 'rejected':
-            hideAllForms();
-            showPopup('Pendaftaran Ditolak', 
-              'Pendaftaran Anda telah ditolak oleh admin.<br><br>' +
-              'Alasan: ' + (driverData.rejectionReason || 'Tidak memenuhi syarat') + '<br>' +
-              'Silakan hubungi admin untuk informasi lebih lanjut.',
-              'error');
-            break;
-            
-          case 'blocked':
-            hideAllForms();
-            showPopup('Akun Diblokir',
-              'Akun Anda telah diblokir oleh admin.<br><br>' +
-              'Alasan: ' + (driverData.blockReason || 'Melanggar aturan') + '<br>' +
-              'Hubungi admin untuk mengajukan pembukaan blokir.',
-              'error');
-            break;
-            
-          case 'pending':
-            console.log('⏳ Status pending, menunggu verifikasi admin');
-            showInfoMessage('Status: Menunggu verifikasi admin.');
-            break;
-            
-          default:
-            console.warn(`⚠️ Status tidak dikenal: ${status}`);
-            showInfoMessage(`Status: ${status}. Silakan hubungi admin.`);
-        }
       } catch (error) {
         console.error('❌ Error checking driver status:', error);
+        showErrorMessage('Gagal memeriksa status driver. Silakan coba lagi.');
+      }
+    }
+    
+    // Fungsi untuk menangani hasil status driver
+    function handleDriverStatusResult(driverId, driverData) {
+      const status = driverData.status || driverData.driverStatus || 'pending';
+      const ketGagal = driverData.ketGagal || driverData.rejectionReason || driverData.blockReason || 'Tidak ada keterangan tambahan.';
+      
+      console.log(`📊 Status driver: ${status}`);
+      
+      switch(status) {
+        case 'accepted':
+        case 'approved':
+        case 'active':
+          console.log('✅ Driver diterima, membuka dashboard...');
+          openDashboard(driverData);
+          break;
+          
+        case 'rejected':
+          hideAllForms();
+          showPopup('Akun Ditolak', 
+            `<p><strong>Status akun Anda: <span style="color: #f44336">DITOLAK</span></strong></p>
+            <p><strong>Alasan penolakan:</strong></p>
+            <p style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+              ${ketGagal}
+            </p>
+            <p>Silakan hubungi admin untuk informasi lebih lanjut atau perbaiki data Anda.</p>`,
+            'error', {
+              showCancel: true,
+              confirmText: 'Hubungi Admin',
+              cancelText: 'Ke Login',
+              onConfirm: () => {
+                const message = `Halo Admin JeGo, saya ${driverData.name || ''} ingin menanyakan alasan penolakan akun driver saya. Status: Ditolak. Alasan: ${ketGagal}`;
+                const whatsappUrl = `https://wa.me/6283142889149?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+                // Logout dan hapus session
+                auth.signOut();
+                localStorage.removeItem('jego_logged_in_driver');
+                setTimeout(() => {
+                  window.location.href = 'loginDriver.html';
+                }, 1000);
+              },
+              onCancel: () => {
+                auth.signOut();
+                localStorage.removeItem('jego_logged_in_driver');
+                window.location.href = 'loginDriver.html';
+              }
+            });
+          break;
+          
+        case 'blocked':
+          hideAllForms();
+          showPopup('Akun Diblokir',
+            `<p><strong>Status akun Anda: <span style="color: #dc3545">DIBLOKIR</span></strong></p>
+            <p><strong>Alasan pemblokiran:</strong></p>
+            <p style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+              ${ketGagal}
+            </p>
+            <p>Anda tidak dapat mengakses aplikasi JeGo.</p>
+            <p>Silakan hubungi admin untuk mengajukan pembukaan blokir.</p>`,
+            'error', {
+              showCancel: true,
+              confirmText: 'Hubungi Admin',
+              cancelText: 'Ke Login',
+              onConfirm: () => {
+                const message = `Halo Admin JeGo, saya ${driverData.name || ''} ingin menanyakan alasan pemblokiran akun driver saya. Status: Diblokir. Alasan: ${ketGagal}`;
+                const whatsappUrl = `https://wa.me/6283142889149?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+                // Logout dan hapus session
+                auth.signOut();
+                localStorage.removeItem('jego_logged_in_driver');
+                setTimeout(() => {
+                  window.location.href = 'loginDriver.html';
+                }, 1000);
+              },
+              onCancel: () => {
+                auth.signOut();
+                localStorage.removeItem('jego_logged_in_driver');
+                window.location.href = 'loginDriver.html';
+              }
+            });
+          break;
+          
+        case 'pending':
+          hideAllForms();
+          console.log('⏳ Status pending, menunggu verifikasi admin');
+          showPopup('⏳ Menunggu Verifikasi',
+            `<p>Akun driver Anda sedang dalam proses verifikasi oleh tim JeGo.</p>
+            <p>Proses ini biasanya membutuhkan waktu <strong>1-2 hari kerja</strong>.</p>
+            <p>Anda akan menerima notifikasi via WhatsApp setelah akun diverifikasi.</p>`,
+            'warning', {
+              showCancel: true,
+              confirmText: 'Coba Lagi',
+              cancelText: 'Logout',
+              onConfirm: () => {
+                location.reload();
+              },
+              onCancel: () => {
+                auth.signOut();
+                localStorage.removeItem('jego_logged_in_driver');
+                window.location.href = 'loginDriver.html';
+              }
+            });
+          break;
+          
+        default:
+          console.warn(`⚠️ Status tidak dikenal: ${status}`);
+          showInfoMessage(`Status: ${status}. Silakan hubungi admin.`, false);
       }
     }
     
@@ -1243,15 +1336,16 @@
     }
 
     // ================================================
-    // FUNGSI CEK STATUS DRIVER (KONSISTEN)
+    // FUNGSI CEK STATUS DRIVER - DIPERBARUI
     // ================================================
     
-    function handleDriverStatus(status, driverData) {
+    function handleDriverStatusCheck(status, driverData) {
+      const ketGagal = driverData.ketGagal || driverData.rejectionReason || driverData.blockReason || 'Tidak ada keterangan tambahan.';
+      
       switch(status) {
         case 'accepted':
         case 'approved':
         case 'active':
-          // Driver aktif, boleh login
           return { allowed: true, message: 'Driver aktif' };
           
         case 'pending':
@@ -1259,8 +1353,8 @@
             allowed: false, 
             message: '❌ Status: <strong>Pending</strong><br><br>' +
                      'Akun Anda sedang menunggu verifikasi admin.<br>' +
-                     'Proses verifikasi membutuhkan waktu 1-2 hari kerja.<br>' +
-                     'Anda akan menerima notifikasi setelah verifikasi selesai.' 
+                     'Proses verifikasi membutuhkan waktu <strong>1-2 hari kerja</strong>.<br>' +
+                     'Anda akan menerima notifikasi via WhatsApp setelah akun diverifikasi.' 
           };
           
         case 'rejected':
@@ -1268,7 +1362,7 @@
             allowed: false, 
             message: '❌ Status: <strong>Ditolak</strong><br><br>' +
                      'Pendaftaran Anda telah ditolak oleh admin.<br>' +
-                     'Alasan: ' + (driverData.rejectionReason || 'Tidak memenuhi syarat') + '<br>' +
+                     '<strong>Alasan:</strong> ' + ketGagal + '<br>' +
                      'Silakan hubungi admin untuk informasi lebih lanjut.' 
           };
           
@@ -1277,7 +1371,7 @@
             allowed: false, 
             message: '❌ Status: <strong>Diblokir</strong><br><br>' +
                      'Akun Anda telah diblokir oleh admin.<br>' +
-                     'Alasan: ' + (driverData.blockReason || 'Melanggar aturan') + '<br>' +
+                     '<strong>Alasan:</strong> ' + ketGagal + '<br>' +
                      'Hubungi admin untuk mengajukan pembukaan blokir.' 
           };
           
@@ -1338,7 +1432,7 @@
     }
 
     // ================================================
-    // EVENT HANDLERS
+    // EVENT HANDLERS - DIPERBARUI UNTUK MENAMPILKAN KETERANGAN STATUS
     // ================================================
     
     document.getElementById('phoneNumber').addEventListener('input', function() {
@@ -1365,14 +1459,23 @@
               const status = phoneInfo.status || 'pending';
               let message = `Nomor ${formattedPhone} terdaftar sebagai driver atas nama ${nama}.`;
               
+              // Ambil keterangan gagal jika ada
+              const ketGagal = phoneInfo.user?.ketGagal || phoneInfo.user?.rejectionReason || phoneInfo.user?.blockReason || '';
+              
               if (status === 'pending') {
                 message += ' Status: Menunggu verifikasi admin.';
               } else if (status === 'accepted' || status === 'approved' || status === 'active') {
                 message += ' Status: Aktif. Silakan login.';
               } else if (status === 'rejected') {
-                message += ' Status: Ditolak. Hubungi admin untuk informasi lebih lanjut.';
+                message += ` Status: Ditolak.`;
+                if (ketGagal) {
+                  message += ` Alasan: ${ketGagal}`;
+                }
               } else if (status === 'blocked') {
-                message += ' Status: Diblokir. Hubungi admin untuk mengajukan pembukaan blokir.';
+                message += ` Status: Diblokir.`;
+                if (ketGagal) {
+                  message += ` Alasan: ${ketGagal}`;
+                }
               }
               
               showPhoneStatus('registered', message, phoneInfo);
@@ -1437,12 +1540,10 @@
         }
         
         // Cek status driver - HANYA yang accepted/approved/active boleh login
-        if (phoneInfo.status !== 'accepted' && phoneInfo.status !== 'approved' && phoneInfo.status !== 'active') {
-          showErrorMessage(
-            `Akun driver Anda statusnya masih <strong>${phoneInfo.status}</strong>.<br><br>` +
-            `Hanya driver dengan status "accepted", "approved", atau "active" yang dapat login.<br>` +
-            `Silakan tunggu verifikasi admin atau hubungi admin untuk informasi lebih lanjut.`
-          );
+        const statusCheck = handleDriverStatusCheck(phoneInfo.status, phoneInfo.user);
+        
+        if (!statusCheck.allowed) {
+          showErrorMessage(statusCheck.message);
           return;
         }
         
@@ -1570,6 +1671,11 @@
               return; // Hentikan eksekusi lainnya
             } else {
               console.warn('⚠️ Driver login tapi status tidak aktif:', status);
+              // Tampilkan pesan sesuai status
+              const statusCheck = handleDriverStatusCheck(status, driverData);
+              if (!statusCheck.allowed) {
+                showErrorMessage(statusCheck.message);
+              }
               // Hapus data yang tidak valid
               localStorage.removeItem('jego_logged_in_driver');
             }
