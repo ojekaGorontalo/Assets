@@ -431,8 +431,8 @@
     &copy; 2024 JeGo Gorontalo - Transportasi Digital
   </div>
 
-  <script>
-    // Firebase Configuration (GANTI DENGAN YANG BENAR)
+  <<script>
+    // Firebase Configuration (PASTIKAN INI BENAR)
     const firebaseConfig = {
       apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
       authDomain: "game-balap-simpel.firebaseapp.com",
@@ -470,7 +470,6 @@
     let messageIndex = 0;
     
     const loadingInterval = setInterval(() => {
-      // Increment progress dengan pola yang lebih realistis
       if (progress < 30) {
         progress += Math.random() * 10;
       } else if (progress < 70) {
@@ -508,134 +507,144 @@
       }
     }, 300);
     
-    // Fungsi untuk memeriksa status driver langsung ke Firebase
-    function checkDriverStatus() {
+    // Fungsi untuk memeriksa status driver
+    async function checkDriverStatus() {
       loadingText.textContent = "Memeriksa status akun...";
       
-      // Cek apakah user sudah login sebelumnya (gunakan key yang sama dengan loginDriver.html)
-      const driverData = localStorage.getItem('jego_logged_in_driver');
-      
-      if (driverData && driverData !== '{}') {
-        try {
-          const driverObj = JSON.parse(driverData);
-          const driverId = driverObj.uid || driverObj.firebase_key || driverObj.userId;
-          
-          if (!driverId) {
-            showErrorMessage('ID driver tidak ditemukan. Silakan login ulang.');
-            return;
-          }
-          
-          console.log(`🔍 Memeriksa status driver: ${driverId}`);
-          
-          // 1. Cek status akun
-          const statusRef = database.ref(`drivers/${driverId}/status`);
-          
-          statusRef.once('value')
-            .then((statusSnapshot) => {
-              const status = statusSnapshot.val();
-              
-              if (!status) {
-                showErrorMessage('Status akun tidak ditemukan. Silakan hubungi admin.');
-                return;
-              }
-              
-              console.log(`📊 Status driver: ${status}`);
-              
-              // Handle berdasarkan status
-              switch(status) {
-                case 'accepted':
-                case 'approved':
-                case 'active':
-                  // Status aktif, direct ke dashboard
-                  redirectToDashboard(driverId);
-                  break;
-                  
-                case 'pending':
-                  // Menunggu verifikasi
-                  showPendingMessage();
-                  break;
-                  
-                case 'rejected':
-                case 'blocked':
-                  // Status ditolak/diblokir, ambil keterangan
-                  getRejectionReason(driverId, status);
-                  break;
-                  
-                default:
-                  showErrorMessage(`Status tidak dikenali: ${status}. Silakan hubungi admin.`);
-              }
-            })
-            .catch((error) => {
-              console.error('Error checking status:', error);
-              showErrorMessage('Gagal memeriksa status akun. Silakan coba lagi.');
-            });
-            
-        } catch (error) {
-          console.error('Error parsing driver data:', error);
-          showErrorMessage('Data driver tidak valid. Silakan login ulang.');
+      try {
+        // Cek localStorage (gunakan key yang benar)
+        const driverData = localStorage.getItem('jego_logged_in_driver');
+        
+        if (!driverData || driverData === '{}') {
+          console.log('❌ Tidak ada data login di localStorage');
+          redirectToPage('loginDriver.html', 'Belum login. Mengalihkan...');
+          return;
         }
-      } else {
-        // Jika belum login, ke halaman login driver
-        redirectToPage('loginDriver.html', 'Belum login. Mengalihkan ke halaman login...');
+        
+        const driverObj = JSON.parse(driverData);
+        const driverId = driverObj.uid || driverObj.firebase_key;
+        
+        if (!driverId) {
+          console.error('❌ Driver ID tidak ditemukan');
+          showErrorMessage('ID driver tidak valid. Silakan login ulang.');
+          return;
+        }
+        
+        console.log(`🔍 Memeriksa driver ID: ${driverId}`);
+        
+        // Coba baca data driver langsung dari node utama
+        const driverRef = database.ref(`drivers/${driverId}`);
+        
+        driverRef.once('value')
+          .then((snapshot) => {
+            const driverData = snapshot.val();
+            
+            if (!driverData) {
+              console.error('❌ Data driver tidak ditemukan di Firebase');
+              showErrorMessage('Data driver tidak ditemukan. Silakan login ulang.');
+              return;
+            }
+            
+            console.log('✅ Data driver ditemukan:', driverData);
+            
+            // Cek status (gunakan field yang benar dari data Anda)
+            const status = driverData.status; // Dari data: status: "blocked"
+            
+            if (!status) {
+              console.warn('⚠️ Field status tidak ditemukan, default ke pending');
+              showPendingMessage();
+              return;
+            }
+            
+            console.log(`📊 Status driver: ${status}`);
+            
+            // Handle berdasarkan status
+            if (status === 'accepted' || status === 'approved' || status === 'active') {
+              console.log('✅ Status aktif, redirect ke dashboard');
+              redirectToDashboard(driverId, driverData);
+            } 
+            else if (status === 'pending') {
+              console.log('⏳ Status pending, tampilkan pesan');
+              showPendingMessage();
+            }
+            else if (status === 'blocked' || status === 'rejected') {
+              console.log(`🚫 Status ${status}, tampilkan pesan dengan alasan`);
+              
+              // Ambil alasan dari ketGagal
+              const ketGagal = driverData.ketGagal || 'Tidak ada keterangan tambahan.';
+              console.log(`📝 Alasan: ${ketGagal}`);
+              
+              if (status === 'blocked') {
+                showBlockedMessage(ketGagal);
+              } else {
+                showRejectedMessage(ketGagal);
+              }
+              
+              // Logout otomatis untuk akun yang diblokir/ditolak
+              localStorage.removeItem('jego_logged_in_driver');
+            }
+            else {
+              console.warn(`⚠️ Status tidak dikenali: ${status}`);
+              showErrorMessage(`Status tidak dikenali: ${status}. Silakan hubungi admin.`);
+            }
+          })
+          .catch((error) => {
+            console.error('❌ Error Firebase:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            
+            // Coba dengan metode fetch langsung untuk debugging
+            testFirebaseConnection(driverId);
+            
+            showErrorMessage('Gagal terhubung ke server. Periksa koneksi internet Anda.');
+          });
+          
+      } catch (error) {
+        console.error('❌ Error dalam checkDriverStatus:', error);
+        showErrorMessage('Terjadi kesalahan sistem. Silakan coba lagi.');
       }
     }
     
-    // Fungsi untuk mendapatkan alasan penolakan/pemblokiran
-    function getRejectionReason(driverId, status) {
-      const ketGagalRef = database.ref(`drivers/${driverId}/ketGagal`);
-      
-      ketGagalRef.once('value')
-        .then((reasonSnapshot) => {
-          const reason = reasonSnapshot.val() || 'Tidak ada keterangan tambahan.';
-          
-          if (status === 'rejected') {
-            showRejectedMessage(reason);
-          } else if (status === 'blocked') {
-            showBlockedMessage(reason);
-          }
-        })
-        .catch((error) => {
-          console.error('Error getting rejection reason:', error);
-          const defaultReason = status === 'rejected' 
-            ? 'Pendaftaran Anda ditolak oleh admin.' 
-            : 'Akun Anda telah diblokir oleh admin.';
-          showRejectedMessage(defaultReason);
-        });
+    // Fungsi untuk testing koneksi Firebase
+    async function testFirebaseConnection(driverId) {
+      try {
+        console.log('🔧 Testing Firebase connection...');
+        
+        // Test 1: Coba fetch langsung
+        const testUrl = `https://game-balap-simpel-default-rtdb.firebaseio.com/drivers/${driverId}.json`;
+        console.log('Testing URL:', testUrl);
+        
+        const response = await fetch(testUrl);
+        const data = await response.json();
+        console.log('Fetch result:', data);
+        
+        // Test 2: Coba dengan auth jika perlu
+        console.log('Firebase apps:', firebase.apps);
+        console.log('Database instance:', database);
+        
+      } catch (fetchError) {
+        console.error('❌ Fetch test error:', fetchError);
+      }
     }
     
     // Fungsi untuk redirect ke dashboard
-    function redirectToDashboard(driverId) {
+    function redirectToDashboard(driverId, driverData) {
       loadingText.textContent = 'Status akun aktif. Mengalihkan ke dashboard...';
       
       // Update session dengan data terbaru
-      updateDriverSession(driverId);
+      try {
+        const existingData = JSON.parse(localStorage.getItem('jego_logged_in_driver') || '{}');
+        const updatedData = { ...existingData, ...driverData };
+        localStorage.setItem('jego_logged_in_driver', JSON.stringify(updatedData));
+        console.log('✅ Session diperbarui');
+      } catch (e) {
+        console.error('Error update session:', e);
+      }
       
       // Redirect setelah 2 detik
       setTimeout(() => {
         window.location.href = 'list1.html';
       }, 2000);
-    }
-    
-    // Fungsi untuk update session driver dengan data terbaru dari Firebase
-    function updateDriverSession(driverId) {
-      const driverRef = database.ref(`drivers/${driverId}`);
-      
-      driverRef.once('value')
-        .then((snapshot) => {
-          const currentData = snapshot.val();
-          if (currentData) {
-            // Gabungkan dengan data yang sudah ada
-            const existingData = JSON.parse(localStorage.getItem('jego_logged_in_driver') || '{}');
-            const updatedData = { ...existingData, ...currentData };
-            
-            // Simpan kembali
-            localStorage.setItem('jego_logged_in_driver', JSON.stringify(updatedData));
-            console.log('✅ Session driver diperbarui');
-          }
-        })
-        .catch((error) => {
-          console.error('Error updating session:', error);
-        });
     }
     
     // Fungsi untuk menampilkan pesan pending
@@ -652,7 +661,7 @@
       `;
       
       statusActions.innerHTML = `
-        <button class="action-btn primary-btn" id="checkAgainBtn">Cek Status Lagi</button>
+        <button class="action-btn primary-btn" id="checkAgainBtn">Coba Lagi</button>
         <button class="action-btn secondary-btn" id="logoutPendingBtn">Logout</button>
       `;
       
@@ -678,14 +687,17 @@
       statusTitle.style.color = '#f44336';
       
       statusDesc.innerHTML = `
-        <p>Maaf, pendaftaran Anda sebagai driver JeGo ditolak.</p>
-        <p><strong>Alasan:</strong> ${reason}</p>
+        <p><strong>Status akun Anda: <span style="color: #f44336">DITOLAK</span></strong></p>
+        <p><strong>Alasan penolakan:</strong></p>
+        <p style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+          ${reason}
+        </p>
         <p>Silakan hubungi admin untuk informasi lebih lanjut atau perbaiki data Anda.</p>
       `;
       
       statusActions.innerHTML = `
         <button class="action-btn primary-btn" id="contactAdminBtn">Hubungi Admin</button>
-        <button class="action-btn secondary-btn" id="registerAgainBtn">Daftar Ulang</button>
+        <button class="action-btn secondary-btn" id="goToLoginBtn">Ke Login</button>
       `;
       
       statusMessage.className = 'status-message error';
@@ -694,15 +706,13 @@
       // Event listeners
       document.getElementById('contactAdminBtn').addEventListener('click', function() {
         const driverData = JSON.parse(localStorage.getItem('jego_logged_in_driver') || '{}');
-        const message = `Halo Admin JeGo, saya ${driverData.name || driverData.fullName || ''} ingin menanyakan alasan penolakan akun driver saya.`;
+        const message = `Halo Admin JeGo, saya ${driverData.name || ''} ingin menanyakan alasan penolakan akun driver saya. Status: Ditolak. Alasan: ${reason}`;
         const whatsappUrl = `https://wa.me/6283142889149?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
       });
       
-      document.getElementById('registerAgainBtn').addEventListener('click', function() {
-        // Hapus data driver dari localStorage
-        localStorage.removeItem('jego_logged_in_driver');
-        redirectToPage('daftarDriver.html', 'Mengalihkan ke halaman pendaftaran...');
+      document.getElementById('goToLoginBtn').addEventListener('click', function() {
+        redirectToPage('loginDriver.html', 'Mengalihkan ke login...');
       });
     }
     
@@ -714,15 +724,18 @@
       statusTitle.style.color = '#dc3545';
       
       statusDesc.innerHTML = `
-        <p>Akun driver Anda telah diblokir oleh sistem JeGo.</p>
-        <p><strong>Alasan:</strong> ${reason}</p>
-        <p>Anda tidak dapat mengakses aplikasi ini.</p>
+        <p><strong>Status akun Anda: <span style="color: #dc3545">DIBLOKIR</span></strong></p>
+        <p><strong>Alasan pemblokiran:</strong></p>
+        <p style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+          ${reason}
+        </p>
+        <p>Anda tidak dapat mengakses aplikasi JeGo.</p>
         <p>Silakan hubungi admin untuk mengajukan pembukaan blokir.</p>
       `;
       
       statusActions.innerHTML = `
         <button class="action-btn primary-btn" id="contactAdminBlockedBtn">Hubungi Admin</button>
-        <button class="action-btn secondary-btn" id="logoutBlockedBtn">Logout</button>
+        <button class="action-btn secondary-btn" id="goToLoginBtnBlocked">Ke Login</button>
       `;
       
       statusMessage.className = 'status-message error';
@@ -731,14 +744,13 @@
       // Event listeners
       document.getElementById('contactAdminBlockedBtn').addEventListener('click', function() {
         const driverData = JSON.parse(localStorage.getItem('jego_logged_in_driver') || '{}');
-        const message = `Halo Admin JeGo, saya ${driverData.name || driverData.fullName || ''} ingin menanyakan alasan pemblokiran akun driver saya.`;
+        const message = `Halo Admin JeGo, saya ${driverData.name || ''} ingin menanyakan alasan pemblokiran akun driver saya. Status: Diblokir. Alasan: ${reason}`;
         const whatsappUrl = `https://wa.me/6283142889149?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
       });
       
-      document.getElementById('logoutBlockedBtn').addEventListener('click', function() {
-        localStorage.removeItem('jego_logged_in_driver');
-        redirectToPage('loginDriver.html', 'Logout berhasil. Mengalihkan...');
+      document.getElementById('goToLoginBtnBlocked').addEventListener('click', function() {
+        redirectToPage('loginDriver.html', 'Mengalihkan ke login...');
       });
     }
     
@@ -753,7 +765,7 @@
       
       statusActions.innerHTML = `
         <button class="action-btn primary-btn" id="tryAgainBtn">Coba Lagi</button>
-        <button class="action-btn secondary-btn" id="goToLoginBtn">Ke Login</button>
+        <button class="action-btn secondary-btn" id="goToLoginBtnError">Ke Login</button>
       `;
       
       statusMessage.className = 'status-message error';
@@ -764,27 +776,37 @@
         location.reload();
       });
       
-      document.getElementById('goToLoginBtn').addEventListener('click', function() {
+      document.getElementById('goToLoginBtnError').addEventListener('click', function() {
         redirectToPage('loginDriver.html', 'Mengalihkan ke login...');
       });
     }
     
     // Fungsi untuk menyembunyikan elemen loading
     function hideLoadingElements() {
-      document.querySelector('.loading-container').style.display = 'none';
-      document.querySelector('.driver-badge').style.display = 'none';
+      if (document.querySelector('.loading-container')) {
+        document.querySelector('.loading-container').style.display = 'none';
+      }
+      if (document.querySelector('.driver-badge')) {
+        document.querySelector('.driver-badge').style.display = 'none';
+      }
     }
     
     // Fungsi untuk mengarahkan ke halaman tertentu
     function redirectToPage(page, message) {
-      loadingText.textContent = message;
+      if (document.querySelector('.loading-container')) {
+        document.querySelector('.loading-container').style.display = 'block';
+      }
+      if (document.querySelector('.driver-badge')) {
+        document.querySelector('.driver-badge').style.display = 'block';
+      }
       
-      // Tampilkan loading kembali jika disembunyikan
-      document.querySelector('.loading-container').style.display = 'block';
-      document.querySelector('.driver-badge').style.display = 'block';
+      if (statusMessage) {
+        statusMessage.style.display = 'none';
+      }
       
-      // Sembunyikan status message jika sedang ditampilkan
-      statusMessage.style.display = 'none';
+      if (loadingText) {
+        loadingText.textContent = message;
+      }
       
       setTimeout(() => {
         window.location.href = page;
@@ -820,6 +842,12 @@
     
     // Kirim notifikasi saat splash screen dimuat
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Splash screen JeGo dimuat');
+      
+      // Test koneksi Firebase
+      console.log('Firebase config:', firebaseConfig);
+      console.log('Firebase apps:', firebase.apps.length);
+      
       sendToKodular({
         action: 'splash_loaded',
         message: 'Splash screen JeGo Gorontalo berhasil dimuat',
