@@ -204,7 +204,7 @@
 
       
 
-      console.log(' Pembersihan nomor:', phone, '', cleaned);
+      console.log(' Pembersihan nomor:', phone, ' ', cleaned);
 
       
 
@@ -226,7 +226,7 @@
 
       
 
-      console.log(' Hasil format:', cleaned);
+      console.log(' Hasil format:', cleaned);
 
       return cleaned;
 
@@ -378,7 +378,7 @@
 
       try {
 
-        console.log(' Menginisialisasi Firebase...');
+        console.log(' Menginisialisasi Firebase...');
 
         
 
@@ -400,13 +400,13 @@
 
         
 
-        console.log(' Firebase diinisialisasi');
+        console.log(' Firebase diinisialisasi');
 
         return true;
 
       } catch (error) {
 
-        console.error(' Error menginisialisasi Firebase:', error);
+        console.error(' Error menginisialisasi Firebase:', error);
 
         showNotification('Error', 'Gagal menginisialisasi Firebase. Silakan refresh halaman.', 'error');
 
@@ -428,13 +428,13 @@
 
           'callback': function(response) {
 
-            console.log(' reCAPTCHA verified');
+            console.log(' reCAPTCHA verified');
 
           },
 
           'expired-callback': function() {
 
-            console.log(' reCAPTCHA expired');
+            console.log(' reCAPTCHA expired');
 
             showNotification('Error', 'reCAPTCHA telah kadaluarsa. Silakan coba lagi.', 'error');
 
@@ -446,11 +446,11 @@
 
         recaptchaVerifier.render();
 
-        console.log(' reCAPTCHA diatur');
+        console.log(' reCAPTCHA diatur');
 
       } catch (error) {
 
-        console.error(' Error setting up reCAPTCHA:', error);
+        console.error(' Error setting up reCAPTCHA:', error);
 
         showNotification('Error', 'Gagal mengatur reCAPTCHA. Silakan refresh halaman.', 'error');
 
@@ -464,7 +464,7 @@
 
       try {
 
-        console.log(' Mencari nomor di database:', phoneNumber);
+        console.log(' Mencari nomor di database:', phoneNumber);
 
         
 
@@ -496,7 +496,7 @@
 
             
 
-            console.log(' User ditemukan via query:', userId);
+            console.log(' User ditemukan via query:', userId);
 
             return {
 
@@ -512,7 +512,7 @@
 
         } catch (queryError) {
 
-          console.log(' Query error, coba metode lain:', queryError.message);
+          console.log(' Query error, coba metode lain:', queryError.message);
 
         }
 
@@ -520,7 +520,7 @@
 
         // METHOD 2: Ambil semua user dan cari manual
 
-        console.log(' Fallback: manual search...');
+        console.log(' Fallback: manual search...');
 
         const allUsersSnapshot = await firebaseDatabase.ref('users').once('value');
 
@@ -530,7 +530,7 @@
 
         if (!allUsers) {
 
-          console.log(' Database users kosong');
+          console.log(' Database users kosong');
 
           return { exists: false, user: null, userId: null };
 
@@ -538,7 +538,7 @@
 
         
 
-        console.log(` Total ${Object.keys(allUsers).length} user ditemukan`);
+        console.log(` Total ${Object.keys(allUsers).length} user ditemukan`);
 
         
 
@@ -568,7 +568,7 @@
 
           
 
-          console.log(` Cek user ${userId}: ${dbPhone}`);
+          console.log(` Cek user ${userId}: ${dbPhone}`);
 
           
 
@@ -578,7 +578,7 @@
 
             if (dbPhone === pattern) {
 
-              console.log(` Match ditemukan! Pattern: ${pattern}`);
+              console.log(` Match ditemukan! Pattern: ${pattern}`);
 
               return {
 
@@ -606,7 +606,7 @@
 
           if (trimmedDbPhone && trimmedDbPhone === trimmedSearch) {
 
-            console.log(` Match setelah trim whitespace`);
+            console.log(` Match setelah trim whitespace`);
 
             return {
 
@@ -624,7 +624,7 @@
 
         
 
-        console.log(' Nomor tidak ditemukan di database');
+        console.log(' Nomor tidak ditemukan di database');
 
         return { exists: false, user: null, userId: null };
 
@@ -632,7 +632,7 @@
 
       } catch (error) {
 
-        console.error(' Error mencari nomor telepon:', error);
+        console.error(' Error mencari nomor telepon:', error);
 
         return {
 
@@ -652,7 +652,7 @@
 
       try {
 
-        showSmsStatus(' Mengirim OTP...', 'sending');
+        showSmsStatus(' Mengirim OTP...', 'sending');
 
         
 
@@ -668,15 +668,15 @@
 
         
 
-        showSmsStatus(' OTP berhasil dikirim via SMS', 'success');
+        showSmsStatus(' OTP berhasil dikirim via SMS', 'success');
 
-        console.log(' Kode OTP dikirim via Firebase');
+        console.log(' Kode OTP dikirim via Firebase');
 
         return true;
 
       } catch (error) {
 
-        console.error(' Error sending OTP:', error);
+        console.error(' Error sending OTP:', error);
 
         
 
@@ -716,7 +716,7 @@
 
         
 
-        showSmsStatus(' ' + errorMessage, 'error');
+        showSmsStatus(' ' + errorMessage, 'error');
 
         return false;
 
@@ -730,7 +730,7 @@
 
       try {
 
-        showSmsStatus(' Memverifikasi OTP...', 'sending');
+        showSmsStatus(' Memverifikasi OTP...', 'sending');
 
         
 
@@ -748,15 +748,15 @@
 
         
 
-        showSmsStatus(' OTP berhasil diverifikasi', 'success');
+        showSmsStatus(' OTP berhasil diverifikasi', 'success');
 
-        console.log(' OTP verified, user:', user.uid);
+        console.log(' OTP verified, user:', user.uid);
 
         return user;
 
       } catch (error) {
 
-        console.error(' Error verifying OTP:', error);
+        console.error(' Error verifying OTP:', error);
 
         
 
@@ -784,7 +784,7 @@
 
         
 
-        showSmsStatus(' ' + errorMessage, 'error');
+        showSmsStatus(' ' + errorMessage, 'error');
 
         return null;
 
@@ -814,7 +814,7 @@
 
       
 
-      console.log(' Input pengguna:', telepon);
+      console.log(' Input pengguna:', telepon);
 
       
 
@@ -834,9 +834,9 @@
 
       
 
-      console.log(' Nomor setelah format:', formattedPhone);
+      console.log(' Nomor setelah format:', formattedPhone);
 
-      console.log(' Validasi format:', validatePhoneFormat(formattedPhone));
+      console.log(' Validasi format:', validatePhoneFormat(formattedPhone));
 
       
 
@@ -868,7 +868,7 @@
 
         showProgress(40);
 
-        console.log(' Memulai pencarian di database...');
+        console.log(' Memulai pencarian di database...');
 
         
 
@@ -876,7 +876,7 @@
 
         
 
-        console.log(' Hasil pencarian:', phoneInfo);
+        console.log(' Hasil pencarian:', phoneInfo);
 
         
 
@@ -886,7 +886,7 @@
 
           
 
-          console.log(' Data user ditemukan:', userData);
+          console.log(' Data user ditemukan:', userData);
 
           
 
@@ -930,7 +930,7 @@
 
           
 
-          console.log(' Current user set:', currentUser);
+          console.log(' Current user set:', currentUser);
 
           
 
@@ -938,7 +938,7 @@
 
           showProgress(60);
 
-          console.log(' Mengirim OTP...');
+          console.log(' Mengirim OTP...');
 
           
 
@@ -970,7 +970,7 @@
 
         } else {
 
-          console.log(' Nomor tidak terdaftar');
+          console.log(' Nomor tidak terdaftar');
 
           showStatus('Nomor telepon tidak terdaftar.', 'error');
 
@@ -1182,7 +1182,7 @@
 
       resendLink.classList.add('disabled');
 
-      showSmsStatus(' Mengirim ulang OTP...', 'sending');
+      showSmsStatus(' Mengirim ulang OTP...', 'sending');
 
       
 
@@ -1266,7 +1266,7 @@
 
         if (user) {
 
-          console.log(' User already logged in via Firebase Auth:', user.uid);
+          console.log(' User already logged in via Firebase Auth:', user.uid);
 
         }
 
@@ -1280,7 +1280,7 @@
 
     window.debugDatabase = async function() {
 
-      console.log(' DEBUG MODE - Database Check');
+      console.log(' DEBUG MODE - Database Check');
 
       
 
@@ -1296,7 +1296,7 @@
 
         if (!users) {
 
-          console.log(' Database users kosong');
+          console.log(' Database users kosong');
 
           return;
 
@@ -1304,13 +1304,13 @@
 
         
 
-        console.log(` Total users: ${Object.keys(users).length}`);
+        console.log(` Total users: ${Object.keys(users).length}`);
 
         
 
         // Tampilkan semua user dengan nomor telepon
 
-        console.log(' Daftar semua user:');
+        console.log(' Daftar semua user:');
 
         for (const uid in users) {
 
@@ -1332,7 +1332,7 @@
 
         // Cari spesifik untuk nomor +6282311640444
 
-        console.log(' Mencari spesifik +6282311640444...');
+        console.log(' Mencari spesifik +6282311640444...');
 
         let found = false;
 
@@ -1340,7 +1340,7 @@
 
           if (users[uid].phone === "+6282311640444") {
 
-            console.log(` DITEMUKAN di UID: ${uid}`);
+            console.log(` DITEMUKAN di UID: ${uid}`);
 
             console.log('User data:', users[uid]);
 
@@ -1354,7 +1354,7 @@
 
         if (!found) {
 
-          console.log(' Nomor +6282311640444 TIDAK ditemukan');
+          console.log(' Nomor +6282311640444 TIDAK ditemukan');
 
           console.log('Mungkin ada perbedaan format:');
 
@@ -1376,7 +1376,7 @@
 
       } catch (error) {
 
-        console.error(' Debug error:', error);
+        console.error(' Debug error:', error);
 
       }
 
@@ -1394,7 +1394,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
 
-      console.log(' DOM fully loaded, initializing...');
+      console.log(' DOM fully loaded, initializing...');
 
       
 
@@ -1410,7 +1410,7 @@
 
       if (firebaseReady) {
 
-        console.log(' Firebase ready, setting up reCAPTCHA...');
+        console.log(' Firebase ready, setting up reCAPTCHA...');
 
         setupAuthListener();
 
@@ -1487,999 +1487,614 @@
 
 
   <style>
-
-    /* STYLE CSS YANG SAMA DENGAN SEBELUMNYA */
-
+    /* Warna yang konsisten dengan jego.html */
     :root {
-
-      --primary: #1e6f5c;
-
-      --secondary: #289672;
-
-      --accent: #e6dd3b;
-
+      --primary: #FF9800;
+      --secondary: #FF5722;
+      --accent: #FFC107;
       --light: #f8f9fa;
-
       --dark: #343a40;
-
-      --success: #28a745;
-
-      --danger: #dc3545;
-
-      --warning: #ffc107;
-
-      --info: #17a2b8;
-
+      --success: #4CAF50;
+      --danger: #f44336;
+      --warning: #FFC107;
+      --info: #2196F3;
+      --gray: #9E9E9E;
     }
 
 
 
     * {
-
       box-sizing: border-box;
-
       margin: 0;
-
       padding: 0;
-
     }
 
 
 
     body {
-
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
       background-color: #f5f5f5;
-
       color: #333;
-
       line-height: 1.4;
-
       font-size: 0.85rem;
-
     }
 
 
 
     /* Header Styles */
-
     .header {
-
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-
       color: white;
-
       padding: 15px 20px;
-
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-
       display: flex;
-
       align-items: center;
-
       justify-content: space-between;
-
       position: sticky;
-
       top: 0;
-
       z-index: 100;
-
     }
 
 
 
     .logo-container {
-
       display: flex;
-
       align-items: center;
-
     }
 
 
 
     .logo {
-
       width: 40px;
-
       height: 40px;
-
       background-color: var(--accent);
-
       border-radius: 50%;
-
       display: flex;
-
       align-items: center;
-
       justify-content: center;
-
       margin-right: 10px;
-
       font-weight: bold;
-
       font-size: 16px;
-
-      color: var(--primary);
-
+      color: var(--dark);
     }
 
 
 
     .header-title {
-
       font-size: 1.2rem;
-
       font-weight: 600;
-
     }
 
 
 
     /* Container Styles */
-
     .container {
-
       max-width: 100%;
-
       padding: 15px;
-
     }
 
 
 
     .form-container {
-
       background: white;
-
       border-radius: 8px;
-
       padding: 20px;
-
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-
       max-width: 500px;
-
       margin: 0 auto;
-
     }
 
 
 
     .form-title {
-
       font-size: 1.5rem;
-
       font-weight: 600;
-
       color: var(--primary);
-
       margin-bottom: 20px;
-
       text-align: center;
-
     }
 
 
 
     .form-group {
-
       margin-bottom: 15px;
-
     }
 
 
 
     .form-label {
-
       display: block;
-
       margin-bottom: 5px;
-
       font-weight: 600;
-
       color: var(--dark);
-
       font-size: 0.9rem;
-
     }
 
 
 
     .form-input {
-
       width: 100%;
-
       padding: 10px 12px;
-
       border: 1px solid #ddd;
-
       border-radius: 6px;
-
       font-size: 0.9rem;
-
       transition: border-color 0.3s;
-
     }
 
 
 
     .form-input:focus {
-
       outline: none;
-
       border-color: var(--primary);
-
-      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.1);
-
+      box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
     }
 
 
 
     .submit-btn {
-
       background: linear-gradient(to right, var(--primary), var(--secondary));
-
       color: white;
-
       border: none;
-
       border-radius: 8px;
-
       padding: 12px 25px;
-
       font-size: 1rem;
-
       font-weight: 600;
-
       cursor: pointer;
-
       transition: all 0.3s;
-
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-
       width: 100%;
-
     }
 
 
 
     .submit-btn:hover:not(:disabled) {
-
       transform: translateY(-2px);
-
       box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-
     }
 
 
 
     .submit-btn:disabled {
-
       background: #cccccc;
-
       cursor: not-allowed;
-
       transform: none;
-
       box-shadow: none;
-
     }
 
 
 
     .secondary-btn {
-
       background: transparent;
-
       color: var(--primary);
-
       border: 1px solid var(--primary);
-
       border-radius: 8px;
-
       padding: 12px 25px;
-
       font-size: 1rem;
-
       font-weight: 600;
-
       cursor: pointer;
-
       transition: all 0.3s;
-
       width: 100%;
-
       margin-top: 10px;
-
     }
 
 
 
     .secondary-btn:hover {
-
-      background: rgba(30, 111, 92, 0.05);
-
+      background: rgba(255, 152, 0, 0.05);
     }
 
 
 
     /* Status Messages */
-
     .status-message {
-
       padding: 12px;
-
       border-radius: 6px;
-
       margin-bottom: 15px;
-
       display: none;
-
     }
 
 
 
     .status-success {
-
       background-color: #d4edda;
-
       color: #155724;
-
       border: 1px solid #c3e6cb;
-
     }
 
 
 
     .status-error {
-
       background-color: #f8d7da;
-
       color: #721c24;
-
       border: 1px solid #f5c6cb;
-
     }
 
 
 
     .status-info {
-
       background-color: #d1ecf1;
-
       color: #0c5460;
-
       border: 1px solid #bee5eb;
-
     }
 
 
 
     /* OTP Section */
-
     .otp-section {
-
       display: none;
-
       margin-top: 20px;
-
       padding-top: 20px;
-
       border-top: 1px solid #eee;
-
     }
 
 
 
     .otp-title {
-
       font-size: 1.2rem;
-
       font-weight: 600;
-
       color: var(--primary);
-
       margin-bottom: 15px;
-
       text-align: center;
-
     }
 
 
 
     .otp-info {
-
       margin-bottom: 20px;
-
       font-size: 0.9rem;
-
       text-align: center;
-
       color: #666;
-
     }
 
 
 
     /* SINGLE OTP INPUT */
-
     .otp-single-input {
-
       width: 100%;
-
       padding: 15px;
-
       text-align: center;
-
       font-size: 1.8rem;
-
       font-weight: bold;
-
       letter-spacing: 10px;
-
       border: 2px solid #ddd;
-
       border-radius: 8px;
-
       transition: all 0.3s;
-
       font-family: 'Courier New', monospace;
-
     }
 
 
 
     .otp-single-input:focus {
-
       border-color: var(--primary);
-
-      box-shadow: 0 0 0 3px rgba(30, 111, 92, 0.2);
-
+      box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
       outline: none;
-
     }
 
 
 
     .otp-single-input.filled {
-
       border-color: var(--primary);
-
-      background-color: #f8fff9;
-
+      background-color: #fff8e1;
     }
 
 
 
     .resend-otp {
-
       text-align: center;
-
       margin-top: 15px;
-
       font-size: 0.85rem;
-
     }
 
 
 
     .resend-link {
-
       color: var(--primary);
-
       cursor: pointer;
-
       text-decoration: underline;
-
     }
 
 
 
     .resend-link:hover {
-
       color: var(--secondary);
-
     }
 
 
 
     .resend-link.disabled {
-
-      color: #999;
-
+      color: var(--gray);
       cursor: not-allowed;
-
       text-decoration: none;
-
     }
 
 
 
     /* Badge Lokal */
-
     .local-badge {
-
       display: inline-block;
-
       background-color: var(--accent);
-
       color: var(--dark);
-
-      padding: 5px 15px;
-
+      padding: 8px 20px;
       border-radius: 20px;
-
       font-weight: bold;
-
-      margin-top: 10px;
-
-      font-size: 0.8rem;
-
+      margin-bottom: 10px;
+      font-size: 0.85rem;
       text-align: center;
-
       width: 100%;
-
     }
 
 
 
     .app-info {
-
       text-align: center;
-
       margin: 15px 0;
-
       font-size: 0.85rem;
-
       color: var(--dark);
-
       opacity: 0.8;
-
     }
 
 
 
     /* Loading State */
-
     .btn-loading {
-
       position: relative;
-
       color: transparent !important;
-
     }
 
 
 
     .btn-loading::after {
-
       content: "";
-
       position: absolute;
-
       top: 50%;
-
       left: 50%;
-
       width: 20px;
-
       height: 20px;
-
       margin-top: -10px;
-
       margin-left: -10px;
-
       border: 2px solid rgba(255, 255, 255, 0.3);
-
       border-top-color: white;
-
       border-radius: 50%;
-
       animation: spin 1s linear infinite;
-
     }
 
 
 
     @keyframes spin {
-
       to { transform: rotate(360deg); }
-
     }
 
 
 
     /* Progress Bar */
-
     .progress-container {
-
       height: 4px;
-
       background-color: #e0e0e0;
-
       border-radius: 2px;
-
       margin: 10px 0;
-
       overflow: hidden;
-
       display: none;
-
     }
 
 
 
     .progress-bar {
-
       height: 100%;
-
       background: linear-gradient(to right, var(--primary), var(--secondary));
-
       width: 0%;
-
       transition: width 0.3s ease;
-
     }
 
 
 
     /* Notification Popup */
-
     .notification {
-
       position: fixed;
-
       top: 20px;
-
       right: 20px;
-
       background: white;
-
       padding: 15px 20px;
-
       border-radius: 8px;
-
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-
       border-left: 4px solid var(--primary);
-
       z-index: 1000;
-
       display: none;
-
       max-width: 300px;
-
     }
 
 
 
     .notification.success {
-
       border-left-color: var(--success);
-
     }
 
 
 
     .notification.error {
-
       border-left-color: var(--danger);
-
     }
 
 
 
     .notification.info {
-
       border-left-color: var(--primary);
-
     }
 
 
 
     .notification-title {
-
       font-weight: 600;
-
       margin-bottom: 5px;
-
     }
 
 
 
     .notification-message {
-
       font-size: 0.85rem;
-
       color: #666;
-
     }
 
 
 
     /* SMS Status Indicator */
-
     .sms-status {
-
       padding: 10px;
-
       border-radius: 6px;
-
       margin-bottom: 15px;
-
       text-align: center;
-
       font-size: 0.9rem;
-
       display: none;
-
     }
 
 
 
     .sms-status.success {
-
       background-color: #e8f5e9;
-
       color: #2e7d32;
-
       border: 1px solid #c8e6c9;
-
     }
 
 
 
     .sms-status.error {
-
       background-color: #ffebee;
-
       color: #c62828;
-
       border: 1px solid #ffcdd2;
-
     }
 
 
 
     .sms-status.sending {
-
       background-color: #e3f2fd;
-
       color: #1565c0;
-
       border: 1px solid #bbdefb;
-
     }
 
 
 
     /* Recaptcha Container */
-
     #recaptcha-container {
-
       margin: 20px 0;
-
       display: flex;
-
       justify-content: center;
-
       min-height: 80px;
-
     }
 
 
 
     /* Responsive */
-
     @media (max-width: 768px) {
-
       .header-title {
-
         font-size: 1rem;
-
       }
-
       
-
       body {
-
         font-size: 0.8rem;
-
       }
-
       
-
       .form-container {
-
         padding: 15px;
-
       }
-
       
-
       .otp-single-input {
-
         font-size: 1.5rem;
-
         letter-spacing: 8px;
-
         padding: 12px;
-
       }
-
     }
-
   </style>
 
 </head>
 
 <body>
-
   <!-- Header -->
-
   <div class="header">
-
     <div class="logo-container">
-
       <div class="logo">JG</div>
-
-      <div class="header-title">JeGo</div>
-
+      <div>
+        <div class="header-title">JeGo</div>
+        <div style="font-size: 0.8rem; opacity: 0.9;">Jasa Ekspedisi Gorontalo</div>
+      </div>
     </div>
-
   </div>
 
 
 
   <!-- Container -->
-
   <div class="container">
-
     <div class="form-container">
-
       <h1 class="form-title">Login User</h1>
-
-      <div class="local-badge">100% CLIENT-SIDE DENGAN FIREBASE</div>
-
+      <div class="local-badge">APLIKASI LOKAL BUATAN ANAK GORONTALO</div>
       <div class="app-info">
-
         JeGo - Jasa Ekspedisi Gorontalo
-
       </div>
-
       
-
       <!-- SMS Status Indicator -->
-
       <div class="sms-status" id="smsStatus"></div>
-
       
-
       <!-- Status Message -->
-
       <div class="status-message" id="statusMessage"></div>
-
       
-
       <!-- Recaptcha Container -->
-
       <div id="recaptcha-container"></div>
-
       
-
       <!-- Progress Bar -->
-
       <div class="progress-container" id="progressContainer">
-
         <div class="progress-bar" id="progressBar"></div>
-
       </div>
-
       
-
       <!-- Form Login -->
-
       <form id="loginForm">
-
         <div class="form-group">
-
           <label class="form-label" for="teleponInput">Nomor Telepon *</label>
-
           <input type="tel" class="form-input" id="teleponInput" placeholder="Contoh: 08123456789" required inputmode="numeric" pattern="[0-9]*">
-
           <small style="color: #666; font-size: 0.8rem; margin-top: 5px; display: block;">
-
             Pastikan nomor aktif dan dapat menerima SMS
-
           </small>
-
         </div>
-
         
-
         <button type="submit" class="submit-btn" id="loginBtn">Kirim Kode OTP</button>
-
         
-
         <button type="button" class="secondary-btn" id="registerBtn">Belum punya akun? Daftar Sekarang</button>
-
       </form>
-
       
-
       <!-- OTP Verification Section -->
-
       <div class="otp-section" id="otpSection">
-
         <h2 class="otp-title">Verifikasi OTP</h2>
-
         
-
         <div class="otp-info">
-
           <p>Kode OTP telah dikirim via SMS ke nomor Anda.</p>
-
           <p>Masukkan kode OTP 6 digit untuk melanjutkan.</p>
-
         </div>
-
         
-
         <!-- SINGLE OTP INPUT -->
-
         <input type="text" 
-
                class="otp-single-input" 
-
                id="otpInput" 
-
                maxlength="6" 
-
                inputmode="numeric" 
-
                pattern="[0-9]*" 
-
                placeholder="000000"
-
                autocomplete="one-time-code">
-
         
-
         <button type="button" class="submit-btn" id="verifyOtpBtn">Verifikasi OTP</button>
-
         
-
         <div class="resend-otp">
-
           <span id="resendText">Tidak menerima kode? </span>
-
           <span class="resend-link" id="resendOtpLink">Kirim ulang OTP</span>
-
           <span id="countdownText" style="display: none;"> (Tunggu <span id="countdown">60</span> detik)</span>
-
         </div>
-
       </div>
-
     </div>
-
   </div>
 
 
 
   <!-- Notification Popup -->
-
   <div class="notification" id="notificationPopup">
-
     <div class="notification-title" id="notificationTitle">Informasi</div>
-
     <div class="notification-message" id="notificationMessage"></div>
-
   </div>
-
 </body>
 
 </html>
