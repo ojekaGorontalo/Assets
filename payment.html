@@ -757,7 +757,7 @@
       console.log(`💰 Deposit: ${depositAmount}, Angka Unik: ${uniqueDigits}, Total: ${uniqueAmount}`);
     }
 
-    // Fungsi untuk menyimpan data deposit ke Firebase - SESUAI RULES
+    // Fungsi untuk menyimpan data deposit ke Firebase - HANYA di drivers/{uid}/deposits/
     async function saveDepositToFirebase() {
       if (!isFirebaseInitialized || !database) {
         console.error('❌ Firebase tidak terinisialisasi');
@@ -788,53 +788,16 @@
       console.log('🔄 Menyimpan data deposit ke Firebase:', depositData);
 
       try {
-        // SIMPAN DI DUA TEMPAT SESUAI RULES:
-        
-        // 1. Simpan di drivers/{uid}/deposits/{paymentId} (sesuai rules)
+        // SIMPAN HANYA DI drivers/{uid}/deposits/{paymentId}
         const driverDepositRef = database.ref('drivers/' + driverData.uid + '/deposits/' + paymentId);
         await driverDepositRef.set(depositData);
         console.log('✅ Data deposit berhasil disimpan ke drivers node');
-        
-        // 2. Simpan juga di orders (karena orders memiliki write:true)
-        // Ubah format sedikit agar sesuai dengan struktur orders
-        const orderData = {
-          ...depositData,
-          type: 'deposit',
-          user_firebase_key: driverData.uid,
-          user_phone: driverData.phone || 'Tidak diketahui',
-          user_email: driverData.email || '',
-          status: 'deposit_pending'
-        };
-        
-        const orderRef = database.ref('orders/' + paymentId);
-        await orderRef.set(orderData);
-        console.log('✅ Data deposit berhasil disimpan ke orders node');
         
         showSuccessToast('Kode pembayaran berhasil dibuat!');
         
       } catch (error) {
         console.error('❌ Error menyimpan data deposit ke Firebase:', error);
         showErrorToast('Gagal menyimpan data deposit: ' + error.message);
-        
-        // Coba simpan hanya di orders jika gagal di drivers
-        try {
-          const orderData = {
-            ...depositData,
-            type: 'deposit',
-            user_firebase_key: driverData.uid,
-            user_phone: driverData.phone || 'Tidak diketahui',
-            user_email: driverData.email || '',
-            status: 'deposit_pending'
-          };
-          
-          const orderRef = database.ref('orders/' + paymentId);
-          await orderRef.set(orderData);
-          console.log('✅ Data deposit berhasil disimpan ke orders node (fallback)');
-          showSuccessToast('Kode pembayaran berhasil dibuat (fallback)!');
-        } catch (fallbackError) {
-          console.error('❌ Error fallback menyimpan data deposit:', fallbackError);
-          showErrorToast('Gagal total menyimpan data deposit');
-        }
       }
     }
 
