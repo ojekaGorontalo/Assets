@@ -475,9 +475,6 @@ async function sendOrderToFirebase(orderData) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       
-      // 🔴 PERUBAHAN: Simpan SNAPSHOT data user LENGKAP, termasuk foto profil
-      user_snapshot: userSnapshot,
-      
       // Data lengkap user (untuk kompatibilitas) - SAMA dengan snapshot
       user_data: userSnapshot,
       
