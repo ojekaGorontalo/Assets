@@ -2144,20 +2144,7 @@
         saldoSesudah: currentDriverBalance - requiredFee
       });
       
-      const modalContent = `
-💳 INFO SALDO DRIVER
-
-Saldo: Rp ${currentDriverBalance.toLocaleString('id-ID')}
-Potongan: ${potonganPercentage}%
-Driver ID: ${currentDriverData?.driverId || currentDriverData?.uid || 'N/A'}
-Nama: ${currentDriverData?.name || 'N/A'}
-
-=== PERHITUNGAN ===
-Harga order: Rp ${orderAmount.toLocaleString('id-ID')}
-Potongan (${potonganPercentage}%): Rp ${requiredFee.toLocaleString('id-ID')}
-Saldo setelah: Rp ${(currentDriverBalance - requiredFee).toLocaleString('id-ID')}
-Cukup? ${currentDriverBalance >= requiredFee ? '✅ YA' : '❌ TIDAK'}
-      `;
+      const modalContent = `💳 INFO SALDO DRIVER\n\nSaldo: Rp ${currentDriverBalance.toLocaleString('id-ID')}\nPotongan: ${potonganPercentage}%\nDriver ID: ${currentDriverData?.driverId || currentDriverData?.uid || 'N/A'}\nNama: ${currentDriverData?.name || 'N/A'}\n\n=== PERHITUNGAN ===\nHarga order: Rp ${orderAmount.toLocaleString('id-ID')}\nPotongan (${potonganPercentage}%): Rp ${requiredFee.toLocaleString('id-ID')}\nSaldo setelah: Rp ${(currentDriverBalance - requiredFee).toLocaleString('id-ID')}\nCukup? ${currentDriverBalance >= requiredFee ? '✅ YA' : '❌ TIDAK'}`;
       
       alert(modalContent);
     }
@@ -2295,21 +2282,8 @@ Cukup? ${currentDriverBalance >= requiredFee ? '✅ YA' : '❌ TIDAK'}
         return;
       }
       
-      const confirmationMessage = `
-✅ KONFIRMASI MULAI PERJALANAN
-
-📦 Order #${currentOrderId}
-💰 Harga order: Rp ${orderAmount.toLocaleString('id-ID')}
-💸 Potongan biaya (${potonganPercentage}%): Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}
-
-💳 Saldo Anda:
-  • Sebelum: Rp ${balanceCheck.currentBalance.toLocaleString('id-ID')}
-  • Potongan: - Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}
-  • Sesudah: Rp ${balanceCheck.remainingBalance.toLocaleString('id-ID')}
-
-Apakah Anda yakin ingin memulai perjalanan?
-Biaya akan langsung dipotong dari saldo Anda.
-      `;
+      // PERBAIKAN: Hapus alert detail saldo, ganti dengan konfirmasi sederhana
+      const confirmationMessage = `Apakah Anda yakin ingin memulai perjalanan?\n\nBiaya layanan ${potonganPercentage}% akan dipotong dari saldo Anda.`;
       
       const confirmation = confirm(confirmationMessage);
       
@@ -2339,7 +2313,7 @@ Biaya akan langsung dipotong dari saldo Anda.
           showToast('❌ Driver ID tidak ditemukan', 'error');
         }
         
-        showToast(`Perjalanan dimulai! Potongan Rp ${balanceCheck.requiredFee.toLocaleString('id-ID')}`, 'success');
+        showToast(`Perjalanan dimulai!`, 'success');
         
         sendToKodular({
           action: 'start_trip_success',
@@ -2830,9 +2804,24 @@ Biaya akan langsung dipotong dari saldo Anda.
       const customerStars = document.getElementById('customerStars');
       const tripCountElement = document.getElementById('tripCount');
       
+      // PERBAIKAN: Prioritaskan user_data, user_snapshot, atau langsung dari order
+      let user = null;
       if (order.user_data) {
-        const user = order.user_data;
-        
+        user = order.user_data;
+      } else if (order.user_snapshot) {
+        user = order.user_snapshot;
+      } else if (order.user_firebase_key) {
+        // Buat objek user dari data yang ada di order
+        user = {
+          uid: order.user_firebase_key,
+          name: order.user_name || 'Customer',
+          phone: order.user_phone,
+          email: order.user_email,
+          fotoProfilURL: order.user_foto_profil
+        };
+      }
+      
+      if (user) {
         customerPhotoData = user;
         
         customerName.textContent = user.name || '-';
@@ -2861,7 +2850,13 @@ Biaya akan langsung dipotong dari saldo Anda.
         customerAvatar.innerHTML = '';
         customerAvatar.className = 'customer-avatar';
         
-        let fotoUrl = user.fotoProfilURL || user.foto || user.profile_picture || null;
+        // PERBAIKAN: Ambil foto dari semua kemungkinan field
+        let fotoUrl = user.fotoProfilURL || 
+                      order.user_foto_profil ||
+                      user.user_foto_profil ||
+                      user.foto || 
+                      user.profile_picture || 
+                      null;
         
         if (fotoUrl) {
           customerPhotoUrl = fotoUrl;
@@ -3305,8 +3300,37 @@ Biaya akan langsung dipotong dari saldo Anda.
       submitBtn.innerHTML = 'Mengirim...';
       
       try {
-        await updateUserRatingInFirebase();
-        await updateOrderWithRating();
+        // Validasi: Pastikan driver terautentikasi dan memiliki akses
+        if (!currentDriverData || !currentDriverData.driverId) {
+          throw new Error('Driver tidak terautentikasi');
+        }
+        
+        const driverId = currentDriverData.driverId || currentDriverData.uid;
+        
+        // PERBAIKAN: Verifikasi driver di database Firebase sebelum memberi rating
+        const driverRef = database.ref('drivers/' + driverId);
+        const driverSnapshot = await driverRef.once('value');
+        
+        if (!driverSnapshot.exists()) {
+          throw new Error('Driver tidak terdaftar');
+        }
+        
+        const driverData = driverSnapshot.val();
+        const driverStatus = driverData.status || driverData.driverStatus;
+        
+        // Hanya driver dengan status aktif yang bisa memberi rating
+        const allowedStatuses = ['accepted', 'approved', 'active'];
+        if (!allowedStatuses.includes(driverStatus)) {
+          throw new Error('Status driver tidak diizinkan memberi rating');
+        }
+        
+        // Pastikan driver ini yang menyelesaikan order
+        if (currentOrderData.driver && currentOrderData.driver.driver_id !== driverId) {
+          throw new Error('Driver tidak berhak memberi rating untuk order ini');
+        }
+        
+        await updateUserRatingInFirebase(driverId);
+        await updateOrderWithRating(driverId);
         
         document.getElementById('ratingOverlay').style.display = 'none';
         
@@ -3325,60 +3349,73 @@ Biaya akan langsung dipotong dari saldo Anda.
         
       } catch (error) {
         console.error('❌ Error dalam submit rating:', error);
-        showToast('Gagal mengirim rating. Silakan coba lagi.', 'error');
+        showToast('Gagal mengirim rating: ' + error.message, 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Kirim Rating';
       }
     }
 
-    async function updateUserRatingInFirebase() {
+    // PERBAIKAN: Fungsi update rating dengan validasi driver
+    async function updateUserRatingInFirebase(driverId) {
       if (!userToRate) return;
       
       const userRef = database.ref('users/' + userToRate.userId);
       
-      const currentPerjalanan = userToRate.currentPerjalanan || 0;
-      const currentRating = parseFloat(userToRate.currentRating) || 0;
+      // Gunakan transaction untuk membaca dan menulis secara atomik
+      await userRef.transaction((currentData) => {
+        if (currentData === null) {
+          // User tidak ditemukan
+          console.error('❌ User tidak ditemukan untuk di-rating');
+          return;
+        }
+        
+        const currentPerjalanan = currentData.perjalanan || currentData.Perjalanan || 0;
+        const currentRating = parseFloat(currentData.rating) || parseFloat(currentData.Ratings) || 0;
+        
+        if (currentPerjalanan === 0) {
+          return {
+            ...currentData,
+            perjalanan: 1,
+            rating: selectedRating,
+            last_trip_order: currentOrderId,
+            last_trip_update: new Date().toISOString(),
+            last_rated_by: driverId,
+            last_rating_time: new Date().toISOString()
+          };
+        } else {
+          const totalRatingBefore = currentRating * currentPerjalanan;
+          const newPerjalanan = currentPerjalanan + 1;
+          const newTotalRating = totalRatingBefore + selectedRating;
+          const newAverageRating = parseFloat((newTotalRating / newPerjalanan).toFixed(1));
+          
+          return {
+            ...currentData,
+            perjalanan: newPerjalanan,
+            rating: newAverageRating,
+            last_trip_order: currentOrderId,
+            last_trip_update: new Date().toISOString(),
+            last_rated_by: driverId,
+            last_rating_time: new Date().toISOString()
+          };
+        }
+      });
       
-      if (currentPerjalanan === 0) {
-        const newData = {
-          perjalanan: 1,
-          rating: selectedRating,
-          last_trip_order: currentOrderId,
-          last_trip_update: new Date().toISOString()
-        };
-        
-        await userRef.update(newData);
-        console.log('✅ Rating pertama untuk user:', newData);
-        
-      } else {
-        const totalRatingBefore = currentRating * currentPerjalanan;
-        const newPerjalanan = currentPerjalanan + 1;
-        const newTotalRating = totalRatingBefore + selectedRating;
-        const newAverageRating = parseFloat((newTotalRating / newPerjalanan).toFixed(1));
-        
-        const updateData = {
-          perjalanan: newPerjalanan,
-          rating: newAverageRating,
-          last_trip_order: currentOrderId,
-          last_trip_update: new Date().toISOString()
-        };
-        
-        await userRef.update(updateData);
-        console.log('✅ Rating user diupdate:', updateData);
-      }
+      console.log('✅ Rating user diupdate dengan aman');
     }
 
-    async function updateOrderWithRating() {
+    async function updateOrderWithRating(driverId) {
       const orderRef = database.ref('orders/' + currentOrderId);
       
       const updateData = {
         driver_rating: selectedRating,
         driver_rating_comment: ratingComment || null,
-        driver_rating_time: new Date().toISOString()
+        driver_rating_time: new Date().toISOString(),
+        rated_by_driver_id: driverId,
+        rated_by_driver_name: currentDriverData.fullName || currentDriverData.name || 'Driver'
       };
       
       await orderRef.update(updateData);
-      console.log('✅ Order diupdate dengan rating:', updateData);
+      console.log('✅ Order diupdate dengan rating yang aman:', updateData);
     }
 
     function sendRatingToKodular() {
