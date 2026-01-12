@@ -621,8 +621,8 @@
       width: 50px;
       height: 50px;
       border: 5px solid rgba(40, 150, 114, 0.2);
-      border-radius: 50%;
       border-top-color: var(--secondary);
+      border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
     }
@@ -2071,59 +2071,51 @@
         currentDriverData = JSON.parse(driverDataStr);
         console.log('✅ Data driver ditemukan:', currentDriverData);
 
-        const driverId = currentDriverData.driverId || currentDriverData.uid;
-        if (!driverId) {
-          console.log('❌ Driver ID tidak ditemukan');
+        const driverPhone = currentDriverData.phone; // Ambil nomor telepon dari data driver
+        if (!driverPhone) {
+          console.log('❌ Nomor telepon driver tidak ditemukan');
+          showToast('Data driver tidak lengkap. Silakan login ulang.', 'error');
           return;
         }
 
-        console.log('🚗 Driver ID untuk saldo:', driverId);
+        console.log('🚗 Nomor telepon driver untuk query:', driverPhone);
 
-        const balanceRef = database.ref('drivers/' + driverId + '/Balance');
+        // Gunakan query orderByChild pada 'phone' yang diizinkan oleh rules Firebase
+        const driversRef = database.ref('drivers');
         
-        balanceListener = balanceRef.on('value', (snapshot) => {
-          const newBalance = snapshot.val();
-          console.log('💰 Data saldo dari Firebase:', newBalance);
+        driversRef.orderByChild('phone').equalTo(driverPhone).once('value', (snapshot) => {
+          const driversData = snapshot.val();
+          console.log('💰 Data driver dari Firebase (query by phone):', driversData);
           
-          if (newBalance !== null && newBalance !== undefined) {
-            currentDriverBalance = parseFloat(newBalance) || 0;
-            console.log(`💰 Saldo diperbarui: Rp ${currentDriverBalance.toLocaleString('id-ID')}`);
+          if (driversData) {
+            // Karena phone unik, hanya ada satu driver
+            const driverId = Object.keys(driversData)[0];
+            const driverData = driversData[driverId];
             
-            if (currentDriverData) {
-              currentDriverData.Balance = currentDriverBalance;
-              localStorage.setItem('jego_logged_in_driver', JSON.stringify(currentDriverData));
-            }
+            // Update currentDriverData dengan data dari Firebase
+            currentDriverData = { ...currentDriverData, ...driverData };
+            currentDriverBalance = parseFloat(driverData.Balance) || 0;
+            potonganPercentage = parseFloat(driverData.Potongan) || 10;
+            
+            console.log(`💰 Saldo driver: Rp ${currentDriverBalance.toLocaleString('id-ID')}`);
+            console.log(`📊 Potongan driver: ${potonganPercentage}%`);
+            
+            // Simpan kembali ke localStorage dengan data lengkap
+            localStorage.setItem('jego_logged_in_driver', JSON.stringify(currentDriverData));
             
             updateDebugInfoUI();
+            
           } else {
-            console.warn('⚠️ Saldo driver null/undefined di Firebase, set ke 0');
+            console.warn('⚠️ Data driver tidak ditemukan di Firebase dengan nomor telepon:', driverPhone);
             currentDriverBalance = 0;
+            potonganPercentage = 10;
+            updateDebugInfoUI();
           }
         }, (error) => {
-          console.error('❌ Error listening to balance:', error);
-        });
-
-        const potonganRef = database.ref('drivers/' + driverId + '/Potongan');
-        
-        potonganRef.once('value').then((snapshot) => {
-          const potonganValue = snapshot.val();
-          console.log('📊 Data potongan dari Firebase:', potonganValue);
-          
-          if (potonganValue !== null && potonganValue !== undefined) {
-            potonganPercentage = parseFloat(potonganValue);
-            console.log(`✅ Potongan dari Firebase: ${potonganPercentage}%`);
-            
-            if (currentDriverData) {
-              currentDriverData.Potongan = potonganPercentage;
-              localStorage.setItem('jego_logged_in_driver', JSON.stringify(currentDriverData));
-            }
-            
-            updateDebugInfoUI();
-          } else {
-            console.warn(`⚠️ Potongan tidak ditemukan di Firebase, gunakan default: ${potonganPercentage}%`);
-          }
-        }).catch((error) => {
-          console.error('❌ Error mengambil data potongan:', error);
+          console.error('❌ Error query driver by phone:', error);
+          currentDriverBalance = 0;
+          potonganPercentage = 10;
+          updateDebugInfoUI();
         });
 
       } catch (error) {
