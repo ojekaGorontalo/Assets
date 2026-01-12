@@ -7,7 +7,6 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -1550,11 +1549,10 @@
     };
 
     // ==================== INISIALISASI VARIABEL GLOBAL ====================
-    let firebaseApp, database, auth;
+    let firebaseApp, database;
     try {
       firebaseApp = firebase.initializeApp(firebaseConfig);
       database = firebaseApp.database();
-      auth = firebaseApp.auth(); // INISIALISASI AUTH
       console.log("✅ Firebase berhasil diinisialisasi");
     } catch (error) {
       console.error("❌ Gagal menginisialisasi Firebase:", error);
@@ -1605,166 +1603,6 @@
       'kurir_motor': 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
       'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
     };
-
-    // ==================== FUNGSI AUTHENTIKASI ====================
-    async function checkDriverAuthentication() {
-      try {
-        // Cek apakah driver sudah login di localStorage
-        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
-        if (!driverDataStr) {
-          console.log('❌ Tidak ada data driver di localStorage');
-          redirectToLogin();
-          return null;
-        }
-
-        const driverData = JSON.parse(driverDataStr);
-        console.log('🔍 Data driver dari localStorage:', driverData);
-
-        // Cek status autentikasi Firebase
-        const user = auth.currentUser;
-        
-        if (!user) {
-          console.log('⚠️ User Firebase tidak ditemukan, mencoba sign in dengan token...');
-          
-          // Jika ada token di localStorage, coba sign in
-          const token = localStorage.getItem('jego_firebase_token');
-          if (token) {
-            try {
-              await auth.signInWithCustomToken(token);
-              console.log('✅ Sign in dengan custom token berhasil');
-            } catch (tokenError) {
-              console.error('❌ Gagal sign in dengan token:', tokenError);
-              redirectToLogin();
-              return null;
-            }
-          } else {
-            // Coba sign in dengan credential jika ada
-            await signInDriver(driverData);
-          }
-        }
-
-        // Verifikasi bahwa UID driver cocok dengan data order
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          console.error('❌ Tidak ada user yang terautentikasi');
-          redirectToLogin();
-          return null;
-        }
-
-        console.log('✅ Driver terautentikasi:', {
-          uid: currentUser.uid,
-          phone: driverData.phone,
-          name: driverData.name
-        });
-
-        return {
-          firebaseUser: currentUser,
-          driverData: driverData
-        };
-
-      } catch (error) {
-        console.error('❌ Error dalam checkDriverAuthentication:', error);
-        showError('Gagal memverifikasi autentikasi driver');
-        redirectToLogin();
-        return null;
-      }
-    }
-
-    async function signInDriver(driverData) {
-      try {
-        console.log('🔐 Mencoba sign in driver:', driverData.phone);
-        
-        // Metode 1: Coba dengan phone auth jika ada
-        if (driverData.phone) {
-          try {
-            const phoneNumber = driverData.phone;
-            const appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-              size: 'invisible'
-            });
-            
-            const confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, appVerifier);
-            
-            // Simpan token jika berhasil
-            const user = await confirmationResult.confirm('000000'); // OTP dummy untuk development
-            const token = await user.getIdToken();
-            
-            localStorage.setItem('jego_firebase_token', token);
-            console.log('✅ Sign in dengan phone auth berhasil');
-            return user;
-          } catch (phoneError) {
-            console.log('❌ Phone auth gagal:', phoneError.message);
-          }
-        }
-
-        // Metode 2: Coba sign in dengan email/password jika ada
-        if (driverData.email && driverData.password) {
-          try {
-            const userCredential = await auth.signInWithEmailAndPassword(
-              driverData.email, 
-              driverData.password
-            );
-            console.log('✅ Sign in dengan email berhasil');
-            return userCredential.user;
-          } catch (emailError) {
-            console.log('❌ Email auth gagal:', emailError.message);
-          }
-        }
-
-        // Metode 3: Coba custom token dari localStorage
-        const token = localStorage.getItem('jego_firebase_token');
-        if (token) {
-          try {
-            const userCredential = await auth.signInWithCustomToken(token);
-            console.log('✅ Sign in dengan custom token berhasil');
-            return userCredential.user;
-          } catch (tokenError) {
-            console.log('❌ Custom token auth gagal:', tokenError.message);
-          }
-        }
-
-        throw new Error('Tidak ada metode autentikasi yang berhasil');
-
-      } catch (error) {
-        console.error('❌ Gagal sign in driver:', error);
-        redirectToLogin();
-        return null;
-      }
-    }
-
-    function redirectToLogin() {
-      console.log('🔒 Redirect ke halaman login...');
-      
-      // Clear localStorage
-      localStorage.removeItem('jego_logged_in_driver');
-      localStorage.removeItem('jego_firebase_token');
-      localStorage.removeItem('jego_driver_accepted_order');
-      
-      // Redirect ke login page
-      setTimeout(() => {
-        window.location.href = 'loginDriver.html';
-      }, 2000);
-      
-      showError('Sesi Anda telah berakhir. Silakan login kembali.');
-    }
-
-    function logoutDriver() {
-      if (auth.currentUser) {
-        auth.signOut().then(() => {
-          console.log('✅ Driver logged out dari Firebase');
-        }).catch((error) => {
-          console.error('❌ Gagal logout:', error);
-        });
-      }
-      
-      // Clear semua data localStorage
-      localStorage.removeItem('jego_logged_in_driver');
-      localStorage.removeItem('jego_firebase_token');
-      localStorage.removeItem('jego_driver_accepted_order');
-      localStorage.removeItem('jego_driver_id');
-      localStorage.removeItem('jego_driver_data');
-      
-      redirectToLogin();
-    }
 
     // ==================== FUNGSI UTILITAS ====================
     function getOrderAmount(order) {
@@ -2525,70 +2363,36 @@ Biaya akan langsung dipotong dari saldo Anda.
       }
     }
 
-    // ==================== SISTEM CHAT DENGAN AUTHENTIKASI ====================
+    // ==================== SISTEM CHAT ====================
     function initializeChatSystem(orderId) {
-      // Cek autentikasi terlebih dahulu
-      checkDriverAuthentication().then(authResult => {
-        if (!authResult) {
-          console.error('❌ Tidak bisa inisialisasi chat: Driver tidak terautentikasi');
+      if (chatRef && chatListener) {
+        chatRef.off('child_added', chatListener);
+      }
+      
+      chatRef = database.ref('chat/' + orderId);
+      chatListener = chatRef.on('child_added', (snapshot) => {
+        const message = snapshot.val();
+        console.log('💬 Pesan baru diterima:', message);
+        
+        if (message.is_auto_message) {
+          console.log('💬 Pesan otomatis, skip notifikasi');
           return;
         }
-
-        const { firebaseUser, driverData } = authResult;
         
-        if (chatRef && chatListener) {
-          chatRef.off('child_added', chatListener);
+        if (chatOpen) {
+          displayMessage(message);
+          markMessageAsRead(snapshot.key);
+        } else {
+          handleNewMessageNotification(message);
         }
-        
-        // Gunakan path yang sesuai dengan rules Firebase
-        chatRef = database.ref('chat/' + orderId);
-        
-        // Set listener dengan autentikasi
-        chatListener = chatRef.on('child_added', (snapshot) => {
-          const message = snapshot.val();
-          console.log('💬 Pesan baru diterima:', message);
-          
-          if (message.is_auto_message) {
-            console.log('💬 Pesan otomatis, skip notifikasi');
-            return;
-          }
-          
-          if (chatOpen) {
-            displayMessage(message);
-            markMessageAsRead(snapshot.key);
-          } else {
-            handleNewMessageNotification(message);
-          }
-        }, (error) => {
-          console.error('❌ Error listening to chat:', error);
-          
-          if (error.code === 'PERMISSION_DENIED') {
-            console.log('⚠️ Akses ditolak untuk chat, coba re-authenticate');
-            checkDriverAuthentication().then(() => {
-              // Coba lagi setelah re-authenticate
-              setTimeout(() => initializeChatSystem(orderId), 1000);
-            });
-          }
-        });
-        
-        loadExistingMessages();
-        sendAutoWelcomeMessage();
-        
-      }).catch(error => {
-        console.error('❌ Gagal inisialisasi chat:', error);
       });
+      
+      loadExistingMessages();
+      sendAutoWelcomeMessage();
     }
 
     async function sendAutoWelcomeMessage() {
-      if (!currentOrderId || !currentOrderData) return;
-      
-      const authResult = await checkDriverAuthentication();
-      if (!authResult) {
-        console.error('❌ Tidak bisa kirim pesan otomatis: Driver tidak terautentikasi');
-        return;
-      }
-
-      const { firebaseUser, driverData } = authResult;
+      if (!currentOrderId || !currentOrderData || !currentDriverData) return;
       
       const autoMessageKey = `auto_message_sent_${currentOrderId}`;
       const hasAutoMessageSent = localStorage.getItem(autoMessageKey);
@@ -2607,8 +2411,8 @@ Biaya akan langsung dipotong dari saldo Anda.
         try {
           const autoMessage = {
             sender: 'driver',
-            sender_id: firebaseUser.uid,
-            sender_name: driverData.name || driverData.fullName || 'Driver',
+            sender_id: currentDriverData.driverId || currentDriverData.uid,
+            sender_name: currentDriverData.fullName || currentDriverData.name || 'Driver',
             message: 'Terima kasih telah mempercayakan perjalanan Anda kepada kami. Saya akan segera menuju lokasi penjemputan.',
             timestamp: Date.now(),
             is_auto_message: true
@@ -2743,33 +2547,22 @@ Biaya akan langsung dipotong dari saldo Anda.
     }
 
     function openChat() {
-      // Cek autentikasi sebelum membuka chat
-      checkDriverAuthentication().then(authResult => {
-        if (!authResult) {
-          showToast('Silakan login terlebih dahulu', 'error');
-          return;
-        }
-
-        chatOpen = true;
-        unreadMessages = 0;
-        updateChatBadge();
-        
-        setupChatUI();
-        loadExistingMessages();
-        
-        document.getElementById('chatOverlay').style.display = 'flex';
-        
-        setTimeout(() => {
-          document.getElementById('chatInput').focus();
-        }, 300);
-        
-        document.getElementById('chatNotification').style.display = 'none';
-        
-        console.log('💬 Chat dibuka, memuat pesan...');
-      }).catch(error => {
-        console.error('❌ Gagal membuka chat:', error);
-        showToast('Gagal membuka chat. Silakan coba lagi.', 'error');
-      });
+      chatOpen = true;
+      unreadMessages = 0;
+      updateChatBadge();
+      
+      setupChatUI();
+      loadExistingMessages();
+      
+      document.getElementById('chatOverlay').style.display = 'flex';
+      
+      setTimeout(() => {
+        document.getElementById('chatInput').focus();
+      }, 300);
+      
+      document.getElementById('chatNotification').style.display = 'none';
+      
+      console.log('💬 Chat dibuka, memuat pesan...');
     }
 
     function closeChat() {
@@ -2813,42 +2606,23 @@ Biaya akan langsung dipotong dari saldo Anda.
       const chatInput = document.getElementById('chatInput');
       const message = chatInput.value.trim();
       
-      if (!message) return;
+      if (!message || !currentDriverData) return;
       
-      // Cek autentikasi sebelum mengirim
-      checkDriverAuthentication().then(authResult => {
-        if (!authResult) {
-          showToast('Silakan login terlebih dahulu', 'error');
-          return;
-        }
-        
-        const { firebaseUser, driverData } = authResult;
-        
-        const messageData = {
-          sender: 'driver',
-          sender_id: firebaseUser.uid,
-          sender_name: driverData.name || driverData.fullName || 'Driver',
-          message: message,
-          timestamp: Date.now(),
-          driver_phone: driverData.phone
-        };
-        
-        chatRef.push(messageData)
-          .then(() => {
-            chatInput.value = '';
-            console.log('✅ Pesan terkirim dengan UID:', firebaseUser.uid);
-          })
-          .catch((error) => {
-            console.error('❌ Gagal mengirim pesan:', error);
-            
-            if (error.code === 'PERMISSION_DENIED') {
-              showToast('Akses ditolak. Silakan login ulang.', 'error');
-              redirectToLogin();
-            }
-          });
-      }).catch(error => {
-        console.error('❌ Gagal autentikasi untuk mengirim pesan:', error);
-      });
+      const messageData = {
+        sender: 'driver',
+        sender_id: currentDriverData.driverId || currentDriverData.uid,
+        message: message,
+        timestamp: Date.now()
+      };
+      
+      chatRef.push(messageData)
+        .then(() => {
+          chatInput.value = '';
+          console.log('✅ Pesan terkirim');
+        })
+        .catch((error) => {
+          console.error('❌ Gagal mengirim pesan:', error);
+        });
     }
 
     // ==================== FUNGSI KOMUNIKASI KODULAR ====================
@@ -3048,38 +2822,6 @@ Biaya akan langsung dipotong dari saldo Anda.
           contentWrapper.style.overflowY = 'auto';
         }
       }, 100);
-      
-      // Tambah tombol logout
-      addLogoutButton();
-    }
-
-    function addLogoutButton() {
-      const header = document.querySelector('.header');
-      if (header && !document.getElementById('logoutBtn')) {
-        const logoutBtn = document.createElement('div');
-        logoutBtn.id = 'logoutBtn';
-        logoutBtn.innerHTML = '🚪 Logout';
-        logoutBtn.style.cssText = `
-          position: absolute;
-          right: 70px;
-          top: 15px;
-          background: rgba(255,255,255,0.2);
-          color: white;
-          padding: 5px 10px;
-          border-radius: 15px;
-          font-size: 12px;
-          font-weight: bold;
-          cursor: pointer;
-          z-index: 1001;
-        `;
-        logoutBtn.onclick = function(e) {
-          e.stopPropagation();
-          if (confirm('Apakah Anda yakin ingin logout?')) {
-            logoutDriver();
-          }
-        };
-        header.appendChild(logoutBtn);
-      }
     }
 
     function updateCustomerInfo(order) {
@@ -3679,47 +3421,17 @@ Biaya akan langsung dipotong dari saldo Anda.
       });
     }
 
-    // ==================== AUTH STATE LISTENER ====================
-    // Listen untuk perubahan status auth
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log('👤 User Firebase logged in:', user.uid);
-        
-        // Update debug info dengan UID Firebase
-        const debugInfo = document.getElementById('debugInfo');
-        if (debugInfo) {
-          debugInfo.innerHTML = `👤 ${user.uid.substring(0, 8)}...`;
-          debugInfo.title = `UID: ${user.uid}\nKlik untuk info saldo`;
-        }
-      } else {
-        console.log('👤 Tidak ada user Firebase yang login');
-        
-        // Jika tidak ada user tapi ada data di localStorage, redirect ke login
-        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
-        if (driverDataStr) {
-          console.log('⚠️ Ada data localStorage tapi tidak ada auth, redirect...');
-          setTimeout(() => redirectToLogin(), 1000);
-        }
-      }
-    });
-
     // ==================== INISIALISASI ====================
-    window.onload = async function() {
+    window.onload = function() {
       console.log('🔄 Halaman detail order driver dimuat...');
       
-      // 1. Cek autentikasi terlebih dahulu
-      const authResult = await checkDriverAuthentication();
-      if (!authResult) {
-        console.log('❌ Driver tidak terautentikasi, redirect ke login');
-        return;
-      }
-      
-      const { driverData } = authResult;
-      
-      // 2. Inisialisasi balance system dengan data driver yang sudah terautentikasi
       initializeBalanceSystem();
       
-      // 3. Lanjutkan dengan proses normal
+      const driverData = JSON.parse(localStorage.getItem('jego_logged_in_driver') || '{}');
+      if (driverData && !currentDriverData) {
+        currentDriverData = driverData;
+      }
+      
       const urlParams = new URLSearchParams(window.location.search);
       const urlOrderId = urlParams.get('order_id');
       
