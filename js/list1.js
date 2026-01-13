@@ -1818,14 +1818,20 @@ function showOrderDetail(order) {
             document.getElementById('driverDistanceContainer').style.display = 'none';
         }
         
+        // **PERUBAHAN PENTING: Sembunyikan tombol close saat modal dibuka**
+        document.getElementById('closeModal').style.display = 'none';
+        
         document.getElementById('countdownContainer').style.display = 'none';
         document.getElementById('ambilBtn').disabled = false;
         document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
         
         isAutobidModal = false;
-        document.getElementById('closeModal').classList.remove('disabled');
         
         document.getElementById('orderModal').style.display = 'flex';
+        
+        // **NONAKTIFKAN CLICK DI LUAR MODAL**
+        const modal = document.getElementById('orderModal');
+        modal.style.pointerEvents = 'auto';
         
         // 5. MAP DIPERBESAR (TELAH DIATUR DI CSS)
         if (!modalMap) initModalMap();
@@ -2799,7 +2805,6 @@ function closeModalAndRefresh() {
     }
     
     isAutobidModal = false;
-    document.getElementById('closeModal').classList.remove('disabled');
     
     currentSelectedOrder = null;
     currentDriverId = null;
@@ -2807,6 +2812,7 @@ function closeModalAndRefresh() {
     loadOrders();
 }
 
+// ==================== FUNGSI BARU: DETEKSI PENOLAKAN CUSTOMER ====================
 function listenForOrderResponse(orderId, driverId) {
     if (offerListenerRef && offerListener) {
         offerListenerRef.off('value', offerListener);
@@ -2817,19 +2823,30 @@ function listenForOrderResponse(orderId, driverId) {
         const order = snapshot.val();
         
         if (!order) {
-            closeModalAndRefresh();
-            showPopup('Order telah dibatalkan oleh customer.', 'Info', 'info');
+            closeModalWithMessage('Order telah dibatalkan oleh customer.');
             isAutobidProcessing = false;
             processedOrders.delete(orderId);
             return;
+        }
+        
+        // CEK: Jika driver_offers kita dihapus (ditolak customer)
+        if (order.status === 'searching') {
+            const ourOffer = order.driver_offers?.[driverId];
+            
+            if (!ourOffer) {
+                // Driver offer kita dihapus = DITOLAK
+                closeModalWithMessage('Penawaran Anda ditolak oleh customer.');
+                isAutobidProcessing = false;
+                processedOrders.delete(orderId);
+                return;
+            }
         }
         
         // CEK PEMBATALAN ORDER
         if (order.status === 'cancelled_by_user' || order.status === 'cancelled_by_system') {
             console.log(`🔍 Order dibatalkan dengan status: ${order.status}`);
             
-            closeModalAndRefresh();
-            showPopup(`Order dibatalkan (${order.status}).`, 'Info', 'info');
+            closeModalWithMessage(`Order dibatalkan (${order.status}).`);
             isAutobidProcessing = false;
             processedOrders.delete(orderId);
             return;
@@ -2838,8 +2855,7 @@ function listenForOrderResponse(orderId, driverId) {
         if (order.status === 'cancelled_by_driver') {
             console.log(`🔍 Order dibatalkan oleh driver: ${order.status}`);
             
-            closeModalAndRefresh();
-            showPopup('Order dibatalkan oleh driver.', 'Info', 'info');
+            closeModalWithMessage('Order dibatalkan oleh driver.');
             isAutobidProcessing = false;
             processedOrders.delete(orderId);
             return;
@@ -2869,8 +2885,7 @@ function listenForOrderResponse(orderId, driverId) {
                 closeModalAndRefresh();
             } else {
                 if (countdownInterval) clearInterval(countdownInterval);
-                showPopup('Order ini telah diambil oleh driver lain.', 'Info', 'info');
-                closeModalAndRefresh();
+                closeModalWithMessage('Order ini telah diambil oleh driver lain.');
             }
             processedOrders.delete(orderId);
         }
@@ -2879,11 +2894,42 @@ function listenForOrderResponse(orderId, driverId) {
             order.status !== 'cancelled_by_user' && order.status !== 'cancelled_by_system' && 
             order.status !== 'cancelled_by_driver') {
             if (countdownInterval) clearInterval(countdownInterval);
-            showPopup(`Status order berubah menjadi: ${order.status}`, 'Info', 'info');
-            closeModalAndRefresh();
+            closeModalWithMessage(`Status order berubah menjadi: ${order.status}`);
             processedOrders.delete(orderId);
         }
     });
+}
+
+function closeModalWithMessage(message) {
+    showPopup(message, 'Info', 'info');
+    closeModalAndRefresh();
+}
+
+// ==================== FUNGSI BARU: MODAL TIDAK BISA DITUTUP ====================
+function closeModal() {
+    // PERIKSA APAKAH SEDANG DALAM PROSES PENAWARAN
+    if (countdownInterval) {
+        console.log('🚫 Modal tidak bisa ditutup selama penawaran aktif');
+        showPopup('Anda tidak bisa menutup modal selama penawaran aktif. Tunggu hingga waktu habis atau ada respons dari customer.', 'Peringatan', 'warning');
+        return;
+    }
+    
+    // Tampilkan tombol close kembali
+    document.getElementById('closeModal').style.display = 'block';
+    
+    document.getElementById('orderModal').style.display = 'none';
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    if (offerListenerRef && offerListener) {
+        offerListenerRef.off('value', offerListener);
+        offerListenerRef = null;
+        offerListener = null;
+    }
+    currentSelectedOrder = null;
+    currentDriverId = null;
+    isAutobidProcessing = false;
 }
 
 function sendDriverOffer() {
@@ -2914,7 +2960,7 @@ function sendDriverOffer() {
     const ambilBtn = document.getElementById('ambilBtn');
     
     ambilBtn.disabled = true;
-    ambilBtn.textContent = 'Mengirim...';
+    ambilBtn.textContent = 'Menunggu Konfirmasi (30s)';
     
     const orderRef = database.ref('orders/' + orderId);
     orderRef.once('value').then((snapshot) => {
@@ -2959,7 +3005,7 @@ function sendDriverOffer() {
                 });
                 startCountdown(orderId, driverId);
                 listenForOrderResponse(orderId, driverId);
-                ambilBtn.textContent = 'Menunggu Konfirmasi';
+                ambilBtn.textContent = 'Menunggu Konfirmasi (30s)';
             })
             .catch((error) => {
                 console.error('Gagal mengirim penawaran:', error);
@@ -3336,22 +3382,6 @@ function refreshData() {
     }
 }
 
-function closeModal() {
-    document.getElementById('orderModal').style.display = 'none';
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-        countdownInterval = null;
-    }
-    if (offerListenerRef && offerListener) {
-        offerListenerRef.off('value', offerListener);
-        offerListenerRef = null;
-        offerListener = null;
-    }
-    currentSelectedOrder = null;
-    currentDriverId = null;
-    isAutobidProcessing = false;
-}
-
 // ==================== FUNGSI BARU: ANIMASI RADAR PENCARIAN ====================
 
 // Fungsi untuk membuat elemen radar
@@ -3677,11 +3707,16 @@ function setupEventListeners() {
         });
     }
     
-    // Modal order
+    // Modal order - NONAKTIFKAN CLICK DI LUAR SELAMA PENAWARAN AKTIF
     const orderModal = document.getElementById('orderModal');
     if (orderModal) {
         orderModal.addEventListener('click', (e) => {
-            if (e.target === orderModal) closeModal();
+            if (e.target === orderModal && countdownInterval) {
+                console.log('🚫 Modal tidak bisa di-close selama penawaran aktif');
+                showPopup('Anda tidak bisa menutup modal selama penawaran aktif. Tunggu hingga waktu habis atau ada respons dari customer.', 'Peringatan', 'warning');
+            } else if (e.target === orderModal && !countdownInterval) {
+                closeModal();
+            }
         });
     }
     
