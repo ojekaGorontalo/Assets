@@ -1719,7 +1719,7 @@ function updateDriverOfferStatus(orderId, driverId, status) {
         });
 }
 
-// ✅ FUNGSI BARU: KIRIM NOTIFIKASI STATUS KE DRIVER
+// ✅ FUNGSI BARU: KIRIM NOTIFIKASI STATUS KE DRIVER (TANPA POPUP DI WEB)
 function sendStatusNotificationToDriver(orderId, driverId, status) {
     const statusMessages = {
         'accepted': {
@@ -1750,7 +1750,7 @@ function sendStatusNotificationToDriver(orderId, driverId, status) {
         type: 'info'
     };
     
-    // ✅ KIRIM KE KODULAR
+    // ✅ KIRIM KE KODULAR SAJA, TANPA POPUP DI WEB
     sendToKodular({
         action: 'offer_status_update',
         order_id: orderId,
@@ -1760,11 +1760,6 @@ function sendStatusNotificationToDriver(orderId, driverId, status) {
         message: notification.message,
         timestamp: new Date().toISOString()
     });
-    
-    // ✅ TAMPILKAN POPUP DI WEB (HANYA UNTUK STATUS TERTENTU)
-    if (status === 'rejected' || status === 'expired' || status === 'cancelled') {
-        showPopup(notification.message, notification.title, notification.type);
-    }
 }
 
 // ==================== FUNGSI MODAL DETAIL ORDER MANUAL - DIUBAH ====================
@@ -2295,9 +2290,10 @@ function listenForAutobidOrderResponse(orderId, driverId) {
                     message: 'Order ini telah diambil oleh driver lain.'
                 });
                 
+                // TUTUP MODAL SETELAH 1 DETIK (TIDAK ADA POPUP)
                 setTimeout(() => {
                     closeAutobidModal();
-                }, 2000);
+                }, 1000);
             }
             processedOrders.delete(orderId);
         }
@@ -2321,7 +2317,7 @@ function listenForAutobidOrderResponse(orderId, driverId) {
             
             setTimeout(() => {
                 closeAutobidModal();
-            }, 2000);
+            }, 1000);
             
             processedOrders.delete(orderId);
         }
@@ -2925,6 +2921,7 @@ function closeModalAndRefresh() {
     currentSelectedOrder = null;
     currentDriverId = null;
     isAutobidProcessing = false;
+    
     loadOrders();
 }
 
