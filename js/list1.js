@@ -1,3 +1,5 @@
+[file name]: list1.js
+[file content begin]
 // ==================== FUNGSI CALLBACK UNTUK GOOGLE MAPS API ====================
 
 function initApp() {
@@ -198,7 +200,7 @@ function testFirebaseConnection() {
   // Batasi listener setelah 5 detik
   setTimeout(() => {
     testRef.off();
-  }, 5000);
+  }, 15000);
 }
 
 // ==================== FUNGSI BARU: SISTEM USER DATA MANAGEMENT ====================
@@ -832,7 +834,7 @@ function startManualCheckInterval() {
             driverLocation.latitude && driverLocation.longitude) {
             checkOrdersForManualPopup();
         }
-    }, 5000);
+    }, 15000);
 }
 
 function stopManualCheckInterval() {
@@ -925,7 +927,7 @@ function startLocationTracking() {
     
     locationTrackingInterval = setInterval(() => {
         sendLocationToFirebase();
-    }, 10000);
+    }, 30000);
 }
 
 function stopLocationTracking() {
@@ -1478,7 +1480,7 @@ function startAutobid() {
         if (!isAutobidProcessing && driverLocation.latitude && driverLocation.longitude) {
             checkOrdersForAutobid();
         }
-    }, 5000);
+    }, 15000);
     
     checkOrdersForAutobid();
 }
@@ -3916,3 +3918,4 @@ window.addEventListener('beforeunload', () => {
     // Hentikan auto-refresh data driver
     stopDriverDataRefresh();
 });
+[file content end]
