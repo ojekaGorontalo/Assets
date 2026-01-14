@@ -248,14 +248,32 @@
             box-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
         }
 
-        /* History */
-        .history-container {
+        /* History / Hasil Round */
+        .hasil-round-container {
             max-height: 150px;
             overflow-y: auto;
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 8px;
             background: #f9f9f9;
+            margin-top: 15px;
+        }
+
+        .hasil-round-item {
+            padding: 6px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .hasil-round-item.besar {
+            background: rgba(255, 0, 0, 0.1);
+            color: #d70000;
+        }
+
+        .hasil-round-item.kecil {
+            background: rgba(0, 102, 204, 0.1);
+            color: #0066cc;
         }
 
         /* Popup Hasil */
@@ -330,8 +348,18 @@
             100% { transform: scale(1); }
         }
 
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
         .pulse {
             animation: pulse 1s infinite;
+        }
+
+        .shake {
+            animation: shake 0.5s;
         }
 
         .error {
@@ -342,6 +370,28 @@
         .success {
             color: #28a745;
             font-weight: bold;
+        }
+
+        .warning {
+            color: #ff9900;
+            font-weight: bold;
+        }
+
+        /* Last 5 Seconds Warning */
+        .last5-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 20px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
         }
     </style>
 </head>
@@ -362,6 +412,9 @@
     <audio id="loseAudio" preload="auto">
         <source src="https://assets.mixkit.co/sfx/preview/mixkit-cartoon-falling-whistle-392.mp3" type="audio/mpeg">
     </audio>
+
+    <!-- Last 5 Seconds Warning -->
+    <div class="last5-warning" id="last5-warning">⏰ 5 DETIK TERAKHIR!</div>
 
     <!-- Popup Hasil -->
     <div class="popup-overlay" id="popup-overlay">
@@ -434,12 +487,14 @@
             </div>
         </div>
 
-        <!-- History -->
-        <div class="history-container" id="history-list"></div>
+        <!-- Hasil Round -->
+        <div class="hasil-round-container" id="hasil-round-list">
+            <div class="hasil-round-item">🔄 Menunggu hasil round...</div>
+        </div>
     </div>
 
     <script>
-        // Firebase Configuration - PASTIKAN INI BENAR
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyD1U76xG1tTco6rt71dGf4dRqj-4fT7RFQ",
             authDomain: "steady-fin-368617.firebaseapp.com",
@@ -462,14 +517,17 @@
             pilihanDipilih: null,
             timer: 15,
             timerInterval: null,
-            saldo: 50000,  // Saldo default
+            saldo: 50000,
             bisaMemilih: true,
             audioEnabled: true,
             waktuTunggu: 15,
             taruhanRef: null,
             roundRef: null,
-            roundListener: null,  // Untuk menyimpan listener
-            processingResult: false  // Flag untuk mencegah double processing
+            roundListener: null,
+            processingResult: false,
+            last5Seconds: false,
+            hasilRoundListener: null,
+            hasilRoundList: []
         };
 
         // Elemen audio
@@ -482,6 +540,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             await initAplikasi();
             setupEventListeners();
+            loadHasilRound();
         });
 
         // Setup event listeners
@@ -504,6 +563,23 @@
                     e.target.value = 100;
                 }
             });
+        }
+
+        // Generate Round ID dengan format: waktu+tanggal+bulan+tahun+random
+        function generateRoundId() {
+            const now = new Date();
+            
+            // Format: HHmmDDMMYYYY + random 6 digit
+            const jam = String(now.getHours()).padStart(2, '0');
+            const menit = String(now.getMinutes()).padStart(2, '0');
+            const tanggal = String(now.getDate()).padStart(2, '0');
+            const bulan = String(now.getMonth() + 1).padStart(2, '0');
+            const tahun = now.getFullYear();
+            const random = Math.floor(100000 + Math.random() * 900000); // 6 digit random
+            
+            // Contoh: 08341501261234678
+            // 08: jam, 34: menit, 15: tanggal, 01: bulan, 2024: tahun, 1234678: random
+            return jam + menit + tanggal + bulan + tahun + random;
         }
 
         // Inisialisasi aplikasi
@@ -542,9 +618,11 @@
                     await saldoRef.set(50000);
                     state.saldo = 50000;
                 } else {
-                    state.saldo = snapshot.val();
-                    // Jika saldo negatif, reset ke 50000
-                    if (state.saldo < 0) {
+                    const saldoValue = snapshot.val();
+                    state.saldo = saldoValue;
+                    
+                    // Jika saldo negatif atau null, reset ke 50000
+                    if (!saldoValue || saldoValue < 0 || saldoValue === null) {
                         await saldoRef.set(50000);
                         state.saldo = 50000;
                     }
@@ -594,15 +672,28 @@
             database.ref('tebak-angka/saldo/' + state.userId).on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const saldo = snapshot.val();
-                    state.saldo = saldo;
-                    updateSaldo();
+                    if (saldo !== null) {
+                        state.saldo = saldo;
+                        updateSaldo();
+                    }
                 }
             });
+        }
 
-            // Listen history user
-            database.ref('tebak-angka/history/' + state.userId).limitToLast(5).on('value', (snapshot) => {
-                updateHistoryUI(snapshot.val());
-            });
+        // Load hasil round dari Firebase
+        function loadHasilRound() {
+            // Hapus listener sebelumnya jika ada
+            if (state.hasilRoundListener) {
+                database.ref('tebak-angka/hasil_round').off('value', state.hasilRoundListener);
+            }
+            
+            // Setup listener baru
+            state.hasilRoundListener = database.ref('tebak-angka/hasil_round')
+                .orderByChild('timestamp')
+                .limitToLast(10)
+                .on('value', (snapshot) => {
+                    updateHasilRoundUI(snapshot.val());
+                });
         }
 
         // Get user ID
@@ -622,19 +713,23 @@
                 clearInterval(state.timerInterval);
                 
                 // Hapus listener round sebelumnya
-                if (state.roundListener) {
+                if (state.roundListener && state.roundRef) {
                     state.roundRef.off('value', state.roundListener);
                 }
                 
-                const now = Date.now();
-                state.roundId = 'round_' + now;
+                // Generate round ID baru
+                state.roundId = generateRoundId();
                 
                 // Reset state
                 resetStateUntukRoundBaru();
                 
+                // Reset warning
+                document.getElementById('last5-warning').style.display = 'none';
+                
                 // Buat round di Firebase
                 state.roundRef = database.ref('tebak-angka/taruhan/' + state.roundId);
                 
+                const now = Date.now();
                 await state.roundRef.set({
                     round_id: state.roundId,
                     status: 'berjalan',
@@ -646,7 +741,8 @@
                 });
                 
                 // Tampilkan round ID (singkat)
-                document.getElementById('round-id').textContent = state.roundId.substring(6, 12) + '...';
+                const displayId = state.roundId.substring(0, 8) + '...';
+                document.getElementById('round-id').textContent = displayId;
                 
                 // Setup listener untuk round
                 state.roundListener = state.roundRef.on('value', async (snapshot) => {
@@ -681,6 +777,7 @@
             state.pilihanDipilih = null;
             state.bisaMemilih = true;
             state.processingResult = false;
+            state.last5Seconds = false;
             
             // Reset UI
             document.getElementById('status-pasangan').textContent = '-';
@@ -718,7 +815,7 @@
 
         // Pilih pasangan
         function pilihPasangan(jumlah, button) {
-            if (!state.bisaMemilih || state.pasanganDipilih) return;
+            if (!state.bisaMemilih || state.pasanganDipilih || state.last5Seconds) return;
             if (jumlah > state.saldo) {
                 alert('Saldo tidak cukup!');
                 return;
@@ -740,7 +837,7 @@
 
         // Set custom pasangan
         function setCustomPasangan() {
-            if (!state.bisaMemilih || state.pasanganDipilih) return;
+            if (!state.bisaMemilih || state.pasanganDipilih || state.last5Seconds) return;
             
             const input = document.getElementById('custom-input');
             let jumlah = parseInt(input.value);
@@ -772,7 +869,7 @@
 
         // Set All In
         function setAllIn() {
-            if (!state.bisaMemilih || state.pasanganDipilih) return;
+            if (!state.bisaMemilih || state.pasanganDipilih || state.last5Seconds) return;
             if (state.saldo < 100) {
                 alert('Saldo minimal Rp 100 untuk bermain!');
                 return;
@@ -788,7 +885,7 @@
 
         // Pilih BESAR/KECIL - LANGSUNG SIMPAN KE FIREBASE
         async function pilih(pilihan) {
-            if (!state.bisaMemilih || !state.pasanganDipilih || !state.roundId) {
+            if (!state.bisaMemilih || !state.pasanganDipilih || !state.roundId || state.last5Seconds) {
                 if (!state.pasanganDipilih) {
                     alert('Pilih pasangan terlebih dahulu!');
                 }
@@ -808,9 +905,6 @@
                     hasil: null
                 };
                 
-                // Kurangi saldo sementara di lokal
-                const saldoSementara = state.saldo - state.pasanganDipilih;
-                
                 await state.taruhanRef.set(taruhanData);
                 
                 // Update state lokal
@@ -826,12 +920,7 @@
                 document.getElementById(`btn-${pilihan.toLowerCase()}`).classList.add('active');
                 
                 // Disable semua tombol pasangan
-                document.querySelectorAll('.pasangan-btn').forEach(btn => {
-                    btn.disabled = true;
-                });
-                document.getElementById('custom-input').disabled = true;
-                document.getElementById('custom-btn').disabled = true;
-                document.getElementById('all-in-btn').disabled = true;
+                disableAllButtons();
                 
                 console.log('Taruhan berhasil disimpan ke Firebase');
                 
@@ -841,11 +930,23 @@
             }
         }
 
+        // Disable semua tombol
+        function disableAllButtons() {
+            document.querySelectorAll('.pasangan-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            document.getElementById('custom-input').disabled = true;
+            document.getElementById('custom-btn').disabled = true;
+            document.getElementById('all-in-btn').disabled = true;
+        }
+
         // Timer
         function startTimer() {
             clearInterval(state.timerInterval);
             state.timer = state.waktuTunggu;
+            state.last5Seconds = false;
             document.getElementById('timer').textContent = state.timer;
+            document.getElementById('timer').classList.remove('shake');
             
             state.timerInterval = setInterval(async () => {
                 state.timer--;
@@ -853,8 +954,26 @@
                 
                 // Di 5 detik terakhir
                 if (state.timer <= 5 && state.timer > 0) {
+                    if (!state.last5Seconds) {
+                        state.last5Seconds = true;
+                        showLast5SecondsWarning();
+                        
+                        // Nonaktifkan semua tombol jika belum memilih
+                        if (state.bisaMemilih) {
+                            disableAllButtons();
+                            document.getElementById('btn-besar').disabled = true;
+                            document.getElementById('btn-kecil').disabled = true;
+                        }
+                    }
+                    
+                    // Efek audio dan visual
                     document.getElementById('timer').classList.add('pulse');
                     playAudio(tickAudio);
+                }
+                
+                // Efek visual saat waktu hampir habis
+                if (state.timer <= 3) {
+                    document.getElementById('timer').classList.add('shake');
                 }
                 
                 // Waktu habis
@@ -863,6 +982,17 @@
                     await waktuHabis();
                 }
             }, 1000);
+        }
+
+        // Tampilkan warning 5 detik terakhir
+        function showLast5SecondsWarning() {
+            const warning = document.getElementById('last5-warning');
+            warning.style.display = 'block';
+            warning.classList.add('shake');
+            
+            setTimeout(() => {
+                warning.style.display = 'none';
+            }, 3000);
         }
 
         // Ketika waktu habis
@@ -879,6 +1009,13 @@
                     status: 'selesai',
                     hasil: hasilRound,
                     end_time: Date.now()
+                });
+                
+                // Simpan hasil round ke Firebase untuk ditampilkan
+                await database.ref('tebak-angka/hasil_round/' + state.roundId).set({
+                    hasil: hasilRound,
+                    timestamp: Date.now(),
+                    round_id: state.roundId
                 });
                 
             } catch (error) {
@@ -900,7 +1037,13 @@
                 if (!taruhanSnapshot.exists()) {
                     // User tidak ikut taruhan di round ini
                     console.log("User tidak ikut taruhan di round ini");
-                    setTimeout(() => buatRoundBaru(), 2000);
+                    tampilkanPopupTidakIkut(hasilRound);
+                    
+                    // Buat round baru setelah 3 detik
+                    setTimeout(() => {
+                        closePopup();
+                        buatRoundBaru();
+                    }, 3000);
                     return;
                 }
                 
@@ -930,16 +1073,6 @@
                 
                 // Update saldo di Firebase
                 await database.ref('tebak-angka/saldo/' + state.userId).set(saldoBaru);
-                
-                // Simpan ke history
-                const historyRef = database.ref('tebak-angka/history/' + state.userId + '/' + Date.now());
-                await historyRef.set({
-                    pasangan: taruhanData.pasangan,
-                    pilihan: taruhanData.pilihan,
-                    hasil: hasilUser,
-                    round_id: state.roundId,
-                    waktu: Date.now()
-                });
                 
                 // Update state lokal
                 state.saldo = saldoBaru;
@@ -1023,31 +1156,53 @@
             overlay.style.display = 'flex';
         }
 
-        // Update history UI
-        function updateHistoryUI(history) {
-            const container = document.getElementById('history-list');
-            if (!history) {
-                container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Belum ada history</div>';
+        // Tampilkan popup jika tidak ikut taruhan
+        function tampilkanPopupTidakIkut(hasilRound) {
+            const overlay = document.getElementById('popup-overlay');
+            const icon = document.getElementById('popup-icon');
+            const title = document.getElementById('popup-title');
+            const details = document.getElementById('popup-details');
+            
+            icon.textContent = '⏰';
+            title.textContent = 'TIDAK IKUT TARUHAN';
+            title.style.color = '#ff9900';
+            details.innerHTML = `
+                <div>Anda tidak ikut taruhan di round ini</div>
+                <div>Hasil: <strong>${hasilRound}</strong></div>
+                <div>Saldo tetap: <strong>Rp ${state.saldo.toLocaleString()}</strong></div>
+            `;
+            
+            overlay.style.display = 'flex';
+        }
+
+        // Update hasil round UI
+        function updateHasilRoundUI(hasilRoundData) {
+            const container = document.getElementById('hasil-round-list');
+            if (!hasilRoundData) {
+                container.innerHTML = '<div class="hasil-round-item">🔄 Menunggu hasil round...</div>';
                 return;
             }
             
             let html = '';
-            const items = Object.values(history).sort((a, b) => b.waktu - a.waktu).slice(0, 5);
+            const items = Object.values(hasilRoundData)
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
             
-            items.forEach(item => {
-                const waktu = new Date(item.waktu).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                html += `
-                    <div style="padding: 6px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 12px; background: ${item.hasil === 'MENANG' ? '#d4edda' : '#f8d7da'}">
-                        <div>
-                            <strong>${item.pilihan}</strong> 
-                            (Rp ${item.pasangan.toLocaleString()})
+            if (items.length === 0) {
+                html = '<div class="hasil-round-item">🔄 Menunggu hasil round...</div>';
+            } else {
+                items.forEach(item => {
+                    const waktu = new Date(item.timestamp);
+                    const jam = String(waktu.getHours()).padStart(2, '0');
+                    const menit = String(waktu.getMinutes()).padStart(2, '0');
+                    
+                    html += `
+                        <div class="hasil-round-item ${item.hasil === 'BESAR' ? 'besar' : 'kecil'}">
+                            ${jam}:${menit} - Hasil: <strong>${item.hasil}</strong> ${item.hasil === 'BESAR' ? '🟥' : '🟦'}
                         </div>
-                        <div style="color: ${item.hasil === 'MENANG' ? 'green' : 'red'}">
-                            ${item.hasil === 'MENANG' ? '✔' : '✘'} ${waktu}
-                        </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
             
             container.innerHTML = html;
         }
@@ -1091,6 +1246,13 @@
                 await database.ref('tebak-angka/saldo/' + state.userId).set(50000);
                 state.saldo = 50000;
                 updateSaldo();
+            }
+        };
+        
+        window.clearHistory = async function() {
+            if (confirm("Hapus semua history?")) {
+                await database.ref('tebak-angka/hasil_round').remove();
+                document.getElementById('hasil-round-list').innerHTML = '<div class="hasil-round-item">🔄 Menunggu hasil round...</div>';
             }
         };
     </script>
