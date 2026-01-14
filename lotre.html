@@ -536,8 +536,15 @@
         const winAudio = document.getElementById('winAudio');
         const loseAudio = document.getElementById('loseAudio');
 
+        // Flag untuk audio initialization
+        let audioInitialized = false;
+        let audioUnlockAttempted = false;
+
         // Inisialisasi
         document.addEventListener('DOMContentLoaded', async function() {
+            // Setup event listeners untuk audio unlock
+            setupAudioUnlock();
+            
             await initAplikasi();
             setupEventListeners();
             loadHasilRound();
@@ -562,6 +569,25 @@
                 if (value < 100) {
                     e.target.value = 100;
                 }
+            });
+        }
+
+        // Setup audio unlock system
+        function setupAudioUnlock() {
+            // Event listener untuk klik di container
+            document.querySelector('.container').addEventListener('click', function() {
+                if (!audioInitialized && !audioUnlockAttempted) {
+                    unlockAudio();
+                }
+            });
+            
+            // Event listener untuk tombol audio
+            document.querySelector('.audio-btn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (!audioInitialized) {
+                    unlockAudio();
+                }
+                toggleAudio();
             });
         }
 
@@ -601,9 +627,30 @@
                 // Buat round baru
                 await buatRoundBaru();
                 
+                // Tampilkan pesan audio jika belum diunlock
+                setTimeout(showAudioUnlockMessage, 1000);
+                
             } catch (error) {
                 console.error("Error init aplikasi:", error);
                 alert("Gagal menginisialisasi aplikasi. Refresh halaman.");
+            }
+        }
+
+        // Tampilkan pesan unlock audio
+        function showAudioUnlockMessage() {
+            if (!audioInitialized && state.audioEnabled) {
+                const audioBtn = document.querySelector('.audio-btn');
+                audioBtn.style.animation = "pulse 1s infinite";
+                audioBtn.style.color = "#ffcc00";
+                audioBtn.title = "Klik untuk mengaktifkan audio";
+                
+                // Reset setelah 3 detik
+                setTimeout(() => {
+                    if (!audioInitialized) {
+                        audioBtn.style.animation = "";
+                        audioBtn.style.color = "#d70000";
+                    }
+                }, 3000);
             }
         }
 
@@ -919,7 +966,7 @@
                 document.getElementById('btn-kecil').classList.remove('active');
                 document.getElementById(`btn-${pilihan.toLowerCase()}`).classList.add('active');
                 
-                // Disable semua tombol pasangan
+                // Disable semua tombol
                 disableAllButtons();
                 
                 console.log('Taruhan berhasil disimpan ke Firebase');
@@ -947,6 +994,8 @@
             state.last5Seconds = false;
             document.getElementById('timer').textContent = state.timer;
             document.getElementById('timer').classList.remove('shake');
+            document.getElementById('timer').style.color = '';
+            document.getElementById('timer').style.textShadow = '';
             
             state.timerInterval = setInterval(async () => {
                 state.timer--;
@@ -958,6 +1007,15 @@
                         state.last5Seconds = true;
                         showLast5SecondsWarning();
                         
+                        // Coba putar audio countdown jika audio sudah diinisialisasi
+                        if (audioInitialized && state.audioEnabled) {
+                            playAudio(countdownAudio);
+                        } else {
+                            // Fallback visual jika audio tidak bisa diputar
+                            document.getElementById('timer').style.color = '#ff0000';
+                            document.getElementById('timer').style.textShadow = '0 0 10px #ff0000';
+                        }
+                        
                         // Nonaktifkan semua tombol jika belum memilih
                         if (state.bisaMemilih) {
                             disableAllButtons();
@@ -966,9 +1024,13 @@
                         }
                     }
                     
-                    // Efek audio dan visual
+                    // Efek visual
                     document.getElementById('timer').classList.add('pulse');
-                    playAudio(tickAudio);
+                    
+                    // Mainkan tick audio jika audio sudah diinisialisasi
+                    if (audioInitialized && state.audioEnabled) {
+                        playAudio(tickAudio);
+                    }
                 }
                 
                 // Efek visual saat waktu hampir habis
@@ -992,6 +1054,7 @@
             
             setTimeout(() => {
                 warning.style.display = 'none';
+                warning.classList.remove('shake');
             }, 3000);
         }
 
@@ -1085,11 +1148,13 @@
                     saldoBaru
                 );
                 
-                // Play audio
-                if (hasilUser === 'MENANG') {
-                    playAudio(winAudio);
-                } else {
-                    playAudio(loseAudio);
+                // Play audio jika sudah diinisialisasi
+                if (audioInitialized && state.audioEnabled) {
+                    if (hasilUser === 'MENANG') {
+                        playAudio(winAudio);
+                    } else {
+                        playAudio(loseAudio);
+                    }
                 }
                 
                 // Buat round baru setelah 3 detik
@@ -1225,14 +1290,142 @@
         // Audio functions
         function toggleAudio() {
             state.audioEnabled = !state.audioEnabled;
-            document.querySelector('.audio-btn').textContent = state.audioEnabled ? '🔊' : '🔇';
+            const audioBtn = document.querySelector('.audio-btn');
+            audioBtn.textContent = state.audioEnabled ? '🔊' : '🔇';
+            
+            // Jika mengaktifkan audio tapi belum diinisialisasi, coba unlock
+            if (state.audioEnabled && !audioInitialized) {
+                unlockAudio();
+            }
+        }
+
+        function unlockAudio() {
+            if (audioUnlockAttempted) return;
+            
+            audioUnlockAttempted = true;
+            console.log("Attempting to unlock audio...");
+            
+            // Coba inisialisasi audio dengan interaksi user
+            const allAudioElements = [tickAudio, countdownAudio, winAudio, loseAudio];
+            let successCount = 0;
+            
+            allAudioElements.forEach((audio, index) => {
+                // Set volume ke 0
+                audio.volume = 0;
+                
+                // Coba play
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log(`Audio ${index} initialized successfully`);
+                        audio.pause();
+                        audio.currentTime = 0;
+                        audio.volume = 0.3;
+                        successCount++;
+                        
+                        // Jika semua audio berhasil, set audioInitialized
+                        if (successCount === allAudioElements.length) {
+                            audioInitialized = true;
+                            console.log("Audio unlocked successfully!");
+                            
+                            // Update tombol audio
+                            const audioBtn = document.querySelector('.audio-btn');
+                            audioBtn.style.animation = "";
+                            audioBtn.style.color = state.audioEnabled ? "#d70000" : "#999";
+                            audioBtn.title = state.audioEnabled ? "Audio aktif" : "Audio nonaktif";
+                            
+                            // Test play dengan volume rendah
+                            setTimeout(() => {
+                                if (state.audioEnabled) {
+                                    tickAudio.volume = 0.1;
+                                    tickAudio.play().then(() => {
+                                        tickAudio.pause();
+                                        tickAudio.currentTime = 0;
+                                        tickAudio.volume = 0.3;
+                                    }).catch(e => console.log("Test play failed:", e));
+                                }
+                            }, 500);
+                        }
+                    }).catch(e => {
+                        console.log(`Audio ${index} initialization failed:`, e);
+                        
+                        // Coba dengan promise handler
+                        audio.load();
+                        audio.volume = 0;
+                        
+                        // Coba lagi dengan timeout
+                        setTimeout(() => {
+                            audio.play().then(() => {
+                                audio.pause();
+                                audio.currentTime = 0;
+                                audio.volume = 0.3;
+                                successCount++;
+                                
+                                if (successCount === allAudioElements.length) {
+                                    audioInitialized = true;
+                                    console.log("Audio unlocked on retry!");
+                                }
+                            }).catch(e2 => {
+                                console.log(`Audio ${index} retry failed:`, e2);
+                                
+                                // Mark as success anyway untuk kasus tertentu
+                                successCount++;
+                                if (successCount === allAudioElements.length) {
+                                    audioInitialized = true;
+                                    console.log("Audio marked as initialized despite errors");
+                                }
+                            });
+                        }, 100);
+                    });
+                }
+            });
+            
+            // Fallback: Jika gagal, tetap set sebagai initialized setelah timeout
+            setTimeout(() => {
+                if (!audioInitialized) {
+                    audioInitialized = true;
+                    console.log("Audio unlocked via fallback");
+                }
+            }, 1000);
         }
 
         function playAudio(audioElement) {
-            if (state.audioEnabled) {
+            if (!state.audioEnabled || !audioInitialized) {
+                console.log("Audio disabled or not initialized");
+                return;
+            }
+            
+            try {
                 audioElement.currentTime = 0;
                 audioElement.volume = 0.3;
-                audioElement.play().catch(e => console.log("Audio play failed:", e));
+                
+                const playPromise = audioElement.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => {
+                        console.log("Audio play failed:", e.name);
+                        
+                        // Jika NotAllowedError, coba unlock audio
+                        if (e.name === 'NotAllowedError') {
+                            console.log("Attempting to unlock audio...");
+                            if (!audioUnlockAttempted) {
+                                unlockAudio();
+                            }
+                            
+                            // Coba lagi setelah unlock
+                            setTimeout(() => {
+                                if (audioInitialized) {
+                                    audioElement.play().catch(e2 => {
+                                        console.log("Retry play failed:", e2);
+                                    });
+                                }
+                            }, 100);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log("Play audio error:", error);
             }
         }
 
@@ -1248,12 +1441,38 @@
                 updateSaldo();
             }
         };
-        
+
         window.clearHistory = async function() {
             if (confirm("Hapus semua history?")) {
                 await database.ref('tebak-angka/hasil_round').remove();
                 document.getElementById('hasil-round-list').innerHTML = '<div class="hasil-round-item">🔄 Menunggu hasil round...</div>';
             }
+        };
+
+        window.debugAudio = function() {
+            console.log("Audio Status:");
+            console.log("- Audio Enabled:", state.audioEnabled);
+            console.log("- Audio Initialized:", audioInitialized);
+            console.log("- Audio Unlock Attempted:", audioUnlockAttempted);
+            
+            // Test play semua audio
+            const audioElements = {
+                tick: tickAudio,
+                countdown: countdownAudio,
+                win: winAudio,
+                lose: loseAudio
+            };
+            
+            Object.keys(audioElements).forEach(key => {
+                console.log(`Testing ${key} audio...`);
+                audioElements[key].play().then(() => {
+                    console.log(`✓ ${key} audio works`);
+                    audioElements[key].pause();
+                    audioElements[key].currentTime = 0;
+                }).catch(e => {
+                    console.log(`✗ ${key} audio failed:`, e.name);
+                });
+            });
         };
     </script>
 </body>
