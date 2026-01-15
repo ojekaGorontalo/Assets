@@ -1576,6 +1576,8 @@
     let unreadMessages = 0;
     let chatOpen = false;
     let hasAutoMessageSent = false;
+    let lastAutoMessageTime = 0;
+    const AUTO_MESSAGE_COOLDOWN = 10000; // 10 detik cooldown
 
     // ==================== VARIABEL PETA DAN LOKASI ====================
     let orderMap = null;
@@ -2336,6 +2338,7 @@
       if (!balanceCheck.hasSufficientBalance) {
         showBalanceModal(orderAmount, balanceCheck.requiredFee, balanceCheck.currentBalance);
         
+        // KIRIM DATA KE KODULAR - SALDO TIDAK CUKUP
         sendToKodular({
           action: 'balance_check_failed',
           order_id: currentOrderId,
@@ -2343,7 +2346,8 @@
           required_fee: balanceCheck.requiredFee,
           order_amount: orderAmount,
           fee_percentage: potonganPercentage,
-          message: 'Saldo tidak cukup untuk memulai perjalanan'
+          message: 'Saldo tidak cukup untuk memulai perjalanan',
+          timestamp: new Date().toISOString()
         });
         
         return;
@@ -2357,6 +2361,19 @@
       
       console.log('🔄 Update status order ke on_trip...');
       
+      // KIRIM DATA KE KODULAR - MEMULAI PROSES
+      sendToKodular({
+        action: 'start_trip_initiated',
+        order_id: currentOrderId,
+        order_data: currentOrderData,
+        order_amount: orderAmount,
+        fee_percentage: potonganPercentage,
+        current_balance: currentDriverBalance,
+        required_fee: balanceCheck.requiredFee,
+        message: 'Memulai proses perjalanan...',
+        timestamp: new Date().toISOString()
+      });
+      
       const orderRef = database.ref('orders/' + currentOrderId);
       try {
         await orderRef.update({
@@ -2367,6 +2384,15 @@
         
         console.log('✅ Status order updated to on_trip');
         
+        // KIRIM DATA KE KODULAR - ORDER STATUS BERUBAH
+        sendToKodular({
+          action: 'order_status_changed',
+          order_id: currentOrderId,
+          status: 'on_trip',
+          timestamp: new Date().toISOString(),
+          message: 'Status order berubah menjadi on_trip'
+        });
+        
         if (currentDriverData && (currentDriverData.driverId || currentDriverData.uid)) {
           const driverId = currentDriverData.driverId || currentDriverData.uid;
           console.log('💸 Memproses pemotongan saldo otomatis...');
@@ -2376,9 +2402,34 @@
           await new Promise(resolve => setTimeout(resolve, 500));
           
           await deductOrderFee(currentOrderId, orderAmount, driverId);
+          
+          // KIRIM DATA KE KODULAR - SETELAH PEMOTONGAN SALDO BERHASIL
+          sendToKodular({
+            action: 'start_trip_success',
+            order_id: currentOrderId,
+            order_data: currentOrderData,
+            order_amount: orderAmount,
+            fee_percentage: potonganPercentage,
+            fee_amount: balanceCheck.requiredFee,
+            previous_balance: balanceCheck.currentBalance,
+            new_balance: balanceCheck.remainingBalance,
+            message: 'Perjalanan dimulai dan saldo berhasil dipotong',
+            timestamp: new Date().toISOString(),
+            status: 'on_trip'
+          });
+          
         } else {
           console.error('❌ Driver ID tidak tersedia untuk pemotongan saldo');
           showToast('❌ Driver ID tidak ditemukan', 'error');
+          
+          // KIRIM DATA KE KODULAR - DRIVER ID TIDAK DITEMUKAN
+          sendToKodular({
+            action: 'start_trip_failed',
+            order_id: currentOrderId,
+            reason: 'Driver ID tidak ditemukan',
+            message: 'Gagal memulai perjalanan karena Driver ID tidak valid',
+            timestamp: new Date().toISOString()
+          });
           
           if (startTripBtn) {
             startTripBtn.disabled = false;
@@ -2389,18 +2440,6 @@
         
         showToast('✅ Perjalanan dimulai!', 'success');
         
-        sendToKodular({
-          action: 'start_trip_success',
-          order_id: currentOrderId,
-          order_data: currentOrderData,
-          order_amount: orderAmount,
-          fee_percentage: potonganPercentage,
-          fee_amount: balanceCheck.requiredFee,
-          previous_balance: balanceCheck.currentBalance,
-          new_balance: balanceCheck.remainingBalance,
-          message: 'Perjalanan dimulai dan saldo berhasil dipotong'
-        });
-        
         setTimeout(() => {
           updateOrderStatus('on_trip');
           updateLocationIntervalBasedOnStatus();
@@ -2409,6 +2448,16 @@
       } catch (error) {
         console.error('❌ Gagal update status order:', error);
         showToast('❌ Gagal memulai perjalanan. Silakan coba lagi.', 'error');
+        
+        // KIRIM DATA KE KODULAR - ERROR
+        sendToKodular({
+          action: 'start_trip_error',
+          order_id: currentOrderId,
+          error: error.message,
+          order_amount: orderAmount,
+          message: 'Gagal memulai perjalanan: ' + error.message,
+          timestamp: new Date().toISOString()
+        });
         
         if (startTripBtn) {
           startTripBtn.disabled = false;
@@ -2419,6 +2468,12 @@
 
     // ==================== SISTEM CHAT ====================
     function initializeChatSystem(orderId) {
+      if (chatRef && chatListener && currentOrderId === orderId) {
+        console.log('💬 Chat sudah diinisialisasi untuk order ini');
+        return; // Jangan inisialisasi ulang untuk order yang sama
+      }
+      
+      // Hentikan listener sebelumnya
       if (chatRef && chatListener) {
         chatRef.off('child_added', chatListener);
         console.log('💬 Listener chat sebelumnya dihentikan');
@@ -2426,23 +2481,38 @@
       
       chatRef = database.ref('chat/' + orderId);
       
-      loadExistingMessages();
+      // Reset status untuk order baru
+      if (currentOrderId !== orderId) {
+        hasAutoMessageSent = false;
+        unreadMessages = 0;
+        chatOpen = false;
+        updateChatBadge();
+      }
       
+      // Cek apakah sudah ada pesan otomatis di Firebase
       chatRef.orderByChild('is_auto_message').equalTo(true).once('value', (snapshot) => {
         if (!snapshot.exists() && !hasAutoMessageSent) {
-          sendAutoWelcomeMessage();
+          // Tunggu 3 detik sebelum mengirim pesan pertama
+          setTimeout(() => {
+            if (!hasAutoMessageSent) {
+              sendAutoWelcomeMessage();
+            }
+          }, 3000);
         } else {
           console.log('✅ Pesan otomatis sudah pernah dikirim sebelumnya');
           hasAutoMessageSent = true;
         }
       });
       
+      // Load pesan yang sudah ada
+      loadExistingMessages();
+      
+      // Setup listener untuk pesan baru
       chatListener = chatRef.on('child_added', (snapshot) => {
         const message = snapshot.val();
-        console.log('💬 Pesan baru diterima:', message);
         
-        if (message.is_auto_message) {
-          console.log('💬 Pesan otomatis, skip notifikasi');
+        // Skip jika ini pesan otomatis atau pesan yang dikirim sendiri
+        if (message.is_auto_message || message.sender === 'driver') {
           return;
         }
         
@@ -2456,28 +2526,41 @@
     }
 
     async function sendAutoWelcomeMessage() {
+      // Cek cooldown
+      const now = Date.now();
+      if (now - lastAutoMessageTime < AUTO_MESSAGE_COOLDOWN) {
+        console.log('⏳ Masih dalam cooldown, skip pengiriman pesan otomatis');
+        return;
+      }
+      
+      lastAutoMessageTime = now;
+      
       if (!currentOrderId || !currentOrderData || !currentDriverData) {
         console.log('❌ Data tidak lengkap untuk mengirim pesan otomatis');
         return;
       }
       
+      // Cek jika pesan otomatis sudah dikirim untuk order ini
       if (hasAutoMessageSent) {
         console.log('✅ Pesan otomatis sudah pernah dikirim untuk order ini');
         return;
       }
       
       const driverId = currentDriverData.driverId || currentDriverData.uid;
+      // Pastikan driver yang sesuai dengan order
       if (currentOrderData.driver && currentOrderData.driver.driver_id !== driverId) {
         console.log('❌ Driver tidak sesuai dengan order, tidak mengirim pesan otomatis');
         return;
       }
       
+      // Hanya kirim jika status order adalah 'accepted'
       if (currentOrderData.status !== 'accepted') {
         console.log('❌ Status order bukan "accepted", tidak mengirim pesan otomatis');
         return;
       }
       
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Tandai bahwa pesan otomatis sudah dikirim
+      hasAutoMessageSent = true;
       
       try {
         const autoMessage = {
@@ -2488,13 +2571,23 @@
           timestamp: Date.now(),
           is_auto_message: true,
           order_id: currentOrderId,
-          driver_name: currentDriverData.fullName || currentDriverData.name
+          driver_name: currentDriverData.fullName || currentDriverData.name,
+          // Tambahkan ID unik untuk mencegah duplikasi
+          auto_message_id: `auto_${driverId}_${currentOrderId}_${Date.now()}`
         };
         
-        const newMessageRef = await chatRef.push(autoMessage);
-        console.log('✅ Pesan otomatis berhasil dikirim dengan key:', newMessageRef.key);
+        // Cek dulu apakah pesan dengan ID ini sudah ada
+        const existingCheck = await chatRef.orderByChild('auto_message_id').equalTo(autoMessage.auto_message_id).once('value');
+        if (existingCheck.exists()) {
+          console.log('✅ Pesan otomatis sudah ada, tidak mengirim ulang');
+          return;
+        }
         
-        hasAutoMessageSent = true;
+        const newMessageRef = await chatRef.push(autoMessage);
+        console.log('✅ Pesan otomatis berhasil dikirim sekali dengan key:', newMessageRef.key);
+        
+        // Simpan status di localStorage untuk mencegah pengiriman ulang saat refresh
+        localStorage.setItem(`auto_message_sent_${currentOrderId}`, 'true');
         
         showToast('Pesan otomatis terkirim ke customer', 'success');
         
@@ -2503,11 +2596,14 @@
           order_id: currentOrderId,
           message: autoMessage.message,
           timestamp: new Date().toISOString(),
-          message_key: newMessageRef.key
+          message_key: newMessageRef.key,
+          sent_once: true
         });
         
       } catch (error) {
         console.error('❌ Gagal mengirim pesan otomatis:', error);
+        // Reset flag jika gagal
+        hasAutoMessageSent = false;
       }
     }
 
@@ -3642,12 +3738,15 @@
     window.onload = function() {
       console.log('🔄 Halaman detail order driver dimuat...');
       
+      // RESET semua variabel chat
       chatRef = null;
       chatListener = null;
       unreadMessages = 0;
       chatOpen = false;
       hasAutoMessageSent = false;
+      lastAutoMessageTime = 0;
       
+      // Reset variabel rating
       selectedRating = 0;
       ratingComment = '';
       userToRate = null;
@@ -3658,6 +3757,15 @@
       const driverData = JSON.parse(localStorage.getItem('jego_logged_in_driver') || '{}');
       if (driverData && !currentDriverData) {
         currentDriverData = driverData;
+      }
+      
+      // Cek di localStorage apakah pesan otomatis sudah dikirim untuk order ini
+      const acceptedOrder = getAcceptedOrderFromLocalStorage();
+      if (acceptedOrder && acceptedOrder.order_id) {
+        const autoMessageSent = localStorage.getItem(`auto_message_sent_${acceptedOrder.order_id}`);
+        if (autoMessageSent === 'true') {
+          hasAutoMessageSent = true;
+        }
       }
       
       const urlParams = new URLSearchParams(window.location.search);
