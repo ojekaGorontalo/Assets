@@ -818,7 +818,7 @@ function createRadarContainer() {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        z-index: 95; /* DIBAWAH HEADER (100) */
+        z-index: 85; /* DIBAWAH HEADER (100) */
     `;
     
     // Tambahkan elemen radar
@@ -4136,4 +4136,5 @@ window.addEventListener('beforeunload', () => {
     
     processStatusBatch();
 });
+
 
