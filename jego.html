@@ -504,6 +504,34 @@
       console.warn('⚠️ Tidak ada metode Kodular yang berhasil');
       return false;
     }
+    
+    // Fungsi untuk mengirim status login saat halaman dibuka
+    function sendInitialLoginStatus() {
+      const userLoggedIn = localStorage.getItem('jego_logged_in_user');
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
+      
+      // Tentukan status login
+      let loginStatus = 'none';
+      if (userLoggedIn && driverLoggedIn) {
+        loginStatus = 'dual';
+      } else if (userLoggedIn) {
+        loginStatus = 'user_only';
+      } else if (driverLoggedIn) {
+        loginStatus = 'driver_only';
+      }
+      
+      console.log('📤 Mengirim status login awal ke Kodular:', loginStatus);
+      
+      // Kirim data ke Kodular dengan informasi status login
+      sendToKodular({
+        target: 'main_screen',
+        screen: 'Screen1', // Asumsi halaman utama adalah Screen1
+        login_status: loginStatus,
+        user_logged_in: userLoggedIn ? true : false,
+        driver_logged_in: driverLoggedIn ? true : false,
+        message: 'Halaman utama JeGo dibuka'
+      });
+    }
 
     // Fungsi untuk membuka halaman login User
     function openUserLogin() {
@@ -761,6 +789,16 @@
         
         updateLoginStatus();
         
+        // Kirim status logout ke Kodular
+        sendToKodular({
+          target: 'main_screen',
+          screen: 'Screen1',
+          login_status: 'none',
+          user_logged_in: false,
+          driver_logged_in: false,
+          message: 'User melakukan logout semua akun'
+        });
+        
         // Tampilkan pesan sukses
         alert('Logout berhasil! Anda telah keluar dari semua akun.');
       }
@@ -815,6 +853,10 @@
       
       // Update status login
       updateLoginStatus();
+      
+      // KIRIM STATUS LOGIN KE KODULAR SETIAP KALI HALAMAN DIBUKA
+      // Termasuk ketika tidak ada yang login
+      sendInitialLoginStatus();
       
       // Cek apakah perlu auto-redirect
       autoRedirectIfSingleLogin();
