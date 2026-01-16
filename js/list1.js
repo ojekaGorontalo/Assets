@@ -767,6 +767,324 @@ let filterTujuanEnabled = false;
 let filterTujuanText = '';
 let filterTujuanData = null;
 
+// ==================== FUNGSI RADAR ANIMASI ====================
+
+// Fungsi untuk menampilkan/menyembunyikan radar berdasarkan jumlah order
+function toggleRadarAnimation(ordersCount) {
+    const radarContainer = document.getElementById('radarContainer');
+    const ordersList = document.getElementById('ordersList');
+    
+    if (!radarContainer) {
+        // Buat container radar jika belum ada
+        createRadarContainer();
+        return toggleRadarAnimation(ordersCount);
+    }
+    
+    console.log(`📊 Toggle radar: ${ordersCount} order ditemukan`);
+    
+    if (ordersCount === 0) {
+        // Tampilkan radar full screen
+        radarContainer.style.display = 'flex';
+        ordersList.style.display = 'none';
+        
+        // Aktifkan animasi radar
+        startRadarAnimation();
+        
+        console.log('📡 Radar aktif - Mencari order...');
+    } else {
+        // Sembunyikan radar
+        radarContainer.style.display = 'none';
+        ordersList.style.display = 'block';
+        
+        // Hentikan animasi radar
+        stopRadarAnimation();
+        
+        console.log('✅ Radar nonaktif - Order ditemukan');
+    }
+}
+
+// Fungsi untuk membuat container radar
+function createRadarContainer() {
+    const container = document.createElement('div');
+    container.id = 'radarContainer';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    
+    // Tambahkan elemen radar
+    container.innerHTML = `
+        <div class="radar-wrapper" style="
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+        ">
+            <!-- Lingkaran radar -->
+            <div class="radar-circle" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 250px;
+                height: 250px;
+                border: 2px solid rgba(76, 175, 80, 0.3);
+                border-radius: 50%;
+                box-shadow: 0 0 20px rgba(76, 175, 80, 0.1);
+            "></div>
+            
+            <div class="radar-circle" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 180px;
+                height: 180px;
+                border: 2px solid rgba(76, 175, 80, 0.2);
+                border-radius: 50%;
+            "></div>
+            
+            <div class="radar-circle" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 110px;
+                height: 110px;
+                border: 2px solid rgba(76, 175, 80, 0.1);
+                border-radius: 50%;
+            "></div>
+            
+            <!-- Sinyal radar (garis berputar) -->
+            <div class="radar-sweep" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 150px;
+                height: 150px;
+                transform-origin: 0 0;
+                transform: rotate(45deg);
+            ">
+                <div class="radar-line" style="
+                    width: 150px;
+                    height: 2px;
+                    background: linear-gradient(90deg, transparent, #4CAF50);
+                    box-shadow: 0 0 10px #4CAF50;
+                    transform-origin: 0 0;
+                "></div>
+            </div>
+            
+            <!-- Titik tengah radar -->
+            <div class="radar-center" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 20px;
+                height: 20px;
+                background: #4CAF50;
+                border-radius: 50%;
+                box-shadow: 0 0 20px #4CAF50;
+            "></div>
+            
+            <!-- Titik-titik acak untuk efek pencarian -->
+            <div class="radar-dot" style="
+                position: absolute;
+                top: 30%;
+                left: 40%;
+                width: 8px;
+                height: 8px;
+                background: #FF9800;
+                border-radius: 50%;
+                opacity: 0;
+                animation: pulseDot 2s infinite;
+            "></div>
+            
+            <div class="radar-dot" style="
+                position: absolute;
+                top: 60%;
+                left: 70%;
+                width: 8px;
+                height: 8px;
+                background: #FF5722;
+                border-radius: 50%;
+                opacity: 0;
+                animation: pulseDot 2s infinite 0.5s;
+            "></div>
+            
+            <div class="radar-dot" style="
+                position: absolute;
+                top: 40%;
+                left: 20%;
+                width: 8px;
+                height: 8px;
+                background: #2196F3;
+                border-radius: 50%;
+                opacity: 0;
+                animation: pulseDot 2s infinite 1s;
+            "></div>
+        </div>
+        
+        <!-- Teks status -->
+        <div id="radarText" style="
+            margin-top: 40px;
+            text-align: center;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        ">
+            <h2 style="margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 300;">
+                Mencari order di sekitar...
+            </h2>
+            <p id="radarSubText" style="
+                margin: 0;
+                font-size: 0.9rem;
+                opacity: 0.8;
+                color: #BBDEFB;
+            ">
+                Memindai radius <span id="radarRadius">${customRadius}</span> km dari lokasi Anda
+            </p>
+            
+            <!-- Info GPS -->
+            <div id="radarGpsInfo" style="
+                margin-top: 20px;
+                padding: 10px 15px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                font-size: 0.8rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <span id="gpsRadarIcon" style="color: #4CAF50;">📍</span>
+                <span id="gpsRadarText">GPS Aktif</span>
+            </div>
+            
+            <!-- Tombol refresh manual -->
+            <button id="radarRefreshBtn" onclick="refreshData()" style="
+                margin-top: 25px;
+                padding: 12px 24px;
+                background: rgba(255, 255, 255, 0.15);
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 25px;
+                font-size: 0.9rem;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <span style="font-size: 1.1rem;">⟳</span>
+                Refresh Pencarian
+            </button>
+        </div>
+    `;
+    
+    // Tambahkan style animasi
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes radarSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulseDot {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+        
+        @keyframes radarPulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        
+        .radar-sweep {
+            animation: radarSpin 3s linear infinite;
+        }
+        
+        .radar-center {
+            animation: radarPulse 2s infinite;
+        }
+        
+        #radarRefreshBtn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        #radarRefreshBtn:active {
+            transform: translateY(0);
+        }
+    `;
+    
+    document.head.appendChild(style);
+    document.body.appendChild(container);
+    
+    // Update info GPS di radar
+    updateRadarGpsInfo();
+}
+
+// Fungsi untuk memulai animasi radar
+function startRadarAnimation() {
+    console.log('🔄 Memulai animasi radar...');
+    
+    // Update teks radius
+    const radiusSpan = document.getElementById('radarRadius');
+    if (radiusSpan) {
+        radiusSpan.textContent = customRadius;
+    }
+    
+    // Update info GPS
+    updateRadarGpsInfo();
+    
+    // Kirim status ke Kodular
+    sendToKodular({
+        action: 'radar_active',
+        status: 'searching',
+        message: 'Radar aktif mencari order',
+        radius: customRadius
+    });
+}
+
+// Fungsi untuk menghentikan animasi radar
+function stopRadarAnimation() {
+    console.log('⏹️ Menghentikan animasi radar');
+    
+    sendToKodular({
+        action: 'radar_inactive',
+        status: 'orders_found',
+        message: 'Radar nonaktif - Order ditemukan'
+    });
+}
+
+// Fungsi untuk update info GPS di radar
+function updateRadarGpsInfo() {
+    const gpsIcon = document.getElementById('gpsRadarIcon');
+    const gpsText = document.getElementById('gpsRadarText');
+    
+    if (!gpsIcon || !gpsText) return;
+    
+    if (driverLocation.latitude && driverLocation.longitude) {
+        gpsIcon.textContent = '📍';
+        gpsIcon.style.color = '#4CAF50';
+        gpsText.textContent = `GPS Aktif (Akurasi: ${Math.round(driverLocation.accuracy || 0)}m)`;
+    } else {
+        gpsIcon.textContent = '📍';
+        gpsIcon.style.color = '#FF9800';
+        gpsText.textContent = 'Menunggu lokasi GPS...';
+    }
+}
+
 // ==================== FUNGSI PERHITUNGAN HARGA DENGAN DISKON ====================
 function calculateDiscountedPrice(order) {
     if (!order.diskon_persen || order.diskon_persen === 0) {
@@ -1531,6 +1849,11 @@ function updateDriverLocation(position) {
     console.log(`📍 Lokasi driver diperbarui: ${driverLocation.latitude}, ${driverLocation.longitude} (akurasi: ${driverLocation.accuracy}m)`);
     
     saveDriverLocationToStorage();
+    
+    // Jika radar sedang aktif, update info GPS
+    if (document.getElementById('radarContainer')?.style.display === 'flex') {
+        updateRadarGpsInfo();
+    }
     
     if (locationTrackingEnabled) {
         sendLocationToFirebase();
@@ -2358,7 +2681,8 @@ function loadOrders() {
             if (!orders || Object.keys(orders).length === 0) {
                 console.log('🗑️ Tidak ada orders di Firebase');
                 
-                showRadarSearch();
+                // Tampilkan radar animasi
+                toggleRadarAnimation(0);
                 
                 sendOrdersToKodular([]);
                 setLoadingState('orders', true);
@@ -2395,10 +2719,13 @@ function processOrdersData(orders, ordersList) {
                 return timeB - timeA;
             });
 
+        // Toggle radar berdasarkan jumlah order
+        toggleRadarAnimation(sortedOrders.length);
+        
         sendOrdersToKodular(sortedOrders);
 
         if (sortedOrders.length === 0) {
-            showRadarSearch();
+            // Radar sudah ditampilkan oleh toggleRadarAnimation
             setLoadingState('orders', true);
             return;
         }
@@ -2414,6 +2741,9 @@ function processOrdersData(orders, ordersList) {
 }
 
 function renderOrdersList(orders, ordersList) {
+    // Pastikan radar disembunyikan
+    toggleRadarAnimation(orders.length);
+    
     orders.forEach(order => {
         const orderItem = document.createElement('div');
         orderItem.className = 'order-item';
@@ -3361,11 +3691,19 @@ function showActiveOrderNotification(order) {
 // ==================== FUNGSI TAMBAHAN UNTUK REFRESH ====================
 function refreshData() {
     console.log('🔍 Refresh data manual');
-    loadOrders();
     
-    setTimeout(() => {
-        startRadarScanning();
-    }, 1000);
+    // Jika radar sedang aktif, update teks
+    if (document.getElementById('radarContainer')?.style.display === 'flex') {
+        const radarText = document.querySelector('#radarText h2');
+        if (radarText) {
+            radarText.textContent = 'Memperbarui pencarian...';
+            setTimeout(() => {
+                radarText.textContent = 'Mencari order di sekitar...';
+            }, 1500);
+        }
+    }
+    
+    loadOrders();
     
     if (locationTrackingEnabled && driverLocation.latitude && driverLocation.longitude) {
         sendLocationToFirebase();
@@ -3546,6 +3884,9 @@ function initJeGoApp() {
     
     setupEventListeners();
     
+    // Buat container radar
+    createRadarContainer();
+    
     setTimeout(() => {
         startGPSMonitoring();
     }, 1000);
@@ -3579,6 +3920,7 @@ function initJeGoApp() {
     console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Radius:', customRadius + ' km');
     console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
+    console.log('- Radar System:', '✅ Siap');
     
     setTimeout(() => {
         setLoadingState('appInitialized', true);
