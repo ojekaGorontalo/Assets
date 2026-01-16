@@ -803,22 +803,22 @@ function toggleRadarAnimation(ordersCount) {
     }
 }
 
-// Fungsi untuk membuat container radar
+// Fungsi untuk membuat container radar - DIKOREKSI
 function createRadarContainer() {
     const container = document.createElement('div');
     container.id = 'radarContainer';
     container.style.cssText = `
         position: fixed;
-        top: 0;
+        top: 70px; /* Mulai dari bawah header */
         left: 0;
         width: 100%;
-        height: 100%;
+        height: calc(100% - 70px - 60px); /* Header 70px + Bottom Nav 60px */
         background: linear-gradient(135deg, #ff6b35 0%, #ff8e53 100%);
         display: none;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        z-index: 9998;
+        z-index: 90; /* DIBAWAH HEADER (100) */
     `;
     
     // Tambahkan elemen radar
