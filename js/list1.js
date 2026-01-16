@@ -813,12 +813,12 @@ function createRadarContainer() {
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8e53 100%);
         display: none;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        z-index: 9999;
+        z-index: 9998;
     `;
     
     // Tambahkan elemen radar
@@ -837,9 +837,9 @@ function createRadarContainer() {
                 transform: translate(-50%, -50%);
                 width: 250px;
                 height: 250px;
-                border: 2px solid rgba(76, 175, 80, 0.3);
+                border: 2px solid rgba(255, 255, 255, 0.3);
                 border-radius: 50%;
-                box-shadow: 0 0 20px rgba(76, 175, 80, 0.1);
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
             "></div>
             
             <div class="radar-circle" style="
@@ -849,7 +849,7 @@ function createRadarContainer() {
                 transform: translate(-50%, -50%);
                 width: 180px;
                 height: 180px;
-                border: 2px solid rgba(76, 175, 80, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.2);
                 border-radius: 50%;
             "></div>
             
@@ -860,7 +860,7 @@ function createRadarContainer() {
                 transform: translate(-50%, -50%);
                 width: 110px;
                 height: 110px;
-                border: 2px solid rgba(76, 175, 80, 0.1);
+                border: 2px solid rgba(255, 255, 255, 0.1);
                 border-radius: 50%;
             "></div>
             
@@ -877,8 +877,8 @@ function createRadarContainer() {
                 <div class="radar-line" style="
                     width: 150px;
                     height: 2px;
-                    background: linear-gradient(90deg, transparent, #4CAF50);
-                    box-shadow: 0 0 10px #4CAF50;
+                    background: linear-gradient(90deg, transparent, #ffffff);
+                    box-shadow: 0 0 10px #ffffff;
                     transform-origin: 0 0;
                 "></div>
             </div>
@@ -891,9 +891,9 @@ function createRadarContainer() {
                 transform: translate(-50%, -50%);
                 width: 20px;
                 height: 20px;
-                background: #4CAF50;
+                background: #ffffff;
                 border-radius: 50%;
-                box-shadow: 0 0 20px #4CAF50;
+                box-shadow: 0 0 20px #ffffff;
             "></div>
             
             <!-- Titik-titik acak untuk efek pencarian -->
@@ -903,7 +903,7 @@ function createRadarContainer() {
                 left: 40%;
                 width: 8px;
                 height: 8px;
-                background: #FF9800;
+                background: #ffffff;
                 border-radius: 50%;
                 opacity: 0;
                 animation: pulseDot 2s infinite;
@@ -915,7 +915,7 @@ function createRadarContainer() {
                 left: 70%;
                 width: 8px;
                 height: 8px;
-                background: #FF5722;
+                background: #ffffff;
                 border-radius: 50%;
                 opacity: 0;
                 animation: pulseDot 2s infinite 0.5s;
@@ -927,7 +927,7 @@ function createRadarContainer() {
                 left: 20%;
                 width: 8px;
                 height: 8px;
-                background: #2196F3;
+                background: #ffffff;
                 border-radius: 50%;
                 opacity: 0;
                 animation: pulseDot 2s infinite 1s;
@@ -944,48 +944,6 @@ function createRadarContainer() {
             <h2 style="margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 300;">
                 Mencari order di sekitar...
             </h2>
-            <p id="radarSubText" style="
-                margin: 0;
-                font-size: 0.9rem;
-                opacity: 0.8;
-                color: #BBDEFB;
-            ">
-                Memindai radius <span id="radarRadius">${customRadius}</span> km dari lokasi Anda
-            </p>
-            
-            <!-- Info GPS -->
-            <div id="radarGpsInfo" style="
-                margin-top: 20px;
-                padding: 10px 15px;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                font-size: 0.8rem;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            ">
-                <span id="gpsRadarIcon" style="color: #4CAF50;">📍</span>
-                <span id="gpsRadarText">GPS Aktif</span>
-            </div>
-            
-            <!-- Tombol refresh manual -->
-            <button id="radarRefreshBtn" onclick="refreshData()" style="
-                margin-top: 25px;
-                padding: 12px 24px;
-                background: rgba(255, 255, 255, 0.15);
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 25px;
-                font-size: 0.9rem;
-                cursor: pointer;
-                transition: all 0.3s;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            ">
-                <span style="font-size: 1.1rem;">⟳</span>
-                Refresh Pencarian
-            </button>
         </div>
     `;
     
@@ -1004,9 +962,9 @@ function createRadarContainer() {
         }
         
         @keyframes radarPulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-            70% { box-shadow: 0 0 0 20px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
         }
         
         .radar-sweep {
@@ -1016,38 +974,16 @@ function createRadarContainer() {
         .radar-center {
             animation: radarPulse 2s infinite;
         }
-        
-        #radarRefreshBtn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
-        }
-        
-        #radarRefreshBtn:active {
-            transform: translateY(0);
-        }
     `;
     
     document.head.appendChild(style);
     document.body.appendChild(container);
-    
-    // Update info GPS di radar
-    updateRadarGpsInfo();
 }
 
 // Fungsi untuk memulai animasi radar
 function startRadarAnimation() {
     console.log('🔄 Memulai animasi radar...');
     
-    // Update teks radius
-    const radiusSpan = document.getElementById('radarRadius');
-    if (radiusSpan) {
-        radiusSpan.textContent = customRadius;
-    }
-    
-    // Update info GPS
-    updateRadarGpsInfo();
-    
-    // Kirim status ke Kodular
     sendToKodular({
         action: 'radar_active',
         status: 'searching',
@@ -1065,24 +1001,6 @@ function stopRadarAnimation() {
         status: 'orders_found',
         message: 'Radar nonaktif - Order ditemukan'
     });
-}
-
-// Fungsi untuk update info GPS di radar
-function updateRadarGpsInfo() {
-    const gpsIcon = document.getElementById('gpsRadarIcon');
-    const gpsText = document.getElementById('gpsRadarText');
-    
-    if (!gpsIcon || !gpsText) return;
-    
-    if (driverLocation.latitude && driverLocation.longitude) {
-        gpsIcon.textContent = '📍';
-        gpsIcon.style.color = '#4CAF50';
-        gpsText.textContent = `GPS Aktif (Akurasi: ${Math.round(driverLocation.accuracy || 0)}m)`;
-    } else {
-        gpsIcon.textContent = '📍';
-        gpsIcon.style.color = '#FF9800';
-        gpsText.textContent = 'Menunggu lokasi GPS...';
-    }
 }
 
 // ==================== FUNGSI PERHITUNGAN HARGA DENGAN DISKON ====================
@@ -1850,22 +1768,12 @@ function updateDriverLocation(position) {
     
     saveDriverLocationToStorage();
     
-    // Jika radar sedang aktif, update info GPS
-    if (document.getElementById('radarContainer')?.style.display === 'flex') {
-        updateRadarGpsInfo();
-    }
-    
     if (locationTrackingEnabled) {
         sendLocationToFirebase();
     }
     
     if (autobidEnabled && !isAutobidProcessing) {
         checkOrdersForAutobid();
-    }
-    
-    const radarText = document.querySelector('.radar-text');
-    if (radarText && radarText.textContent.includes('Menunggu lokasi GPS')) {
-        startRadarScanning();
     }
 }
 
@@ -3736,23 +3644,127 @@ function createRadarAnimation(isSimple = false) {
     
     if (isSimple) {
         radarContainer.innerHTML = `
-            <div class="radar-simple">
-                <div class="radar-simple-scan"></div>
-                <div class="radar-simple-center"></div>
+            <div class="radar-simple" style="
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.05);
+                position: relative;
+                overflow: hidden;
+            ">
+                <div class="radar-simple-scan" style="
+                    width: 100%;
+                    height: 100%;
+                    background: conic-gradient(transparent, #ffffff);
+                    border-radius: 50%;
+                    animation: radarSpin 2s linear infinite;
+                "></div>
+                <div class="radar-simple-center" style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 10px;
+                    height: 10px;
+                    background: #ffffff;
+                    border-radius: 50%;
+                    box-shadow: 0 0 10px #ffffff;
+                "></div>
             </div>
         `;
     } else {
         radarContainer.innerHTML = `
-            <div class="radar-circle radar-circle-1"></div>
-            <div class="radar-circle radar-circle-2"></div>
-            <div class="radar-circle radar-circle-3"></div>
-            <div class="radar-scan"></div>
-            <div class="radar-center"></div>
-            <div class="radar-dot radar-dot-1"></div>
-            <div class="radar-dot radar-dot-2"></div>
-            <div class="radar-dot radar-dot-3"></div>
-            <div class="radar-dot radar-dot-4"></div>
-            <div class="radar-dot radar-dot-5"></div>
+            <div class="radar-circle" style="
+                width: 200px;
+                height: 200px;
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            "></div>
+            <div class="radar-circle" style="
+                width: 150px;
+                height: 150px;
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            "></div>
+            <div class="radar-circle" style="
+                width: 100px;
+                height: 100px;
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            "></div>
+            <div class="radar-scan" style="
+                width: 100px;
+                height: 100px;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform-origin: 0 0;
+                transform: rotate(45deg) translate(-50%, -50%);
+            ">
+                <div style="
+                    width: 100px;
+                    height: 2px;
+                    background: linear-gradient(90deg, transparent, #ffffff);
+                    box-shadow: 0 0 10px #ffffff;
+                    transform-origin: 0 0;
+                "></div>
+            </div>
+            <div class="radar-center" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 20px;
+                height: 20px;
+                background: #ffffff;
+                border-radius: 50%;
+                box-shadow: 0 0 20px #ffffff;
+            "></div>
+            <div class="radar-dot" style="
+                position: absolute;
+                top: 30%;
+                left: 40%;
+                width: 8px;
+                height: 8px;
+                background: #ffffff;
+                border-radius: 50%;
+                opacity: 0;
+                animation: pulseDot 2s infinite;
+            "></div>
+            <div class="radar-dot" style="
+                position: absolute;
+                top: 60%;
+                left: 70%;
+                width: 8px;
+                height: 8px;
+                background: #ffffff;
+                border-radius: 50%;
+                opacity: 0;
+                animation: pulseDot 2s infinite 0.5s;
+            "></div>
+            <div class="radar-dot" style="
+                position: absolute;
+                top: 40%;
+                left: 20%;
+                width: 8px;
+                height: 8px;
+                background: #ffffff;
+                border-radius: 50%;
+                opacity: 0;
+                animation: pulseDot 2s infinite 1s;
+            "></div>
         `;
     }
     
@@ -3783,7 +3795,7 @@ function showRadarSearch() {
     
     const radarText = document.createElement('div');
     radarText.className = 'radar-text';
-    radarText.textContent = 'Memindai radius ' + customRadius + ' km...';
+    radarText.textContent = 'Memindai...';
     emptyState.appendChild(radarText);
     
     sendToKodular({
@@ -3830,11 +3842,11 @@ function startRadarScanning() {
     
     const radarText = document.querySelector('.radar-text');
     if (radarText) {
-        radarText.textContent = `Memindai radius ${customRadius} km dari lokasi Anda...`;
-        radarText.style.color = '#4CAF50';
+        radarText.textContent = 'Memindai...';
+        radarText.style.color = '#ffffff';
     }
     
-    console.log(`📍 Radar scanning aktif dengan radius ${customRadius} km`);
+    console.log('📍 Radar scanning aktif');
 }
 
 // ==================== FUNGSI BARU: SIMULASI ORDER BARU (UNTUK DEMO) ====================
@@ -3852,7 +3864,7 @@ function simulateNewOrderForDemo() {
             
             ordersList.innerHTML = `
                 <div class="empty-state-with-radar">
-                    <div class="empty-state-title" style="color: #4CAF50;">🎉 ORDER DITEMUKAN!</div>
+                    <div class="empty-state-title" style="color: #ffffff;">🎉 ORDER DITEMUKAN!</div>
                     <div class="empty-state-subtitle">
                         Radar berhasil menemukan order baru dalam radius Anda. 
                         Order akan segera muncul di daftar.
@@ -4061,8 +4073,8 @@ function setupEventListeners() {
                 demoBtn.id = 'demoOrderBtn';
                 demoBtn.innerHTML = '🎮 DEMO';
                 demoBtn.style.cssText = `
-                    background: rgba(76, 175, 80, 0.2);
-                    color: #4CAF50;
+                    background: rgba(255, 107, 53, 0.2);
+                    color: #ff6b35;
                     border: none;
                     border-radius: 8px;
                     padding: 8px 12px;
