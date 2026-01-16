@@ -22,9 +22,87 @@ body {
   line-height: 1.4;
   font-size: 0.85rem;
   padding-bottom: 70px;
+  overflow-x: hidden;
 }
 
-/* Header Styles */
+/* ==================== RADAR CONTAINER FIX ==================== */
+#radarContainer {
+  position: fixed;
+  top: 70px; /* Mulai dari bawah header */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 130px); /* 100% - header(70px) - bottom-nav(60px) */
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8e53 100%);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 50; /* DIBAWAH HEADER (100) DAN BOTTOM NAV (99) */
+  overflow: hidden;
+}
+
+/* Animasi radar */
+@keyframes radarSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulseDot {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.5); }
+}
+
+@keyframes radarPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.radar-sweep {
+  animation: radarSpin 3s linear infinite;
+}
+
+.radar-center {
+  animation: radarPulse 2s infinite;
+}
+
+/* Loading radar */
+.loading-radar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Empty state dengan radar */
+.empty-state-with-radar {
+  text-align: center;
+  padding: 40px 20px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.empty-state-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.empty-state-subtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+/* ==================== HEADER STYLES ==================== */
 .header {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
@@ -35,7 +113,8 @@ body {
   justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 100; /* LEBIH TINGGI DARI RADAR (50) */
+  height: 70px;
 }
 
 .logo-container {
@@ -144,9 +223,12 @@ body {
   display: none !important;
 }
 
+/* ==================== CONTAINER & CONTENT ==================== */
 .container {
   max-width: 100%;
   padding: 15px;
+  position: relative;
+  z-index: 1;
 }
 
 .filter-container {
@@ -157,6 +239,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 .order-item {
@@ -439,6 +523,8 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .empty-state i {
@@ -455,6 +541,8 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .spinner {
@@ -470,6 +558,7 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* ==================== MODAL STYLES ==================== */
 .modal {
   display: none;
   position: fixed;
@@ -958,6 +1047,7 @@ body {
   display: none !important;
 }
 
+/* ==================== ACTIVE ORDER NOTIFICATION ==================== */
 .active-order-notification {
   background: linear-gradient(135deg, #ff9800, #f57c00);
   color: white;
@@ -966,6 +1056,8 @@ body {
   margin: 10px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  position: relative;
+  z-index: 10;
 }
 
 .active-order-notification button {
@@ -1002,6 +1094,7 @@ body {
   background-color: #f87171;
 }
 
+/* ==================== BOTTOM NAVIGATION ==================== */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1012,7 +1105,8 @@ body {
   justify-content: space-around;
   padding: 10px 0;
   box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-  z-index: 99;
+  z-index: 99; /* DI ATAS RADAR (50) */
+  height: 60px;
 }
 
 .nav-item {
@@ -1157,7 +1251,7 @@ body {
   color: #856404;
 }
 
-/* Sidebar Styles */
+/* ==================== SIDEBAR STYLES ==================== */
 /* === SEMBUNYIKAN MENU SIDEBAR === */
 #panduanDriverBtn,
 #laporMasalahBtn,
@@ -1172,7 +1266,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 1001;
+  z-index: 1100; /* PALING ATAS */
 }
 
 .sidebar-overlay {
@@ -1548,7 +1642,7 @@ input:checked + .toggle-slider:before {
   color: #999;
 }
 
-/* Modal untuk foto profil besar */
+/* ==================== PHOTO MODAL ==================== */
 .photo-modal .modal-content {
   max-width: 400px;
   background: transparent;
@@ -1595,7 +1689,7 @@ input:checked + .toggle-slider:before {
   background: rgba(0,0,0,0.7);
 }
 
-/* POPUP STYLES (SESUAI RUTE.HTML) */
+/* ==================== POPUP STYLES ==================== */
 .popup-overlay {
   display: none;
   position: fixed;
@@ -1604,7 +1698,7 @@ input:checked + .toggle-slider:before {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7);
-  z-index: 9999;
+  z-index: 2000; /* PALING TINGGI */
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.3s ease;
@@ -1686,20 +1780,31 @@ input:checked + .toggle-slider:before {
   background: linear-gradient(to right, #dc3545, #c82333);
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* ==================== LOADING OVERLAY ==================== */
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000; /* PALING ATAS DARI SEMUA */
 }
 
-@keyframes slideIn {
-  from { transform: translateY(-20px) scale(0.95); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
-}
-
+/* ==================== MEDIA QUERIES ==================== */
 @media (max-width: 768px) {
   body {
     font-size: 0.8rem;
+  }
+  
+  /* Radar responsive */
+  #radarContainer {
+    top: 65px;
+    height: calc(100% - 125px); /* 65px header + 60px bottom nav */
   }
   
   .order-item {
@@ -1741,6 +1846,7 @@ input:checked + .toggle-slider:before {
 
   .bottom-nav {
     padding: 8px 0;
+    height: 56px;
   }
 
   .nav-icon {
@@ -1822,8 +1928,23 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 576px) {
+  body {
+    padding-bottom: 60px;
+  }
+  
   .container {
     padding: 10px;
+  }
+  
+  /* Radar mobile */
+  #radarContainer {
+    top: 60px;
+    height: calc(100% - 120px); /* 60px header + 60px bottom nav */
+  }
+  
+  .header {
+    height: 60px;
+    padding: 12px 15px;
   }
   
   .order-details {
@@ -1860,10 +1981,6 @@ input:checked + .toggle-slider:before {
     text-align: left;
   }
 
-  .header {
-    padding: 12px 15px;
-  }
-
   .location-toggle-btn, .autobid-btn, .refresh-btn {
     padding: 5px 10px;
     font-size: 0.7rem;
@@ -1871,6 +1988,7 @@ input:checked + .toggle-slider:before {
 
   .bottom-nav {
     padding: 6px 0;
+    height: 54px;
   }
 
   .nav-item {
@@ -1976,556 +2094,13 @@ input:checked + .toggle-slider:before {
     font-size: 0.48rem;
   }
 }
-/* ==================== ANIMASI RADAR PENCARIAN ==================== */
 
-/* Container radar */
-.radar-container {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    margin: 20px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Lingkaran radar dasar */
-.radar-circle {
-    position: absolute;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 152, 0, 0.2);
-}
-
-.radar-circle-1 {
-    width: 180px;
-    height: 180px;
-    border-width: 1px;
-}
-
-.radar-circle-2 {
-    width: 120px;
-    height: 120px;
-    border-width: 1px;
-}
-
-.radar-circle-3 {
-    width: 60px;
-    height: 60px;
-    border-width: 1px;
-}
-
-/* Garis pemindai radar */
-.radar-scan {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    overflow: hidden;
-}
-
-.radar-scan:before {
-    content: '';
-    position: absolute;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(to right, 
-        transparent, 
-        rgba(255, 152, 0, 0.3),
-        rgba(255, 152, 0, 0.8));
-    transform-origin: right center;
-    animation: radar-scan 2s linear infinite;
-}
-
-/* Titik pusat radar */
-.radar-center {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 50%;
-    z-index: 10;
-    box-shadow: 0 0 15px rgba(255, 152, 0, 0.8);
-}
-
-/* Titik-titik acak yang muncul */
-.radar-dot {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background-color: var(--primary);
-    border-radius: 50%;
-    animation: dot-pulse 2s ease-in-out infinite;
-    box-shadow: 0 0 10px rgba(255, 152, 0, 0.8);
-}
-
-.radar-dot-1 {
-    top: 30%;
-    left: 60%;
-    animation-delay: 0s;
-}
-
-.radar-dot-2 {
-    top: 50%;
-    left: 80%;
-    animation-delay: 0.5s;
-}
-
-.radar-dot-3 {
-    top: 70%;
-    left: 40%;
-    animation-delay: 1s;
-}
-
-.radar-dot-4 {
-    top: 20%;
-    left: 30%;
-    animation-delay: 1.5s;
-}
-
-.radar-dot-5 {
-    top: 80%;
-    left: 70%;
-    animation-delay: 2s;
-}
-
-/* Animasi radar scan */
-@keyframes radar-scan {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* Animasi pulsa titik */
-@keyframes dot-pulse {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-}
-
-/* Animasi teks "Mencari order..." */
-@keyframes pulse-text {
-    0%, 100% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 1;
-    }
-}
-
-.radar-text {
-    text-align: center;
-    margin-top: 20px;
-    font-weight: 600;
-    color: var(--primary);
-    animation: pulse-text 2s ease-in-out infinite;
-}
-
-/* Versi sederhana radar untuk responsive */
-.radar-simple {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    margin: 20px auto;
-}
-
-.radar-simple-scan {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 152, 0, 0.3);
-    position: relative;
-    overflow: hidden;
-}
-
-.radar-simple-scan:before {
-    content: '';
-    position: absolute;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(to right, 
-        transparent, 
-        rgba(255, 152, 0, 0.4));
-    transform-origin: right center;
-    animation: radar-scan 1.5s linear infinite;
-}
-
-.radar-simple-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 15px;
-    height: 15px;
-    background: var(--primary);
-    border-radius: 50%;
-    z-index: 10;
-}
-
-/* Style untuk empty-state dengan radar */
-.empty-state-with-radar {
-    text-align: center;
-    padding: 40px 20px;
-    color: #666;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.empty-state-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 10px;
-}
-
-.empty-state-subtitle {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 30px;
-    max-width: 300px;
-    line-height: 1.4;
-}
-
-/* Untuk halaman loading */
-.loading-radar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-}
-
-/* Responsive styles untuk radar */
-@media (max-width: 768px) {
-    .radar-container {
-        width: 150px;
-        height: 150px;
-    }
-    
-    .radar-circle-1 {
-        width: 140px;
-        height: 140px;
-    }
-    
-    .radar-circle-2 {
-        width: 100px;
-        height: 100px;
-    }
-    
-    .radar-circle-3 {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .radar-dot {
-        width: 6px;
-        height: 6px;
-    }
-    
-    .radar-simple {
-        width: 100px;
-        height: 100px;
-    }
-    
-    .empty-state-title {
-        font-size: 1rem;
-    }
-    
-    .empty-state-subtitle {
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .radar-container {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .radar-circle-1 {
-        width: 110px;
-        height: 110px;
-    }
-    
-    .radar-circle-2 {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .radar-circle-3 {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .radar-dot {
-        width: 5px;
-        height: 5px;
-    }
-    
-    .radar-simple {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .empty-state-title {
-        font-size: 0.95rem;
-    }
-    
-    .empty-state-subtitle {
-        font-size: 0.8rem;
-        max-width: 250px;
-    }
-    
-    .radar-text {
-        font-size: 0.9rem;
-        margin-top: 15px;
-    }
-}
-
-/* Tambahan untuk efek visual */
-.radar-container:hover .radar-scan:before {
-    background: linear-gradient(to right, 
-        transparent, 
-        rgba(255, 152, 0, 0.4),
-        rgba(255, 152, 0, 0.9));
-}
-
-.radar-container:hover .radar-center {
-    box-shadow: 0 0 20px rgba(255, 152, 0, 1);
-    animation: center-pulse 1s ease-in-out infinite alternate;
-}
-
-@keyframes center-pulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 15px rgba(255, 152, 0, 0.8);
-    }
-    100% {
-        transform: scale(1.1);
-        box-shadow: 0 0 25px rgba(255, 152, 0, 1);
-    }
-}
-
-/* Efek untuk mode tracking aktif */
-.radar-tracking-active .radar-scan:before {
-    background: linear-gradient(to right, 
-        transparent, 
-        rgba(76, 175, 80, 0.3),
-        rgba(76, 175, 80, 0.8));
-}
-
-.radar-tracking-active .radar-center {
-    background: linear-gradient(135deg, #4CAF50, #45a049);
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-}
-
-.radar-tracking-active .radar-dot {
-    background-color: #4CAF50;
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.8);
-}
-
-/* Efek untuk mode autobid aktif */
-.radar-autobid-active .radar-scan:before {
-    background: linear-gradient(to right, 
-        transparent, 
-        rgba(33, 150, 243, 0.3),
-        rgba(33, 150, 243, 0.8));
-}
-
-.radar-autobid-active .radar-center {
-    background: linear-gradient(135deg, #2196F3, #1976D2);
-    box-shadow: 0 0 15px rgba(33, 150, 243, 0.8);
-}
-
-.radar-autobid-active .radar-dot {
-    background-color: #2196F3;
-    box-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
-}
-
-/* Status indicator untuk radar */
-.radar-status {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 15px;
-    font-size: 0.8rem;
-}
-
-.radar-status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.radar-status-gps {
-    background-color: #4CAF50;
-    animation: status-pulse 2s infinite;
-}
-
-.radar-status-tracking {
-    background-color: #FF9800;
-    animation: status-pulse 2s infinite 0.5s;
-}
-
-.radar-status-autobid {
-    background-color: #2196F3;
-    animation: status-pulse 2s infinite 1s;
-}
-
-@keyframes status-pulse {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-}
-
-/* Loading text dengan animasi titik-titik */
-.loading-dots {
-    display: inline-block;
-}
-
-.loading-dots::after {
-    content: '';
-    animation: dots-animation 1.5s infinite;
-}
-
-@keyframes dots-animation {
-    0%, 20% {
-        content: '.';
-    }
-    40% {
-        content: '..';
-    }
-    60%, 100% {
-        content: '...';
-    }
-}
-
-/* Radar dengan efek glow */
-.radar-glow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,152,0,0.1) 0%, rgba(255,152,0,0) 70%);
-    animation: glow-pulse 3s ease-in-out infinite;
-}
-
-@keyframes glow-pulse {
-    0%, 100% {
-        opacity: 0.5;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.8;
-        transform: scale(1.05);
-    }
-}
-
-/* Radar wave effect */
-.radar-wave {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    animation: wave-expand 3s linear infinite;
-}
-
-.radar-wave-1 {
-    animation-delay: 0s;
-}
-
-.radar-wave-2 {
-    animation-delay: 1s;
-}
-
-.radar-wave-3 {
-    animation-delay: 2s;
-}
-
-@keyframes wave-expand {
-    0% {
-        border-color: rgba(255, 152, 0, 0.1);
-        transform: scale(0.8);
-    }
-    50% {
-        border-color: rgba(255, 152, 0, 0.3);
-        transform: scale(1);
-    }
-    100% {
-        border-color: rgba(255, 152, 0, 0);
-        transform: scale(1.2);
-    }
-}
-
-/* Responsive adjustments untuk loading screen */
-@media (max-height: 600px) {
-    .loading-radar {
-        padding: 20px 20px;
-    }
-    
-    .radar-simple {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .radar-simple-center {
-        width: 12px;
-        height: 12px;
-    }
-}
-
-/* Dark mode support untuk radar */
-@media (prefers-color-scheme: dark) {
-    .empty-state-with-radar {
-        background: #1e1e1e;
-        color: #e0e0e0;
-    }
-    
-    .empty-state-title {
-        color: #FF9800;
-    }
-    
-    .empty-state-subtitle {
-        color: #b0b0b0;
-    }
-    
-    .radar-circle {
-        border-color: rgba(255, 152, 0, 0.3);
-    }
-    
-    .radar-text {
-        color: #FF9800;
-    }
-    
-    .radar-simple-scan {
-        border-color: rgba(255, 152, 0, 0.2);
-    }
-    
-    .radar-simple-scan:before {
-        background: linear-gradient(to right, 
-            transparent, 
-            rgba(255, 152, 0, 0.3));
-    }
-}
+/* ==================== FIX UNTUK Z-INDEX ==================== */
+/* Pastikan urutan z-index: */
+/* 1. Radar: 50 */
+/* 2. Bottom Nav: 99 */
+/* 3. Header: 100 */
+/* 4. Modal: 1000 */
+/* 5. Sidebar: 1100 */
+/* 6. Popup: 2000 */
+/* 7. Loading Overlay: 3000 */
