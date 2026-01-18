@@ -297,7 +297,6 @@ let userDataRefreshInterval = null;
 let currentUserData = null;
 
 function getDriverData() {
-    console.log("🔍 [DEBUG] Memulai getDriverData");
     
     try {
         const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
@@ -742,7 +741,6 @@ let driverLocation = {
 
 let locationWatchId = null;
 let processedOrders = new Set();
-let isAutobidModal = false;
 let activeOrderListenerRef = null;
 let activeOrderListener = null;
 
@@ -751,7 +749,6 @@ let locationTrackingInterval = null;
 
 let lastSentOrdersCount = null;
 let lastSentOrdersHash = null;
-let isInitialLoad = true;
 
 let autobidProgressInterval = null;
 let autobidProgressTimeLeft = 30;
@@ -3771,43 +3768,6 @@ function createRadarAnimation(isSimple = false) {
     return radarContainer;
 }
 
-function showRadarSearch() {
-    const ordersList = document.getElementById('ordersList');
-    
-    if (!ordersList) {
-        console.error('❌ Element ordersList tidak ditemukan!');
-        return;
-    }
-    
-    ordersList.innerHTML = `
-        <div class="empty-state-with-radar">
-            <div class="empty-state-title">📡 Mencari Order Terdekat...</div>
-            <div class="empty-state-subtitle">
-                Sistem sedang memindai area sekitar Anda untuk menemukan order yang tersedia.
-            </div>
-        </div>
-    `;
-    
-    const emptyState = ordersList.querySelector('.empty-state-with-radar');
-    
-    const radar = createRadarAnimation(false);
-    emptyState.insertBefore(radar, emptyState.querySelector('.empty-state-subtitle'));
-    
-    const radarText = document.createElement('div');
-    radarText.className = 'radar-text';
-    radarText.textContent = 'Memindai...';
-    emptyState.appendChild(radarText);
-    
-    sendToKodular({
-        action: 'searching_orders',
-        status: 'no_orders_found',
-        message: 'Sistem sedang mencari order di sekitar Anda',
-        radius: customRadius
-    });
-    
-    startRadarScanning();
-}
-
 function showLoadingRadar(message = 'Menyiapkan aplikasi...') {
     const loadingEl = document.getElementById('loadingOverlay');
     
@@ -3847,42 +3807,6 @@ function startRadarScanning() {
     }
     
     console.log('📍 Radar scanning aktif');
-}
-
-// ==================== FUNGSI BARU: SIMULASI ORDER BARU (UNTUK DEMO) ====================
-
-function simulateNewOrderForDemo() {
-    if (window.location.href.indexOf('file://') !== -1 || 
-        window.location.hostname === 'localhost') {
-        
-        const ordersList = document.getElementById('ordersList');
-        if (!ordersList) return;
-        
-        const radar = ordersList.querySelector('.radar-container');
-        if (radar) {
-            console.log('🎮 Mode Demo: Simulasi order baru ditemukan');
-            
-            ordersList.innerHTML = `
-                <div class="empty-state-with-radar">
-                    <div class="empty-state-title" style="color: #ffffff;">🎉 ORDER DITEMUKAN!</div>
-                    <div class="empty-state-subtitle">
-                        Radar berhasil menemukan order baru dalam radius Anda. 
-                        Order akan segera muncul di daftar.
-                    </div>
-                    <div style="margin-top: 20px;">
-                        <button onclick="refreshData()" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
-                            Muat Ulang Daftar Order
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            sendToKodular({
-                action: 'demo_order_found',
-                message: 'Order baru ditemukan dalam radius pencarian'
-            });
-        }
-    }
 }
 
 // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
@@ -4063,35 +3987,6 @@ function setupEventListeners() {
         });
     });
     
-    if (window.location.href.indexOf('file://') !== -1 || 
-        window.location.hostname === 'localhost') {
-        
-        setTimeout(() => {
-            const headerControls = document.querySelector('.header-controls');
-            if (headerControls && !document.getElementById('demoOrderBtn')) {
-                const demoBtn = document.createElement('button');
-                demoBtn.id = 'demoOrderBtn';
-                demoBtn.innerHTML = '🎮 DEMO';
-                demoBtn.style.cssText = `
-                    background: rgba(255, 107, 53, 0.2);
-                    color: #ff6b35;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 8px 12px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    font-size: 0.75rem;
-                    margin-left: 8px;
-                `;
-                demoBtn.title = 'Simulasi order baru (hanya untuk demo)';
-                demoBtn.addEventListener('click', simulateNewOrderForDemo);
-                
-                headerControls.appendChild(demoBtn);
-            }
-        }, 2000);
-    }
-}
-
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Halaman JeGo Driver dimuat');
@@ -4136,5 +4031,3 @@ window.addEventListener('beforeunload', () => {
     
     processStatusBatch();
 });
-
-
