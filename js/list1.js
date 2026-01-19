@@ -293,51 +293,73 @@ function testFirebaseConnection() {
 
 // ==================== SISTEM VALIDASI SALDO DRIVER DENGAN PERSENTASE POTONGAN ====================
 const MINIMAL_SALDO_SETELAH_POTONGAN = 1; // Minimal saldo setelah dipotong (Rp 1)
-let currentDriverPotongan = 0; // Persentase potongan (contoh: 10 untuk 10%)
 
-// Fungsi untuk menghitung saldo setelah dipotong persentase
-function hitungSaldoSetelahPotongan(saldo, persentasePotongan) {
-    if (!saldo || saldo <= 0) return 0;
-    
-    const potonganDalamRupiah = saldo * (persentasePotongan / 100);
-    const saldoSetelahPotongan = saldo - potonganDalamRupiah;
-    
-    return Math.max(0, saldoSetelahPotongan); // Pastikan tidak negatif
-}
+// ==================== FUNGSI VALIDASI SALDO BARU ====================
 
-// Fungsi untuk cek apakah saldo driver mencukupi
+// Fungsi untuk cek saldo minimal (untuk validasi umum)
 function cekSaldoCukup() {
     if (!currentDriverData) {
         console.log('❌ Tidak ada data driver untuk cek saldo');
         return false;
     }
     
-    // Ambil saldo dan persentase potongan
+    const saldo = currentDriverBalance;
+    
+    console.log(`💰 Cek Saldo Minimal: Saldo=${saldo}`);
+    
+    // Kembalikan true jika saldo >= minimal (Rp 1)
+    return saldo >= MINIMAL_SALDO_SETELAH_POTONGAN;
+}
+
+// Fungsi BARU: Cek saldo cukup untuk POTONGAN dari TARIF ORDER
+function cekSaldoCukupUntukOrder(tarifOrder) {
+    if (!currentDriverData) {
+        console.log('❌ Tidak ada data driver untuk cek saldo order');
+        return false;
+    }
+    
     const saldo = currentDriverBalance;
     const persentasePotongan = currentDriverPotongan || 0;
     
-    // Hitung saldo setelah dipotong persentase
-    const saldoSetelahPotongan = hitungSaldoSetelahPotongan(saldo, persentasePotongan);
+    // Hitung potongan layanan dari TARIF ORDER (bukan dari saldo)
+    const potonganLayanan = tarifOrder * (persentasePotongan / 100);
     
-    console.log(`💰 Cek Saldo: Saldo=${saldo}, Potongan=${persentasePotongan}%, Setelah Potongan=${saldoSetelahPotongan}`);
+    console.log(`💰 Cek Saldo untuk Order: Tarif=${tarifOrder}, Potongan=${persentasePotongan}%, PotonganLayanan=${potonganLayanan}, Saldo=${saldo}`);
     
-    // Kembalikan true jika saldo setelah potongan >= minimal
-    return saldoSetelahPotongan >= MINIMAL_SALDO_SETELAH_POTONGAN;
+    // Kembalikan true jika saldo >= potongan layanan yang harus dibayar
+    return saldo >= potonganLayanan;
 }
 
-// Fungsi untuk mendapatkan informasi saldo lengkap
+// Fungsi untuk mendapatkan informasi saldo lengkap untuk order tertentu
+function getSaldoInfoUntukOrder(tarifOrder) {
+    const saldo = currentDriverBalance;
+    const persentasePotongan = currentDriverPotongan || 0;
+    const potonganLayanan = tarifOrder * (persentasePotongan / 100);
+    const saldoSetelahPotongan = saldo - potonganLayanan;
+    
+    return {
+        saldo: saldo,
+        persentasePotongan: persentasePotongan,
+        potonganLayanan: potonganLayanan,
+        tarifOrder: tarifOrder,
+        saldoSetelahPotongan: saldoSetelahPotongan,
+        cukup: saldo >= potonganLayanan
+    };
+}
+
+// Fungsi untuk mendapatkan informasi saldo umum
 function getSaldoInfo() {
     const saldo = currentDriverBalance;
     const persentasePotongan = currentDriverPotongan || 0;
-    const saldoSetelahPotongan = hitungSaldoSetelahPotongan(saldo, persentasePotongan);
     const potonganDalamRupiah = saldo * (persentasePotongan / 100);
+    const saldoSetelahPotongan = saldo - potonganDalamRupiah;
     
     return {
         saldo: saldo,
         persentasePotongan: persentasePotongan,
         potonganDalamRupiah: potonganDalamRupiah,
         saldoSetelahPotongan: saldoSetelahPotongan,
-        cukup: saldoSetelahPotongan >= MINIMAL_SALDO_SETELAH_POTONGAN
+        cukup: saldo >= MINIMAL_SALDO_SETELAH_POTONGAN
     };
 }
 
@@ -348,15 +370,15 @@ function updateSaldoInfoInSidebar() {
         const saldoInfo = getSaldoInfo();
         
         if (saldoInfo.cukup) {
-            saldoInfoElement.textContent = `Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`;
+            saldoInfoElement.textContent = `Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`;
             saldoInfoElement.style.color = '#28a745';
         } else {
-            saldoInfoElement.textContent = `Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`;
+            saldoInfoElement.textContent = `Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`;
             saldoInfoElement.style.color = '#dc3545';
         }
         
         // Tambahkan tooltip untuk info detail
-        saldoInfoElement.title = `Saldo: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}\nPotongan: ${saldoInfo.persentasePotongan}% (Rp ${saldoInfo.potonganDalamRupiah.toLocaleString('id-ID')})`;
+        saldoInfoElement.title = `Saldo: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}\nPotongan Layanan: ${saldoInfo.persentasePotongan}%`;
     }
 }
 
@@ -1249,7 +1271,7 @@ function updateAutobidToggleStatus() {
                 autobidToggle.title = 'Aktifkan tracking lokasi terlebih dahulu';
             } else if (!saldoCukup) {
                 const saldoInfo = getSaldoInfo();
-                autobidToggle.title = `Saldo tidak cukup. Tersedia: Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`;
+                autobidToggle.title = `Saldo tidak cukup. Saldo: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`;
             }
         }
     }
@@ -1399,7 +1421,7 @@ function loadSettingsToUI() {
     
     // Tampilkan info saldo di sidebar jika saldo tidak cukup
     if (!cekSaldoCukup()) {
-        console.log('⚠️ Saldo tidak cukup setelah potongan');
+        console.log('⚠️ Saldo tidak cukup');
         const saldoInfo = getSaldoInfo();
         
         // Hapus warning sebelumnya jika ada
@@ -1418,8 +1440,8 @@ function loadSettingsToUI() {
                     </div>
                     <div style="font-size: 0.85rem; color: #666;">
                         <div>Saldo: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}</div>
-                        <div>Potongan: ${saldoInfo.persentasePotongan}%</div>
-                        <div>Tersedia: <strong>Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}</strong></div>
+                        <div>Potongan Layanan: ${saldoInfo.persentasePotongan}%</div>
+                        <div>Saldo minimal: Rp ${MINIMAL_SALDO_SETELAH_POTONGAN.toLocaleString('id-ID')}</div>
                     </div>
                 </div>
             `;
@@ -1492,19 +1514,19 @@ function updateStatusInfo() {
     document.getElementById('trackingStatusInfo').style.color = 
         locationTrackingEnabled ? '#28a745' : '#dc3545';
     
-    // Update Saldo Status dengan saldo setelah potongan
+    // Update Saldo Status dengan saldo
     const saldoInfo = getSaldoInfo();
     const saldoElement = document.getElementById('balanceStatusInfo');
     
     if (saldoElement) {
-        saldoElement.textContent = `Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`;
+        saldoElement.textContent = `Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`;
         
         if (saldoInfo.cukup) {
             saldoElement.style.color = '#28a745';
-            saldoElement.title = `Saldo cukup setelah potongan ${saldoInfo.persentasePotongan}%`;
+            saldoElement.title = `Saldo cukup`;
         } else {
             saldoElement.style.color = '#dc3545';
-            saldoElement.title = `Saldo tidak cukup setelah potongan ${saldoInfo.persentasePotongan}%`;
+            saldoElement.title = `Saldo tidak cukup`;
         }
     }
 }
@@ -1687,10 +1709,10 @@ function toggleAutobid() {
         return;
     }
     
-    // ✅ TAMBAHKAN VALIDASI SALDO - TAMPILKAN PERINGATAN JIKA SALDO TIDAK CUKUP
+    // ✅ TAMBAHKAN VALIDASI SALDO
     if (!cekSaldoCukup()) {
         const saldoInfo = getSaldoInfo();
-        showPopup(`Tidak dapat mengaktifkan Autobid. Saldo tersedia setelah potongan ${saldoInfo.persentasePotongan}%: Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`, 'Saldo Tidak Cukup', 'warning');
+        showPopup(`Tidak dapat mengaktifkan Autobid. Saldo tidak mencukupi: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`, 'Saldo Tidak Cukup', 'warning');
         document.getElementById('autobidToggle').checked = false;
         return;
     }
@@ -1722,9 +1744,9 @@ function updateAutobidButton() {
 
 // ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL ====================
 function checkOrdersForManualPopup() {
-    // ✅ TAMBAHKAN VALIDASI SALDO - JIKA TIDAK CUKUP, LANGSUNG RETURN TANPA TAMPIL APAPUN
+    // ✅ VALIDASI AWAL: Cek saldo minimal (tanpa order)
     if (!cekSaldoCukup()) {
-        console.log('💰 Manual Popup: Saldo tidak cukup setelah dipotong, skip order');
+        console.log('💰 Manual Popup: Saldo tidak cukup (minimal)');
         return;
     }
     
@@ -1755,6 +1777,16 @@ function checkOrdersForManualPopup() {
         orderRef.once('value').then(snapshot => {
             const order = snapshot.val();
             if (order && order.status === 'searching') {
+                
+                // ✅ VALIDASI TARIF ORDER: Hitung tarif dan cek saldo
+                const discountedPrice = calculateDiscountedPrice(order);
+                const tarifOrder = discountedPrice.hargaDiskon;
+                
+                if (!cekSaldoCukupUntukOrder(tarifOrder)) {
+                    const saldoInfo = getSaldoInfoUntukOrder(tarifOrder);
+                    console.log(`💰 Manual Popup: Saldo tidak cukup untuk order ${orderId}. Tarif: ${tarifOrder}, Potongan: ${saldoInfo.potonganLayanan}, Saldo: ${saldoInfo.saldo}`);
+                    return; // Skip order ini
+                }
                 
                 const isKurir = order.vehicle && order.vehicle.includes('kurir');
                 
@@ -1796,9 +1828,9 @@ function checkOrdersForManualPopup() {
 
 // ==================== FUNGSI AUTOBID YANG DIPERBARUI ====================
 function checkOrdersForAutobid() {
-    // ✅ TAMBAHKAN VALIDASI SALDO - JIKA TIDAK CUKUP, LANGSUNG RETURN TANPA TAMPIL APAPUN
+    // ✅ VALIDASI AWAL: Cek saldo minimal
     if (!cekSaldoCukup()) {
-        console.log('💰 Autobid: Saldo tidak cukup setelah dipotong, skip order');
+        console.log('💰 Autobid: Saldo tidak cukup (minimal)');
         return;
     }
     
@@ -1827,6 +1859,16 @@ function checkOrdersForAutobid() {
         orderRef.once('value').then(snapshot => {
             const order = snapshot.val();
             if (order && order.status === 'searching') {
+                
+                // ✅ VALIDASI TARIF ORDER
+                const discountedPrice = calculateDiscountedPrice(order);
+                const tarifOrder = discountedPrice.hargaDiskon;
+                
+                if (!cekSaldoCukupUntukOrder(tarifOrder)) {
+                    const saldoInfo = getSaldoInfoUntukOrder(tarifOrder);
+                    console.log(`💰 Autobid: Saldo tidak cukup untuk order ${orderId}. Tarif: ${tarifOrder}, Potongan: ${saldoInfo.potonganLayanan}, Saldo: ${saldoInfo.saldo}`);
+                    return; // Skip order ini
+                }
                 
                 const isKurir = order.vehicle && order.vehicle.includes('kurir');
                 if (isKurir) {
@@ -2117,14 +2159,19 @@ function sendStatusNotificationToDriver(orderId, driverId, status) {
 
 // ==================== FUNGSI MODAL DETAIL ORDER MANUAL - DIUBAH ====================
 function showOrderDetail(order) {
-    // ✅ TAMBAHKAN VALIDASI SALDO - TAMPILKAN PERINGATAN HANYA JIKA USER KLIK MANUAL
-    if (!cekSaldoCukup()) {
-        const saldoInfo = getSaldoInfo();
-        const message = `Maaf, saldo Anda tidak mencukupi untuk mengambil order.
+    // ✅ VALIDASI BERDASARKAN TARIF ORDER
+    const discountedPrice = calculateDiscountedPrice(order);
+    const tarifOrder = discountedPrice.hargaDiskon;
+    
+    if (!cekSaldoCukupUntukOrder(tarifOrder)) {
+        const saldoInfo = getSaldoInfoUntukOrder(tarifOrder);
+        const message = `Maaf, saldo Anda tidak mencukupi untuk mengambil order ini.
         
-💰 Saldo: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}
-📉 Potongan: ${saldoInfo.persentasePotongan}% (Rp ${saldoInfo.potonganDalamRupiah.toLocaleString('id-ID')})
-💳 Saldo tersedia: Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}
+💰 Tarif Order: Rp ${tarifOrder.toLocaleString('id-ID')}
+📉 Potongan Layanan: ${saldoInfo.persentasePotongan}% (Rp ${saldoInfo.potonganLayanan.toLocaleString('id-ID')})
+💳 Saldo Anda: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}
+
+Saldo minimal yang dibutuhkan: Rp ${saldoInfo.potonganLayanan.toLocaleString('id-ID')}
 
 Silakan top up saldo terlebih dahulu.`;
         
@@ -2132,12 +2179,12 @@ Silakan top up saldo terlebih dahulu.`;
         
         // Kirim event ke Kodular untuk navigasi ke halaman topup
         sendToKodular({
-            action: 'saldo_tidak_cukup',
+            action: 'saldo_tidak_cukup_untuk_order',
             saldo: saldoInfo.saldo,
             potongan_persen: saldoInfo.persentasePotongan,
-            potongan_rupiah: saldoInfo.potonganDalamRupiah,
-            saldo_tersedia: saldoInfo.saldoSetelahPotongan,
-            message: 'Saldo tidak cukup setelah potongan'
+            potongan_dibutuhkan: saldoInfo.potonganLayanan,
+            tarif_order: tarifOrder,
+            message: 'Saldo tidak cukup untuk membayar potongan layanan dari tarif order'
         });
         return;
     }
@@ -2200,7 +2247,6 @@ Silakan top up saldo terlebih dahulu.`;
         document.getElementById('modalDuration').textContent = currentOrder.durasi || '-';
         document.getElementById('modalDistance').textContent = currentOrder.jarak || '-';
         
-        const discountedPrice = calculateDiscountedPrice(currentOrder);
         const hasRealPromo = discountedPrice.hasDiscount;
         
         const modalPrice = document.getElementById('modalPrice');
@@ -2297,6 +2343,17 @@ function showAutobidOrderModal(order) {
         currentSelectedOrder = currentOrder;
         currentDriverId = generateDriverId();
         
+        // ✅ VALIDASI SALDO untuk order autobid
+        const discountedPrice = calculateDiscountedPrice(currentOrder);
+        const tarifOrder = discountedPrice.hargaDiskon;
+        
+        if (!cekSaldoCukupUntukOrder(tarifOrder)) {
+            console.log(`💰 Autobid: Saldo tidak cukup untuk order ${orderKey}. Tarif: ${tarifOrder}`);
+            isAutobidProcessing = false;
+            processedOrders.delete(orderKey);
+            return;
+        }
+        
         const customerName = currentOrder.user_data?.name || currentOrder.user_data?.nama || 'Tidak diketahui';
         const customerPhoto = getCustomerPhoto(currentOrder);
         
@@ -2321,7 +2378,6 @@ function showAutobidOrderModal(order) {
         document.getElementById('autobidDuration').textContent = currentOrder.durasi || '-';
         document.getElementById('autobidDistance').textContent = currentOrder.jarak || '-';
         
-        const discountedPrice = calculateDiscountedPrice(currentOrder);
         document.getElementById('autobidPrice').textContent = discountedPrice.hargaDiskon ? `Rp ${discountedPrice.hargaDiskon.toLocaleString('id-ID')}` : '-';
         
         const autobidPromoInfo = document.getElementById('autobidPromoInfo');
@@ -3338,16 +3394,15 @@ function listenForOrderResponse(orderId, driverId) {
 }
 
 function sendDriverOffer() {
-    // ✅ TAMBAHKAN VALIDASI SALDO - TAMPILKAN PERINGATAN
-    if (!cekSaldoCukup()) {
-        const saldoInfo = getSaldoInfo();
-        showPopup(`Saldo tidak cukup. Saldo tersedia setelah potongan ${saldoInfo.persentasePotongan}%: Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`, 'Saldo Tidak Cukup', 'warning');
+    // ✅ VALIDASI BERDASARKAN TARIF ORDER
+    const discountedPrice = calculateDiscountedPrice(currentSelectedOrder);
+    const tarifOrder = discountedPrice.hargaDiskon;
+    
+    if (!cekSaldoCukupUntukOrder(tarifOrder)) {
+        const saldoInfo = getSaldoInfoUntukOrder(tarifOrder);
+        showPopup(`Saldo tidak cukup. Potongan layanan ${saldoInfo.persentasePotongan}% dari tarif Rp ${tarifOrder.toLocaleString('id-ID')} adalah Rp ${saldoInfo.potonganLayanan.toLocaleString('id-ID')}. Saldo Anda: Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`, 'Saldo Tidak Cukup', 'warning');
         return;
     }
-    
-    if (!currentSelectedOrder || !currentDriverId) return;
-    
-    if (!checkDriverData()) return;
     
     const isKurir = currentSelectedOrder.vehicle && currentSelectedOrder.vehicle.includes('kurir');
     if (isKurir) {
@@ -3362,6 +3417,8 @@ function sendDriverOffer() {
             return;
         }
     }
+    
+    if (!checkDriverData()) return;
     
     const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
     const driverId = currentDriverId;
@@ -3545,9 +3602,7 @@ function initializeBalanceSystem() {
             currentDriverBalance = newBalance;
             currentDriverPotongan = newPotongan;
             
-            const saldoInfo = getSaldoInfo();
-            
-            console.log(`💰 Saldo Update: Saldo=${newBalance}, Potongan=${newPotongan}%, Setelah Potongan=${saldoInfo.saldoSetelahPotongan}`);
+            console.log(`💰 Saldo Update: Saldo=${newBalance}, Potongan Layanan=${newPotongan}%`);
             
             // Update data driver di localStorage
             if (currentDriverData) {
@@ -3570,15 +3625,15 @@ function initializeBalanceSystem() {
             // Update UI saldo di sidebar
             updateSaldoInfoInSidebar();
             
-            // Cek dan nonaktifkan autobid jika saldo tidak cukup
+            // Cek dan nonaktifkan autobid jika saldo tidak cukup (minimal)
             if (!cekSaldoCukup() && autobidEnabled) {
-                console.log('💰 Saldo tidak cukup setelah potongan, nonaktifkan autobid');
+                console.log('💰 Saldo tidak cukup (minimal), nonaktifkan autobid');
                 autobidEnabled = false;
                 stopAutobid();
                 updateAutobidButton();
                 
                 // Tampilkan popup hanya jika sebelumnya autobid aktif
-                showPopup(`Autobid dinonaktifkan karena saldo tidak mencukupi setelah dipotong ${newPotongan}%.`, 'Autobid Dinonaktifkan', 'warning');
+                showPopup(`Autobid dinonaktifkan karena saldo tidak mencukupi.`, 'Autobid Dinonaktifkan', 'warning');
             }
         }
     });
@@ -4157,16 +4212,15 @@ function initJeGoApp() {
     // ✅ LOG SALDO DENGAN PERHITUNGAN PERSENTASE
     const saldoInfo = getSaldoInfo();
     console.log('- Saldo Driver:', `Rp ${saldoInfo.saldo.toLocaleString('id-ID')}`);
-    console.log('- Potongan:', `${saldoInfo.persentasePotongan}% (Rp ${saldoInfo.potonganDalamRupiah.toLocaleString('id-ID')})`);
-    console.log('- Saldo Setelah Potongan:', `Rp ${saldoInfo.saldoSetelahPotongan.toLocaleString('id-ID')}`);
-    console.log('- Status Saldo:', saldoInfo.cukup ? '✅ CUKUP' : '❌ TIDAK CUKUP');
+    console.log('- Potongan Layanan:', `${saldoInfo.persentasePotongan}%`);
+    console.log('- Status Saldo Minimal:', saldoInfo.cukup ? '✅ CUKUP' : '❌ TIDAK CUKUP');
     
     console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
     console.log('- Radar System:', '✅ Siap');
     
     // ✅ JIKA SALDO TIDAK CUKUP, LOG PESAN
     if (!saldoInfo.cukup) {
-        console.log('⚠️ SISTEM: Manual popup dan autobid TIDAK AKAN tampil karena saldo tidak cukup');
+        console.log('⚠️ SISTEM: Manual popup dan autobid TIDAK AKAN tampil karena saldo tidak cukup (minimal)');
     }
     
     setTimeout(() => {
