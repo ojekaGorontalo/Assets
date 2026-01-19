@@ -149,20 +149,40 @@ let isFirstLoad = true;
 let firebaseRetryCount = 0;
 const MAX_FIREBASE_RETRY = 3;
 
+// TAMBAHAN: Timeout fallback untuk memastikan loading tidak selamanya
+let loadingFallbackTimeout = null;
+const LOADING_TIMEOUT_MS = 45000; // 45 detik
+
 function checkAllLoadingComplete() {
     const allComplete = Object.values(loadingStates).every(state => state === true);
     
     if (allComplete) {
         console.log('✅ SEMUA LOADING SELESAI');
+        
+        // Clear fallback timeout
+        if (loadingFallbackTimeout) {
+            clearTimeout(loadingFallbackTimeout);
+            loadingFallbackTimeout = null;
+        }
+        
         hideLoading();
         clearLoadingTimeout();
         isFirstLoad = false;
+    } else {
+        // Debug: Tampilkan state yang masih false
+        const pendingStates = Object.entries(loadingStates)
+            .filter(([key, value]) => !value)
+            .map(([key]) => key);
+        
+        if (pendingStates.length > 0) {
+            console.log(`⏳ Masih menunggu: ${pendingStates.join(', ')}`);
+        }
     }
 }
 
 function setLoadingState(key, value) {
     loadingStates[key] = value;
-    console.log(`🔔 Loading state [${key}]: ${value}`);
+    console.log(`🔔 Loading state [${key}]: ${value}`, loadingStates);
     checkAllLoadingComplete();
 }
 
@@ -190,6 +210,12 @@ function hideLoading() {
         loadingEl.style.display = 'none';
     }
     clearLoadingTimeout();
+    
+    // Juga clear fallback timeout
+    if (loadingFallbackTimeout) {
+        clearTimeout(loadingFallbackTimeout);
+        loadingFallbackTimeout = null;
+    }
 }
 
 function clearLoadingTimeout() {
@@ -266,7 +292,21 @@ function initializeFirebase() {
     }
   }
   
-  return proceedWithFirebaseInit();
+  // Jalankan dan handle jika return false
+  const result = proceedWithFirebaseInit();
+  
+  // Jika langsung false (akan retry), kita tetap perlu timeout
+  if (!result) {
+    setTimeout(() => {
+      // Cek apakah state masih false setelah timeout
+      if (!loadingStates.firebase) {
+        console.warn('⚠️ Firebase initialization timeout, force complete');
+        setLoadingState('firebase', true);
+      }
+    }, 15000);
+  }
+  
+  return result;
 }
 
 function testFirebaseConnection() {
@@ -1929,6 +1969,11 @@ function showCustomerPhoto(photoUrl, customerName) {
     const photoModal = document.getElementById('photoModal');
     const largePhoto = document.getElementById('largeCustomerPhoto');
     const largeName = document.getElementById('largeCustomerName');
+    
+    if (!photoModal || !largePhoto || !largeName) {
+        console.error('❌ Element photo modal tidak ditemukan');
+        return;
+    }
     
     largePhoto.src = photoUrl;
     largePhoto.alt = customerName;
@@ -4018,6 +4063,19 @@ function startRadarScanning() {
 function initJeGoApp() {
     console.log('🚀 Aplikasi JeGo diinisialisasi');
     
+    // Setup fallback timeout 45 detik
+    loadingFallbackTimeout = setTimeout(() => {
+        console.warn('⚠️ Loading timeout - Force hide loading');
+        hideLoading();
+        
+        // Set semua state ke true untuk mencegah loading muncul lagi
+        Object.keys(loadingStates).forEach(key => {
+            loadingStates[key] = true;
+        });
+        
+        showPopup('Proses loading timeout. Beberapa fitur mungkin tidak tersedia.', 'Peringatan', 'warning');
+    }, LOADING_TIMEOUT_MS);
+    
     if (!checkLoginStatus()) {
         setLoadingState('appInitialized', true);
         return;
@@ -4195,18 +4253,48 @@ function setupEventListeners() {
 
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Halaman JeGo Driver dimuat');
+    console.log('🚀 Halaman JeGo Driver dimuat - DOM ready');
+    
+    // Log initial states
+    console.log('📋 Initial loading states:', loadingStates);
+    
+    // Buat tombol emergency
+    const forceBtn = document.createElement('button');
+    forceBtn.id = 'forceHideLoading';
+    forceBtn.textContent = 'Force Hide Loading';
+    forceBtn.style.cssText = 'position:fixed; bottom:10px; right:10px; z-index:9999; padding:10px; background:red; color:white; border:none; border-radius:5px; cursor:pointer; display:none;';
+    
+    forceBtn.addEventListener('click', () => {
+        console.warn('🚨 MANUAL: Force hiding loading overlay');
+        hideLoading();
+        
+        // Set semua state ke true
+        Object.keys(loadingStates).forEach(key => {
+            loadingStates[key] = true;
+        });
+        
+        forceBtn.style.display = 'none';
+    });
+    
+    document.body.appendChild(forceBtn);
+    
+    // Tampilkan tombol setelah 30 detik
+    setTimeout(() => {
+        forceBtn.style.display = 'block';
+    }, 30000);
     
     setTimeout(() => {
+        console.log('⏳ Memulai inisialisasi Firebase...');
         const firebaseInitialized = initializeFirebase();
+        console.log('📊 Firebase initialization result:', firebaseInitialized);
         
-        if (firebaseInitialized) {
-            console.log('✅ Firebase siap, inisialisasi aplikasi...');
-        } else {
-            console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
+        if (!firebaseInitialized) {
+            console.log('⚠️ Firebase belum siap, akan coba init app nanti...');
+            // Coba init app setelah delay
             setTimeout(() => {
+                console.log('🔄 Mencoba init app setelah delay...');
                 initJeGoApp();
-            }, 3000);
+            }, 5000);
         }
     }, 1000);
 });
@@ -4234,6 +4322,12 @@ window.addEventListener('beforeunload', () => {
         }
     }
     stopDriverDataRefresh();
+    
+    // Clear fallback timeout
+    if (loadingFallbackTimeout) {
+        clearTimeout(loadingFallbackTimeout);
+        loadingFallbackTimeout = null;
+    }
     
     processStatusBatch();
 });
