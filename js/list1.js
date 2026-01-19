@@ -421,74 +421,18 @@ function getDriverData() {
     console.log("🔍 [DEBUG] Memulai getDriverData");
     
     try {
-        // GUNAKAN HANYA SATU KEY: 'jego_logged_in_driver'
         const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
         console.log("ℹ️ [DEBUG] jego_logged_in_driver di localStorage:", loggedInDriver ? "Ada" : "Tidak ada");
         
         if (loggedInDriver) {
             const driverData = JSON.parse(loggedInDriver);
-            console.log("✅ [DEBUG] Driver data ditemukan:", {
+            console.log("✅ [DEBUG] Driver data ditemukan dari loginDriver.html:", {
                 name: driverData.name || driverData.fullName,
                 phone: driverData.phone,
                 uid: driverData.uid,
                 status: driverData.status
             });
             
-            // Return langsung data asli tanpa mapping berlebihan
-            return driverData;
-        }
-        
-        // HAPUS SEMUA CEK KEY LAINNYA
-        // JANGAN gunakan key lain selain 'jego_logged_in_driver'
-        
-    } catch (error) {
-        console.error('❌ [DEBUG] Error mengambil data driver:', error);
-    }
-    
-    console.log("❌ [DEBUG] Tidak ada data driver ditemukan di localStorage");
-    return null;
-}
-            
-            const mappedDriverData = {
-                firebase_key: driverData.uid || driverData.userId,
-                uid: driverData.uid || driverData.userId,
-                key: driverData.uid || driverData.userId,
-                driverId: driverData.uid || driverData.userId,
-                name: driverData.name || driverData.fullName,
-                fullName: driverData.name || driverData.fullName,
-                phone: driverData.phone,
-                phoneNumber: driverData.phone,
-                email: driverData.email || '',
-                address: driverData.address || '',
-                rating: driverData.rating || 5,
-                perjalanan: driverData.perjalanan || 0,
-                avgRating: driverData.rating || 5,
-                totalTrips: driverData.perjalanan || 0,
-                fotoProfilURL: driverData.fotoProfilURL || '',
-                fotoProfilStorage: 'default',
-                profilePhotoUrl: driverData.fotoProfilURL || '',
-                vehicle_type: driverData.vehicleType || '',
-                vehicle_brand: driverData.vehicleBrand || '',
-                plate_number: driverData.plateNumber || '',
-                vehicleType: driverData.vehicleType || '',
-                vehicleBrand: driverData.vehicleBrand || '',
-                plateNumber: driverData.plateNumber || '',
-                status: driverData.status || 'pending',
-                role: 'driver',
-                driverStatus: driverData.driverStatus || driverData.status || 'pending',
-                createdAt: driverData.createdAt || new Date().toISOString(),
-                last_updated: new Date().toISOString(),
-                ...driverData
-            };
-            
-            console.log("✅ [DEBUG] Driver data berhasil diparsing");
-            return mappedDriverData;
-        }
-        
-        const legacyData = localStorage.getItem('Jego_logged_in_driver');
-        if (legacyData) {
-            console.log("⚠️ [DEBUG] Menggunakan fallback: Jego_logged_in_driver");
-            const driverData = JSON.parse(legacyData);
             return driverData;
         }
         
@@ -498,121 +442,6 @@ function getDriverData() {
     
     console.log("❌ [DEBUG] Tidak ada data driver ditemukan di localStorage");
     return null;
-}
-
-async function fetchLatestDriverData(driverKey) {
-  if (!driverKey) {
-    console.error("Driver key tidak tersedia untuk fetchLatestDriverData");
-    return currentUserData;
-  }
-  
-  try {
-    console.log("🔍 [DEBUG] Memulai fetchLatestDriverData untuk key:", driverKey);
-    const driverRef = database.ref('drivers/' + driverKey);
-    const snapshot = await driverRef.once('value');
-    const latestDriverData = snapshot.val();
-    
-    if (!latestDriverData) {
-      console.error("Data driver tidak ditemukan di Firebase untuk key:", driverKey);
-      return currentUserData;
-    }
-    
-    console.log("🔍 [DEBUG] Data terbaru dari Firebase:", {
-      avg_rating: latestDriverData.avg_rating,
-      total_trips: latestDriverData.total_trips,
-      name: latestDriverData.fullName
-    });
-    
-    const updatedDriverData = {
-      ...currentUserData,
-      ...latestDriverData,
-      driverId: driverKey,
-      avgRating: latestDriverData.avg_rating || currentUserData.avgRating,
-      totalTrips: latestDriverData.total_trips || currentUserData.totalTrips,
-      last_updated_from_firebase: new Date().toISOString()
-    };
-    
-    try {
-      localStorage.setItem('jego_logged_in_driver', JSON.stringify(updatedDriverData));
-      
-      const jegoDrivers = JSON.parse(localStorage.getItem('jego_drivers')) || {};
-      if (driverKey in jegoDrivers) {
-        jegoDrivers[driverKey] = updatedDriverData;
-        localStorage.setItem('jego_drivers', JSON.stringify(jegoDrivers));
-      }
-    } catch (e) {
-      console.warn('Gagal update localStorage:', e);
-    }
-    
-    console.log("✅ [DEBUG] Driver data diperbarui dari Firebase. Rating baru:", updatedDriverData.avgRating);
-    return updatedDriverData;
-    
-  } catch (error) {
-    console.error("❌ [DEBUG] Gagal mengambil data terbaru dari Firebase:", error);
-    return currentUserData;
-  }
-}
-
-function startDriverDataRefresh() {
-  if (userDataRefreshInterval) {
-    clearInterval(userDataRefreshInterval);
-  }
-  
-  userDataRefreshInterval = setInterval(async () => {
-    if (currentUserData && currentUserData.driverId) {
-      console.log("🔄 [DEBUG] Auto-refresh driver data dari Firebase...");
-      currentUserData = await fetchLatestDriverData(currentUserData.driverId);
-    }
-  }, 60000);
-}
-
-function stopDriverDataRefresh() {
-  if (userDataRefreshInterval) {
-    clearInterval(userDataRefreshInterval);
-    userDataRefreshInterval = null;
-  }
-}
-
-function checkIfDriverLoggedIn() {
-    console.log("🔍 [DEBUG] Memeriksa status login driver...");
-    
-    // 1. Cek localStorage utama
-    const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
-    
-    if (loggedInDriver) {
-        try {
-            const driverData = JSON.parse(loggedInDriver);
-            const status = driverData.status || 'pending';
-            
-            if (status === 'accepted' || status === 'approved' || status === 'active') {
-                console.log("✅ [DEBUG] Driver sudah login (aktif) dari localStorage:", driverData.name || driverData.fullName);
-                return true;
-            } else if (status === 'pending') {
-                console.log("⚠️ [DEBUG] Driver login tapi status pending, tetap izinkan akses");
-                return true;
-            } else {
-                console.log("❌ [DEBUG] Driver login tapi status tidak aktif:", status);
-                return false;
-            }
-        } catch (error) {
-            console.error('❌ [DEBUG] Error parsing logged in driver:', error);
-        }
-    }
-    
-    // 2. Fallback ke Firebase Auth
-    if (auth && auth.currentUser) {
-        console.log("✅ [DEBUG] Driver login via Firebase Auth, sinkronisasi...");
-        
-        // Panggil fungsi sinkronisasi
-        setTimeout(() => {
-            syncDriverFromFirebaseAuth();
-        }, 500);
-        
-        return true;
-    }
-    
-    console.log("❌ [DEBUG] Driver belum login");
-    return false;
 }
 
 // ==================== FUNGSI BARU: SINKRONISASI DRIVER DARI FIREBASE AUTH ====================
@@ -739,6 +568,121 @@ async function syncDriverFromFirebaseAuth() {
         console.error('❌ [DEBUG] Error sinkronisasi driver dari Firebase Auth:', error);
         return false;
     }
+}
+
+async function fetchLatestDriverData(driverKey) {
+  if (!driverKey) {
+    console.error("Driver key tidak tersedia untuk fetchLatestDriverData");
+    return currentUserData;
+  }
+  
+  try {
+    console.log("🔍 [DEBUG] Memulai fetchLatestDriverData untuk key:", driverKey);
+    const driverRef = database.ref('drivers/' + driverKey);
+    const snapshot = await driverRef.once('value');
+    const latestDriverData = snapshot.val();
+    
+    if (!latestDriverData) {
+      console.error("Data driver tidak ditemukan di Firebase untuk key:", driverKey);
+      return currentUserData;
+    }
+    
+    console.log("🔍 [DEBUG] Data terbaru dari Firebase:", {
+      avg_rating: latestDriverData.avg_rating,
+      total_trips: latestDriverData.total_trips,
+      name: latestDriverData.fullName
+    });
+    
+    const updatedDriverData = {
+      ...currentUserData,
+      ...latestDriverData,
+      driverId: driverKey,
+      avgRating: latestDriverData.avg_rating || currentUserData.avgRating,
+      totalTrips: latestDriverData.total_trips || currentUserData.totalTrips,
+      last_updated_from_firebase: new Date().toISOString()
+    };
+    
+    try {
+      localStorage.setItem('jego_logged_in_driver', JSON.stringify(updatedDriverData));
+      
+      const jegoDrivers = JSON.parse(localStorage.getItem('jego_drivers')) || {};
+      if (driverKey in jegoDrivers) {
+        jegoDrivers[driverKey] = updatedDriverData;
+        localStorage.setItem('jego_drivers', JSON.stringify(jegoDrivers));
+      }
+    } catch (e) {
+      console.warn('Gagal update localStorage:', e);
+    }
+    
+    console.log("✅ [DEBUG] Driver data diperbarui dari Firebase. Rating baru:", updatedDriverData.avgRating);
+    return updatedDriverData;
+    
+  } catch (error) {
+    console.error("❌ [DEBUG] Gagal mengambil data terbaru dari Firebase:", error);
+    return currentUserData;
+  }
+}
+
+function startDriverDataRefresh() {
+  if (userDataRefreshInterval) {
+    clearInterval(userDataRefreshInterval);
+  }
+  
+  userDataRefreshInterval = setInterval(async () => {
+    if (currentUserData && currentUserData.driverId) {
+      console.log("🔄 [DEBUG] Auto-refresh driver data dari Firebase...");
+      currentUserData = await fetchLatestDriverData(currentUserData.driverId);
+    }
+  }, 60000);
+}
+
+function stopDriverDataRefresh() {
+  if (userDataRefreshInterval) {
+    clearInterval(userDataRefreshInterval);
+    userDataRefreshInterval = null;
+  }
+}
+
+function checkIfDriverLoggedIn() {
+    console.log("🔍 [DEBUG] Memeriksa status login driver...");
+    
+    // 1. Cek localStorage utama
+    const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
+    
+    if (loggedInDriver) {
+        try {
+            const driverData = JSON.parse(loggedInDriver);
+            const status = driverData.status || 'pending';
+            
+            if (status === 'accepted' || status === 'approved' || status === 'active') {
+                console.log("✅ [DEBUG] Driver sudah login (aktif) dari localStorage:", driverData.name || driverData.fullName);
+                return true;
+            } else if (status === 'pending') {
+                console.log("⚠️ [DEBUG] Driver login tapi status pending, tetap izinkan akses");
+                return true;
+            } else {
+                console.log("❌ [DEBUG] Driver login tapi status tidak aktif:", status);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ [DEBUG] Error parsing logged in driver:', error);
+        }
+    }
+    
+    // 2. Fallback ke Firebase Auth
+    if (auth && auth.currentUser) {
+        console.log("✅ [DEBUG] Driver login via Firebase Auth, sinkronisasi...");
+        
+        // Panggil fungsi sinkronisasi
+        setTimeout(() => {
+            syncDriverFromFirebaseAuth();
+        }, 500);
+        
+        return true;
+    }
+    
+    console.log("❌ [DEBUG] Driver belum login");
+    return false;
 }
 
 // ==================== FUNGSI POPUP CUSTOM ====================
@@ -3325,13 +3269,6 @@ function processDriverData(driverData) {
         return false;
     }
 }
-    } catch (error) {
-        console.error('❌ Error checking driver data:', error);
-        showDriverNotRegistered();
-        setLoadingState('driverData', true);
-        return false;
-    }
-}
 
 function showDriverNotRegistered() {
     const ordersList = document.getElementById('ordersList');
@@ -4312,7 +4249,6 @@ function startRadarScanning() {
     console.log('📍 Radar scanning aktif');
 }
 
-
 // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
 function initJeGoApp() {
     console.log('🚀 Aplikasi JeGo diinisialisasi');
@@ -4539,8 +4475,7 @@ function setupEventListeners() {
             navigateToScreen(screen);
         });
     });
-    
-    
+}
 
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
 document.addEventListener('DOMContentLoaded', () => {
