@@ -92,7 +92,7 @@ function processStatusBatch() {
         batchProcessingTimeout = null;
     }
     
-    console.log(`🛒 Processing batch: ${batchToProcess.length} status updates`);
+    console.log(`🔄 Processing batch: ${batchToProcess.length} status updates`);
     
     const updatePromises = batchToProcess.map(item => {
         if (!checkFirebaseRateLimit()) {
@@ -134,13 +134,13 @@ function processStatusBatch() {
         });
 }
 
-// ==================== SISTEM LOADING STATUS ====================
+// ==================== SISTEM LOADING STATUS YANG DIPERBAIKI ====================
+// Hanya 5 state yang diperlukan sesuai aturan
 let loadingStates = {
     firebase: false,
     gps: false,
     orders: false,
     driverData: false,
-    filterTujuan: false,
     appInitialized: false
 };
 
@@ -149,41 +149,38 @@ let isFirstLoad = true;
 let firebaseRetryCount = 0;
 const MAX_FIREBASE_RETRY = 3;
 
-// TAMBAHAN: Timeout fallback untuk memastikan loading tidak selamanya
-let loadingFallbackTimeout = null;
-const LOADING_TIMEOUT_MS = 45000; // 45 detik
+// Failsafe: force close loading setelah 15 detik
+let loadingFailsafeTimeout = null;
 
 function checkAllLoadingComplete() {
+    console.log('🔍 Mengecek semua loading state:', loadingStates);
+    
     const allComplete = Object.values(loadingStates).every(state => state === true);
     
     if (allComplete) {
         console.log('✅ SEMUA LOADING SELESAI');
-        
-        // Clear fallback timeout
-        if (loadingFallbackTimeout) {
-            clearTimeout(loadingFallbackTimeout);
-            loadingFallbackTimeout = null;
-        }
-        
         hideLoading();
         clearLoadingTimeout();
+        if (loadingFailsafeTimeout) {
+            clearTimeout(loadingFailsafeTimeout);
+            loadingFailsafeTimeout = null;
+        }
         isFirstLoad = false;
     } else {
-        // Debug: Tampilkan state yang masih false
-        const pendingStates = Object.entries(loadingStates)
-            .filter(([key, value]) => !value)
-            .map(([key]) => key);
-        
-        if (pendingStates.length > 0) {
-            console.log(`⏳ Masih menunggu: ${pendingStates.join(', ')}`);
-        }
+        console.log('⏳ Masih menunggu loading state:', 
+            Object.keys(loadingStates).filter(key => !loadingStates[key]));
     }
 }
 
 function setLoadingState(key, value) {
-    loadingStates[key] = value;
-    console.log(`🔔 Loading state [${key}]: ${value}`, loadingStates);
-    checkAllLoadingComplete();
+    // Hanya izinkan key yang ada dalam loadingStates
+    if (key in loadingStates) {
+        loadingStates[key] = value;
+        console.log(`🔄 Loading state [${key}]: ${value}`);
+        checkAllLoadingComplete();
+    } else {
+        console.warn(`⚠️ Key loading state tidak valid: ${key}`);
+    }
 }
 
 function showLoading(message = 'Menyiapkan aplikasi...') {
@@ -196,25 +193,25 @@ function showLoading(message = 'Menyiapkan aplikasi...') {
     clearLoadingTimeout();
     loadingTimeout = setTimeout(() => {
         if (document.getElementById('loadingOverlay')?.style.display === 'flex') {
-            console.log('⚠️ Loading timeout - proses terlalu lama');
-            if (!database && firebaseRetryCount >= MAX_FIREBASE_RETRY) {
-                showPopup('Proses loading terlalu lama. Periksa koneksi internet atau restart aplikasi.', 'Peringatan', 'warning');
-            }
+            console.log('⚠️ Loading timeout - proses terlalu lama, force close');
+            hideLoading();
         }
     }, 30000);
 }
 
 function hideLoading() {
+    console.log('🛑 Menyembunyikan loading overlay');
     const loadingEl = document.getElementById('loadingOverlay');
     if (loadingEl) {
         loadingEl.style.display = 'none';
+        console.log('✅ Loading overlay disembunyikan');
     }
     clearLoadingTimeout();
     
-    // Juga clear fallback timeout
-    if (loadingFallbackTimeout) {
-        clearTimeout(loadingFallbackTimeout);
-        loadingFallbackTimeout = null;
+    // Juga sembunyikan radar jika masih tampil
+    const radarContainer = document.getElementById('radarContainer');
+    if (radarContainer && radarContainer.style.display === 'flex') {
+        console.log('📡 Radar tetap ditampilkan karena tidak ada order');
     }
 }
 
@@ -227,8 +224,18 @@ function clearLoadingTimeout() {
 
 // ==================== FUNGSI INITIALIZE FIREBASE YANG DIPERBAIKI ====================
 function initializeFirebase() {
-  console.log('🔔 Memulai inisialisasi Firebase...');
+  console.log('🔄 Memulai inisialisasi Firebase...');
   showLoading('Menyambungkan ke server...');
+  
+  // Failsafe: force close loading setelah 15 detik
+  loadingFailsafeTimeout = setTimeout(() => {
+    console.log('⏰ Failsafe: Force close loading setelah 15 detik');
+    setLoadingState('firebase', true);
+    setLoadingState('gps', true);
+    setLoadingState('driverData', true);
+    setLoadingState('orders', true);
+    setLoadingState('appInitialized', true);
+  }, 15000);
   
   setLoadingState('firebase', false);
   
@@ -239,7 +246,7 @@ function initializeFirebase() {
         
         if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
           firebaseRetryCount++;
-          console.log(`🔔 Coba lagi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
+          console.log(`🔄 Coba lagi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
           
           setTimeout(() => {
             if (typeof firebase !== 'undefined') {
@@ -252,6 +259,7 @@ function initializeFirebase() {
           return false;
         } else {
           console.error('❌ Firebase SDK tidak terload setelah beberapa percobaan');
+          // Tetap set true meskipun gagal
           setLoadingState('firebase', true);
           return false;
         }
@@ -278,7 +286,7 @@ function initializeFirebase() {
       
       if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
         firebaseRetryCount++;
-        console.log(`🔔 Retry inisialisasi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
+        console.log(`🔄 Retry inisialisasi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
         
         setTimeout(() => {
           proceedWithFirebaseInit();
@@ -286,27 +294,14 @@ function initializeFirebase() {
         return false;
       } else {
         console.error('❌ Firebase gagal diinisialisasi setelah beberapa percobaan');
+        // Tetap set true meskipun gagal
         setLoadingState('firebase', true);
         return false;
       }
     }
   }
   
-  // Jalankan dan handle jika return false
-  const result = proceedWithFirebaseInit();
-  
-  // Jika langsung false (akan retry), kita tetap perlu timeout
-  if (!result) {
-    setTimeout(() => {
-      // Cek apakah state masih false setelah timeout
-      if (!loadingStates.firebase) {
-        console.warn('⚠️ Firebase initialization timeout, force complete');
-        setLoadingState('firebase', true);
-      }
-    }, 15000);
-  }
-  
-  return result;
+  return proceedWithFirebaseInit();
 }
 
 function testFirebaseConnection() {
@@ -381,7 +376,6 @@ function getDriverData() {
                 driverStatus: driverData.driverStatus || driverData.status || 'pending',
                 createdAt: driverData.createdAt || new Date().toISOString(),
                 last_updated: new Date().toISOString(),
-                potongan: driverData.Potongan || driverData.potongan || 0, // Tambah field potongan
                 ...driverData
             };
             
@@ -424,9 +418,7 @@ async function fetchLatestDriverData(driverKey) {
     console.log("🔍 [DEBUG] Data terbaru dari Firebase:", {
       avg_rating: latestDriverData.avg_rating,
       total_trips: latestDriverData.total_trips,
-      name: latestDriverData.fullName,
-      potongan: latestDriverData.Potongan || latestDriverData.potongan,
-      Balance: latestDriverData.Balance || latestDriverData.balance
+      name: latestDriverData.fullName
     });
     
     const updatedDriverData = {
@@ -435,7 +427,6 @@ async function fetchLatestDriverData(driverKey) {
       driverId: driverKey,
       avgRating: latestDriverData.avg_rating || currentUserData.avgRating,
       totalTrips: latestDriverData.total_trips || currentUserData.totalTrips,
-      potongan: latestDriverData.Potongan || latestDriverData.potongan || currentUserData.potongan || 0,
       last_updated_from_firebase: new Date().toISOString()
     };
     
@@ -467,7 +458,7 @@ function startDriverDataRefresh() {
   
   userDataRefreshInterval = setInterval(async () => {
     if (currentUserData && currentUserData.driverId) {
-      console.log("🔔 [DEBUG] Auto-refresh driver data dari Firebase...");
+      console.log("🔄 [DEBUG] Auto-refresh driver data dari Firebase...");
       currentUserData = await fetchLatestDriverData(currentUserData.driverId);
     }
   }, 60000);
@@ -572,7 +563,7 @@ function closePopup() {
 
 // ==================== FUNGSI UTAMA SEND TO KODULAR - DIPERBAIKI ====================
 function sendToKodular(data) {
-    console.log('🛠️ Mengirim data ke Kodular:', data);
+    console.log('🔄 Mengirim data ke Kodular:', data);
     
     const jsonString = JSON.stringify(data);
     console.log('📦 Data JSON:', jsonString);
@@ -621,7 +612,7 @@ function sendToKodular(data) {
     }
     
     else if (window.location.href.indexOf('file://') === -1) {
-        console.log('📋 Coba metode prompt untuk debugging');
+        console.log('🔧 Coba metode prompt untuk debugging');
         try {
             const result = prompt('KodularBridge', jsonString);
             if (result) {
@@ -682,36 +673,6 @@ function canSystemProcessOrder(source) {
         return isAllowed;
     }
     return false;
-}
-
-// ==================== FUNGSI BARU: CEK SALDO DAN POTONGAN ====================
-function checkBalanceAndPotongan(order) {
-    if (!currentDriverData || !currentDriverBalance) {
-        console.log("❌ Data driver atau saldo tidak tersedia");
-        return false;
-    }
-    
-    const hargaOrder = order.harga_total || 0;
-    const potonganPersen = currentDriverData.potongan || 0;
-    
-    console.log(`💰 Cek saldo: Harga ${hargaOrder}, Potongan ${potonganPersen}%, Saldo ${currentDriverBalance}`);
-    
-    if (hargaOrder >= 10000 && potonganPersen > 0) {
-        const potonganAmount = Math.floor(hargaOrder * (potonganPersen / 100));
-        console.log(`📊 Potongan yang diperlukan: ${potonganAmount}`);
-        
-        if (currentDriverBalance >= potonganAmount) {
-            console.log(`✅ Saldo cukup: ${currentDriverBalance} >= ${potonganAmount}`);
-            return true;
-        } else {
-            console.log(`❌ Saldo tidak cukup: ${currentDriverBalance} < ${potonganAmount}`);
-            return false;
-        }
-    }
-    
-    // Jika harga < 10000 atau potongan = 0, tidak perlu cek saldo
-    console.log("✅ Tidak perlu potongan (harga < 10000 atau potongan = 0%)");
-    return true;
 }
 
 function checkLoginStatus() {
@@ -864,7 +825,7 @@ function toggleRadarAnimation(ordersCount) {
         // Aktifkan animasi radar
         startRadarAnimation();
         
-        console.log('🔔 Radar aktif - Mencari order...');
+        console.log('📡 Radar aktif - Mencari order...');
     } else {
         // Sembunyikan radar
         radarContainer.style.display = 'none';
@@ -1056,7 +1017,7 @@ function createRadarContainer() {
 
 // Fungsi untuk memulai animasi radar
 function startRadarAnimation() {
-    console.log('🔔 Memulai animasi radar...');
+    console.log('🔄 Memulai animasi radar...');
     
     sendToKodular({
         action: 'radar_active',
@@ -1114,7 +1075,7 @@ function navigateToScreen(screen) {
         timestamp: new Date().getTime()
     });
     
-    console.log(`🛠️ Hasil pengiriman navigasi ke ${screen}: ${success ? 'Berhasil' : 'Gagal'}`);
+    console.log(`🔄 Hasil pengiriman navigasi ke ${screen}: ${success ? 'Berhasil' : 'Gagal'}`);
     
     if (!success) {
         showPopup(`Navigasi ke ${screen} - Mode browser aktif`, 'Info', 'info');
@@ -1253,7 +1214,7 @@ function stopLocationTracking() {
         const driverId = currentDriverData.driverId;
         
         if (!checkFirebaseRateLimit()) {
-            console.log('⏳ Rate limit, delay update offline status');
+            console.log('⏸️ Rate limit, delay update offline status');
             setTimeout(() => {
                 database.ref('drivers/' + driverId).update({
                     latitude: null,
@@ -1298,7 +1259,7 @@ function sendLocationToFirebase() {
     }
     
     if (!checkFirebaseRateLimit()) {
-        console.log('⏳ Rate limit, delay location update');
+        console.log('⏸️ Rate limit, delay location update');
         return;
     }
     
@@ -1340,7 +1301,7 @@ function loadSettingsToUI() {
     const savedRadius = localStorage.getItem('jego_custom_radius');
     const savedFilterTujuan = localStorage.getItem('jego_filter_tujuan');
     
-    console.log('📝 Nilai savedAcceptKurir dari localStorage:', savedAcceptKurir);
+    console.log('🔍 Nilai savedAcceptKurir dari localStorage:', savedAcceptKurir);
     
     if (savedAcceptKurir !== null) {
         acceptKurirEnabled = savedAcceptKurir === 'true';
@@ -1436,7 +1397,7 @@ function updateStatusInfo() {
 function loadFilterTujuanFromFirebase() {
     if (!database) {
         console.log('❌ Database tidak tersedia untuk load filter tujuan');
-        setLoadingState('filterTujuan', true);
+        // TIDAK memanggil setLoadingState karena filterTujuan bukan bagian dari loading state
         return;
     }
     
@@ -1475,11 +1436,9 @@ function loadFilterTujuanFromFirebase() {
             }
         }
         
-        setLoadingState('filterTujuan', true);
         console.log('✅ Filter tujuan berhasil dimuat');
     }).catch(error => {
         console.error('❌ Error loading filter tujuan:', error);
-        setLoadingState('filterTujuan', true);
     });
 }
 
@@ -1503,7 +1462,7 @@ function setupSidebarNavigation() {
                 timestamp: new Date().getTime()
             });
             
-            console.log(`🛠️ Hasil pengiriman ke Kodular: ${success ? 'Berhasil' : 'Gagal'}`);
+            console.log(`🔄 Hasil pengiriman ke Kodular: ${success ? 'Berhasil' : 'Gagal'}`);
             
             closeSidebar();
             
@@ -1556,7 +1515,7 @@ function checkOrderInRadius(order) {
         order.from_lng
     );
     
-    console.log(`📍 Jarak driver ke order ${order.order_id || order.id}: ${distance.toFixed(2)} KM (Radius: ${customRadius}km)`);
+    console.log(`🔍 Jarak driver ke order ${order.order_id || order.id}: ${distance.toFixed(2)} KM (Radius: ${customRadius}km)`);
     
     return distance <= customRadius;
 }
@@ -1635,7 +1594,7 @@ function updateAutobidButton() {
     }
 }
 
-// ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL (DENGAN CEK SALDO) ====================
+// ==================== FUNGSI BARU: CEK ORDER UNTUK POPUP MANUAL ====================
 function checkOrdersForManualPopup() {
     if (!canSystemProcessOrder("auto")) {
         console.log("🚫 Manual Popup dihentikan: Tracking OFF");
@@ -1685,12 +1644,6 @@ function checkOrdersForManualPopup() {
                     return;
                 }
                 
-                // CEK SALDO DAN POTONGAN
-                if (!checkBalanceAndPotongan(order)) {
-                    console.log(`💰 Manual Popup: Saldo tidak cukup untuk order ${orderId}, skip`);
-                    return;
-                }
-                
                 processedOrders.add(orderId);
                 foundOrder = true;
                 
@@ -1709,7 +1662,7 @@ function checkOrdersForManualPopup() {
     }
 }
 
-// ==================== FUNGSI AUTOBID YANG DIPERBARUI (DENGAN CEK SALDO) ====================
+// ==================== FUNGSI AUTOBID YANG DIPERBARUI ====================
 function checkOrdersForAutobid() {
     if (!canSystemProcessOrder("auto")) {
         console.log("🚫 Autobid dihentikan: Tracking OFF");
@@ -1757,12 +1710,6 @@ function checkOrdersForAutobid() {
                     return;
                 }
                 
-                // CEK SALDO DAN POTONGAN
-                if (!checkBalanceAndPotongan(order)) {
-                    console.log(`💰 Autobid: Saldo tidak cukup untuk order ${orderId}, skip`);
-                    return;
-                }
-                
                 console.log(`🎉 Autobid: Order ${orderId} (NON-KURIR) memenuhi semua filter, menampilkan modal...`);
                 isAutobidProcessing = true;
                 processedOrders.add(orderId);
@@ -1803,6 +1750,7 @@ function startGPSMonitoring() {
     if (!navigator.geolocation) {
         console.error('❌ Browser tidak mendukung geolocation');
         updateGPSStatus(false, 'GPS tidak didukung');
+        // Tetap set true meskipun gagal
         setLoadingState('gps', true);
         return;
     }
@@ -1816,6 +1764,7 @@ function startGPSMonitoring() {
         (error) => {
             console.error('❌ Error mendapatkan lokasi:', error);
             handleLocationError(error);
+            // Tetap set true meskipun gagal
             setLoadingState('gps', true);
         },
         {
@@ -1970,11 +1919,6 @@ function showCustomerPhoto(photoUrl, customerName) {
     const largePhoto = document.getElementById('largeCustomerPhoto');
     const largeName = document.getElementById('largeCustomerName');
     
-    if (!photoModal || !largePhoto || !largeName) {
-        console.error('❌ Element photo modal tidak ditemukan');
-        return;
-    }
-    
     largePhoto.src = photoUrl;
     largePhoto.alt = customerName;
     largeName.textContent = customerName;
@@ -1990,7 +1934,7 @@ function closePhotoModal() {
 function updateDriverOfferStatus(orderId, driverId, status) {
     if (!orderId || !driverId || !status) return;
     
-    console.log(`📝 Queue status update: ${orderId} - ${driverId} - ${status}`);
+    console.log(`🔍 Queue status update: ${orderId} - ${driverId} - ${status}`);
     addToStatusBatch(orderId, driverId, status);
 }
 
@@ -2047,7 +1991,7 @@ function showOrderDetail(order) {
         
         const isInRadius = checkOrderInRadius(order);
         if (!isInRadius) {
-            showPopup(`Order kurir berada di luar radius (${customRadius}km). Aktifkan tracking untuk melihat order dalam radius.', 'Peringatan', 'warning');
+            showPopup(`Order kurir berada di luar radius (${customRadius}km). Aktifkan tracking untuk melihat order dalam radius.`, 'Peringatan', 'warning');
             return;
         }
         
@@ -2065,20 +2009,6 @@ function showOrderDetail(order) {
         if (!currentOrder || currentOrder.status !== 'searching') {
             showPopup('Order ini sudah diambil oleh driver lain.', 'Info', 'info');
             loadOrders();
-            return;
-        }
-        
-        // CEK SALDO DAN POTONGAN SEBELUM MENAMPILKAN MODAL
-        if (!checkBalanceAndPotongan(currentOrder)) {
-            const hargaOrder = currentOrder.harga_total || 0;
-            const potonganPersen = currentDriverData.potongan || 0;
-            const potonganAmount = Math.floor(hargaOrder * (potonganPersen / 100));
-            
-            showPopup(
-                `Saldo Anda tidak cukup untuk order ini. Diperlukan potongan ${potonganPersen}% dari Rp ${hargaOrder.toLocaleString('id-ID')} = Rp ${potonganAmount.toLocaleString('id-ID')}. Saldo Anda: Rp ${currentDriverBalance.toLocaleString('id-ID')}.`,
-                'Saldo Tidak Cukup',
-                'error'
-            );
             return;
         }
         
@@ -2168,37 +2098,6 @@ function showOrderDetail(order) {
             document.getElementById('driverDistanceContainer').style.display = 'none';
         }
         
-        // Tampilkan informasi potongan dan saldo
-        const hargaOrder = currentOrder.harga_total || 0;
-        const potonganPersen = currentDriverData.potongan || 0;
-        
-        if (hargaOrder >= 10000 && potonganPersen > 0) {
-            const potonganAmount = Math.floor(hargaOrder * (potonganPersen / 100));
-            const modalPotonganInfo = document.getElementById('modalPotonganInfo');
-            if (modalPotonganInfo) {
-                modalPotonganInfo.innerHTML = `
-                    <div style="background: #fff3cd; padding: 8px; border-radius: 6px; margin: 8px 0; border-left: 3px solid #ffc107;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
-                            <span>Potongan Driver (${potonganPersen}%):</span>
-                            <span style="font-weight: 600;">Rp ${potonganAmount.toLocaleString('id-ID')}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 4px;">
-                            <span>Saldo Anda:</span>
-                            <span style="font-weight: 600; color: ${currentDriverBalance >= potonganAmount ? '#28a745' : '#dc3545'}">
-                                Rp ${currentDriverBalance.toLocaleString('id-ID')}
-                            </span>
-                        </div>
-                    </div>
-                `;
-                modalPotonganInfo.style.display = 'block';
-            }
-        } else {
-            const modalPotonganInfo = document.getElementById('modalPotonganInfo');
-            if (modalPotonganInfo) {
-                modalPotonganInfo.style.display = 'none';
-            }
-        }
-        
         document.getElementById('closeModal').style.display = 'none';
         
         document.getElementById('countdownContainer').style.display = 'none';
@@ -2218,7 +2117,7 @@ function showOrderDetail(order) {
     });
 }
 
-// ==================== FUNGSI MODAL AUTOBID - DIUBAH (DENGAN CEK SALDO) ====================
+// ==================== FUNGSI MODAL AUTOBID - DIUBAH ====================
 function showAutobidOrderModal(order) {
     if (!checkDriverData()) return;
 
@@ -2229,14 +2128,6 @@ function showAutobidOrderModal(order) {
         const currentOrder = snapshot.val();
         
         if (!currentOrder || currentOrder.status !== 'searching') {
-            isAutobidProcessing = false;
-            processedOrders.delete(orderKey);
-            return;
-        }
-        
-        // CEK SALDO DAN POTONGAN SEBELUM MENAMPILKAN MODAL
-        if (!checkBalanceAndPotongan(currentOrder)) {
-            console.log(`💰 Autobid: Saldo tidak cukup untuk order ${orderKey}, skip`);
             isAutobidProcessing = false;
             processedOrders.delete(orderKey);
             return;
@@ -2302,37 +2193,6 @@ function showAutobidOrderModal(order) {
             `;
         } else {
             autobidDeliveryInfo.innerHTML = '';
-        }
-        
-        // Tampilkan informasi potongan dan saldo di modal autobid
-        const hargaOrder = currentOrder.harga_total || 0;
-        const potonganPersen = currentDriverData.potongan || 0;
-        
-        if (hargaOrder >= 10000 && potonganPersen > 0) {
-            const potonganAmount = Math.floor(hargaOrder * (potonganPersen / 100));
-            const autobidPotonganInfo = document.getElementById('autobidPotonganInfo');
-            if (autobidPotonganInfo) {
-                autobidPotonganInfo.innerHTML = `
-                    <div style="background: #d4edda; padding: 8px; border-radius: 6px; margin: 8px 0; border-left: 3px solid #28a745;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
-                            <span>Potongan Driver (${potonganPersen}%):</span>
-                            <span style="font-weight: 600;">Rp ${potonganAmount.toLocaleString('id-ID')}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-top: 4px;">
-                            <span>Saldo Anda:</span>
-                            <span style="font-weight: 600; color: #28a745">
-                                Rp ${currentDriverBalance.toLocaleString('id-ID')} ✅
-                            </span>
-                        </div>
-                    </div>
-                `;
-                autobidPotonganInfo.style.display = 'block';
-            }
-        } else {
-            const autobidPotonganInfo = document.getElementById('autobidPotonganInfo');
-            if (autobidPotonganInfo) {
-                autobidPotonganInfo.style.display = 'none';
-            }
         }
         
         autobidProgressTimeLeft = 30;
@@ -2436,24 +2296,6 @@ function sendAutobidOffer() {
             return;
         }
         
-        // CEK ULANG SALDO DAN POTONGAN SEBELUM MENGIRIM PENAWARAN
-        if (!checkBalanceAndPotongan(currentOrder)) {
-            const hargaOrder = currentOrder.harga_total || 0;
-            const potonganPersen = currentDriverData.potongan || 0;
-            const potonganAmount = Math.floor(hargaOrder * (potonganPersen / 100));
-            
-            showPopup(
-                `Saldo Anda tidak cukup untuk order ini. Diperlukan potongan ${potonganPersen}% dari Rp ${hargaOrder.toLocaleString('id-ID')} = Rp ${potonganAmount.toLocaleString('id-ID')}. Saldo Anda: Rp ${currentDriverBalance.toLocaleString('id-ID')}.`,
-                'Saldo Tidak Cukup',
-                'error'
-            );
-            
-            closeAutobidModal();
-            isAutobidProcessing = false;
-            processedOrders.delete(orderId);
-            return;
-        }
-        
         const priorityData = getDriverPriorityData();
         const driverDistance = getDriverToPickupDistance(currentOrder);
         const priorityScore = calculatePriorityScore(
@@ -2479,7 +2321,7 @@ function sendAutobidOffer() {
         };
         
         if (!checkFirebaseRateLimit()) {
-            console.log('⏳ Rate limit, delay autobid offer');
+            console.log('⏸️ Rate limit, delay autobid offer');
             setTimeout(() => {
                 sendAutobidOffer();
             }, 2000);
@@ -2716,7 +2558,7 @@ function sendOrdersToKodular(orders) {
         }))
     };
     
-    console.log('🛠️ Mengirim data orders ke Kodular:', data);
+    console.log('🔄 Mengirim data orders ke Kodular:', data);
     sendToKodular(data);
     
     lastSentOrdersCount = currentCount;
@@ -2785,8 +2627,9 @@ function loadOrders() {
                 // Tampilkan radar animasi
                 toggleRadarAnimation(0);
                 
-                sendOrdersToKodular([]);
+                // Tetap set loading state ke true meskipun order kosong
                 setLoadingState('orders', true);
+                sendOrdersToKodular([]);
                 return;
             }
 
@@ -2796,6 +2639,7 @@ function loadOrders() {
             console.error('❌ Error loading orders dari Firebase:', error);
             clearTimeout(loadingTimeout);
             showConnectionError();
+            // Tetap set true meskipun error
             setLoadingState('orders', true);
         });
         
@@ -2803,6 +2647,7 @@ function loadOrders() {
         console.error('❌ Error accessing Firebase:', error);
         clearTimeout(loadingTimeout);
         showConnectionError();
+        // Tetap set true meskipun error
         setLoadingState('orders', true);
     }
 }
@@ -3017,11 +2862,12 @@ function checkDriverData() {
         
         const driverData = getDriverData();
         
-        console.log('📝 Data driver dari getDriverData:', driverData ? 'Ada' : 'Tidak ada');
+        console.log('🔍 Data driver dari getDriverData:', driverData ? 'Ada' : 'Tidak ada');
         
         if (!driverData) {
             console.log('❌ Tidak ada data driver valid di localStorage');
             showDriverNotRegistered();
+            // Tetap set true meskipun gagal
             setLoadingState('driverData', true);
             return false;
         }
@@ -3077,12 +2923,14 @@ function checkDriverData() {
         } else {
             console.log('❌ Data driver tidak lengkap');
             showDriverNotRegistered();
+            // Tetap set true meskipun gagal
             setLoadingState('driverData', true);
             return false;
         }
     } catch (error) {
         console.error('❌ Error checking driver data:', error);
         showDriverNotRegistered();
+        // Tetap set true meskipun gagal
         setLoadingState('driverData', true);
         return false;
     }
@@ -3370,23 +3218,6 @@ function sendDriverOffer() {
             return;
         }
         
-        // CEK ULANG SALDO DAN POTONGAN SEBELUM MENGIRIM PENAWARAN
-        if (!checkBalanceAndPotongan(currentOrder)) {
-            const hargaOrder = currentOrder.harga_total || 0;
-            const potonganPersen = currentDriverData.potongan || 0;
-            const potonganAmount = Math.floor(hargaOrder * (potonganPersen / 100));
-            
-            showPopup(
-                `Saldo Anda tidak cukup untuk order ini. Diperlukan potongan ${potonganPersen}% dari Rp ${hargaOrder.toLocaleString('id-ID')} = Rp ${potonganAmount.toLocaleString('id-ID')}. Saldo Anda: Rp ${currentDriverBalance.toLocaleString('id-ID')}.`,
-                'Saldo Tidak Cukup',
-                'error'
-            );
-            
-            ambilBtn.disabled = false;
-            ambilBtn.textContent = 'Kirim Penawaran';
-            return;
-        }
-        
         const priorityData = getDriverPriorityData();
         const driverDistance = getDriverToPickupDistance(currentOrder);
         const priorityScore = calculatePriorityScore(
@@ -3411,7 +3242,7 @@ function sendDriverOffer() {
         };
         
         if (!checkFirebaseRateLimit()) {
-            console.log('⏳ Rate limit, delay driver offer');
+            console.log('⏸️ Rate limit, delay driver offer');
             setTimeout(() => {
                 sendDriverOffer();
             }, 2000);
@@ -3543,7 +3374,7 @@ function initializeBalanceSystem() {
     
     function checkBalance() {
         if (!checkFirebaseRateLimit()) {
-            console.log('⏳ Rate limit, delay balance check');
+            console.log('⏸️ Rate limit, delay balance check');
             setTimeout(checkBalance, 5000);
             return;
         }
@@ -3717,7 +3548,7 @@ function startActiveOrderListener(orderId) {
         const completedStatuses = ['completed', 'cancelled', 'rejected', 'failed'];
         
         if (completedStatuses.includes(order.status)) {
-            console.log('📝 Status order berubah ke selesai/dibatalkan:', order.status);
+            console.log('🔍 Status order berubah ke selesai/dibatalkan:', order.status);
             removeAcceptedOrderFromLocalStorage();
             stopActiveOrderListener();
             hideActiveOrderNotification();
@@ -3803,7 +3634,7 @@ function showActiveOrderNotification(order) {
         });
     });
     
-    console.log('🔔 Notifikasi order berjalan ditampilkan untuk status:', order.status);
+    console.log('📢 Notifikasi order berjalan ditampilkan untuk status:', order.status);
 }
 
 // ==================== FUNGSI TAMBAHAN UNTUK REFRESH ====================
@@ -3991,7 +3822,7 @@ function showRadarSearch() {
     
     ordersList.innerHTML = `
         <div class="empty-state-with-radar">
-            <div class="empty-state-title">🔔 Mencari Order Terdekat...</div>
+            <div class="empty-state-title">📡 Mencari Order Terdekat...</div>
             <div class="empty-state-subtitle">
                 Sistem sedang memindai area sekitar Anda untuk menemukan order yang tersedia.
             </div>
@@ -4035,7 +3866,7 @@ function showLoadingRadar(message = 'Menyiapkan aplikasi...') {
 }
 
 function startRadarScanning() {
-    console.log('🔔 Memulai radar scanning...');
+    console.log('📡 Memulai radar scanning...');
     
     if (!driverLocation.latitude || !driverLocation.longitude) {
         console.log('📍 GPS tidak aktif, radar scanning menunggu lokasi...');
@@ -4059,24 +3890,52 @@ function startRadarScanning() {
     console.log('📍 Radar scanning aktif');
 }
 
+// ==================== FUNGSI BARU: SIMULASI ORDER BARU (UNTUK DEMO) ====================
+
+function simulateNewOrderForDemo() {
+    if (window.location.href.indexOf('file://') !== -1 || 
+        window.location.hostname === 'localhost') {
+        
+        const ordersList = document.getElementById('ordersList');
+        if (!ordersList) return;
+        
+        const radar = ordersList.querySelector('.radar-container');
+        if (radar) {
+            console.log('🎬 Mode Demo: Simulasi order baru ditemukan');
+            
+            ordersList.innerHTML = `
+                <div class="empty-state-with-radar">
+                    <div class="empty-state-title" style="color: #ffffff;">🎉 ORDER DITEMUKAN!</div>
+                    <div class="empty-state-subtitle">
+                        Radar berhasil menemukan order baru dalam radius Anda. 
+                        Order akan segera muncul di daftar.
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button onclick="refreshData()" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            Muat Ulang Daftar Order
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            sendToKodular({
+                action: 'demo_order_found',
+                message: 'Order baru ditemukan dalam radius pencarian'
+            });
+        }
+    }
+}
+
 // ==================== FUNGSI UTAMA INISIALISASI APLIKASI ====================
 function initJeGoApp() {
     console.log('🚀 Aplikasi JeGo diinisialisasi');
     
-    // Setup fallback timeout 45 detik
-    loadingFallbackTimeout = setTimeout(() => {
-        console.warn('⚠️ Loading timeout - Force hide loading');
-        hideLoading();
-        
-        // Set semua state ke true untuk mencegah loading muncul lagi
-        Object.keys(loadingStates).forEach(key => {
-            loadingStates[key] = true;
-        });
-        
-        showPopup('Proses loading timeout. Beberapa fitur mungkin tidak tersedia.', 'Peringatan', 'warning');
-    }, LOADING_TIMEOUT_MS);
-    
     if (!checkLoginStatus()) {
+        console.log('🛑 Login tidak valid, set semua loading state ke true');
+        setLoadingState('firebase', true);
+        setLoadingState('gps', true);
+        setLoadingState('driverData', true);
+        setLoadingState('orders', true);
         setLoadingState('appInitialized', true);
         return;
     }
@@ -4113,7 +3972,7 @@ function initJeGoApp() {
         console.log('✅ Order yang diterima ditemukan di localStorage');
     }
     
-    console.log('📋 STATUS SISTEM FINAL:');
+    console.log('🔧 STATUS SISTEM FINAL:');
     console.log('- Tracking:', locationTrackingEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Autobid:', autobidEnabled ? '✅ ON' : '❌ OFF');
     console.log('- Terima Kurir:', acceptKurirEnabled ? '✅ ON' : '❌ OFF');
@@ -4121,7 +3980,9 @@ function initJeGoApp() {
     console.log('- Validasi Sistem:', canSystemProcessOrder("auto") ? '✅ Aktif' : '❌ Nonaktif');
     console.log('- Radar System:', '✅ Siap');
     
+    // Set appInitialized ke true setelah semua proses selesai
     setTimeout(() => {
+        console.log('✅ Aplikasi siap, set appInitialized ke true');
         setLoadingState('appInitialized', true);
     }, 3000);
 }
@@ -4249,52 +4110,50 @@ function setupEventListeners() {
             navigateToScreen(screen);
         });
     });
+    
+    if (window.location.href.indexOf('file://') !== -1 || 
+        window.location.hostname === 'localhost') {
+        
+        setTimeout(() => {
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls && !document.getElementById('demoOrderBtn')) {
+                const demoBtn = document.createElement('button');
+                demoBtn.id = 'demoOrderBtn';
+                demoBtn.innerHTML = '🎬 DEMO';
+                demoBtn.style.cssText = `
+                    background: rgba(255, 107, 53, 0.2);
+                    color: #ff6b35;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.75rem;
+                    margin-left: 8px;
+                `;
+                demoBtn.title = 'Simulasi order baru (hanya untuk demo)';
+                demoBtn.addEventListener('click', simulateNewOrderForDemo);
+                
+                headerControls.appendChild(demoBtn);
+            }
+        }, 2000);
+    }
 }
 
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Halaman JeGo Driver dimuat - DOM ready');
-    
-    // Log initial states
-    console.log('📋 Initial loading states:', loadingStates);
-    
-    // Buat tombol emergency
-    const forceBtn = document.createElement('button');
-    forceBtn.id = 'forceHideLoading';
-    forceBtn.textContent = 'Force Hide Loading';
-    forceBtn.style.cssText = 'position:fixed; bottom:10px; right:10px; z-index:9999; padding:10px; background:red; color:white; border:none; border-radius:5px; cursor:pointer; display:none;';
-    
-    forceBtn.addEventListener('click', () => {
-        console.warn('🚨 MANUAL: Force hiding loading overlay');
-        hideLoading();
-        
-        // Set semua state ke true
-        Object.keys(loadingStates).forEach(key => {
-            loadingStates[key] = true;
-        });
-        
-        forceBtn.style.display = 'none';
-    });
-    
-    document.body.appendChild(forceBtn);
-    
-    // Tampilkan tombol setelah 30 detik
-    setTimeout(() => {
-        forceBtn.style.display = 'block';
-    }, 30000);
+    console.log('🚀 Halaman JeGo Driver dimuat');
     
     setTimeout(() => {
-        console.log('⏳ Memulai inisialisasi Firebase...');
         const firebaseInitialized = initializeFirebase();
-        console.log('📊 Firebase initialization result:', firebaseInitialized);
         
-        if (!firebaseInitialized) {
-            console.log('⚠️ Firebase belum siap, akan coba init app nanti...');
-            // Coba init app setelah delay
+        if (firebaseInitialized) {
+            console.log('✅ Firebase siap, inisialisasi aplikasi...');
+        } else {
+            console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
             setTimeout(() => {
-                console.log('🔄 Mencoba init app setelah delay...');
                 initJeGoApp();
-            }, 5000);
+            }, 3000);
         }
     }, 1000);
 });
@@ -4322,12 +4181,6 @@ window.addEventListener('beforeunload', () => {
         }
     }
     stopDriverDataRefresh();
-    
-    // Clear fallback timeout
-    if (loadingFallbackTimeout) {
-        clearTimeout(loadingFallbackTimeout);
-        loadingFallbackTimeout = null;
-    }
     
     processStatusBatch();
 });
