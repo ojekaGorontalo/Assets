@@ -461,7 +461,7 @@
     // FUNGSI UTILITAS
     // ================================================
     
-    // Fungsi untuk mengirim data ke Kodular
+    // Fungsi untuk mengirim data ke Kodular (hanya untuk driver belum login)
     function sendToKodular(data) {
       const kodularData = {
         action: 'screen_navigation',
@@ -469,7 +469,7 @@
         ...data
       };
       
-      console.log('Data ke Kodular:', kodularData);
+      console.log('📤 Data ke Kodular:', kodularData);
       
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
@@ -477,7 +477,7 @@
           console.log('✅ Data berhasil dikirim ke Kodular');
           return true;
         } catch (error) {
-          console.error('Error mengirim data via AppInventor:', error);
+          console.error('❌ Error mengirim data via AppInventor:', error);
         }
       } 
       
@@ -487,7 +487,7 @@
           console.log('✅ Data berhasil dikirim ke Kodular');
           return true;
         } catch (error) {
-          console.error('Error mengirim data via window.android:', error);
+          console.error('❌ Error mengirim data via window.android:', error);
         }
       } 
       
@@ -497,7 +497,7 @@
           console.log('✅ Data berhasil dikirim ke Kodular');
           return true;
         } catch (error) {
-          console.error('Error mengirim data via webkit.messageHandlers:', error);
+          console.error('❌ Error mengirim data via webkit.messageHandlers:', error);
         }
       }
       
@@ -505,12 +505,11 @@
       return false;
     }
     
-    // Fungsi untuk mengirim status login saat halaman dibuka
+    // Fungsi untuk mengirim status login saat halaman dibuka (untuk sinkronisasi)
     function sendInitialLoginStatus() {
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      // Tentukan status login
       let loginStatus = 'none';
       if (userLoggedIn && driverLoggedIn) {
         loginStatus = 'dual';
@@ -520,12 +519,12 @@
         loginStatus = 'driver_only';
       }
       
-      console.log('📤 Mengirim status login awal ke Kodular:', loginStatus);
+      console.log('📊 Status login awal:', loginStatus);
       
-      // Kirim data ke Kodular dengan informasi status login
+      // Kirim data ke Kodular untuk sinkronisasi
       sendToKodular({
         target: 'main_screen',
-        screen: 'Screen1', // Asumsi halaman utama adalah Screen1
+        screen: 'Screen1',
         login_status: loginStatus,
         user_logged_in: userLoggedIn ? true : false,
         driver_logged_in: driverLoggedIn ? true : false,
@@ -533,9 +532,17 @@
       });
     }
 
-    // Fungsi untuk membuka halaman login User
+    // Fungsi untuk redirect langsung ke halaman HTML
+    function redirectTo(url) {
+      console.log(`🔄 Redirect ke: ${url}`);
+      window.location.href = url;
+    }
+
+    // ================================================
+    // FUNGSI LOGIN USER (REVISI)
+    // ================================================
     function openUserLogin() {
-      console.log('Membuka halaman login User...');
+      console.log('👤 Membuka halaman login User...');
       
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
@@ -557,32 +564,22 @@
           // Update UI
           updateLoginStatus();
           
-          // Redirect ke dashboard user (karena user masih login)
-          sendToKodular({
-            target: 'user_dashboard',
-            screen: 'Screen2',
-            auto_login: true,
-            message: 'Navigasi ke dashboard user (setelah logout driver)'
-          });
+          // REDIRECT LANGSUNG ke jenis_kenderaan.html
+          redirectTo('jenis_kenderaan.html');
         }
         return;
       }
       
       // SKENARIO 2: Hanya user yang sudah login
       if (userLoggedIn) {
-        console.log('User sudah login, langsung ke dashboard');
-        sendToKodular({
-          target: 'user_dashboard',
-          screen: 'Screen2',
-          auto_login: true,
-          message: 'Navigasi ke dashboard user'
-        });
+        console.log('✅ User sudah login, redirect ke jenis_kenderaan.html');
+        redirectTo('jenis_kenderaan.html');
         return;
       }
       
       // SKENARIO 3: Hanya driver yang login, user belum login
       if (!userLoggedIn && driverLoggedIn) {
-        console.log('Driver login, user belum login - tanyakan konfirmasi');
+        console.log('🚗 Driver login, user belum login - tanyakan konfirmasi');
         
         if (confirm(
           'Anda sudah login sebagai Driver.\n\n' +
@@ -596,27 +593,22 @@
           // Update UI
           updateLoginStatus();
           
-          // Redirect ke login user
-          sendToKodular({
-            target: 'user_login',
-            screen: 'loginUser',
-            message: 'Navigasi ke login user'
-          });
+          // REDIRECT LANGSUNG ke loginUser.html
+          redirectTo('loginUser.html');
         }
         return;
       }
       
       // SKENARIO 4: Belum login sama sekali
-      sendToKodular({
-        target: 'user_login',
-        screen: 'loginUser',
-        message: 'Navigasi ke halaman login user'
-      });
+      console.log('🔐 User belum login, redirect ke loginUser.html');
+      redirectTo('loginUser.html');
     }
 
-    // Fungsi untuk membuka halaman login Driver
+    // ================================================
+    // FUNGSI LOGIN DRIVER (REVISI)
+    // ================================================
     function openDriverLogin() {
-      console.log('Membuka halaman login Driver...');
+      console.log('🚗 Membuka halaman login Driver...');
       
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
@@ -638,32 +630,22 @@
           // Update UI
           updateLoginStatus();
           
-          // Redirect ke dashboard driver (karena driver masih login)
-          sendToKodular({
-            target: 'driver_dashboard',
-            screen: 'Screen3',
-            auto_login: true,
-            message: 'Navigasi ke dashboard driver (setelah logout user)'
-          });
+          // REDIRECT LANGSUNG ke list1.html
+          redirectTo('list1.html');
         }
         return;
       }
       
       // SKENARIO 2: Hanya driver yang sudah login
       if (driverLoggedIn) {
-        console.log('Driver sudah login, langsung ke dashboard');
-        sendToKodular({
-          target: 'driver_dashboard',
-          screen: 'Screen3',
-          auto_login: true,
-          message: 'Navigasi ke dashboard driver'
-        });
+        console.log('✅ Driver sudah login, redirect ke list1.html');
+        redirectTo('list1.html');
         return;
       }
       
       // SKENARIO 3: Hanya user yang login, driver belum login
       if (userLoggedIn && !driverLoggedIn) {
-        console.log('User login, driver belum login - tanyakan konfirmasi');
+        console.log('👤 User login, driver belum login - tanyakan konfirmasi');
         
         if (confirm(
           'Anda sudah login sebagai User.\n\n' +
@@ -677,7 +659,7 @@
           // Update UI
           updateLoginStatus();
           
-          // Redirect ke login driver
+          // KIRIM KE KODULAR (karena driver belum login)
           sendToKodular({
             target: 'driver_login',
             screen: 'loginDriver',
@@ -687,7 +669,8 @@
         return;
       }
       
-      // SKENARIO 4: Belum login sama sekali
+      // SKENARIO 4: Belum login sama sekali - KIRIM KE KODULAR
+      console.log('🔐 Driver belum login, kirim ke Kodular');
       sendToKodular({
         target: 'driver_login',
         screen: 'loginDriver',
@@ -695,12 +678,14 @@
       });
     }
 
-    // Fungsi untuk update status login di UI
+    // ================================================
+    // FUNGSI UPDATE STATUS LOGIN DI UI
+    // ================================================
     function updateLoginStatus() {
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      console.log('Update UI - User:', userLoggedIn ? 'Ya' : 'Tidak', 'Driver:', driverLoggedIn ? 'Ya' : 'Tidak');
+      console.log('🔄 Update UI - User:', userLoggedIn ? 'Ya' : 'Tidak', 'Driver:', driverLoggedIn ? 'Ya' : 'Tidak');
       
       // Update header status
       const headerStatus = document.getElementById('headerLoginStatus');
@@ -780,7 +765,9 @@
       }
     }
 
-    // Fungsi untuk logout semua akun
+    // ================================================
+    // FUNGSI LOGOUT SEMUA AKUN
+    // ================================================
     function logoutAll() {
       if (confirm('Anda yakin ingin logout dari semua akun?')) {
         localStorage.removeItem('jego_logged_in_user');
@@ -789,7 +776,7 @@
         
         updateLoginStatus();
         
-        // Kirim status logout ke Kodular
+        // Kirim status logout ke Kodular untuk sinkronisasi
         sendToKodular({
           target: 'main_screen',
           screen: 'Screen1',
@@ -805,7 +792,7 @@
     }
 
     // ================================================
-    // AUTO-REDIRECT JIKA HANYA SATU YANG LOGIN
+    // AUTO-REDIRECT JIKA HANYA SATU YANG LOGIN (REVISI)
     // ================================================
     function autoRedirectIfSingleLogin() {
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
@@ -819,28 +806,18 @@
       
       // Redirect jika hanya user yang login
       if (userLoggedIn && !driverLoggedIn) {
-        console.log('✅ Hanya user login, auto-redirect ke dashboard user');
+        console.log('✅ Hanya user login, auto-redirect ke jenis_kenderaan.html');
         setTimeout(() => {
-          sendToKodular({
-            target: 'user_dashboard',
-            screen: 'Screen2',
-            auto_login: true,
-            message: 'Auto-navigate ke dashboard user'
-          });
+          redirectTo('jenis_kenderaan.html');
         }, 1000);
         return;
       }
       
       // Redirect jika hanya driver yang login
       if (!userLoggedIn && driverLoggedIn) {
-        console.log('✅ Hanya driver login, auto-redirect ke dashboard driver');
+        console.log('✅ Hanya driver login, auto-redirect ke list1.html');
         setTimeout(() => {
-          sendToKodular({
-            target: 'driver_dashboard',
-            screen: 'Screen3',
-            auto_login: true,
-            message: 'Auto-navigate ke dashboard driver'
-          });
+          redirectTo('list1.html');
         }, 1000);
       }
     }
@@ -854,8 +831,7 @@
       // Update status login
       updateLoginStatus();
       
-      // KIRIM STATUS LOGIN KE KODULAR SETIAP KALI HALAMAN DIBUKA
-      // Termasuk ketika tidak ada yang login
+      // Kirim status login ke Kodular untuk sinkronisasi
       sendInitialLoginStatus();
       
       // Cek apakah perlu auto-redirect
