@@ -3258,7 +3258,7 @@ function checkActiveOrderForDriver() {
     }).catch(error => {
         console.error('❌ Error checking active orders:', error);
     });
-}
+} 
 
 function startActiveOrderListener(orderId) {
     stopActiveOrderListener();
