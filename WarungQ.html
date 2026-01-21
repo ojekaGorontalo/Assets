@@ -1,3 +1,5 @@
+[file name]: WarungQ.html
+[file content begin]
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -420,8 +422,8 @@
             font-weight: 600;
         }
         
-        /* Status Tracking Section */
-        .tracking-section {
+        /* Status Pesanan Section - DIUBAH */
+        .order-history-section {
             background: white;
             border-radius: 12px;
             padding: 25px;
@@ -429,13 +431,25 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         
-        .tracking-form {
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .history-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .phone-input-container {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
         
-        .tracking-form input {
+        .phone-input-container input {
             flex: 1;
             padding: 12px 15px;
             border: 1px solid #ddd;
@@ -443,7 +457,7 @@
             font-size: 1rem;
         }
         
-        .track-btn {
+        .check-orders-btn {
             background: #3498db;
             color: white;
             border: none;
@@ -451,37 +465,131 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .order-status-container {
-            display: none;
+        .order-history-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .order-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .order-card.completed {
+            border-left-color: #00b894;
+        }
+        
+        .order-card.processing {
+            border-left-color: #f39c12;
+        }
+        
+        .order-card.pending {
+            border-left-color: #e74c3c;
+        }
+        
+        .order-card.delivering {
+            border-left-color: #9b59b6;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .order-id {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .order-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .order-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #ffeaa7;
+            color: #e17055;
+        }
+        
+        .status-processing {
+            background: #fab1a0;
+            color: #d63031;
+        }
+        
+        .status-ready {
+            background: #a29bfe;
+            color: #6c5ce7;
+        }
+        
+        .status-delivering {
+            background: #81ecec;
+            color: #00cec9;
+        }
+        
+        .status-completed {
+            background: #55efc4;
+            color: #00b894;
+        }
+        
+        .order-items {
+            margin: 10px 0;
+            color: #636e72;
+        }
+        
+        .order-total {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: right;
+            margin-top: 10px;
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 30px;
+            color: #999;
         }
         
         .status-timeline {
             position: relative;
             padding: 20px 0;
-            max-width: 600px;
-            margin: 0 auto;
+            margin-top: 15px;
         }
         
         .status-step {
             display: flex;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             position: relative;
             z-index: 2;
         }
         
         .status-icon {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: #eee;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-right: 15px;
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: #666;
         }
         
@@ -502,29 +610,23 @@
         .status-info h4 {
             margin-bottom: 5px;
             color: #333;
+            font-size: 1rem;
         }
         
         .status-info p {
             color: #666;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
         
         .status-timeline::before {
             content: '';
             position: absolute;
-            left: 20px;
+            left: 16px;
             top: 0;
             bottom: 0;
             width: 2px;
             background: #eee;
             z-index: 1;
-        }
-        
-        .order-details {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
         }
         
         /* Footer */
@@ -582,7 +684,13 @@
                 grid-template-columns: 1fr;
             }
             
-            .tracking-form {
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .phone-input-container {
                 flex-direction: column;
             }
             
@@ -612,20 +720,6 @@
             border-radius: 8px;
             margin: 10px 0;
         }
-        
-        /* Map Container */
-        .map-container {
-            height: 200px;
-            margin: 20px 0;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #ddd;
-        }
-        
-        #orderMap {
-            width: 100%;
-            height: 100%;
-        }
     </style>
 </head>
 <body>
@@ -641,9 +735,6 @@
                     </div>
                 </div>
                 <div class="header-nav">
-                    <a href="#" class="nav-link" id="trackOrderBtn">
-                        <i class="fas fa-truck"></i> Lacak Pesanan
-                    </a>
                     <div class="cart-icon" id="cartIcon">
                         <i class="fas fa-shopping-cart"></i>
                         <span class="cart-count" id="cartCount">0</span>
@@ -733,33 +824,30 @@
             </aside>
         </div>
 
-        <!-- Order Tracking Section -->
-        <section class="tracking-section">
-            <h2><i class="fas fa-truck"></i> Lacak Pesanan Anda</h2>
-            <div class="tracking-form">
-                <input type="text" id="trackOrderInput" placeholder="Masukkan ID Pesanan Anda (contoh: WQ-123456)">
-                <button class="track-btn" id="trackOrderSubmit">
-                    <i class="fas fa-search"></i> Lacak
+        <!-- Order History Section - DIUBAH -->
+        <section class="order-history-section">
+            <div class="history-header">
+                <h2><i class="fas fa-history"></i> Status & Riwayat Pesanan</h2>
+                <div class="history-controls">
+                    <button class="check-orders-btn" id="refreshOrders">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            
+            <div class="phone-input-container">
+                <input type="tel" id="checkPhoneInput" placeholder="Masukkan No. WhatsApp Anda untuk melihat pesanan">
+                <button class="check-orders-btn" id="checkOrdersBtn">
+                    <i class="fas fa-search"></i> Cek Pesanan
                 </button>
             </div>
             
-            <div class="order-status-container" id="orderStatusContainer">
-                <h3>Status Pesanan: <span id="orderStatusText"></span></h3>
-                <div class="status-timeline" id="statusTimeline">
-                    <!-- Status steps will be inserted here by JavaScript -->
-                </div>
-                
-                <div class="order-details" id="orderDetails">
-                    <!-- Order details will be inserted here by JavaScript -->
-                </div>
-                
-                <!-- Map Container -->
-                <div class="map-container">
-                    <div id="orderMap"></div>
+            <div id="orderHistoryContainer">
+                <div class="no-orders">
+                    <i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
+                    <p>Masukkan nomor WhatsApp Anda untuk melihat status pesanan</p>
                 </div>
             </div>
-            
-            <div id="trackingError" class="error" style="display: none;"></div>
         </section>
     </div>
 
@@ -770,7 +858,7 @@
             <h2>Pesanan Berhasil!</h2>
             <p>Terima kasih <span id="customerNameSuccess"></span>, pesanan Anda telah kami terima.</p>
             <p>No. Pesanan: <strong id="orderId"></strong></p>
-            <p>Simpan ID pesanan ini untuk melacak status pesanan Anda.</p>
+            <p>Status pesanan Anda dapat dilihat di bagian "Status & Riwayat Pesanan" dengan menggunakan nomor WhatsApp yang sama.</p>
             <p>Kami akan menghubungi Anda via WhatsApp untuk konfirmasi.</p>
             <button class="modal-close" id="modalClose">Tutup</button>
         </div>
@@ -784,8 +872,8 @@
                 <a href="admin.html" target="_blank">
                     <i class="fas fa-lock"></i> Halaman Admin
                 </a>
-                <a href="#" id="trackOrderFooter">
-                    <i class="fas fa-truck"></i> Lacak Pesanan
+                <a href="#" id="viewOrdersFooter">
+                    <i class="fas fa-history"></i> Lihat Pesanan Saya
                 </a>
                 <a href="#" id="contactUs">
                     <i class="fas fa-phone"></i> Hubungi Kami
@@ -797,9 +885,6 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <!-- Leaflet Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
         // Firebase Configuration
@@ -821,8 +906,6 @@
         let menuData = [];
         let cart = {};
         let userLocation = null;
-        let map = null;
-        let marker = null;
         
         // Load menu from Firebase
         function loadMenu() {
@@ -1076,6 +1159,12 @@
                         const qtyElement = document.getElementById(`qty-${index}`);
                         if (qtyElement) qtyElement.textContent = '0';
                     });
+                    
+                    // Automatically check orders for this phone number
+                    setTimeout(() => {
+                        document.getElementById('checkPhoneInput').value = phone;
+                        checkOrders(phone);
+                    }, 1000);
                 })
                 .catch(error => {
                     console.error('Error saving order:', error);
@@ -1083,161 +1172,191 @@
                 });
         });
         
-        // Track order function
-        function trackOrder(orderId) {
-            database.ref('WarungQ/orders/' + orderId).once('value')
+        // Check orders by phone number - FUNGSI BARU
+        function checkOrders(phone) {
+            if (!phone) {
+                phone = document.getElementById('checkPhoneInput').value.trim();
+                if (!phone) {
+                    alert('Masukkan nomor WhatsApp terlebih dahulu');
+                    return;
+                }
+            }
+            
+            database.ref('WarungQ/orders').once('value')
                 .then(snapshot => {
-                    const order = snapshot.val();
-                    const container = document.getElementById('orderStatusContainer');
-                    const errorDiv = document.getElementById('trackingError');
+                    const orders = snapshot.val();
+                    const container = document.getElementById('orderHistoryContainer');
                     
-                    if (!order) {
-                        errorDiv.textContent = 'Pesanan tidak ditemukan. Periksa ID pesanan Anda.';
-                        errorDiv.style.display = 'block';
-                        container.style.display = 'none';
+                    if (!orders) {
+                        container.innerHTML = `
+                            <div class="no-orders">
+                                <i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
+                                <p>Belum ada pesanan untuk nomor WhatsApp ini</p>
+                            </div>
+                        `;
                         return;
                     }
                     
-                    // Hide error and show container
-                    errorDiv.style.display = 'none';
-                    container.style.display = 'block';
+                    let userOrders = [];
                     
-                    // Update status text
-                    const statusText = {
-                        'pending': 'Menunggu Konfirmasi',
-                        'processing': 'Sedang Diproses',
-                        'ready': 'Siap Diantar',
-                        'delivering': 'Dalam Pengiriman',
-                        'completed': 'Selesai',
-                        'cancelled': 'Dibatalkan'
-                    };
-                    
-                    document.getElementById('orderStatusText').textContent = 
-                        statusText[order.status] || order.status;
-                    
-                    // Update status timeline
-                    const timeline = document.getElementById('statusTimeline');
-                    const statuses = [
-                        { 
-                            id: 'pending', 
-                            icon: 'fa-clock',
-                            title: 'Pesanan Diterima',
-                            description: 'Pesanan Anda telah kami terima'
-                        },
-                        { 
-                            id: 'processing', 
-                            icon: 'fa-utensils',
-                            title: 'Sedang Dimasak',
-                            description: 'Pesanan Anda sedang diproses di dapur'
-                        },
-                        { 
-                            id: 'ready', 
-                            icon: 'fa-box',
-                            title: 'Siap Diantar',
-                            description: 'Pesanan Anda sudah siap untuk diantar'
-                        },
-                        { 
-                            id: 'delivering', 
-                            icon: 'fa-truck',
-                            title: 'Dalam Pengiriman',
-                            description: 'Kurir sedang dalam perjalanan ke alamat Anda'
-                        },
-                        { 
-                            id: 'completed', 
-                            icon: 'fa-check',
-                            title: 'Pesanan Selesai',
-                            description: 'Pesanan telah sampai ke tangan Anda'
+                    // Filter orders by phone number
+                    for (let orderId in orders) {
+                        if (orders[orderId].customer.phone === phone) {
+                            userOrders.push({
+                                id: orderId,
+                                ...orders[orderId]
+                            });
                         }
-                    ];
+                    }
                     
-                    let timelineHTML = '';
-                    const statusIndex = ['pending', 'processing', 'ready', 'delivering', 'completed']
-                        .indexOf(order.status);
+                    // Sort by timestamp (newest first)
+                    userOrders.sort((a, b) => b.timestamp - a.timestamp);
                     
-                    statuses.forEach((status, index) => {
-                        let statusClass = '';
-                        if (index < statusIndex) {
-                            statusClass = 'completed';
-                        } else if (index === statusIndex) {
-                            statusClass = 'active';
-                        }
+                    if (userOrders.length === 0) {
+                        container.innerHTML = `
+                            <div class="no-orders">
+                                <i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
+                                <p>Belum ada pesanan untuk nomor WhatsApp ${phone}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Render orders
+                    let ordersHTML = '';
+                    
+                    userOrders.forEach(order => {
+                        // Format status
+                        const statusText = {
+                            'pending': 'Menunggu Konfirmasi',
+                            'processing': 'Sedang Diproses',
+                            'ready': 'Siap Diantar',
+                            'delivering': 'Dalam Pengiriman',
+                            'completed': 'Selesai',
+                            'cancelled': 'Dibatalkan'
+                        };
                         
-                        timelineHTML += `
-                            <div class="status-step">
-                                <div class="status-icon ${statusClass}">
-                                    <i class="fas ${status.icon}"></i>
+                        const statusClass = {
+                            'pending': 'status-pending',
+                            'processing': 'status-processing',
+                            'ready': 'status-ready',
+                            'delivering': 'status-delivering',
+                            'completed': 'status-completed',
+                            'cancelled': 'status-pending'
+                        };
+                        
+                        // Create items list
+                        let itemsHTML = '';
+                        Object.values(order.items).forEach(item => {
+                            if (item.qty > 0) {
+                                itemsHTML += `<div>${item.nama} x${item.qty} = Rp ${formatNumber(item.harga * item.qty)}</div>`;
+                            }
+                        });
+                        
+                        // Create status timeline
+                        let timelineHTML = '';
+                        const statuses = [
+                            { 
+                                id: 'pending', 
+                                icon: 'fa-clock',
+                                title: 'Pesanan Diterima',
+                                description: 'Pesanan Anda telah kami terima'
+                            },
+                            { 
+                                id: 'processing', 
+                                icon: 'fa-utensils',
+                                title: 'Sedang Dimasak',
+                                description: 'Pesanan Anda sedang diproses di dapur'
+                            },
+                            { 
+                                id: 'ready', 
+                                icon: 'fa-box',
+                                title: 'Siap Diantar',
+                                description: 'Pesanan Anda sudah siap untuk diantar'
+                            },
+                            { 
+                                id: 'delivering', 
+                                icon: 'fa-truck',
+                                title: 'Dalam Pengiriman',
+                                description: 'Kurir sedang dalam perjalanan ke alamat Anda'
+                            },
+                            { 
+                                id: 'completed', 
+                                icon: 'fa-check',
+                                title: 'Pesanan Selesai',
+                                description: 'Pesanan telah sampai ke tangan Anda'
+                            }
+                        ];
+                        
+                        const statusIndex = ['pending', 'processing', 'ready', 'delivering', 'completed']
+                            .indexOf(order.status);
+                        
+                        statuses.forEach((status, index) => {
+                            let statusIconClass = '';
+                            if (index < statusIndex) {
+                                statusIconClass = 'completed';
+                            } else if (index === statusIndex) {
+                                statusIconClass = 'active';
+                            }
+                            
+                            timelineHTML += `
+                                <div class="status-step">
+                                    <div class="status-icon ${statusIconClass}">
+                                        <i class="fas ${status.icon}"></i>
+                                    </div>
+                                    <div class="status-info">
+                                        <h4>${status.title}</h4>
+                                        <p>${status.description}</p>
+                                    </div>
                                 </div>
-                                <div class="status-info">
-                                    <h4>${status.title}</h4>
-                                    <p>${status.description}</p>
+                            `;
+                        });
+                        
+                        ordersHTML += `
+                            <div class="order-card ${order.status}">
+                                <div class="order-header">
+                                    <div>
+                                        <div class="order-id">${order.id}</div>
+                                        <div class="order-date">${order.orderDate}</div>
+                                    </div>
+                                    <div class="order-status ${statusClass[order.status]}">
+                                        ${statusText[order.status] || order.status}
+                                    </div>
+                                </div>
+                                
+                                <div class="order-items">
+                                    ${itemsHTML}
+                                </div>
+                                
+                                <div class="order-total">
+                                    Total: Rp ${formatNumber(order.total)}
+                                </div>
+                                
+                                <div class="status-timeline">
+                                    ${timelineHTML}
                                 </div>
                             </div>
                         `;
                     });
                     
-                    timeline.innerHTML = timelineHTML;
+                    container.innerHTML = ordersHTML;
                     
-                    // Update order details
-                    const orderDetails = document.getElementById('orderDetails');
-                    let itemsHTML = '';
-                    Object.values(order.items).forEach(item => {
-                        if (item.qty > 0) {
-                            itemsHTML += `<p>${item.nama} x${item.qty} = Rp ${formatNumber(item.harga * item.qty)}</p>`;
-                        }
+                    // Scroll to order history section
+                    document.querySelector('.order-history-section').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
                     });
-                    
-                    orderDetails.innerHTML = `
-                        <h4>Detail Pesanan:</h4>
-                        <p><strong>ID Pesanan:</strong> ${orderId}</p>
-                        <p><strong>Tanggal:</strong> ${order.orderDate}</p>
-                        <p><strong>Nama:</strong> ${order.customer.name}</p>
-                        <p><strong>Alamat:</strong> ${order.customer.address}</p>
-                        <p><strong>Metode Bayar:</strong> ${order.customer.paymentMethod === 'cash' ? 'Bayar di Tempat (COD)' : 
-                           order.customer.paymentMethod === 'transfer' ? 'Transfer Bank' : 'E-Wallet'}</p>
-                        <h5 style="margin-top: 15px;">Items:</h5>
-                        ${itemsHTML}
-                        <p><strong>Subtotal:</strong> Rp ${formatNumber(order.subtotal)}</p>
-                        <p><strong>Ongkir:</strong> Rp ${formatNumber(order.deliveryCost)}</p>
-                        <p><strong>Total:</strong> Rp ${formatNumber(order.total)}</p>
-                        ${order.customer.note ? `<p><strong>Catatan:</strong> ${order.customer.note}</p>` : ''}
-                    `;
-                    
-                    // Initialize map if location exists
-                    if (order.location && order.location.lat && order.location.lng) {
-                        initializeMap(order.location.lat, order.location.lng);
-                    } else {
-                        document.querySelector('.map-container').style.display = 'none';
-                    }
                 })
                 .catch(error => {
-                    console.error('Error tracking order:', error);
-                    const errorDiv = document.getElementById('trackingError');
-                    errorDiv.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
-                    errorDiv.style.display = 'block';
+                    console.error('Error checking orders:', error);
+                    const container = document.getElementById('orderHistoryContainer');
+                    container.innerHTML = `
+                        <div class="error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Gagal memuat pesanan. Silakan coba lagi.
+                        </div>
+                    `;
                 });
-        }
-        
-        // Initialize map
-        function initializeMap(lat, lng) {
-            if (map) {
-                map.remove();
-            }
-            
-            map = L.map('orderMap').setView([lat, lng], 15);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            if (marker) {
-                map.removeLayer(marker);
-            }
-            
-            marker = L.marker([lat, lng]).addTo(map)
-                .bindPopup('Lokasi Pengiriman')
-                .openPopup();
-                
-            document.querySelector('.map-container').style.display = 'block';
         }
         
         // Helper functions
@@ -1272,36 +1391,51 @@
                 document.getElementById('successModal').style.display = 'none';
             });
             
-            document.getElementById('trackOrderSubmit').addEventListener('click', function() {
-                const orderId = document.getElementById('trackOrderInput').value.trim();
-                if (orderId) {
-                    trackOrder(orderId);
-                } else {
-                    alert('Masukkan ID pesanan terlebih dahulu');
+            // Check orders button
+            document.getElementById('checkOrdersBtn').addEventListener('click', function() {
+                checkOrders();
+            });
+            
+            // Refresh orders button
+            document.getElementById('refreshOrders').addEventListener('click', function() {
+                const phone = document.getElementById('checkPhoneInput').value.trim();
+                if (phone) {
+                    checkOrders(phone);
                 }
             });
             
-            document.getElementById('trackOrderInput').addEventListener('keypress', function(e) {
+            // Enter key on phone input
+            document.getElementById('checkPhoneInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    const orderId = this.value.trim();
-                    if (orderId) {
-                        trackOrder(orderId);
-                    }
+                    checkOrders();
                 }
             });
             
-            document.getElementById('trackOrderBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelector('.tracking-section').scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('trackOrderInput').focus();
+            // Auto-fill phone from order form when typing
+            document.getElementById('customerPhone').addEventListener('input', function() {
+                document.getElementById('checkPhoneInput').value = this.value;
             });
             
-            document.getElementById('trackOrderFooter').addEventListener('click', function(e) {
+            // View orders from footer
+            document.getElementById('viewOrdersFooter').addEventListener('click', function(e) {
                 e.preventDefault();
-                document.querySelector('.tracking-section').scrollIntoView({ behavior: 'smooth' });
-                document.getElementById('trackOrderInput').focus();
+                document.querySelector('.order-history-section').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+                
+                // Auto-focus on phone input
+                setTimeout(() => {
+                    document.getElementById('checkPhoneInput').focus();
+                    // If phone already entered in order form, use it
+                    const orderPhone = document.getElementById('customerPhone').value.trim();
+                    if (orderPhone) {
+                        document.getElementById('checkPhoneInput').value = orderPhone;
+                        checkOrders(orderPhone);
+                    }
+                }, 500);
             });
             
+            // Contact us
             document.getElementById('contactUs').addEventListener('click', function(e) {
                 e.preventDefault();
                 window.open('https://wa.me/6281234567890', '_blank');
@@ -1310,3 +1444,4 @@
     </script>
 </body>
 </html>
+[file content end]
