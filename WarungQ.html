@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarungQ - Order Online</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo i {
+            font-size: 2.5rem;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+        }
+        
+        .logo p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .cart-icon {
+            position: relative;
+            font-size: 1.8rem;
+            cursor: pointer;
+        }
+        
+        .cart-count {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ffdd59;
+            color: #333;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        /* Menu Section */
+        .menu-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #ff6b6b;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+        }
+        
+        .menu-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+        }
+        
+        .menu-image {
+            height: 160px;
+            width: 100%;
+            object-fit: cover;
+        }
+        
+        .menu-info {
+            padding: 20px;
+        }
+        
+        .menu-info h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.3rem;
+        }
+        
+        .menu-info p {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+        
+        .menu-price {
+            color: #ee5a24;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .menu-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f2f6;
+            color: #333;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .qty-btn:hover {
+            background: #dfe4ea;
+        }
+        
+        .quantity {
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        .add-to-cart {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .add-to-cart:hover {
+            background: #ee5a24;
+        }
+        
+        /* Order Summary */
+        .order-summary {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+        
+        .order-summary h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #ff6b6b;
+        }
+        
+        .cart-items {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .cart-item-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .cart-item-qty {
+            margin: 0 15px;
+        }
+        
+        .cart-item-price {
+            font-weight: 600;
+            color: #ee5a24;
+        }
+        
+        .remove-item {
+            color: #ff6b6b;
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .total-section {
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+            margin-top: 10px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .grand-total {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ee5a24;
+        }
+        
+        /* Customer Form */
+        .customer-form {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px solid #eee;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        .form-group input:focus, 
+        .form-group textarea:focus {
+            border-color: #ff6b6b;
+            outline: none;
+        }
+        
+        .submit-order {
+            width: 100%;
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        
+        .submit-order:hover {
+            background: #00a085;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal h2 {
+            color: #00b894;
+            margin-bottom: 15px;
+        }
+        
+        .modal p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        
+        .modal-close {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 25px 0;
+            margin-top: 50px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-summary {
+                position: static;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 30px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .loading i {
+            color: #ff6b6b;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <div>
+                        <h1>WarungQ</h1>
+                        <p>Makanan Enak, Harga Terjangkau</p>
+                    </div>
+                </div>
+                <div class="cart-icon" id="cartIcon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cartCount">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="main-content">
+            <!-- Menu Section -->
+            <section class="menu-section">
+                <h2><i class="fas fa-burger"></i> Menu Makanan & Minuman</h2>
+                <div id="menuContainer" class="menu-grid">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Memuat menu...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Order Summary -->
+            <aside class="order-summary">
+                <h2><i class="fas fa-receipt"></i> Ringkasan Pesanan</h2>
+                <div class="cart-items" id="cartItems">
+                    <p style="text-align: center; color: #999; padding: 20px;">Keranjang kosong</p>
+                </div>
+                
+                <div class="total-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span>Rp <span id="subtotal">0</span></span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span>Total:</span>
+                        <span>Rp <span id="total">0</span></span>
+                    </div>
+                </div>
+                
+                <!-- Customer Form -->
+                <div class="customer-form">
+                    <h3><i class="fas fa-user"></i> Data Pemesanan</h3>
+                    <div class="form-group">
+                        <label for="customerName">Nama Lengkap*</label>
+                        <input type="text" id="customerName" placeholder="Nama Anda" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerPhone">No. WhatsApp*</label>
+                        <input type="tel" id="customerPhone" placeholder="0812-3456-7890" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerAddress">Alamat Lengkap*</label>
+                        <textarea id="customerAddress" rows="3" placeholder="Alamat pengiriman" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerNote">Catatan (opsional)</label>
+                        <textarea id="customerNote" rows="2" placeholder="Contoh: Pedas, tanpa bawang, dll"></textarea>
+                    </div>
+                    
+                    <button class="submit-order" id="submitOrder">
+                        <i class="fas fa-paper-plane"></i> Kirim Pesanan
+                    </button>
+                    
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 15px; text-align: center;">
+                        Pesanan akan langsung masuk ke sistem kami
+                    </p>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Order Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <i class="fas fa-check-circle" style="font-size: 4rem; color: #00b894; margin-bottom: 20px;"></i>
+            <h2>Pesanan Berhasil!</h2>
+            <p>Terima kasih <span id="customerNameSuccess"></span>, pesanan Anda telah kami terima.</p>
+            <p>No. Pesanan: <strong id="orderId"></strong></p>
+            <p>Kami akan menghubungi Anda via WhatsApp untuk konfirmasi.</p>
+            <button class="modal-close" id="modalClose">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 WarungQ. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                <a href="admin.html" style="color: #ffdd59; text-decoration: none;">
+                    <i class="fas fa-lock"></i> Halaman Admin
+                </a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDa3JXfyzGgVyzBqf0uL_P-DuU97RhhTv8",
+            authDomain: "game-balap-simpel.firebaseapp.com",
+            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+            projectId: "game-balap-simpel",
+            storageBucket: "game-balap-simpel.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Global variables
+        let menuData = [];
+        let cart = {};
+        
+        // Load menu from Firebase
+        function loadMenu() {
+            database.ref('WarungQ/menu').on('value', (snapshot) => {
+                const menu = snapshot.val();
+                menuData = menu || [];
+                renderMenu(menuData);
+            });
+        }
+        
+        // Render menu items
+        function renderMenu(menu) {
+            const container = document.getElementById('menuContainer');
+            
+            if (!menu || menu.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 30px; color: #666;">Menu belum tersedia</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            menu.forEach((item, index) => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'menu-card';
+                menuItem.innerHTML = `
+                    <img src="${item.gambar || 'https://via.placeholder.com/300x160?text=WarungQ'}" 
+                         alt="${item.nama}" class="menu-image">
+                    <div class="menu-info">
+                        <h3>${item.nama}</h3>
+                        <p>${item.deskripsi || 'Menu lezat dari WarungQ'}</p>
+                        <span class="menu-price">Rp ${formatNumber(item.harga)}</span>
+                        <div class="menu-actions">
+                            <div class="quantity-control">
+                                <button class="qty-btn minus" onclick="decreaseQty(${index})">-</button>
+                                <span class="quantity" id="qty-${index}">${cart[index] ? cart[index].qty : 0}</span>
+                                <button class="qty-btn plus" onclick="increaseQty(${index})">+</button>
+                            </div>
+                            <button class="add-to-cart" onclick="addToCart(${index})">
+                                ${cart[index] && cart[index].qty > 0 ? 'Update' : 'Tambah'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(menuItem);
+            });
+        }
+        
+        // Cart functions
+        function addToCart(index) {
+            const item = menuData[index];
+            if (!item) return;
+            
+            const qtyElement = document.getElementById(`qty-${index}`);
+            const qty = parseInt(qtyElement.textContent) || 1;
+            
+            if (qty < 1) {
+                delete cart[index];
+            } else {
+                cart[index] = {
+                    id: index,
+                    nama: item.nama,
+                    harga: item.harga,
+                    qty: qty
+                };
+            }
+            
+            updateCart();
+        }
+        
+        function increaseQty(index) {
+            const qtyElement = document.getElementById(`qty-${index}`);
+            let qty = parseInt(qtyElement.textContent) || 0;
+            qtyElement.textContent = qty + 1;
+            addToCart(index);
+        }
+        
+        function decreaseQty(index) {
+            const qtyElement = document.getElementById(`qty-${index}`);
+            let qty = parseInt(qtyElement.textContent) || 0;
+            
+            if (qty > 0) {
+                qtyElement.textContent = qty - 1;
+                addToCart(index);
+            }
+        }
+        
+        function removeFromCart(index) {
+            delete cart[index];
+            document.getElementById(`qty-${index}`).textContent = '0';
+            updateCart();
+        }
+        
+        function updateCart() {
+            const cartItems = document.getElementById('cartItems');
+            const cartCount = document.getElementById('cartCount');
+            const subtotalEl = document.getElementById('subtotal');
+            const totalEl = document.getElementById('total');
+            
+            let totalItems = 0;
+            let subtotal = 0;
+            let cartHTML = '';
+            
+            Object.values(cart).forEach(item => {
+                if (item.qty > 0) {
+                    totalItems += item.qty;
+                    const itemTotal = item.harga * item.qty;
+                    subtotal += itemTotal;
+                    
+                    cartHTML += `
+                        <div class="cart-item">
+                            <div class="cart-item-name">${item.nama}</div>
+                            <div class="cart-item-qty">x${item.qty}</div>
+                            <div class="cart-item-price">Rp ${formatNumber(itemTotal)}</div>
+                            <button class="remove-item" onclick="removeFromCart(${item.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            });
+            
+            cartCount.textContent = totalItems;
+            
+            if (cartHTML === '') {
+                cartItems.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Keranjang kosong</p>';
+            } else {
+                cartItems.innerHTML = cartHTML;
+            }
+            
+            subtotalEl.textContent = formatNumber(subtotal);
+            totalEl.textContent = formatNumber(subtotal);
+        }
+        
+        // Submit order
+        document.getElementById('submitOrder').addEventListener('click', function() {
+            const name = document.getElementById('customerName').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+            const address = document.getElementById('customerAddress').value.trim();
+            
+            if (!name || !phone || !address) {
+                alert('Harap isi nama, nomor WhatsApp, dan alamat lengkap!');
+                return;
+            }
+            
+            if (Object.keys(cart).length === 0) {
+                alert('Keranjang Anda masih kosong!');
+                return;
+            }
+            
+            // Prepare order data
+            const orderData = {
+                customer: {
+                    name: name,
+                    phone: phone,
+                    address: address,
+                    note: document.getElementById('customerNote').value.trim()
+                },
+                items: cart,
+                subtotal: calculateSubtotal(),
+                total: calculateSubtotal(),
+                status: 'pending',
+                timestamp: Date.now(),
+                orderDate: new Date().toLocaleString('id-ID')
+            };
+            
+            // Generate order ID
+            const orderId = 'WQ-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            
+            // Save to Firebase
+            database.ref('WarungQ/orders/' + orderId).set(orderData)
+                .then(() => {
+                    // Show success modal
+                    document.getElementById('customerNameSuccess').textContent = name;
+                    document.getElementById('orderId').textContent = orderId;
+                    document.getElementById('successModal').style.display = 'flex';
+                    
+                    // Reset cart and form
+                    cart = {};
+                    updateCart();
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    document.getElementById('customerAddress').value = '';
+                    document.getElementById('customerNote').value = '';
+                    
+                    // Reset all quantities
+                    menuData.forEach((_, index) => {
+                        const qtyElement = document.getElementById(`qty-${index}`);
+                        if (qtyElement) qtyElement.textContent = '0';
+                    });
+                })
+                .catch(error => {
+                    console.error('Error saving order:', error);
+                    alert('Gagal mengirim pesanan. Coba lagi!');
+                });
+        });
+        
+        // Close modal
+        document.getElementById('modalClose').addEventListener('click', function() {
+            document.getElementById('successModal').style.display = 'none';
+        });
+        
+        // Helper functions
+        function calculateSubtotal() {
+            return Object.values(cart).reduce((total, item) => {
+                return total + (item.harga * item.qty);
+            }, 0);
+        }
+        
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+        
+        // Initialize
+        window.onload = function() {
+            loadMenu();
+            
+            // Load existing cart from localStorage (optional)
+            const savedCart = localStorage.getItem('warungq_cart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                updateCart();
+            }
+            
+            // Save cart to localStorage on changes
+            setInterval(() => {
+                localStorage.setItem('warungq_cart', JSON.stringify(cart));
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
