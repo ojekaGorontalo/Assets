@@ -6,6 +6,7 @@
     <title>WarungQ - Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* CSS tetap sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -711,20 +712,11 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <!-- Leaflet Maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        // Firebase Configuration
+        // Firebase Configuration - GUNAKAN KONFIGURASI YANG BENAR
         const firebaseConfig = {
-            apiKey: "AIzaSyDa3JXfyzGgVyzBqf0uL_P-DuU97RhhTv8",
-            authDomain: "game-balap-simpel.firebaseapp.com",
-            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
-            projectId: "game-balap-simpel",
-            storageBucket: "game-balap-simpel.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef123456"
+            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com"
         };
         
         // Initialize Firebase
@@ -735,15 +727,16 @@
         let orders = {};
         let menu = [];
         let currentFilter = 'all';
-        let adminMap = null;
-        let adminMarker = null;
         
         // Load orders from Firebase
         function loadOrders() {
             database.ref('WarungQ/orders').on('value', (snapshot) => {
                 orders = snapshot.val() || {};
+                console.log('Orders loaded:', orders);
                 updateStats();
                 renderOrders(orders);
+            }, (error) => {
+                console.error('Error loading orders:', error);
             });
         }
         
@@ -751,7 +744,10 @@
         function loadMenu() {
             database.ref('WarungQ/menu').on('value', (snapshot) => {
                 menu = snapshot.val() || [];
+                console.log('Menu loaded:', menu);
                 renderMenuList(menu);
+            }, (error) => {
+                console.error('Error loading menu:', error);
             });
         }
         
@@ -778,7 +774,7 @@
             document.getElementById('completedCount').textContent = completed;
         }
         
-        // Render orders table
+        // Render orders table - FIXED VERSION
         function renderOrders(orders) {
             const container = document.getElementById('ordersContainer');
             
@@ -815,16 +811,18 @@
             filteredOrders.forEach(([orderId, order]) => {
                 // Format items
                 let itemsHTML = '';
-                Object.values(order.items).forEach(item => {
-                    if (item.qty > 0) {
-                        itemsHTML += `
-                            <div class="order-item">
-                                <span>${item.nama}</span>
-                                <span>x${item.qty}</span>
-                            </div>
-                        `;
-                    }
-                });
+                if (order.items && typeof order.items === 'object') {
+                    Object.values(order.items).forEach(item => {
+                        if (item && item.qty > 0) {
+                            itemsHTML += `
+                                <div class="order-item">
+                                    <span>${item.nama || 'Item'}</span>
+                                    <span>x${item.qty}</span>
+                                </div>
+                            `;
+                        }
+                    });
+                }
                 
                 // Status badge
                 let statusClass = '';
@@ -852,8 +850,13 @@
                         break;
                     default:
                         statusClass = 'status-pending';
-                        statusText = order.status;
+                        statusText = order.status || 'Menunggu';
                 }
+                
+                // Format customer data safely
+                const customerName = order.customer ? order.customer.name : 'Tidak diketahui';
+                const customerPhone = order.customer ? order.customer.phone : '';
+                const customerAddress = order.customer ? order.customer.address : '';
                 
                 tableHTML += `
                     <tr>
@@ -862,49 +865,65 @@
                             <small>${order.orderDate || new Date(order.timestamp).toLocaleString('id-ID')}</small>
                         </td>
                         <td>
-                            <div class="order-customer">${order.customer.name}</div>
-                            <small>${order.customer.phone}</small>
-                            <small>${order.customer.address.substring(0, 50)}...</small>
+                            <div class="order-customer">${customerName}</div>
+                            <small>${customerPhone}</small>
+                            <small title="${customerAddress}">${customerAddress ? customerAddress.substring(0, 50) + '...' : ''}</small>
                         </td>
-                        <td class="order-items">${itemsHTML}</td>
-                        <td>Rp ${formatNumber(order.total)}</td>
+                        <td class="order-items">${itemsHTML || '-'}</td>
+                        <td>Rp ${formatNumber(order.total || 0)}</td>
                         <td>
                             <span class="order-status ${statusClass}">${statusText}</span>
                         </td>
                         <td>
                             <div class="action-buttons">
-                                ${order.status === 'pending' ? `
-                                    <button class="action-btn btn-processing" onclick="updateOrderStatus('${orderId}', 'processing')">
-                                        <i class="fas fa-play"></i> Proses
-                                    </button>
-                                ` : ''}
-                                
-                                ${order.status === 'processing' ? `
-                                    <button class="action-btn btn-ready" onclick="updateOrderStatus('${orderId}', 'ready')">
-                                        <i class="fas fa-check"></i> Siap
-                                    </button>
-                                ` : ''}
-                                
-                                ${order.status === 'ready' ? `
-                                    <button class="action-btn btn-delivering" onclick="updateOrderStatus('${orderId}', 'delivering')">
-                                        <i class="fas fa-truck"></i> Antar
-                                    </button>
-                                ` : ''}
-                                
-                                ${order.status === 'delivering' ? `
-                                    <button class="action-btn btn-completed" onclick="updateOrderStatus('${orderId}', 'completed')">
-                                        <i class="fas fa-check-circle"></i> Selesai
-                                    </button>
-                                ` : ''}
-                                
-                                ${order.status !== 'completed' && order.status !== 'cancelled' ? `
-                                    <button class="action-btn btn-whatsapp" onclick="contactCustomer('${order.customer.phone}', '${orderId}')">
-                                        <i class="fab fa-whatsapp"></i> WA
-                                    </button>
-                                    ${order.location ? `<button class="action-btn btn-location" onclick="showLocation('${orderId}')">
-                                        <i class="fas fa-map-marker-alt"></i> Lokasi
-                                    </button>` : ''}
-                                ` : ''}
+                `;
+                
+                // Action buttons based on status
+                if (order.status === 'pending') {
+                    tableHTML += `
+                        <button class="action-btn btn-processing" onclick="updateOrderStatus('${orderId}', 'processing')">
+                            <i class="fas fa-play"></i> Proses
+                        </button>
+                    `;
+                } else if (order.status === 'processing') {
+                    tableHTML += `
+                        <button class="action-btn btn-ready" onclick="updateOrderStatus('${orderId}', 'ready')">
+                            <i class="fas fa-check"></i> Siap
+                        </button>
+                    `;
+                } else if (order.status === 'ready') {
+                    tableHTML += `
+                        <button class="action-btn btn-delivering" onclick="updateOrderStatus('${orderId}', 'delivering')">
+                            <i class="fas fa-truck"></i> Antar
+                        </button>
+                    `;
+                } else if (order.status === 'delivering') {
+                    tableHTML += `
+                        <button class="action-btn btn-completed" onclick="updateOrderStatus('${orderId}', 'completed')">
+                            <i class="fas fa-check-circle"></i> Selesai
+                        </button>
+                    `;
+                }
+                
+                // Add WhatsApp button for all non-completed orders
+                if (order.status !== 'completed' && order.status !== 'cancelled') {
+                    tableHTML += `
+                        <button class="action-btn btn-whatsapp" onclick="contactCustomer('${customerPhone}', '${orderId}')">
+                            <i class="fab fa-whatsapp"></i> WA
+                        </button>
+                    `;
+                    
+                    // Add location button if location exists
+                    if (order.location) {
+                        tableHTML += `
+                            <button class="action-btn btn-location" onclick="showLocation('${orderId}')">
+                                <i class="fas fa-map-marker-alt"></i> Lokasi
+                            </button>
+                        `;
+                    }
+                }
+                
+                tableHTML += `
                             </div>
                         </td>
                     </tr>
@@ -918,23 +937,29 @@
         // Show order detail modal
         function showOrderDetail(orderId) {
             const order = orders[orderId];
-            if (!order) return;
+            if (!order) {
+                alert('Pesanan tidak ditemukan!');
+                return;
+            }
             
             const modal = document.getElementById('orderDetailModal');
             const content = document.getElementById('orderDetailContent');
             
             // Format items
             let itemsHTML = '';
-            Object.values(order.items).forEach(item => {
-                if (item.qty > 0) {
-                    itemsHTML += `
-                        <div class="item-row">
-                            <span>${item.nama}</span>
-                            <span>x${item.qty} = Rp ${formatNumber(item.harga * item.qty)}</span>
-                        </div>
-                    `;
-                }
-            });
+            if (order.items && typeof order.items === 'object') {
+                Object.values(order.items).forEach(item => {
+                    if (item && item.qty > 0) {
+                        const itemTotal = (item.harga || 0) * item.qty;
+                        itemsHTML += `
+                            <div class="item-row">
+                                <span>${item.nama || 'Item'}</span>
+                                <span>x${item.qty} = Rp ${formatNumber(itemTotal)}</span>
+                            </div>
+                        `;
+                    }
+                });
+            }
             
             // Status timeline
             const statuses = [
@@ -969,6 +994,9 @@
                 `;
             });
             
+            // Customer data
+            const customer = order.customer || {};
+            
             content.innerHTML = `
                 <div class="order-detail-section">
                     <h3>Informasi Pesanan</h3>
@@ -978,7 +1006,7 @@
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Tanggal:</span>
-                        <span class="detail-value">${order.orderDate}</span>
+                        <span class="detail-value">${order.orderDate || new Date(order.timestamp).toLocaleString('id-ID')}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Status:</span>
@@ -992,24 +1020,24 @@
                     <h3>Data Customer</h3>
                     <div class="detail-row">
                         <span class="detail-label">Nama:</span>
-                        <span class="detail-value">${order.customer.name}</span>
+                        <span class="detail-value">${customer.name || '-'}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">No. HP:</span>
-                        <span class="detail-value">${order.customer.phone}</span>
+                        <span class="detail-value">${customer.phone || '-'}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Alamat:</span>
-                        <span class="detail-value">${order.customer.address}</span>
+                        <span class="detail-value">${customer.address || '-'}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Metode Bayar:</span>
-                        <span class="detail-value">${getPaymentMethodText(order.customer.paymentMethod)}</span>
+                        <span class="detail-value">${getPaymentMethodText(customer.paymentMethod)}</span>
                     </div>
-                    ${order.customer.note ? `
+                    ${customer.note ? `
                     <div class="detail-row">
                         <span class="detail-label">Catatan:</span>
-                        <span class="detail-value">${order.customer.note}</span>
+                        <span class="detail-value">${customer.note}</span>
                     </div>
                     ` : ''}
                 </div>
@@ -1017,18 +1045,18 @@
                 <div class="order-detail-section">
                     <h3>Detail Pesanan</h3>
                     <div class="items-list">
-                        ${itemsHTML}
+                        ${itemsHTML || '<p>Tidak ada items</p>'}
                         <div class="item-row" style="border-top: 2px solid #ddd; padding-top: 15px; margin-top: 10px;">
                             <span><strong>Subtotal:</strong></span>
-                            <span><strong>Rp ${formatNumber(order.subtotal)}</strong></span>
+                            <span><strong>Rp ${formatNumber(order.subtotal || 0)}</strong></span>
                         </div>
                         <div class="item-row">
                             <span><strong>Ongkir:</strong></span>
-                            <span><strong>Rp ${formatNumber(order.deliveryCost)}</strong></span>
+                            <span><strong>Rp ${formatNumber(order.deliveryCost || 0)}</strong></span>
                         </div>
                         <div class="item-row" style="font-size: 1.1rem; color: #e74c3c;">
                             <span><strong>TOTAL:</strong></span>
-                            <span><strong>Rp ${formatNumber(order.total)}</strong></span>
+                            <span><strong>Rp ${formatNumber(order.total || 0)}</strong></span>
                         </div>
                     </div>
                 </div>
@@ -1040,17 +1068,10 @@
                     </div>
                 </div>
                 
-                ${order.location ? `
-                <div class="order-detail-section">
-                    <h3>Lokasi Pengiriman</h3>
-                    <div class="admin-map" id="adminMap"></div>
-                </div>
-                ` : ''}
-                
                 <div class="order-detail-section">
                     <h3>Aksi</h3>
                     <div class="action-buttons">
-                        <button class="action-btn btn-whatsapp" onclick="contactCustomer('${order.customer.phone}', '${orderId}')">
+                        <button class="action-btn btn-whatsapp" onclick="contactCustomer('${customer.phone}', '${orderId}')">
                             <i class="fab fa-whatsapp"></i> Hubungi Customer
                         </button>
                         ${order.status !== 'completed' && order.status !== 'cancelled' ? `
@@ -1063,70 +1084,70 @@
             `;
             
             modal.style.display = 'flex';
-            
-            // Initialize map if location exists
-            if (order.location && order.location.lat && order.location.lng) {
-                setTimeout(() => {
-                    initAdminMap(order.location.lat, order.location.lng);
-                }, 100);
-            }
         }
         
-        // Initialize admin map
-        function initAdminMap(lat, lng) {
-            if (adminMap) {
-                adminMap.remove();
+        // Update order status - FIXED VERSION
+        function updateOrderStatus(orderId, newStatus) {
+            if (!orderId || !newStatus) {
+                console.error('Order ID or status missing');
+                return;
             }
             
-            adminMap = L.map('adminMap').setView([lat, lng], 15);
+            console.log('Updating order:', orderId, 'to status:', newStatus);
             
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(adminMap);
+            // Get current timestamp
+            const timestamp = Date.now();
             
-            if (adminMarker) {
-                adminMap.removeLayer(adminMarker);
-            }
-            
-            adminMarker = L.marker([lat, lng]).addTo(adminMap)
-                .bindPopup('Lokasi Pengiriman')
-                .openPopup();
-        }
-        
-        // Update order status
-        function updateOrderStatus(orderId, status) {
-            if (!orderId || !status) return;
-            
-            const statusHistory = {
-                status: status,
-                timestamp: Date.now(),
-                description: getStatusDescription(status)
+            // Prepare update data
+            const updateData = {
+                status: newStatus,
+                timestamp: timestamp,
+                orderDate: new Date(timestamp).toLocaleString('id-ID')
             };
             
-            database.ref('WarungQ/orders/' + orderId).update({
-                status: status,
-                statusHistory: firebase.database.ServerValue.increment(statusHistory)
-            })
-            .then(() => {
-                alert(`Status pesanan ${orderId} berhasil diubah menjadi ${getStatusText(status)}`);
-            })
-            .catch(error => {
-                console.error('Error updating order:', error);
-                alert('Gagal mengubah status pesanan');
-            });
+            // Update in Firebase
+            database.ref('WarungQ/orders/' + orderId).update(updateData)
+                .then(() => {
+                    console.log('Order status updated successfully');
+                    alert(`Status pesanan ${orderId} berhasil diubah menjadi ${getStatusText(newStatus)}`);
+                    
+                    // Refresh orders data
+                    loadOrders();
+                })
+                .catch(error => {
+                    console.error('Error updating order:', error);
+                    alert('Gagal mengubah status pesanan: ' + error.message);
+                });
         }
         
         // Contact customer via WhatsApp
         function contactCustomer(phone, orderId) {
+            if (!phone) {
+                alert('Nomor WhatsApp tidak tersedia');
+                return;
+            }
+            
+            // Clean phone number (remove non-digits)
+            const cleanPhone = phone.replace(/\D/g, '');
+            
+            // Check if starts with 0, replace with 62
+            let whatsappNumber = cleanPhone;
+            if (whatsappNumber.startsWith('0')) {
+                whatsappNumber = '62' + whatsappNumber.substring(1);
+            }
+            
             const message = `Halo, saya dari WarungQ. Mengkonfirmasi pesanan ${orderId}. Apakah pesanan Anda sudah sesuai?`;
-            const url = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+            const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
         
         // Show location on map
         function showLocation(orderId) {
             const order = orders[orderId];
-            if (!order || !order.location) return;
+            if (!order || !order.location) {
+                alert('Lokasi tidak tersedia');
+                return;
+            }
             
             // Open in Google Maps
             const url = `https://www.google.com/maps?q=${order.location.lat},${order.location.lng}`;
@@ -1143,7 +1164,7 @@
                 'completed': 'Selesai',
                 'cancelled': 'Dibatalkan'
             };
-            return statusMap[status] || status;
+            return statusMap[status] || status || 'Menunggu';
         }
         
         function getStatusClass(status) {
@@ -1158,32 +1179,21 @@
             return classMap[status] || 'status-pending';
         }
         
-        function getStatusDescription(status) {
-            const descMap = {
-                'pending': 'Pesanan diterima',
-                'processing': 'Pesanan sedang dimasak',
-                'ready': 'Pesanan siap diantar',
-                'delivering': 'Pesanan dalam pengiriman',
-                'completed': 'Pesanan telah selesai',
-                'cancelled': 'Pesanan dibatalkan'
-            };
-            return descMap[status] || 'Status diperbarui';
-        }
-        
         function getPaymentMethodText(method) {
             const methods = {
                 'cash': 'Bayar di Tempat (COD)',
                 'transfer': 'Transfer Bank',
                 'ewallet': 'E-Wallet (DANA/OVO)'
             };
-            return methods[method] || method;
+            return methods[method] || method || 'Tidak diketahui';
         }
         
         function formatNumber(num) {
+            if (!num) return '0';
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         }
         
-        // Menu management functions (simplified version)
+        // Menu management functions
         function renderMenuList(menu) {
             const container = document.getElementById('menuListContainer');
             
@@ -1195,15 +1205,17 @@
             let menuHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">';
             
             menu.forEach((item, index) => {
+                if (!item) return;
+                
                 menuHTML += `
                     <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
                         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                             <img src="${item.gambar || 'https://via.placeholder.com/80x80?text=Menu'}" 
-                                 alt="${item.nama}" 
+                                 alt="${item.nama || 'Menu'}" 
                                  style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
                             <div>
-                                <h4 style="margin-bottom: 5px;">${item.nama}</h4>
-                                <p style="color: #e74c3c; font-weight: bold;">Rp ${formatNumber(item.harga)}</p>
+                                <h4 style="margin-bottom: 5px;">${item.nama || 'Menu'}</h4>
+                                <p style="color: #e74c3c; font-weight: bold;">Rp ${formatNumber(item.harga || 0)}</p>
                             </div>
                         </div>
                         <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">${item.deskripsi || '-'}</p>
@@ -1242,6 +1254,7 @@
         
         // Initialize
         window.onload = function() {
+            // Load data
             loadOrders();
             loadMenu();
             
@@ -1297,7 +1310,35 @@
                     modal.style.display = 'none';
                 }
             });
+            
+            // Add menu button
+            document.getElementById('addMenuBtn').addEventListener('click', function() {
+                alert('Fitur tambah menu akan segera tersedia!');
+            });
         };
+        
+        // Menu edit and delete functions (placeholder)
+        function editMenu(index) {
+            alert('Fitur edit menu akan segera tersedia!');
+        }
+        
+        function deleteMenu(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus menu ini?')) {
+                // Remove menu from array
+                const newMenu = [...menu];
+                newMenu.splice(index, 1);
+                
+                // Update Firebase
+                database.ref('WarungQ/menu').set(newMenu)
+                    .then(() => {
+                        alert('Menu berhasil dihapus!');
+                    })
+                    .catch(error => {
+                        console.error('Error deleting menu:', error);
+                        alert('Gagal menghapus menu');
+                    });
+            }
+        }
     </script>
 </body>
 </html>
