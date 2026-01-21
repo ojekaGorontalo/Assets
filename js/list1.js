@@ -561,72 +561,60 @@ function closePopup() {
   popupOverlay.classList.remove('active');
 }
 
-// ==================== FUNGSI UTAMA SEND TO KODULAR - DIPERBAIKI ====================
+// ==================== FUNGSI AUDIO YANG DIPERBARUI ====================
+function playNewOrderSound() {
+    try {
+        console.log('🔊 Memutar suara order baru');
+        const audio = new Audio('https://raw.githubusercontent.com/ojekaGorontalo/Assets/main/orderterbaru.mp3');
+        audio.play().catch(e => console.log('Gagal memutar suara order baru:', e));
+    } catch (error) {
+        console.error('Error memutar suara order baru:', error);
+    }
+}
+
+function playAutobidSound() {
+    try {
+        console.log('🔊 Memutar suara autobid');
+        const audio = new Audio('https://raw.githubusercontent.com/ojekaGorontalo/Assets/main/audioautobid.mp3');
+        audio.play().catch(e => console.log('Gagal memutar suara autobid:', e));
+    } catch (error) {
+        console.error('Error memutar suara autobid:', error);
+    }
+}
+
+function playManualPopupSound() {
+    try {
+        console.log('🔊 Memutar suara popup manual');
+        const audio = new Audio('https://raw.githubusercontent.com/ojekaGorontalo/Assets/main/audiopopupmanual.mp3');
+        audio.play().catch(e => console.log('Gagal memutar suara popup manual:', e));
+    } catch (error) {
+        console.error('Error memutar suara popup manual:', error);
+    }
+}
+
+function playOrderAcceptedSound() {
+    try {
+        console.log('🔊 Memutar suara order diterima');
+        const audio = new Audio('https://raw.githubusercontent.com/ojekaGorontalo/Assets/main/audioorderaccepted.mp3');
+        audio.play().catch(e => console.log('Gagal memutar suara order diterima:', e));
+        
+        // Redirect ke orderAccepted.html
+        setTimeout(() => {
+            window.location.href = 'orderAccepted.html';
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Error memutar suara order diterima:', error);
+        // Tetap redirect meskipun audio gagal
+        setTimeout(() => {
+            window.location.href = 'orderAccepted.html';
+        }, 500);
+    }
+}
+
+// Fungsi untuk mengirim data ke Kodular (disederhanakan, hanya untuk logging)
 function sendToKodular(data) {
-    console.log('🔄 Mengirim data ke Kodular:', data);
-    
-    const jsonString = JSON.stringify(data);
-    console.log('📦 Data JSON:', jsonString);
-    
-    if (typeof window.AppInventor !== 'undefined') {
-        console.log('📱 Deteksi AppInventor (Kodular)');
-        try {
-            if (window.AppInventor.setWebViewString) {
-                window.AppInventor.setWebViewString(jsonString);
-                console.log('✅ Data berhasil dikirim via AppInventor.setWebViewString');
-                return true;
-            }
-        } catch (error) {
-            console.error('❌ Error mengirim via AppInventor:', error);
-        }
-    }
-    
-    else if (typeof window.android !== 'undefined') {
-        console.log('📱 Deteksi Android');
-        try {
-            if (window.android.receiveData) {
-                window.android.receiveData(jsonString);
-                console.log('✅ Data berhasil dikirim via android.receiveData');
-                return true;
-            } else if (window.android.sendDataToKodular) {
-                window.android.sendDataToKodular(jsonString);
-                console.log('✅ Data berhasil dikirim via android.sendDataToKodular');
-                return true;
-            }
-        } catch (error) {
-            console.error('❌ Error mengirim via android:', error);
-        }
-    }
-    
-    else if (window.webkit && window.webkit.messageHandlers) {
-        console.log('📱 Deteksi iOS (WKWebView)');
-        try {
-            if (window.webkit.messageHandlers.observe) {
-                window.webkit.messageHandlers.observe.postMessage(data);
-                console.log('✅ Data berhasil dikirim via webkit.messageHandlers');
-                return true;
-            }
-        } catch (error) {
-            console.error('❌ Error mengirim via webkit:', error);
-        }
-    }
-    
-    else if (window.location.href.indexOf('file://') === -1) {
-        console.log('🔧 Coba metode prompt untuk debugging');
-        try {
-            const result = prompt('KodularBridge', jsonString);
-            if (result) {
-                console.log('✅ Data berhasil dikirim via prompt');
-                return true;
-            }
-        } catch (error) {
-            console.error('❌ Error mengirim via prompt:', error);
-        }
-    }
-    
-    console.log('🖥️ Mode browser: Tidak ada bridge ke Kodular yang terdeteksi');
-    console.log('🔍 Data yang akan dikirim ke Kodular (browser mode):', data);
-    
+    console.log('📝 Data logging (tidak dikirim ke Kodular):', data);
     return false;
 }
 
@@ -677,15 +665,14 @@ function canSystemProcessOrder(source) {
 
 function checkLoginStatus() {
     if (!checkIfDriverLoggedIn()) {
-        console.log('❌ Driver belum login atau tidak aktif, kirim event ke Kodular');
-        
-        sendToKodular({
-            action: "navigate",
-            target: "login",
-            reason: "not_logged_in_or_inactive"
-        });
+        console.log('❌ Driver belum login atau tidak aktif, redirect ke login');
         
         showPopup('Anda belum login atau akun tidak aktif. Aplikasi akan membuka halaman login.', 'Perhatian', 'warning');
+        
+        setTimeout(() => {
+            window.location.href = 'loginDriver.html';
+        }, 2000);
+        
         return false;
     }
     
@@ -703,52 +690,6 @@ function checkLoginStatus() {
     }
     
     return true;
-}
-
-function playNewOrderSound() {
-    try {
-        const audio = document.getElementById('newOrderSound');
-        audio.currentTime = 0;
-        audio.play().catch(e => console.log('Gagal memutar suara order baru:', e));
-    } catch (error) {
-        console.error('Error memutar suara order baru:', error);
-    }
-}
-
-function playAutobidSound() {
-    try {
-        const audio = document.getElementById('autobidSound');
-        audio.currentTime = 0;
-        audio.play().catch(e => console.log('Gagal memutar suara autobid:', e));
-    } catch (error) {
-        console.error('Error memutar suara autobid:', error);
-    }
-}
-
-function playOrderAcceptedSound() {
-    try {
-        const audio = document.getElementById('orderAcceptedSound');
-        audio.currentTime = 0;
-        audio.play().catch(e => console.log('Gagal memutar suara order diterima:', e));
-        
-        if (currentSelectedOrder) {
-            const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
-            sendToKodular({
-                action: "order_accepted",
-                order_id: orderId
-            });
-        }
-        
-    } catch (error) {
-        console.error('Error memutar suara order diterima:', error);
-        if (currentSelectedOrder) {
-            const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
-            sendToKodular({
-                action: "order_accepted",
-                order_id: orderId
-            });
-        }
-    }
 }
 
 // ==================== VARIABEL GLOBAL ====================
@@ -1018,24 +959,11 @@ function createRadarContainer() {
 // Fungsi untuk memulai animasi radar
 function startRadarAnimation() {
     console.log('🔄 Memulai animasi radar...');
-    
-    sendToKodular({
-        action: 'radar_active',
-        status: 'searching',
-        message: 'Radar aktif mencari order',
-        radius: customRadius
-    });
 }
 
 // Fungsi untuk menghentikan animasi radar
 function stopRadarAnimation() {
     console.log('⏹️ Menghentikan animasi radar');
-    
-    sendToKodular({
-        action: 'radar_inactive',
-        status: 'orders_found',
-        message: 'Radar nonaktif - Order ditemukan'
-    });
 }
 
 // ==================== FUNGSI PERHITUNGAN HARGA DENGAN DISKON ====================
@@ -1069,16 +997,27 @@ function navigateToScreen(screen) {
     
     updateActiveNavItem(screen);
     
-    const success = sendToKodular({
-        action: "navigate",
-        target: screen,
-        timestamp: new Date().getTime()
-    });
-    
-    console.log(`🔄 Hasil pengiriman navigasi ke ${screen}: ${success ? 'Berhasil' : 'Gagal'}`);
-    
-    if (!success) {
-        showPopup(`Navigasi ke ${screen} - Mode browser aktif`, 'Info', 'info');
+    // Redirect langsung ke HTML
+    switch(screen) {
+        case 'home':
+            window.location.href = 'index.html';
+            break;
+        case 'history':
+            window.location.href = 'history.html';
+            break;
+        case 'balance':
+            window.location.href = 'balance.html';
+            break;
+        case 'profile':
+            window.location.href = 'profile.html';
+            break;
+        case 'active_order':
+            window.location.href = 'orderAccepted.html';
+            break;
+        default:
+            console.log(`⚠️ Screen ${screen} tidak dikenali`);
+            showPopup(`Navigasi ke ${screen}`, 'Info', 'info');
+            break;
     }
 }
 
@@ -1362,14 +1301,6 @@ function saveSettings() {
         
         showPopup('Pengaturan berhasil disimpan dan diterapkan', 'Sukses', 'success');
         
-        sendToKodular({
-            action: 'settings_saved',
-            accept_kurir: acceptKurirEnabled,
-            radius: customRadius,
-            filter_tujuan: filterTujuanText,
-            message: 'Pengaturan driver berhasil disimpan'
-        });
-        
     } catch (error) {
         console.error('❌ Error menyimpan pengaturan:', error);
         showPopup('Gagal menyimpan pengaturan. Silakan coba lagi.', 'Error', 'error');
@@ -1454,21 +1385,35 @@ function setupSidebarNavigation() {
             
             console.log(`🔍 Tombol sidebar diklik: ${buttonId} (${screen})`);
             
-            const success = sendToKodular({
-                action: "navigate",
-                target: screen,
-                button_id: buttonId,
-                button_title: buttonTitle,
-                timestamp: new Date().getTime()
-            });
-            
-            console.log(`🔄 Hasil pengiriman ke Kodular: ${success ? 'Berhasil' : 'Gagal'}`);
+            // Redirect langsung ke halaman HTML
+            switch(screen) {
+                case 'profile':
+                    window.location.href = 'profile.html';
+                    break;
+                case 'history':
+                    window.location.href = 'history.html';
+                    break;
+                case 'balance':
+                    window.location.href = 'balance.html';
+                    break;
+                case 'settings':
+                    window.location.href = 'settings.html';
+                    break;
+                case 'help':
+                    window.location.href = 'help.html';
+                    break;
+                case 'logout':
+                    // Logout logic
+                    localStorage.removeItem('jego_logged_in_driver');
+                    window.location.href = 'loginDriver.html';
+                    break;
+                default:
+                    console.log(`⚠️ Screen ${screen} tidak dikenali`);
+                    showPopup(`Navigasi ke "${buttonTitle}"`, 'Info', 'info');
+                    break;
+            }
             
             closeSidebar();
-            
-            if (!success) {
-                showPopup(`Navigasi ke "${buttonTitle}" - Mode browser aktif`, 'Info', 'info');
-            }
         });
     });
 }
@@ -1647,13 +1592,8 @@ function checkOrdersForManualPopup() {
                 processedOrders.add(orderId);
                 foundOrder = true;
                 
-                sendToKodular({
-                    action: 'manual_order_found',
-                    order_id: orderId,
-                    order_type: isKurir ? 'kurir' : 'penumpang',
-                    in_radius: true,
-                    message: `Order ${isKurir ? 'kurir' : 'penumpang'} terdekat ditemukan.`
-                });
+                // Putar suara popup manual
+                playManualPopupSound();
                 
                 showOrderDetail(order);
                 return;
@@ -1859,16 +1799,9 @@ function handleLocationError(error) {
     updateGPSStatus(false, errorMessage);
     
     if (!loadDriverLocationFromStorage()) {
-        requestLocationFromKodular();
+        // Tidak meminta lokasi dari Kodular lagi
+        showPopup('Izinkan akses lokasi untuk fitur yang lebih baik.', 'GPS Error', 'warning');
     }
-}
-
-function requestLocationFromKodular() {
-    console.log('📱 Meminta lokasi dari aplikasi Kodular...');
-    sendToKodular({
-        action: 'request_gps_location',
-        message: 'Membutuhkan akses lokasi GPS untuk Autobid'
-    });
 }
 
 function updateGPSStatus(isActive, message) {
@@ -1968,15 +1901,8 @@ function sendStatusNotificationToDriver(orderId, driverId, status) {
         type: 'info'
     };
     
-    sendToKodular({
-        action: 'offer_status_update',
-        order_id: orderId,
-        driver_id: driverId,
-        status: status,
-        title: notification.title,
-        message: notification.message,
-        timestamp: new Date().toISOString()
-    });
+    // Gunakan popup untuk notifikasi
+    showPopup(notification.message, notification.title, notification.type);
 }
 
 // ==================== FUNGSI MODAL DETAIL ORDER MANUAL - DIUBAH ====================
@@ -2203,13 +2129,6 @@ function showAutobidOrderModal(order) {
         
         playAutobidSound();
         
-        sendToKodular({
-            action: 'autobid_order_found',
-            order_id: orderKey,
-            order_data: currentOrder,
-            message: `Autobid menemukan order dalam radius jarak terdekat. Segera mengirim penawaran.`
-        });
-        
         sendAutobidOffer();
         
     }).catch((error) => {
@@ -2335,14 +2254,6 @@ function sendAutobidOffer() {
                 document.getElementById('autobidProgressText').textContent = 'Penawaran terkirim! Menunggu konfirmasi...';
                 document.getElementById('autobidProgressBar').style.background = 'linear-gradient(to right, var(--primary), var(--secondary))';
                 
-                sendToKodular({
-                    action: 'autobid_offer_sent',
-                    order_id: orderId,
-                    order_data: currentOrder,
-                    priority_score: priorityScore,
-                    message: `Autobid: Penawaran berhasil dikirim. Menunggu konfirmasi customer...`
-                });
-                
                 startAutobidProgressBar();
                 listenForAutobidOrderResponse(orderId, driverId);
             })
@@ -2351,11 +2262,6 @@ function sendAutobidOffer() {
                 
                 document.getElementById('autobidProgressText').textContent = 'Gagal mengirim penawaran';
                 document.getElementById('autobidProgressBar').style.background = '#dc3545';
-                
-                sendToKodular({ 
-                    action: 'autobid_offer_failed', 
-                    message: 'Autobid: Gagal mengirim penawaran.' 
-                });
                 
                 setTimeout(() => {
                     closeAutobidModal();
@@ -2369,11 +2275,6 @@ function sendAutobidOffer() {
         
         document.getElementById('autobidProgressText').textContent = 'Error memeriksa order';
         document.getElementById('autobidProgressBar').style.background = '#dc3545';
-        
-        sendToKodular({ 
-            action: 'autobid_offer_check_failed', 
-            message: 'Autobid: Gagal memeriksa status order.' 
-        });
         
         setTimeout(() => {
             closeAutobidModal();
@@ -2401,7 +2302,6 @@ function listenForAutobidOrderResponse(orderId, driverId) {
                 closeAutobidModal();
             }, 2000);
             
-            sendToKodular({ action: 'order_cancelled', message: 'Order telah dibatalkan oleh customer.' });
             isAutobidProcessing = false;
             processedOrders.delete(orderId);
             return;
@@ -2457,16 +2357,7 @@ function listenForAutobidOrderResponse(orderId, driverId) {
                 
                 const saveSuccess = saveAcceptedOrderToLocalStorage(order, selectedDriver);
                 
-                playOrderAcceptedSound();
-                
-                sendToKodular({
-                    action: 'order_accepted_by_us',
-                    order_id: orderId,
-                    order_data: order,
-                    driver_data: selectedDriver,
-                    saved_to_localstorage: saveSuccess,
-                    message: 'Selamat! Penawaran Autobid Anda diterima oleh customer.'
-                });
+                playOrderAcceptedSound(); // Ini akan redirect ke orderAccepted.html
                 
                 setTimeout(() => {
                     closeAutobidModal();
@@ -2479,12 +2370,6 @@ function listenForAutobidOrderResponse(orderId, driverId) {
                 document.getElementById('autobidProgressBar').style.background = '#dc3545';
                 
                 updateDriverOfferStatus(orderId, driverId, 'rejected');
-                
-                sendToKodular({
-                    action: 'order_taken_by_other_driver',
-                    order_id: orderId,
-                    message: 'Order ini telah diambil oleh driver lain.'
-                });
                 
                 setTimeout(() => {
                     closeAutobidModal();
@@ -2501,13 +2386,6 @@ function listenForAutobidOrderResponse(orderId, driverId) {
             document.getElementById('autobidProgressBar').style.background = '#dc3545';
             
             updateDriverOfferStatus(orderId, driverId, 'cancelled');
-            
-            sendToKodular({
-                action: 'order_status_changed',
-                order_id: orderId,
-                status: order.status,
-                message: `Status order berubah menjadi: ${order.status}`
-            });
             
             setTimeout(() => {
                 closeAutobidModal();
@@ -2527,43 +2405,11 @@ function generateOrdersHash(orders) {
 }
 
 function sendOrdersToKodular(orders) {
+    // Tidak mengirim ke Kodular, hanya logging
     const currentCount = orders.length;
     const currentHash = generateOrdersHash(orders);
     
-    if (currentCount === lastSentOrdersCount && currentHash === lastSentOrdersHash) {
-        console.log('🔍 Data orders tidak berubah, skip kirim ke Kodular');
-        return;
-    }
-    
-    if (isInitialLoad && currentCount === 0) {
-        console.log('🚫 Initial load tanpa orders, skip kirim ke Kodular');
-        isInitialLoad = false;
-        return;
-    }
-    
-    const data = {
-        action: 'orders_updated',
-        orders_count: currentCount,
-        orders: orders.map(order => ({
-            id: order.order_id || order.id,
-            customer_name: order.user_data?.name || order.user_data?.nama || 'Tidak diketahui',
-            alamat_a: order.alamat_a || '-',
-            alamat_b: order.alamat_b || '-',
-            durasi: order.durasi || '-',
-            jarak: order.jarak || '-',
-            harga: order.harga_total || 0,
-            status: order.status || 'unknown',
-            created_at: order.created_at || null,
-            has_promo: !!(order.promo_data || order.kode_promo)
-        }))
-    };
-    
-    console.log('🔄 Mengirim data orders ke Kodular:', data);
-    sendToKodular(data);
-    
-    lastSentOrdersCount = currentCount;
-    lastSentOrdersHash = currentHash;
-    isInitialLoad = false;
+    console.log(`📊 Orders count: ${currentCount}, Hash: ${currentHash}`);
 }
 
 // ==================== FUNGSI TAMPILAN ORDER DENGAN INFORMASI JARAK ====================
@@ -2627,6 +2473,9 @@ function loadOrders() {
                 // Tampilkan radar animasi
                 toggleRadarAnimation(0);
                 
+                // Putar suara order baru
+                playNewOrderSound();
+                
                 // Tetap set loading state ke true meskipun order kosong
                 setLoadingState('orders', true);
                 sendOrdersToKodular([]);
@@ -2667,6 +2516,11 @@ function processOrdersData(orders, ordersList) {
 
         // Toggle radar berdasarkan jumlah order
         toggleRadarAnimation(sortedOrders.length);
+        
+        // Putar suara order baru
+        if (sortedOrders.length > 0) {
+            playNewOrderSound();
+        }
         
         sendOrdersToKodular(sortedOrders);
 
@@ -2844,11 +2698,6 @@ function showConnectionError() {
             </button>
         </div>
     `;
-    
-    sendToKodular({
-        action: 'connection_error',
-        message: 'Tidak terhubung ke server. Periksa koneksi internet.'
-    });
 }
 
 // ==================== FUNGSI UTAMA YANG SUDAH ADA ====================
@@ -3151,16 +3000,7 @@ function listenForOrderResponse(orderId, driverId) {
                 
                 const saveSuccess = saveAcceptedOrderToLocalStorage(order, selectedDriver);
                 
-                playOrderAcceptedSound();
-                
-                sendToKodular({
-                    action: 'order_accepted_by_us',
-                    order_id: orderId,
-                    order_data: order,
-                    driver_data: selectedDriver,
-                    saved_to_localstorage: saveSuccess,
-                    message: 'Selamat! Penawaran Anda diterima oleh customer.'
-                });
+                playOrderAcceptedSound(); // Ini akan redirect ke orderAccepted.html
                 
                 closeModalAndRefresh();
             } else {
@@ -3252,12 +3092,6 @@ function sendDriverOffer() {
         orderRef.child('driver_offers').child(driverId).set(driverData)
             .then(() => {
                 console.log('Penawaran driver berhasil dikirim untuk order:', orderId);
-                sendToKodular({ 
-                    action: 'offer_sent', 
-                    order_id: orderId, 
-                    priority_score: priorityScore,
-                    message: `Penawaran berhasil dikirim. Menunggu konfirmasi customer...` 
-                });
                 startCountdown(orderId, driverId);
                 listenForOrderResponse(orderId, driverId);
                 ambilBtn.textContent = 'Menunggu Konfirmasi';
@@ -3500,13 +3334,6 @@ function checkActiveOrderForDriver() {
             activeOrder.orderId = activeOrderId;
             saveAcceptedOrderToLocalStorage(activeOrder, activeOrder.selected_driver);
             
-            sendToKodular({
-                action: 'active_order_found',
-                order_id: activeOrderId,
-                order_status: activeOrder.status,
-                message: `Anda memiliki order yang sedang berjalan (Status: ${activeOrder.status}).`
-            });
-
             startActiveOrderListener(activeOrderId);
             
             showActiveOrderNotification(activeOrder);
@@ -3536,12 +3363,6 @@ function startActiveOrderListener(orderId) {
             removeAcceptedOrderFromLocalStorage();
             stopActiveOrderListener();
             hideActiveOrderNotification();
-            
-            sendToKodular({
-                action: 'active_order_removed',
-                order_id: orderId,
-                message: 'Order aktif telah dihapus.'
-            });
             return;
         }
 
@@ -3552,13 +3373,6 @@ function startActiveOrderListener(orderId) {
             removeAcceptedOrderFromLocalStorage();
             stopActiveOrderListener();
             hideActiveOrderNotification();
-            
-            sendToKodular({
-                action: 'active_order_completed',
-                order_id: orderId,
-                status: order.status,
-                message: `Order telah selesai dengan status: ${order.status}`
-            });
             
             loadOrders();
         }
@@ -3628,10 +3442,7 @@ function showActiveOrderNotification(order) {
     container.insertBefore(notification, container.firstChild);
     
     document.getElementById('viewActiveOrder').addEventListener('click', () => {
-        sendToKodular({
-            action: "navigate",
-            target: "active_order"
-        });
+        window.location.href = 'orderAccepted.html';
     });
     
     console.log('📢 Notifikasi order berjalan ditampilkan untuk status:', order.status);
@@ -3839,13 +3650,6 @@ function showRadarSearch() {
     radarText.textContent = 'Memindai...';
     emptyState.appendChild(radarText);
     
-    sendToKodular({
-        action: 'searching_orders',
-        status: 'no_orders_found',
-        message: 'Sistem sedang mencari order di sekitar Anda',
-        radius: customRadius
-    });
-    
     startRadarScanning();
 }
 
@@ -3917,11 +3721,6 @@ function simulateNewOrderForDemo() {
                     </div>
                 </div>
             `;
-            
-            sendToKodular({
-                action: 'demo_order_found',
-                message: 'Order baru ditemukan dalam radius pencarian'
-            });
         }
     }
 }
