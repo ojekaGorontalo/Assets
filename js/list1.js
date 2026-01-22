@@ -159,16 +159,36 @@ function checkAllLoadingComplete() {
     
     if (allComplete) {
         console.log('✅ SEMUA LOADING SELESAI');
-        hideLoading();
-        clearLoadingTimeout();
-        if (loadingFailsafeTimeout) {
-            clearTimeout(loadingFailsafeTimeout);
-            loadingFailsafeTimeout = null;
-        }
-        isFirstLoad = false;
+        // PERBAIKAN: Delay sedikit sebelum hide loading
+        setTimeout(() => {
+            hideLoading();
+            clearLoadingTimeout();
+            if (loadingFailsafeTimeout) {
+                clearTimeout(loadingFailsafeTimeout);
+                loadingFailsafeTimeout = null;
+            }
+            isFirstLoad = false;
+            
+            // Tampilkan pesan jika Firebase gagal
+            if (typeof firebase === 'undefined' || !database) {
+                showPopup('Aplikasi berjalan dalam mode terbatas. Beberapa fitur mungkin tidak tersedia.', 'Mode Terbatas', 'info');
+            }
+        }, 500);
     } else {
         console.log('⏳ Masih menunggu loading state:', 
             Object.keys(loadingStates).filter(key => !loadingStates[key]));
+        
+        // PERBAIKAN: Failsafe tambahan
+        const waitingCount = Object.values(loadingStates).filter(state => !state).length;
+        if (waitingCount === 1 && loadingStates.firebase === true) {
+            // Jika hanya menunggu satu state dan Firebase sudah true, force complete
+            console.log('⚠️ Force complete loading karena hanya menunggu 1 state');
+            loadingStates.gps = true;
+            loadingStates.orders = true;
+            loadingStates.driverData = true;
+            loadingStates.appInitialized = true;
+            checkAllLoadingComplete();
+        }
     }
 }
 
@@ -241,48 +261,62 @@ function initializeFirebase() {
   
   function proceedWithFirebaseInit() {
     try {
-      if (typeof firebase === 'undefined') {
-        console.warn('⚠️ Firebase SDK belum terload');
+      // PERBAIKAN: Cek dengan cara yang lebih aman
+      if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+        console.warn('⚠️ Firebase SDK belum terload atau tidak lengkap');
         
         if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
           firebaseRetryCount++;
           console.log(`🔄 Coba lagi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
           
           setTimeout(() => {
-            if (typeof firebase !== 'undefined') {
-              console.log('✅ Firebase SDK sekarang tersedia, melanjutkan...');
-              proceedWithFirebaseInit();
-            } else {
-              proceedWithFirebaseInit();
-            }
-          }, 2000);
+            proceedWithFirebaseInit();
+          }, 3000);
           return false;
         } else {
           console.error('❌ Firebase SDK tidak terload setelah beberapa percobaan');
-          // Tetap set true meskipun gagal
+          // Tetap set true meskipun gagal agar loading selesai
           setLoadingState('firebase', true);
+          showPopup('Tidak dapat terhubung ke server. Aplikasi tetap dapat digunakan dengan fitur terbatas.', 'Koneksi Terbatas', 'warning');
           return false;
         }
       }
       
-      if (!firebase.apps.length) {
-        firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-      } else {
-        firebaseApp = firebase.app();
+      try {
+        // PERBAIKAN: Gunakan try-catch untuk setiap operasi Firebase
+        if (!firebase.apps || !firebase.apps.length) {
+          firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+          console.log('✅ Firebase app baru diinisialisasi');
+        } else {
+          firebaseApp = firebase.app();
+          console.log('✅ Menggunakan Firebase app yang sudah ada');
+        }
+        
+        database = firebase.database();
+        auth = firebase.auth();
+        
+        console.log('✅ Firebase berhasil diinisialisasi');
+        setLoadingState('firebase', true);
+        
+        // Test koneksi dengan cara yang lebih sederhana
+        testFirebaseConnection();
+        
+        return true;
+        
+      } catch (firebaseError) {
+        console.error('❌ Error spesifik Firebase:', firebaseError.message || firebaseError);
+        throw firebaseError;
       }
       
-      database = firebase.database();
-      auth = firebase.auth();
-      
-      console.log('✅ Firebase berhasil diinisialisasi');
-      setLoadingState('firebase', true);
-      
-      testFirebaseConnection();
-      
-      return true;
-      
     } catch (error) {
-      console.error('❌ Error saat inisialisasi Firebase app:', error);
+      console.error('❌ Error saat inisialisasi Firebase app:', error.message || error);
+      
+      // PERBAIKAN: Tampilkan error yang lebih spesifik
+      if (error.message && error.message.includes('already exists')) {
+        console.log('ℹ️ Firebase app sudah diinisialisasi sebelumnya');
+        setLoadingState('firebase', true);
+        return true;
+      }
       
       if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
         firebaseRetryCount++;
@@ -294,8 +328,9 @@ function initializeFirebase() {
         return false;
       } else {
         console.error('❌ Firebase gagal diinisialisasi setelah beberapa percobaan');
-        // Tetap set true meskipun gagal
+        // Tetap set true meskipun gagal agar loading selesai
         setLoadingState('firebase', true);
+        showPopup('Koneksi server terbatas. Beberapa fitur mungkin tidak tersedia.', 'Peringatan', 'warning');
         return false;
       }
     }
@@ -312,18 +347,25 @@ function testFirebaseConnection() {
   
   console.log('🔍 Testing koneksi Firebase...');
   
-  const testRef = database.ref('.info/connected');
-  
-  testRef.once('value').then((snapshot) => {
-    const connected = snapshot.val();
-    if (connected) {
-      console.log('✅ Koneksi Firebase aktif');
-    } else {
-      console.log('⚠️ Koneksi Firebase terputus');
-    }
-  }, (error) => {
-    console.error('❌ Error test koneksi Firebase:', error);
-  });
+  // PERBAIKAN: Gunakan pendekatan yang lebih sederhana
+  try {
+    const testRef = database.ref('.info/connected');
+    
+    testRef.once('value').then((snapshot) => {
+      const connected = snapshot.val();
+      if (connected) {
+        console.log('✅ Koneksi Firebase aktif');
+      } else {
+        console.log('⚠️ Koneksi Firebase terputus');
+      }
+    }, (error) => {
+      console.error('❌ Error test koneksi Firebase:', error);
+    }).catch(error => {
+      console.error('❌ Catch error test koneksi:', error);
+    });
+  } catch (error) {
+    console.error('❌ Exception test koneksi:', error);
+  }
 }
 
 // ==================== FUNGSI BARU: SISTEM USER DATA MANAGEMENT ====================
