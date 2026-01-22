@@ -152,6 +152,9 @@ const MAX_FIREBASE_RETRY = 3;
 // Failsafe: force close loading setelah 15 detik
 let loadingFailsafeTimeout = null;
 
+// Fallback jika Firebase gagal
+let isFirebaseFallback = false;
+
 function checkAllLoadingComplete() {
     console.log('🔍 Mengecek semua loading state:', loadingStates);
     
@@ -222,9 +225,64 @@ function clearLoadingTimeout() {
     }
 }
 
+// ==================== FUNGSI LOAD FIREBASE SDK ====================
+function loadFirebaseSDK() {
+  console.log('📦 Memuat Firebase SDK...');
+  
+  // Cek apakah script sudah dimuat
+  if (document.querySelector('script[src*="firebase-app-compat"]')) {
+    console.log('✅ Firebase SDK sudah dimuat');
+    return;
+  }
+  
+  // Load Firebase SDK secara dinamis
+  const scripts = [
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'
+  ];
+  
+  let loadedCount = 0;
+  
+  scripts.forEach((src, index) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    
+    script.onload = () => {
+      loadedCount++;
+      console.log(`✅ Firebase SDK ${index + 1}/${scripts.length} dimuat`);
+      
+      if (loadedCount === scripts.length) {
+        console.log('✅ Semua Firebase SDK berhasil dimuat');
+        // Set timeout untuk memastikan SDK benar-benar siap
+        setTimeout(() => {
+          initializeFirebase();
+        }, 1000);
+      }
+    };
+    
+    script.onerror = (error) => {
+      console.error(`❌ Gagal memuat Firebase SDK: ${src}`, error);
+    };
+    
+    document.head.appendChild(script);
+  });
+}
+
 // ==================== FUNGSI INITIALIZE FIREBASE YANG DIPERBAIKI ====================
 function initializeFirebase() {
   console.log('🔄 Memulai inisialisasi Firebase...');
+  
+  // Cek apakah Firebase SDK sudah dimuat
+  if (typeof firebase === 'undefined') {
+    console.error('❌ Firebase SDK belum dimuat!');
+    
+    // Coba load Firebase SDK secara dinamis
+    loadFirebaseSDK();
+    return false;
+  }
+  
   showLoading('Menyambungkan ke server...');
   
   // Failsafe: force close loading setelah 15 detik
@@ -241,48 +299,54 @@ function initializeFirebase() {
   
   function proceedWithFirebaseInit() {
     try {
-      if (typeof firebase === 'undefined') {
-        console.warn('⚠️ Firebase SDK belum terload');
+      // Pastikan modul Firebase yang diperlukan tersedia
+      if (typeof firebase.app === 'undefined' || 
+          typeof firebase.database === 'undefined' || 
+          typeof firebase.auth === 'undefined') {
+        console.warn('⚠️ Modul Firebase belum lengkap');
         
         if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
           firebaseRetryCount++;
           console.log(`🔄 Coba lagi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
           
           setTimeout(() => {
-            if (typeof firebase !== 'undefined') {
-              console.log('✅ Firebase SDK sekarang tersedia, melanjutkan...');
-              proceedWithFirebaseInit();
-            } else {
-              proceedWithFirebaseInit();
-            }
+            proceedWithFirebaseInit();
           }, 2000);
           return false;
         } else {
-          console.error('❌ Firebase SDK tidak terload setelah beberapa percobaan');
-          // Tetap set true meskipun gagal
+          console.error('❌ Firebase SDK tidak lengkap setelah beberapa percobaan');
           setLoadingState('firebase', true);
           return false;
         }
       }
       
+      // Inisialisasi Firebase
       if (!firebase.apps.length) {
         firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+        console.log('✅ Firebase app diinisialisasi');
       } else {
         firebaseApp = firebase.app();
+        console.log('✅ Firebase app sudah diinisialisasi sebelumnya');
       }
       
+      // Dapatkan instance database dan auth
       database = firebase.database();
       auth = firebase.auth();
       
       console.log('✅ Firebase berhasil diinisialisasi');
+      console.log('- Database:', database ? '✅ OK' : '❌ NULL');
+      console.log('- Auth:', auth ? '✅ OK' : '❌ NULL');
+      
       setLoadingState('firebase', true);
       
+      // Test koneksi
       testFirebaseConnection();
       
       return true;
       
     } catch (error) {
       console.error('❌ Error saat inisialisasi Firebase app:', error);
+      console.error('Error details:', error.message);
       
       if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
         firebaseRetryCount++;
@@ -294,14 +358,30 @@ function initializeFirebase() {
         return false;
       } else {
         console.error('❌ Firebase gagal diinisialisasi setelah beberapa percobaan');
-        // Tetap set true meskipun gagal
-        setLoadingState('firebase', true);
+        useFirebaseFallback();
         return false;
       }
     }
   }
   
   return proceedWithFirebaseInit();
+}
+
+function useFirebaseFallback() {
+  if (isFirebaseFallback) return;
+  
+  console.log('🔄 Menggunakan fallback mode...');
+  isFirebaseFallback = true;
+  
+  // Set semua loading state ke true
+  setLoadingState('firebase', true);
+  setLoadingState('gps', true);
+  setLoadingState('driverData', true);
+  setLoadingState('orders', true);
+  setLoadingState('appInitialized', true);
+  
+  // Tampilkan pesan
+  showPopup('Mode offline diaktifkan. Beberapa fitur mungkin terbatas.', 'Info', 'info');
 }
 
 function testFirebaseConnection() {
@@ -503,6 +583,69 @@ function checkIfDriverLoggedIn() {
     
     console.log("❌ [DEBUG] Driver belum login");
     return false;
+}
+
+// ==================== FUNGSI REFRESH DATA ====================
+function refreshData() {
+    console.log('🔄 Manual refresh data...');
+    
+    // Reset state
+    processedOrders.clear();
+    isAutobidProcessing = false;
+    
+    // Hentikan listener yang ada
+    if (ordersListener && ordersRef) {
+        ordersRef.off('value', ordersListener);
+    }
+    
+    // Tampilkan loading
+    showLoading('Memuat ulang data...');
+    
+    // Reset loading state untuk orders
+    setLoadingState('orders', false);
+    
+    // Load ulang orders
+    setTimeout(() => {
+        loadOrders();
+        
+        // Jika tracking aktif, kirim lokasi terbaru
+        if (locationTrackingEnabled && driverLocation.latitude && driverLocation.longitude) {
+            sendLocationToFirebase();
+        }
+        
+        showPopup('Data berhasil dimuat ulang', 'Sukses', 'success');
+    }, 1000);
+}
+
+// ==================== FUNGSI REFRESH GPS ====================
+function refreshGPS() {
+    console.log('🔄 Manual refresh GPS...');
+    
+    if (!navigator.geolocation) {
+        showPopup('Browser tidak mendukung GPS', 'Error', 'error');
+        return;
+    }
+    
+    showLoading('Mendeteksi lokasi GPS...');
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            updateDriverLocation(position);
+            updateGPSStatus(true, 'Lokasi diperbarui');
+            hideLoading();
+            showPopup('Lokasi GPS berhasil diperbarui', 'Sukses', 'success');
+        },
+        (error) => {
+            hideLoading();
+            handleLocationError(error);
+            showPopup('Gagal mendapatkan lokasi GPS', 'Error', 'error');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
 }
 
 // ==================== FUNGSI POPUP CUSTOM ====================
@@ -3068,6 +3211,8 @@ function renderOrdersList(orders, ordersList) {
 function showConnectionError() {
     const ordersList = document.getElementById('ordersList');
     
+    if (!ordersList) return;
+    
     ordersList.innerHTML = `
         <div class="empty-state">
             <div>⚠️</div>
@@ -3076,7 +3221,10 @@ function showConnectionError() {
                 Periksa koneksi internet Anda dan coba refresh.
             </p>
             <button onclick="refreshData()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
-                Refresh
+                Refresh Data
+            </button>
+            <button onclick="refreshGPS()" style="margin-top: 10px; padding: 8px 16px; background: var(--secondary); color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 8px;">
+                Refresh GPS
             </button>
         </div>
     `;
@@ -3805,20 +3953,28 @@ function setupEventListeners() {
 
 // ==================== INISIALISASI SAAT HALAMAN DIMUAT ====================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Halaman JeGo Driver dimuat');
-    
+  console.log('🚀 Halaman JeGo Driver dimuat');
+  
+  // Cek Firebase SDK terlebih dahulu
+  if (typeof firebase === 'undefined') {
+    console.log('📦 Firebase SDK belum dimuat, memuat secara dinamis...');
+    loadFirebaseSDK();
+  } else {
+    console.log('✅ Firebase SDK sudah dimuat, lanjut inisialisasi...');
     setTimeout(() => {
-        const firebaseInitialized = initializeFirebase();
-        
-        if (firebaseInitialized) {
-            console.log('✅ Firebase siap, inisialisasi aplikasi...');
-        } else {
-            console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
-            setTimeout(() => {
-                initJeGoApp();
-            }, 3000);
-        }
+      const firebaseInitialized = initializeFirebase();
+      
+      if (firebaseInitialized) {
+        console.log('✅ Firebase siap, inisialisasi aplikasi...');
+        initJeGoApp();
+      } else {
+        console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
+        setTimeout(() => {
+          initJeGoApp();
+        }, 3000);
+      }
     }, 1000);
+  }
 });
 
 window.addEventListener('beforeunload', () => {
@@ -3847,3 +4003,22 @@ window.addEventListener('beforeunload', () => {
     
     processStatusBatch();
 });
+
+// Helper functions yang mungkin belum didefinisikan di tempat lain
+function getDriverPriorityData() {
+    return {
+        priorityLevel: currentDriverData?.priority_level || 1,
+        rating: currentDriverData?.avgRating || 5
+    };
+}
+
+function calculatePriorityScore(priorityLevel, rating, distance) {
+    // Formula sederhana: higher priority = lebih tinggi skor
+    const distanceScore = distance ? 1 / Math.max(distance, 0.1) : 1;
+    return (priorityLevel * 0.4) + (rating * 0.3) + (distanceScore * 0.3);
+}
+
+function initializeBalanceSystem() {
+    // Implementasi sistem balance (jika diperlukan)
+    currentDriverBalance = currentDriverData?.Balance || 0;
+}
