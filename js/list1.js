@@ -225,49 +225,67 @@ function clearLoadingTimeout() {
     }
 }
 
-// ==================== FUNGSI LOAD FIREBASE SDK ====================
+// ==================== FUNGSI LOAD FIREBASE SDK YANG DIPERBAIKI ====================
 function loadFirebaseSDK() {
   console.log('📦 Memuat Firebase SDK...');
   
   // Cek apakah script sudah dimuat
-  if (document.querySelector('script[src*="firebase-app-compat"]')) {
+  if (typeof firebase !== 'undefined' && firebase.apps) {
     console.log('✅ Firebase SDK sudah dimuat');
     return;
   }
   
-  // Load Firebase SDK secara dinamis
+  // PERBAIKAN: Gunakan versi yang lebih stabil dan pastikan loading berurutan
   const scripts = [
-    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
-    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
-    'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js'
   ];
   
-  let loadedCount = 0;
-  
-  scripts.forEach((src, index) => {
+  // Fungsi untuk load script secara berurutan
+  function loadScript(index) {
+    if (index >= scripts.length) {
+      console.log('✅ Semua Firebase SDK berhasil dimuat');
+      
+      // Tunggu 500ms untuk memastikan SDK benar-benar siap
+      setTimeout(() => {
+        console.log('🔄 Memulai inisialisasi Firebase setelah SDK dimuat...');
+        initializeFirebase();
+      }, 500);
+      return;
+    }
+    
+    const src = scripts[index];
     const script = document.createElement('script');
     script.src = src;
-    script.async = true;
-    
+    script.async = false; // Load secara berurutan
     script.onload = () => {
-      loadedCount++;
-      console.log(`✅ Firebase SDK ${index + 1}/${scripts.length} dimuat`);
-      
-      if (loadedCount === scripts.length) {
-        console.log('✅ Semua Firebase SDK berhasil dimuat');
-        // Set timeout untuk memastikan SDK benar-benar siap
-        setTimeout(() => {
-          initializeFirebase();
-        }, 1000);
-      }
+      console.log(`✅ Firebase SDK ${index + 1}/${scripts.length} dimuat: ${src}`);
+      loadScript(index + 1);
     };
-    
     script.onerror = (error) => {
       console.error(`❌ Gagal memuat Firebase SDK: ${src}`, error);
+      
+      // Coba versi fallback jika gagal
+      console.log('🔄 Mencoba versi fallback...');
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = src.replace('.js', '-compat.js');
+      fallbackScript.async = false;
+      fallbackScript.onload = () => {
+        console.log(`✅ Firebase SDK fallback ${index + 1}/${scripts.length} dimuat`);
+        loadScript(index + 1);
+      };
+      fallbackScript.onerror = () => {
+        console.error(`❌ Gagal memuat fallback juga: ${src}`);
+        loadScript(index + 1); // Lanjut meskipun gagal
+      };
+      document.head.appendChild(fallbackScript);
     };
     
     document.head.appendChild(script);
-  });
+  }
+  
+  loadScript(0);
 }
 
 // ==================== FUNGSI INITIALIZE FIREBASE YANG DIPERBAIKI ====================
@@ -275,10 +293,10 @@ function initializeFirebase() {
   console.log('🔄 Memulai inisialisasi Firebase...');
   
   // Cek apakah Firebase SDK sudah dimuat
-  if (typeof firebase === 'undefined') {
-    console.error('❌ Firebase SDK belum dimuat!');
+  if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
+    console.error('❌ Firebase SDK belum dimuat atau versi salah!');
     
-    // Coba load Firebase SDK secara dinamis
+    // Coba load Firebase SDK secara dinamis dengan versi yang stabil
     loadFirebaseSDK();
     return false;
   }
@@ -296,14 +314,25 @@ function initializeFirebase() {
   }, 15000);
   
   setLoadingState('firebase', false);
+  firebaseRetryCount = 0; // Reset retry counter
   
   function proceedWithFirebaseInit() {
     try {
-      // Pastikan modul Firebase yang diperlukan tersedia
-      if (typeof firebase.app === 'undefined' || 
-          typeof firebase.database === 'undefined' || 
-          typeof firebase.auth === 'undefined') {
-        console.warn('⚠️ Modul Firebase belum lengkap');
+      // PERBAIKAN: Cek modul Firebase dengan cara yang lebih kompatibel
+      const isFirebaseReady = (
+        typeof firebase !== 'undefined' &&
+        typeof firebase.initializeApp === 'function' &&
+        typeof firebase.database === 'function' &&
+        typeof firebase.auth === 'function'
+      );
+      
+      if (!isFirebaseReady) {
+        console.warn('⚠️ Modul Firebase belum lengkap:', {
+          firebase: typeof firebase,
+          initializeApp: typeof firebase.initializeApp,
+          database: typeof firebase.database,
+          auth: typeof firebase.auth
+        });
         
         if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
           firebaseRetryCount++;
@@ -315,13 +344,13 @@ function initializeFirebase() {
           return false;
         } else {
           console.error('❌ Firebase SDK tidak lengkap setelah beberapa percobaan');
-          setLoadingState('firebase', true);
+          useFirebaseFallback();
           return false;
         }
       }
       
       // Inisialisasi Firebase
-      if (!firebase.apps.length) {
+      if (!firebase.apps || firebase.apps.length === 0) {
         firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
         console.log('✅ Firebase app diinisialisasi');
       } else {
@@ -339,14 +368,14 @@ function initializeFirebase() {
       
       setLoadingState('firebase', true);
       
-      // Test koneksi
+      // Test koneksi dengan timeout
       testFirebaseConnection();
       
       return true;
       
     } catch (error) {
       console.error('❌ Error saat inisialisasi Firebase app:', error);
-      console.error('Error details:', error.message);
+      console.error('Error details:', error.message, error.stack);
       
       if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
         firebaseRetryCount++;
@@ -367,10 +396,11 @@ function initializeFirebase() {
   return proceedWithFirebaseInit();
 }
 
+// ==================== FUNGSI FALLBACK MODE ====================
 function useFirebaseFallback() {
   if (isFirebaseFallback) return;
   
-  console.log('🔄 Menggunakan fallback mode...');
+  console.log('🔄 Menggunakan fallback mode (tanpa Firebase)...');
   isFirebaseFallback = true;
   
   // Set semua loading state ke true
@@ -380,8 +410,67 @@ function useFirebaseFallback() {
   setLoadingState('orders', true);
   setLoadingState('appInitialized', true);
   
-  // Tampilkan pesan
-  showPopup('Mode offline diaktifkan. Beberapa fitur mungkin terbatas.', 'Info', 'info');
+  // Tampilkan pesan informasi
+  const ordersList = document.getElementById('ordersList');
+  if (ordersList) {
+    ordersList.innerHTML = `
+      <div class="empty-state">
+        <div>⚠️</div>
+        <p>Mode Offline</p>
+        <p style="margin-top: 10px; font-size: 0.8rem; color: #666;">
+          Tidak dapat terhubung ke server. Beberapa fitur terbatas.<br>
+          Periksa koneksi internet Anda.
+        </p>
+        <button onclick="retryFirebaseConnection()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+          Coba Hubungkan Kembali
+        </button>
+      </div>
+    `;
+  }
+  
+  // Update UI untuk mode offline
+  updateUIForOfflineMode();
+}
+
+// Fungsi untuk mencoba koneksi ulang
+function retryFirebaseConnection() {
+  console.log('🔄 Mencoba menghubungkan ke Firebase...');
+  isFirebaseFallback = false;
+  firebaseRetryCount = 0;
+  
+  // Reset loading states
+  setLoadingState('firebase', false);
+  setLoadingState('gps', false);
+  setLoadingState('driverData', false);
+  setLoadingState('orders', false);
+  setLoadingState('appInitialized', false);
+  
+  showLoading('Mencoba menyambung ke server...');
+  
+  // Coba inisialisasi ulang
+  setTimeout(() => {
+    initializeFirebase();
+  }, 1000);
+}
+
+// Update UI untuk mode offline
+function updateUIForOfflineMode() {
+  // Nonaktifkan fitur yang memerlukan Firebase
+  const locationToggleBtn = document.getElementById('locationToggleBtn');
+  if (locationToggleBtn) {
+    locationToggleBtn.disabled = true;
+    locationToggleBtn.style.opacity = '0.5';
+    locationToggleBtn.innerHTML = '<span>📍</span> OFFLINE';
+  }
+  
+  const autobidToggle = document.getElementById('autobidToggle');
+  if (autobidToggle) {
+    autobidToggle.disabled = true;
+    autobidToggle.parentElement.style.opacity = '0.5';
+  }
+  
+  // Tampilkan notifikasi
+  showPopup('Aplikasi berjalan dalam mode offline. Beberapa fitur mungkin tidak tersedia.', 'Mode Offline', 'info');
 }
 
 function testFirebaseConnection() {
@@ -393,15 +482,22 @@ function testFirebaseConnection() {
   console.log('🔍 Testing koneksi Firebase...');
   
   const testRef = database.ref('.info/connected');
+  const connectionTimeout = setTimeout(() => {
+    console.log('⚠️ Timeout test koneksi Firebase');
+    testRef.off(); // Hapus listener
+  }, 5000);
   
-  testRef.once('value').then((snapshot) => {
+  testRef.on('value', (snapshot) => {
+    clearTimeout(connectionTimeout);
     const connected = snapshot.val();
     if (connected) {
       console.log('✅ Koneksi Firebase aktif');
     } else {
       console.log('⚠️ Koneksi Firebase terputus');
     }
+    testRef.off(); // Hentikan listener setelah mendapat hasil
   }, (error) => {
+    clearTimeout(connectionTimeout);
     console.error('❌ Error test koneksi Firebase:', error);
   });
 }
@@ -3955,25 +4051,34 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Halaman JeGo Driver dimuat');
   
-  // Cek Firebase SDK terlebih dahulu
+  // Tampilkan loading segera
+  showLoading('Menyiapkan aplikasi...');
+  
+  // Cek koneksi internet
+  if (!navigator.onLine) {
+    console.warn('⚠️ Tidak ada koneksi internet');
+    showPopup('Tidak ada koneksi internet. Aplikasi akan berjalan dalam mode offline.', 'Koneksi Internet', 'warning');
+    setTimeout(() => {
+      useFirebaseFallback();
+    }, 1000);
+    return;
+  }
+  
+  // Cek Firebase SDK
   if (typeof firebase === 'undefined') {
     console.log('📦 Firebase SDK belum dimuat, memuat secara dinamis...');
     loadFirebaseSDK();
   } else {
-    console.log('✅ Firebase SDK sudah dimuat, lanjut inisialisasi...');
+    console.log('✅ Firebase SDK sudah dimuat');
+    console.log('🔍 Cek versi Firebase:', {
+      SDK: firebase.SDK_VERSION,
+      apps: firebase.apps ? firebase.apps.length : 0
+    });
+    
+    // Tunggu sebentar untuk memastikan modul siap
     setTimeout(() => {
-      const firebaseInitialized = initializeFirebase();
-      
-      if (firebaseInitialized) {
-        console.log('✅ Firebase siap, inisialisasi aplikasi...');
-        initJeGoApp();
-      } else {
-        console.log('⚠️ Firebase belum siap, tunggu inisialisasi...');
-        setTimeout(() => {
-          initJeGoApp();
-        }, 3000);
-      }
-    }, 1000);
+      initializeFirebase();
+    }, 500);
   }
 });
 
