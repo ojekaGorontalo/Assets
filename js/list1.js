@@ -227,7 +227,7 @@ function clearLoadingTimeout() {
 
 // ==================== FUNGSI LOAD FIREBASE SDK YANG DIPERBAIKI ====================
 function loadFirebaseSDK() {
-  console.log('📦 Memuat Firebase SDK...');
+  console.log('📦 Memuat Firebase SDK COMPAT...');
   
   // Cek apakah script sudah dimuat
   if (typeof firebase !== 'undefined' && firebase.apps) {
@@ -235,17 +235,17 @@ function loadFirebaseSDK() {
     return;
   }
   
-  // PERBAIKAN: Gunakan versi yang lebih stabil dan pastikan loading berurutan
+  // PERBAIKAN: Gunakan VERSI COMPAT untuk kompatibilitas namespace
   const scripts = [
-    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js',
-    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js',
-    'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js'
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'
   ];
   
   // Fungsi untuk load script secara berurutan
   function loadScript(index) {
     if (index >= scripts.length) {
-      console.log('✅ Semua Firebase SDK berhasil dimuat');
+      console.log('✅ Semua Firebase SDK COMPAT berhasil dimuat');
       
       // Tunggu 500ms untuk memastikan SDK benar-benar siap
       setTimeout(() => {
@@ -260,16 +260,16 @@ function loadFirebaseSDK() {
     script.src = src;
     script.async = false; // Load secara berurutan
     script.onload = () => {
-      console.log(`✅ Firebase SDK ${index + 1}/${scripts.length} dimuat: ${src}`);
+      console.log(`✅ Firebase SDK COMPAT ${index + 1}/${scripts.length} dimuat: ${src}`);
       loadScript(index + 1);
     };
     script.onerror = (error) => {
-      console.error(`❌ Gagal memuat Firebase SDK: ${src}`, error);
+      console.error(`❌ Gagal memuat Firebase SDK COMPAT: ${src}`, error);
       
       // Coba versi fallback jika gagal
-      console.log('🔄 Mencoba versi fallback...');
+      console.log('🔄 Mencoba versi fallback non-compat...');
       const fallbackScript = document.createElement('script');
-      fallbackScript.src = src.replace('.js', '-compat.js');
+      fallbackScript.src = src.replace('-compat.js', '.js');
       fallbackScript.async = false;
       fallbackScript.onload = () => {
         console.log(`✅ Firebase SDK fallback ${index + 1}/${scripts.length} dimuat`);
@@ -301,6 +301,39 @@ function initializeFirebase() {
     return false;
   }
   
+  // VALIDASI EKSTENSIF: Cek semua modul Firebase yang diperlukan
+  console.log('🔍 Validasi modul Firebase COMPAT:');
+  console.log('- firebase:', typeof firebase);
+  console.log('- firebase.initializeApp:', typeof firebase.initializeApp);
+  console.log('- firebase.auth:', typeof firebase.auth);
+  console.log('- firebase.database:', typeof firebase.database);
+  
+  // Validasi kritis: Pastikan auth dan database tersedia
+  if (typeof firebase.auth === 'undefined') {
+    console.error('❌ CRITICAL ERROR: firebase.auth is UNDEFINED!');
+    console.error('Firebase Auth module tidak tersedia. Periksa pemuatan SDK.');
+    
+    // Coba muat ulang SDK
+    setTimeout(() => {
+      console.log('🔄 Mencoba muat ulang Firebase SDK...');
+      loadFirebaseSDK();
+    }, 2000);
+    
+    return false;
+  }
+  
+  if (typeof firebase.database === 'undefined') {
+    console.error('❌ CRITICAL ERROR: firebase.database is UNDEFINED!');
+    console.error('Firebase Database module tidak tersedia. Periksa pemuatan SDK.');
+    
+    setTimeout(() => {
+      console.log('🔄 Mencoba muat ulang Firebase SDK...');
+      loadFirebaseSDK();
+    }, 2000);
+    
+    return false;
+  }
+  
   showLoading('Menyambungkan ke server...');
   
   // Failsafe: force close loading setelah 15 detik
@@ -318,53 +351,31 @@ function initializeFirebase() {
   
   function proceedWithFirebaseInit() {
     try {
-      // PERBAIKAN: Cek modul Firebase dengan cara yang lebih kompatibel
-      const isFirebaseReady = (
-        typeof firebase !== 'undefined' &&
-        typeof firebase.initializeApp === 'function' &&
-        typeof firebase.database === 'function' &&
-        typeof firebase.auth === 'function'
-      );
-      
-      if (!isFirebaseReady) {
-        console.warn('⚠️ Modul Firebase belum lengkap:', {
-          firebase: typeof firebase,
-          initializeApp: typeof firebase.initializeApp,
-          database: typeof firebase.database,
-          auth: typeof firebase.auth
-        });
-        
-        if (firebaseRetryCount < MAX_FIREBASE_RETRY) {
-          firebaseRetryCount++;
-          console.log(`🔄 Coba lagi Firebase (percobaan ${firebaseRetryCount}/${MAX_FIREBASE_RETRY})...`);
-          
-          setTimeout(() => {
-            proceedWithFirebaseInit();
-          }, 2000);
-          return false;
-        } else {
-          console.error('❌ Firebase SDK tidak lengkap setelah beberapa percobaan');
-          useFirebaseFallback();
-          return false;
-        }
-      }
-      
-      // Inisialisasi Firebase
-      if (!firebase.apps || firebase.apps.length === 0) {
+      // GUARD: Cek apakah Firebase sudah diinisialisasi
+      if (firebase.apps && firebase.apps.length > 0) {
+        console.log('✅ Firebase sudah diinisialisasi sebelumnya');
+        firebaseApp = firebase.app();
+      } else {
+        // Inisialisasi Firebase app
+        console.log('🔄 Menginisialisasi Firebase app...');
         firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
         console.log('✅ Firebase app diinisialisasi');
-      } else {
-        firebaseApp = firebase.app();
-        console.log('✅ Firebase app sudah diinisialisasi sebelumnya');
       }
       
-      // Dapatkan instance database dan auth
+      // Dapatkan instance database dan auth dengan namespace style
       database = firebase.database();
       auth = firebase.auth();
       
-      console.log('✅ Firebase berhasil diinisialisasi');
+      console.log('✅ Firebase berhasil diinisialisasi dengan COMPAT mode');
+      console.log('- Firebase App:', firebaseApp ? '✅ OK' : '❌ NULL');
       console.log('- Database:', database ? '✅ OK' : '❌ NULL');
       console.log('- Auth:', auth ? '✅ OK' : '❌ NULL');
+      console.log('- SDK Version:', firebase.SDK_VERSION);
+      
+      // Debug tambahan
+      console.log('🔧 Firebase namespace objects:');
+      console.log('   firebase.auth() type:', typeof firebase.auth());
+      console.log('   firebase.database() type:', typeof firebase.database());
       
       setLoadingState('firebase', true);
       
@@ -4074,6 +4085,14 @@ document.addEventListener('DOMContentLoaded', () => {
       SDK: firebase.SDK_VERSION,
       apps: firebase.apps ? firebase.apps.length : 0
     });
+    
+    // Validasi modul Firebase
+    if (typeof firebase.auth === 'undefined' || typeof firebase.database === 'undefined') {
+      console.warn('⚠️ Firebase SDK dimuat tapi modul auth/database tidak tersedia');
+      console.log('🔍 Memuat ulang Firebase SDK COMPAT...');
+      loadFirebaseSDK();
+      return;
+    }
     
     // Tunggu sebentar untuk memastikan modul siap
     setTimeout(() => {
