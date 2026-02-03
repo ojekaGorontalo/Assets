@@ -630,16 +630,24 @@
           // Update UI
           updateLoginStatus();
           
-          // REDIRECT LANGSUNG ke list1.html
-          redirectTo('list1.html');
+          // KIRIM KE KODULAR untuk buka halaman list1
+          sendToKodular({
+            target: 'driver_dashboard',
+            screen: 'list1',
+            message: 'Navigasi ke dashboard driver setelah logout user'
+          });
         }
         return;
       }
       
       // SKENARIO 2: Hanya driver yang sudah login
       if (driverLoggedIn) {
-        console.log('✅ Driver sudah login, redirect ke list1.html');
-        redirectTo('list1.html');
+        console.log('✅ Driver sudah login, kirim ke Kodular untuk buka halaman list1');
+        sendToKodular({
+          target: 'driver_dashboard',
+          screen: 'list1',
+          message: 'Driver sudah login, buka dashboard driver'
+        });
         return;
       }
       
@@ -813,12 +821,14 @@
         return;
       }
       
-      // Redirect jika hanya driver yang login
+      // Jika hanya driver yang login, KIRIM KE KODULAR untuk buka halaman list1
       if (!userLoggedIn && driverLoggedIn) {
-        console.log('✅ Hanya driver login, auto-redirect ke list1.html');
-        setTimeout(() => {
-          redirectTo('list1.html');
-        }, 1000);
+        console.log('✅ Hanya driver login, kirim ke Kodular untuk buka halaman list1');
+        sendToKodular({
+          target: 'driver_dashboard',
+          screen: 'list1',
+          message: 'Driver sudah login, buka dashboard driver'
+        });
       }
     }
 
