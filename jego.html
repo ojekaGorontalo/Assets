@@ -539,90 +539,6 @@
     }
 
     // ================================================
-    // FUNGSI CLEANUP DATA DRIVER
-    // ================================================
-    function cleanupDriverData() {
-      console.log('🔄 Memeriksa dan membersihkan data driver...');
-      
-      const driverKeys = [
-        'jego_logged_in_driver',
-        'jego_driver_data',
-        'jego_driver_location',
-        'jego_autobid_enabled',
-        'jego_driver_accepted_order',
-        'jego_driver_session',
-        'driver_login',
-        'driver_data',
-        'current_driver',
-        'driver_id',
-        'driver_status'
-      ];
-      
-      let cleanedCount = 0;
-      driverKeys.forEach(key => {
-        if (localStorage.getItem(key)) {
-          localStorage.removeItem(key);
-          cleanedCount++;
-          console.log(`🗑️ Menghapus data driver: ${key}`);
-        }
-      });
-      
-      if (cleanedCount > 0) {
-        console.log(`✅ ${cleanedCount} data driver berhasil dibersihkan`);
-      }
-      
-      return cleanedCount;
-    }
-    
-    // ================================================
-    // FUNGSI VALIDASI DATA DRIVER
-    // ================================================
-    function validateDriverData() {
-      const driverData = localStorage.getItem('jego_logged_in_driver');
-      
-      if (!driverData) {
-        return { isValid: false, reason: 'no_data' };
-      }
-      
-      try {
-        const parsedData = JSON.parse(driverData);
-        
-        // Cek apakah data memiliki struktur yang valid
-        const isValid = (
-          parsedData && 
-          (parsedData.uid || parsedData.driverId || parsedData.email) &&
-          (parsedData.name || parsedData.fullName)
-        );
-        
-        if (!isValid) {
-          console.log('❌ Data driver tidak valid, menghapus...');
-          cleanupDriverData();
-          return { isValid: false, reason: 'invalid_structure' };
-        }
-        
-        // Cek apakah data terlalu lama (lebih dari 7 hari)
-        if (parsedData.timestamp) {
-          const dataTime = new Date(parsedData.timestamp).getTime();
-          const currentTime = new Date().getTime();
-          const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 hari dalam milidetik
-          
-          if (currentTime - dataTime > sevenDays) {
-            console.log('❌ Data driver kedaluwarsa (lebih dari 7 hari), menghapus...');
-            cleanupDriverData();
-            return { isValid: false, reason: 'expired' };
-          }
-        }
-        
-        return { isValid: true, data: parsedData };
-        
-      } catch (error) {
-        console.log('❌ Error parsing data driver, menghapus...', error);
-        cleanupDriverData();
-        return { isValid: false, reason: 'parse_error' };
-      }
-    }
-
-    // ================================================
     // FUNGSI LOGIN USER (REVISI)
     // ================================================
     function openUserLogin() {
@@ -631,11 +547,8 @@
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      // Validasi data driver terlebih dahulu
-      const driverValidation = validateDriverData();
-      
       // SKENARIO 1: User sudah login, driver juga login (LOGIN GANDA)
-      if (userLoggedIn && driverLoggedIn && driverValidation.isValid) {
+      if (userLoggedIn && driverLoggedIn) {
         console.log('⚠️ Login ganda terdeteksi!');
         
         // Tampilkan konfirmasi
@@ -645,7 +558,7 @@
           'Lanjutkan?'
         )) {
           // Logout driver terlebih dahulu
-          cleanupDriverData();
+          localStorage.removeItem('jego_logged_in_driver');
           console.log('✅ Driver logged out');
           
           // Update UI
@@ -665,7 +578,7 @@
       }
       
       // SKENARIO 3: Hanya driver yang login, user belum login
-      if (!userLoggedIn && driverLoggedIn && driverValidation.isValid) {
+      if (!userLoggedIn && driverLoggedIn) {
         console.log('🚗 Driver login, user belum login - tanyakan konfirmasi');
         
         if (confirm(
@@ -674,7 +587,7 @@
           'Jika tidak, Anda akan tetap sebagai Driver.'
         )) {
           // Logout driver terlebih dahulu
-          cleanupDriverData();
+          localStorage.removeItem('jego_logged_in_driver');
           console.log('✅ Driver logged out');
           
           // Update UI
@@ -686,13 +599,7 @@
         return;
       }
       
-      // SKENARIO 4: Driver data tidak valid (auto cleanup)
-      if (driverLoggedIn && !driverValidation.isValid) {
-        console.log('⚠️ Data driver tidak valid, membersihkan...');
-        cleanupDriverData();
-      }
-      
-      // SKENARIO 5: Belum login sama sekali
+      // SKENARIO 4: Belum login sama sekali
       console.log('🔐 User belum login, redirect ke loginUser.html');
       redirectTo('loginUser.html');
     }
@@ -706,11 +613,8 @@
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      // Validasi data driver terlebih dahulu
-      const driverValidation = validateDriverData();
-      
       // SKENARIO 1: Driver sudah login, user juga login (LOGIN GANDA)
-      if (userLoggedIn && driverLoggedIn && driverValidation.isValid) {
+      if (userLoggedIn && driverLoggedIn) {
         console.log('⚠️ Login ganda terdeteksi!');
         
         // Tampilkan konfirmasi
@@ -732,26 +636,14 @@
         return;
       }
       
-      // SKENARIO 2: Hanya driver yang sudah login DAN data valid
-      if (driverLoggedIn && driverValidation.isValid) {
+      // SKENARIO 2: Hanya driver yang sudah login
+      if (driverLoggedIn) {
         console.log('✅ Driver sudah login, redirect ke list1.html');
         redirectTo('list1.html');
         return;
       }
       
-      // SKENARIO 3: Driver data tidak valid (auto cleanup)
-      if (driverLoggedIn && !driverValidation.isValid) {
-        console.log('⚠️ Data driver tidak valid, membersihkan...');
-        cleanupDriverData();
-        updateLoginStatus();
-        
-        // Tampilkan notifikasi
-        setTimeout(() => {
-          alert('Session driver telah berakhir. Silakan login kembali.');
-        }, 300);
-      }
-      
-      // SKENARIO 4: Hanya user yang login, driver belum login
+      // SKENARIO 3: Hanya user yang login, driver belum login
       if (userLoggedIn && !driverLoggedIn) {
         console.log('👤 User login, driver belum login - tanyakan konfirmasi');
         
@@ -777,7 +669,7 @@
         return;
       }
       
-      // SKENARIO 5: Belum login sama sekali - KIRIM KE KODULAR
+      // SKENARIO 4: Belum login sama sekali - KIRIM KE KODULAR
       console.log('🔐 Driver belum login, kirim ke Kodular');
       sendToKodular({
         target: 'driver_login',
@@ -787,19 +679,11 @@
     }
 
     // ================================================
-    // FUNGSI UPDATE STATUS LOGIN DI UI (DIPERBAIKI)
+    // FUNGSI UPDATE STATUS LOGIN DI UI
     // ================================================
     function updateLoginStatus() {
-      // Validasi data driver terlebih dahulu
-      const driverValidation = validateDriverData();
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
-      
-      // Jika data driver tidak valid, hapus dari localStorage
-      if (!driverValidation.isValid && localStorage.getItem('jego_logged_in_driver')) {
-        cleanupDriverData();
-      }
-      
-      const driverLoggedIn = driverValidation.isValid;
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
       console.log('🔄 Update UI - User:', userLoggedIn ? 'Ya' : 'Tidak', 'Driver:', driverLoggedIn ? 'Ya' : 'Tidak');
       
@@ -879,16 +763,6 @@
         welcomeText.style.color = '#666';
         welcomeTitle.style.color = '#FF9800';
       }
-      
-      // Kirim update status ke Kodular
-      sendToKodular({
-        target: 'main_screen',
-        screen: 'Screen1',
-        login_status: driverLoggedIn ? 'driver_only' : (userLoggedIn ? 'user_only' : 'none'),
-        user_logged_in: userLoggedIn ? true : false,
-        driver_logged_in: driverLoggedIn ? true : false,
-        message: 'Status login diupdate'
-      });
     }
 
     // ================================================
@@ -896,12 +770,8 @@
     // ================================================
     function logoutAll() {
       if (confirm('Anda yakin ingin logout dari semua akun?')) {
-        // Hapus data user
         localStorage.removeItem('jego_logged_in_user');
-        
-        // Hapus data driver (gunakan fungsi cleanup)
-        cleanupDriverData();
-        
+        localStorage.removeItem('jego_logged_in_driver');
         console.log('✅ Semua akun telah logout');
         
         updateLoginStatus();
@@ -926,19 +796,11 @@
     // ================================================
     function autoRedirectIfSingleLogin() {
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
-      const driverValidation = validateDriverData();
-      const driverLoggedIn = driverValidation.isValid;
+      const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
       // JANGAN redirect jika login ganda
       if (userLoggedIn && driverLoggedIn) {
         console.log('⚠️ Login ganda, tidak auto-redirect');
-        return;
-      }
-      
-      // JANGAN redirect jika ada data driver tidak valid
-      if (!driverValidation.isValid && localStorage.getItem('jego_logged_in_driver')) {
-        console.log('⚠️ Data driver tidak valid, membersihkan dan tidak auto-redirect');
-        cleanupDriverData();
         return;
       }
       
@@ -951,7 +813,7 @@
         return;
       }
       
-      // Redirect jika hanya driver yang login DAN data valid
+      // Redirect jika hanya driver yang login
       if (!userLoggedIn && driverLoggedIn) {
         console.log('✅ Hanya driver login, auto-redirect ke list1.html');
         setTimeout(() => {
@@ -961,124 +823,10 @@
     }
 
     // ================================================
-    // FUNGSI UNTUK DETEKSI PERUBAHAN STORAGE DARI TAB LAIN
-    // ================================================
-    function setupStorageListener() {
-      console.log('👂 Setup storage listener untuk sinkronisasi logout');
-      
-      // Deteksi perubahan localStorage dari tab lain (akun.html)
-      window.addEventListener('storage', function(event) {
-        console.log('🔄 Storage event detected:', {
-          key: event.key,
-          newValue: event.newValue,
-          oldValue: event.oldValue,
-          url: event.url
-        });
-        
-        // Jika driver logout dari akun.html (key dihapus)
-        if (event.key === 'jego_logged_in_driver' && !event.newValue) {
-          console.log('🚗 Driver logout dari tab lain (akun.html)');
-          
-          // Bersihkan semua data driver
-          cleanupDriverData();
-          
-          // Update UI
-          updateLoginStatus();
-          
-          // Tampilkan notifikasi
-          setTimeout(() => {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-              position: fixed;
-              top: 20px;
-              right: 20px;
-              background: #4CAF50;
-              color: white;
-              padding: 12px 20px;
-              border-radius: 8px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-              z-index: 1000;
-              animation: slideInRight 0.3s ease;
-            `;
-            notification.innerHTML = '🚗 Driver telah logout dari perangkat lain';
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-              notification.style.animation = 'slideOutRight 0.3s ease';
-              setTimeout(() => notification.remove(), 300);
-            }, 3000);
-          }, 100);
-        }
-        
-        // Jika ada perubahan pada data driver
-        if (event.key === 'jego_driver_data' && !event.newValue) {
-          console.log('🗑️ Data driver dihapus dari tab lain');
-          cleanupDriverData();
-          updateLoginStatus();
-        }
-      });
-      
-      // Tambahkan style untuk animasi notifikasi
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOutRight {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(100%); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-    
-    // ================================================
-    // FUNGSI PERIODIC CHECK DATA DRIVER
-    // ================================================
-    function setupPeriodicCheck() {
-      console.log('⏰ Setup periodic check data driver');
-      
-      // Check setiap 30 detik untuk data driver
-      setInterval(() => {
-        const driverData = localStorage.getItem('jego_logged_in_driver');
-        if (driverData) {
-          const validation = validateDriverData();
-          if (!validation.isValid) {
-            console.log('⚠️ Periodic check: Data driver tidak valid, membersihkan...');
-            cleanupDriverData();
-            updateLoginStatus();
-          }
-        }
-      }, 30000); // 30 detik
-      
-      // Check saat halaman menjadi aktif kembali
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-          console.log('👁️ Halaman aktif kembali, validasi data driver...');
-          const validation = validateDriverData();
-          if (!validation.isValid && localStorage.getItem('jego_logged_in_driver')) {
-            cleanupDriverData();
-            updateLoginStatus();
-          }
-        }
-      });
-    }
-
-    // ================================================
     // EVENT LISTENERS
     // ================================================
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 Halaman utama JeGo dimuat');
-      
-      // Setup storage listener untuk sinkronisasi logout
-      setupStorageListener();
-      
-      // Setup periodic check
-      setupPeriodicCheck();
-      
-      // Validasi dan bersihkan data driver yang tidak valid
-      cleanupDriverData();
       
       // Update status login
       updateLoginStatus();
@@ -1112,6 +860,8 @@
             : '0 2px 6px rgba(0,0,0,0.08)';
         });
       });
+      
+      // TOMBOL DEBUG TIDAK DITAMPILKAN LAGI - DIHAPUS
     });
   </script>
 </body>
