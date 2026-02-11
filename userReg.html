@@ -15,9 +15,11 @@ body{font-family:Arial;background:#f5f5f5;margin:0}
 h2{text-align:center}
 input,select,textarea,button{width:100%;padding:10px;margin-top:10px}
 button{background:#ff9800;border:none;color:#fff;font-weight:bold;cursor:pointer}
+button.secondary{background:#607d8b}
+button:disabled{background:#ccc;cursor:not-allowed}
 .hidden{display:none}
-.otp-box{display:flex;gap:6px}
-.otp-box input{text-align:center;font-size:18px}
+.loading{opacity:.7}
+.note{color:#d32f2f;font-size:14px;margin-top:10px}
 </style>
 </head>
 
@@ -25,30 +27,30 @@ button{background:#ff9800;border:none;color:#fff;font-weight:bold;cursor:pointer
 
 <div class="container" id="step1">
 <h2>Daftar Akun JeGo</h2>
+
 <input id="nama" placeholder="Nama Lengkap">
 <input id="email" placeholder="Email">
 <input id="telepon" placeholder="+628xxxxxxxxxx">
 <textarea id="alamat" placeholder="Alamat"></textarea>
+
 <select id="gender">
 <option value="">Pilih Gender</option>
 <option>Laki-laki</option>
 <option>Perempuan</option>
 </select>
+
 <div id="recaptcha-container"></div>
+
 <button id="btnNext">Kirim OTP</button>
+<button class="secondary" onclick="goLogin()">Sudah punya akun? Login</button>
+
+<p id="infoText" class="note hidden"></p>
 </div>
 
 <div class="container hidden" id="step2">
 <h2>Verifikasi OTP</h2>
 <p id="phoneView"></p>
-<div class="otp-box">
-<input maxlength="1" id="o1">
-<input maxlength="1" id="o2">
-<input maxlength="1" id="o3">
-<input maxlength="1" id="o4">
-<input maxlength="1" id="o5">
-<input maxlength="1" id="o6">
-</div>
+<input id="otpInput" maxlength="6" inputmode="numeric" placeholder="Masukkan 6 digit OTP">
 <button id="btnVerify">Verifikasi</button>
 </div>
 
@@ -77,9 +79,12 @@ const emailInput = document.getElementById('email');
 const teleponInput = document.getElementById('telepon');
 const alamatInput = document.getElementById('alamat');
 const genderInput = document.getElementById('gender');
+const otpInput = document.getElementById('otpInput');
+
 const btnNext = document.getElementById('btnNext');
 const btnVerify = document.getElementById('btnVerify');
 const phoneView = document.getElementById('phoneView');
+const infoText = document.getElementById('infoText');
 
 /* ===== STATE ===== */
 let regData = null;
@@ -87,16 +92,23 @@ let confirmationResult = null;
 
 /* ===== UTILS ===== */
 function formatPhone(p){
- p = p.replace(/\D/g,'');
+ p=p.replace(/\D/g,'');
  if(p.startsWith('0')) return '+62'+p.slice(1);
  if(p.startsWith('62')) return '+'+p;
  return '+62'+p;
 }
-function getOTP(){
- return o1.value+o2.value+o3.value+o4.value+o5.value+o6.value;
+
+function setLoading(btn, status, text){
+ btn.disabled = status;
+ btn.textContent = status ? text : btn.dataset.text;
 }
+
 function saveSession(user){
  localStorage.setItem(LS_USER_KEY, JSON.stringify(user));
+}
+
+function goLogin(){
+ window.location.href = 'userLogin.html';
 }
 
 /* ===== AUTO LOGIN CHECK ===== */
@@ -111,8 +123,20 @@ const recaptcha = new firebase.auth.RecaptchaVerifier(
 );
 recaptcha.render();
 
-/* ===== STEP 1 ===== */
+/* ===== CHECK PHONE EXIST ===== */
+async function isPhoneRegistered(phone){
+ const snap = await db.ref('users')
+  .orderByChild('phone')
+  .equalTo(phone)
+  .once('value');
+ return snap.exists();
+}
+
+/* ===== STEP 1 : SEND OTP ===== */
+btnNext.dataset.text = btnNext.textContent;
 btnNext.onclick = async ()=>{
+ infoText.classList.add('hidden');
+
  const nama = namaInput.value.trim();
  const email = emailInput.value.trim();
  const phone = formatPhone(teleponInput.value.trim());
@@ -127,38 +151,56 @@ btnNext.onclick = async ()=>{
  regData = { nama, email, phone, alamat, gender };
 
  try{
+  setLoading(btnNext,true,'Cek nomor...');
+  
+  const exists = await isPhoneRegistered(phone);
+  if(exists){
+   infoText.textContent = 'Nomor sudah terdaftar. Silakan login.';
+   infoText.classList.remove('hidden');
+   setLoading(btnNext,false);
+   return;
+  }
+
+  setLoading(btnNext,true,'Mengirim OTP...');
   confirmationResult = await auth.signInWithPhoneNumber(phone, recaptcha);
   phoneView.textContent = phone;
+
   step1.classList.add('hidden');
   step2.classList.remove('hidden');
+
  }catch(e){
   alert(e.message);
+ }finally{
+  setLoading(btnNext,false);
  }
 };
 
-/* ===== STEP 2 ===== */
+/* ===== STEP 2 : VERIFY OTP ===== */
+btnVerify.dataset.text = btnVerify.textContent;
 btnVerify.onclick = async ()=>{
- if(getOTP().length !== 6){
-  alert('OTP salah');
+ const code = otpInput.value.trim();
+ if(code.length !== 6){
+  alert('OTP harus 6 digit');
   return;
  }
 
  try{
-  const cred = await confirmationResult.confirm(getOTP());
+  setLoading(btnVerify,true,'Memverifikasi...');
+  const cred = await confirmationResult.confirm(code);
   const uid = cred.user.uid;
 
   const user = {
-   uid: uid,
+   uid,
    name: regData.nama,
    email: regData.email || "",
    phone: regData.phone,
    alamat: regData.alamat,
    gender: regData.gender,
 
-   profilUrl: "",        // default
-   perjalanan: 0,        // default
-   rating: 5,            // default
-   status: "active",     // default
+   profilUrl: "",
+   perjalanan: 0,
+   rating: 5,
+   status: "active",
 
    role: "penumpang",
    createdAt: new Date().toISOString()
@@ -176,6 +218,8 @@ btnVerify.onclick = async ()=>{
 
  }catch(err){
   alert('OTP gagal: ' + err.message);
+ }finally{
+  setLoading(btnVerify,false);
  }
 };
 </script>
