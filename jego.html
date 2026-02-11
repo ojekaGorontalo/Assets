@@ -5,7 +5,6 @@
   <title>JeGo - Aplikasi Transportasi Lokal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    /* STYLE CSS SAMA SEPERTI SEBELUMNYA */
     :root {
       --primary: #FF9800;
       --secondary: #FF5722;
@@ -36,7 +35,6 @@
       flex-direction: column;
     }
 
-    /* Header Styles */
     .header {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
@@ -78,7 +76,6 @@
       margin-top: 2px;
     }
 
-    /* Login Status Badge */
     .login-badge {
       display: inline-block;
       background-color: rgba(255, 255, 255, 0.2);
@@ -98,7 +95,6 @@
       color: #90CAF9;
     }
 
-    /* Warning Banner */
     .warning-banner {
       background-color: #FFF3CD;
       color: #856404;
@@ -148,7 +144,6 @@
       }
     }
 
-    /* Main Content */
     .main-content {
       flex: 1;
       display: flex;
@@ -177,7 +172,6 @@
       line-height: 1.5;
     }
 
-    /* Selection Cards */
     .selection-container {
       display: flex;
       flex-wrap: wrap;
@@ -250,7 +244,6 @@
       text-align: center;
     }
 
-    /* Login Status Indicator */
     .login-status {
       position: absolute;
       top: 10px;
@@ -263,7 +256,6 @@
       font-weight: bold;
     }
 
-    /* Card Features */
     .card-features {
       text-align: left;
       width: 100%;
@@ -291,7 +283,6 @@
       color: #2196F3;
     }
 
-    /* Footer */
     .footer {
       background: white;
       color: var(--dark);
@@ -317,7 +308,6 @@
       opacity: 0.8;
     }
 
-    /* Responsive adjustments */
     @media (max-width: 768px) {
       .selection-container {
         flex-direction: column;
@@ -461,10 +451,9 @@
     // FUNGSI UTILITAS
     // ================================================
     
-    // Fungsi untuk mengirim data ke Kodular (hanya untuk driver belum login)
+    // Fungsi untuk mengirim data ke Kodular
     function sendToKodular(data) {
       const kodularData = {
-        action: 'screen_navigation',
         timestamp: new Date().toISOString(),
         ...data
       };
@@ -474,18 +463,24 @@
       if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
         try {
           window.AppInventor.setWebViewString(JSON.stringify(kodularData));
-          console.log('✅ Data berhasil dikirim ke Kodular');
+          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
           return true;
         } catch (error) {
           console.error('❌ Error mengirim data via AppInventor:', error);
         }
       } 
       
-      if (typeof window.android !== 'undefined' && window.android.receiveData) {
+      if (typeof window.android !== 'undefined') {
         try {
-          window.android.receiveData(JSON.stringify(kodularData));
-          console.log('✅ Data berhasil dikirim ke Kodular');
-          return true;
+          if (window.android.receiveData) {
+            window.android.receiveData(JSON.stringify(kodularData));
+            console.log('✅ Data berhasil dikirim ke Kodular via android.receiveData');
+            return true;
+          } else if (window.android.sendDataToKodular) {
+            window.android.sendDataToKodular(JSON.stringify(kodularData));
+            console.log('✅ Data berhasil dikirim ke Kodular via android.sendDataToKodular');
+            return true;
+          }
         } catch (error) {
           console.error('❌ Error mengirim data via window.android:', error);
         }
@@ -494,52 +489,53 @@
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
         try {
           window.webkit.messageHandlers.observe.postMessage(kodularData);
-          console.log('✅ Data berhasil dikirim ke Kodular');
+          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
           return true;
         } catch (error) {
           console.error('❌ Error mengirim data via webkit.messageHandlers:', error);
         }
       }
       
-      console.warn('⚠️ Tidak ada metode Kodular yang berhasil');
+      // Mode browser (debug)
+      console.warn('⚠️ Mode browser: Tidak ada bridge Kodular yang terdeteksi');
+      console.log('📄 Data yang akan dikirim ke Kodular (browser mode):', kodularData);
       return false;
     }
-    
-    // Fungsi untuk mengirim status login saat halaman dibuka (untuk sinkronisasi)
+
+    // Fungsi untuk mengirim status login saat halaman dibuka
     function sendInitialLoginStatus() {
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      let loginStatus = 'none';
-      if (userLoggedIn && driverLoggedIn) {
-        loginStatus = 'dual';
+      let target = 'main_screen';
+      
+      // Logika: Jika driver sudah login, kirim ke dashboard driver
+      // Jika belum login, kirim ke main_screen
+      if (driverLoggedIn) {
+        target = 'driver_dashboard';
       } else if (userLoggedIn) {
-        loginStatus = 'user_only';
-      } else if (driverLoggedIn) {
-        loginStatus = 'driver_only';
+        target = 'user_dashboard';
       }
       
-      console.log('📊 Status login awal:', loginStatus);
+      console.log('📊 Status login - Target Kodular:', target);
       
       // Kirim data ke Kodular untuk sinkronisasi
       sendToKodular({
-        target: 'main_screen',
-        screen: 'Screen1',
-        login_status: loginStatus,
+        action: 'screen_navigation',
+        target: target,
         user_logged_in: userLoggedIn ? true : false,
         driver_logged_in: driverLoggedIn ? true : false,
-        message: 'Halaman utama JeGo dibuka'
+        timestamp: new Date().toISOString(),
+        message: target === 'driver_dashboard' 
+          ? 'Driver sudah login, membuka dashboard' 
+          : target === 'user_dashboard'
+          ? 'User sudah login, membuka dashboard'
+          : 'Halaman utama JeGo dibuka'
       });
     }
 
-    // Fungsi untuk redirect langsung ke halaman HTML
-    function redirectTo(url) {
-      console.log(`🔄 Redirect ke: ${url}`);
-      window.location.href = url;
-    }
-
     // ================================================
-    // FUNGSI LOGIN USER (REVISI)
+    // FUNGSI LOGIN USER
     // ================================================
     function openUserLogin() {
       console.log('👤 Membuka halaman login User...');
@@ -564,16 +560,25 @@
           // Update UI
           updateLoginStatus();
           
-          // REDIRECT LANGSUNG ke jenis_kenderaan.html
-          redirectTo('jenis_kenderaan.html');
+          // Kirim ke Kodular untuk buka dashboard user
+          sendToKodular({
+            action: 'screen_navigation',
+            target: 'user_dashboard',
+            message: 'Membuka dashboard user setelah logout driver'
+          });
         }
         return;
       }
       
       // SKENARIO 2: Hanya user yang sudah login
       if (userLoggedIn) {
-        console.log('✅ User sudah login, redirect ke jenis_kenderaan.html');
-        redirectTo('jenis_kenderaan.html');
+        console.log('✅ User sudah login, kirim ke dashboard user');
+        
+        sendToKodular({
+          action: 'screen_navigation',
+          target: 'user_dashboard',
+          message: 'Membuka dashboard user'
+        });
         return;
       }
       
@@ -593,19 +598,28 @@
           // Update UI
           updateLoginStatus();
           
-          // REDIRECT LANGSUNG ke loginUser.html
-          redirectTo('loginUser.html');
+          // Kirim ke Kodular untuk buka login user
+          sendToKodular({
+            action: 'screen_navigation',
+            target: 'user_login',
+            message: 'Membuka login user'
+          });
         }
         return;
       }
       
       // SKENARIO 4: Belum login sama sekali
-      console.log('🔐 User belum login, redirect ke loginUser.html');
-      redirectTo('loginUser.html');
+      console.log('🔐 User belum login, kirim ke login user');
+      
+      sendToKodular({
+        action: 'screen_navigation',
+        target: 'user_login',
+        message: 'Membuka login user'
+      });
     }
 
     // ================================================
-    // FUNGSI LOGIN DRIVER (REVISI)
+    // FUNGSI LOGIN DRIVER (REVISED - KIRIM KE KODULAR)
     // ================================================
     function openDriverLogin() {
       console.log('🚗 Membuka halaman login Driver...');
@@ -613,37 +627,37 @@
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      // SKENARIO 1: Driver sudah login, user juga login (LOGIN GANDA)
-      if (userLoggedIn && driverLoggedIn) {
-        console.log('⚠️ Login ganda terdeteksi!');
-        
-        // Tampilkan konfirmasi
-        if (confirm(
-          'Anda login sebagai User dan Driver.\n\n' +
-          'Untuk login sebagai Driver, Anda perlu logout dari User terlebih dahulu.\n\n' +
-          'Lanjutkan?'
-        )) {
-          // Logout user terlebih dahulu
-          localStorage.removeItem('jego_logged_in_user');
-          console.log('✅ User logged out');
-          
-          // Update UI
-          updateLoginStatus();
-          
-          // REDIRECT LANGSUNG ke list1.html
-          redirectTo('list1.html');
-        }
-        return;
-      }
-      
-      // SKENARIO 2: Hanya driver yang sudah login
+      // SKENARIO 1: Driver sudah login (sendirian atau ganda)
       if (driverLoggedIn) {
-        console.log('✅ Driver sudah login, redirect ke list1.html');
-        redirectTo('list1.html');
+        console.log('✅ Driver sudah login, kirim ke dashboard driver');
+        
+        // Jika login ganda, tanyakan apakah ingin logout user
+        if (userLoggedIn) {
+          if (confirm(
+            'Anda login sebagai User dan Driver.\n\n' +
+            'Untuk masuk ke dashboard Driver, Anda perlu logout dari User terlebih dahulu.\n\n' +
+            'Lanjutkan?'
+          )) {
+            // Logout user terlebih dahulu
+            localStorage.removeItem('jego_logged_in_user');
+            console.log('✅ User logged out');
+            // Update UI
+            updateLoginStatus();
+          } else {
+            return; // User memilih batal
+          }
+        }
+        
+        // Kirim ke Kodular untuk buka dashboard driver
+        sendToKodular({
+          action: 'screen_navigation',
+          target: 'driver_dashboard',
+          message: 'Membuka dashboard driver'
+        });
         return;
       }
       
-      // SKENARIO 3: Hanya user yang login, driver belum login
+      // SKENARIO 2: Hanya user yang login, driver belum login
       if (userLoggedIn && !driverLoggedIn) {
         console.log('👤 User login, driver belum login - tanyakan konfirmasi');
         
@@ -655,26 +669,25 @@
           // Logout user terlebih dahulu
           localStorage.removeItem('jego_logged_in_user');
           console.log('✅ User logged out');
-          
           // Update UI
           updateLoginStatus();
-          
-          // KIRIM KE KODULAR (karena driver belum login)
+          // Kirim ke Kodular untuk buka login driver
           sendToKodular({
+            action: 'screen_navigation',
             target: 'driver_login',
-            screen: 'loginDriver',
-            message: 'Navigasi ke login driver'
+            message: 'Membuka login driver'
           });
         }
         return;
       }
       
-      // SKENARIO 4: Belum login sama sekali - KIRIM KE KODULAR
-      console.log('🔐 Driver belum login, kirim ke Kodular');
+      // SKENARIO 3: Belum login sama sekali
+      console.log('🔐 Driver belum login, kirim ke login driver');
+      
       sendToKodular({
+        action: 'screen_navigation',
         target: 'driver_login',
-        screen: 'loginDriver',
-        message: 'Navigasi ke halaman login driver'
+        message: 'Membuka login driver'
       });
     }
 
@@ -776,13 +789,10 @@
         
         updateLoginStatus();
         
-        // Kirim status logout ke Kodular untuk sinkronisasi
+        // Kirim ke Kodular untuk kembali ke main_screen
         sendToKodular({
+          action: 'screen_navigation',
           target: 'main_screen',
-          screen: 'Screen1',
-          login_status: 'none',
-          user_logged_in: false,
-          driver_logged_in: false,
           message: 'User melakukan logout semua akun'
         });
         
@@ -792,33 +802,42 @@
     }
 
     // ================================================
-    // AUTO-REDIRECT JIKA HANYA SATU YANG LOGIN (REVISI)
+    // AUTO-KIRIM KE KODULAR JIKA SUDAH LOGIN
     // ================================================
-    function autoRedirectIfSingleLogin() {
+    function autoSendToKodularIfLoggedIn() {
       const userLoggedIn = localStorage.getItem('jego_logged_in_user');
       const driverLoggedIn = localStorage.getItem('jego_logged_in_driver');
       
-      // JANGAN redirect jika login ganda
-      if (userLoggedIn && driverLoggedIn) {
-        console.log('⚠️ Login ganda, tidak auto-redirect');
-        return;
+      // Jika hanya driver yang login, kirim ke dashboard driver
+      if (driverLoggedIn && !userLoggedIn) {
+        console.log('✅ Hanya driver login, auto-kirim ke dashboard driver');
+        
+        // Tunggu 1 detik untuk memastikan UI sudah update
+        setTimeout(() => {
+          sendToKodular({
+            action: 'screen_navigation',
+            target: 'driver_dashboard',
+            message: 'Auto-navigasi ke dashboard driver'
+          });
+        }, 1000);
       }
       
-      // Redirect jika hanya user yang login
+      // Jika hanya user yang login, kirim ke dashboard user
       if (userLoggedIn && !driverLoggedIn) {
-        console.log('✅ Hanya user login, auto-redirect ke jenis_kenderaan.html');
+        console.log('✅ Hanya user login, auto-kirim ke dashboard user');
+        
         setTimeout(() => {
-          redirectTo('jenis_kenderaan.html');
+          sendToKodular({
+            action: 'screen_navigation',
+            target: 'user_dashboard',
+            message: 'Auto-navigasi ke dashboard user'
+          });
         }, 1000);
-        return;
       }
       
-      // Redirect jika hanya driver yang login
-      if (!userLoggedIn && driverLoggedIn) {
-        console.log('✅ Hanya driver login, auto-redirect ke list1.html');
-        setTimeout(() => {
-          redirectTo('list1.html');
-        }, 1000);
+      // Jika login ganda, jangan auto-kirim (tunggu pilihan user)
+      if (userLoggedIn && driverLoggedIn) {
+        console.log('⚠️ Login ganda, tidak auto-kirim ke Kodular');
       }
     }
 
@@ -834,8 +853,8 @@
       // Kirim status login ke Kodular untuk sinkronisasi
       sendInitialLoginStatus();
       
-      // Cek apakah perlu auto-redirect
-      autoRedirectIfSingleLogin();
+      // Cek apakah perlu auto-kirim ke Kodular
+      autoSendToKodularIfLoggedIn();
       
       // Event listeners untuk kartu
       document.getElementById('userCard').addEventListener('click', openUserLogin);
@@ -860,8 +879,6 @@
             : '0 2px 6px rgba(0,0,0,0.08)';
         });
       });
-      
-      // TOMBOL DEBUG TIDAK DITAMPILKAN LAGI - DIHAPUS
     });
   </script>
 </body>
