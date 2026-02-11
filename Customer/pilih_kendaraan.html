@@ -5,68 +5,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pilih Kendaraan - JeGo</title>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
 <style>
 body{margin:0;font-family:Arial;background:#f5f5f5}
 header{background:#ff9800;color:#fff;padding:15px;text-align:center}
 .container{padding:20px}
 .card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;cursor:pointer;border:2px solid #eee}
-.card.active{border-color:#ff9800}
-.btn{display:block;text-align:center;background:#ff9800;color:#fff;padding:12px;border-radius:8px;text-decoration:none;margin-top:20px}
+.card:hover{border-color:#ff9800}
+.btn{display:block;text-align:center;background:#ff9800;color:#fff;padding:12px;border-radius:8px;text-decoration:none}
 .hidden{display:none}
-.loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+.loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;z-index:999}
 </style>
 </head>
 
 <body>
 
+<!-- LOADING -->
 <div class="loading hidden" id="loading">Memproses...</div>
 
 <header>
   <h2>Pilih Kendaraan</h2>
 </header>
 
-<div class="container" id="loginRequired" class="hidden">
+<!-- JIKA BELUM LOGIN -->
+<div class="container hidden" id="loginRequired">
   <p>Silakan login terlebih dahulu</p>
   <a href="userLogin.html" class="btn">Login</a>
 </div>
 
+<!-- KONTEN UTAMA -->
 <div class="container hidden" id="mainContent">
-
-  <div class="card" onclick="selectVehicle('motor')">🏍 Motor (1 Penumpang)</div>
-  <div class="card" onclick="selectVehicle('bentor')">🛺 Bentor (2 Penumpang)</div>
-  <div class="card" onclick="selectVehicle('mobil')">🚗 Mobil (4 Penumpang)</div>
+  <div class="card" onclick="selectVehicle('motor')">🏍 Motor</div>
+  <div class="card" onclick="selectVehicle('bentor')">🛺 Bentor</div>
+  <div class="card" onclick="selectVehicle('mobil')">🚗 Mobil</div>
   <div class="card" onclick="selectVehicle('kurir_motor')">📦 Kurir Motor</div>
   <div class="card" onclick="selectVehicle('kurir_bentor')">📦 Kurir Bentor</div>
-
 </div>
 
 <script>
-/* ================= FIREBASE CONFIG ================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
-  authDomain: "game-balap-simpel.firebaseapp.com",
-  databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
-  projectId: "game-balap-simpel",
-  storageBucket: "game-balap-simpel.firebasestorage.app",
-  messagingSenderId: "864576853495",
-  appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
-};
+/* ================= ERUDA (PASTI MUNCUL) ================= */
+(function () {
+  var s = document.createElement('script');
+  s.src = "https://cdn.jsdelivr.net/npm/eruda";
+  document.body.appendChild(s);
+  s.onload = function () {
+    eruda.init();
+    console.log("Eruda aktif");
+  };
+})();
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+/* ================= SESSION ================= */
+const LS_USER_KEY = 'jego_user_session';
 
-/* ================= CEK LOGIN ================= */
-const userLocal = localStorage.getItem('jego_logged_in_user');
+const loading = document.getElementById('loading');
 const mainContent = document.getElementById('mainContent');
 const loginRequired = document.getElementById('loginRequired');
-const loading = document.getElementById('loading');
 
-if(!userLocal){
+let userSession = null;
+
+try{
+  userSession = JSON.parse(localStorage.getItem(LS_USER_KEY));
+}catch(e){
+  console.error("Gagal parse session", e);
+}
+
+console.log("Session:", userSession);
+
+/* ================= CEK LOGIN ================= */
+if(!userSession || !userSession.uid){
   loginRequired.classList.remove('hidden');
 }else{
   mainContent.classList.remove('hidden');
@@ -74,29 +79,37 @@ if(!userLocal){
 
 /* ================= DATA KENDARAAN ================= */
 const vehicleData = {
-  motor:{name:'Motor',tarif:2200,min:10000},
-  bentor:{name:'Bentor',tarif:3000,min:11000},
-  mobil:{name:'Mobil',tarif:4000,min:15000},
-  kurir_motor:{name:'Kurir Motor',tarif:2100,min:10000},
-  kurir_bentor:{name:'Kurir Bentor',tarif:2100,min:10000}
+  motor:{name:'Motor'},
+  bentor:{name:'Bentor'},
+  mobil:{name:'Mobil'},
+  kurir_motor:{name:'Kurir Motor'},
+  kurir_bentor:{name:'Kurir Bentor'}
 };
 
 /* ================= PILIH KENDARAAN ================= */
 function selectVehicle(type){
+  console.log("Pilih kendaraan:", type);
+
   loading.classList.remove('hidden');
 
-  const user = JSON.parse(userLocal);
+  if(!vehicleData[type]){
+    console.error("Jenis kendaraan tidak valid");
+    loading.classList.add('hidden');
+    return;
+  }
 
   const selected = {
-    type,
-    ...vehicleData[type],
-    userId:user.uid,
-    time:new Date().toISOString()
+    type: type,
+    name: vehicleData[type].name,
+    userId: userSession.uid,
+    time: new Date().toISOString()
   };
 
-  localStorage.setItem('jego_last_transport',JSON.stringify(selected));
+  console.log("Data kendaraan:", selected);
 
-  // Kirim ke Kodular
+  localStorage.setItem('jego_last_transport', JSON.stringify(selected));
+
+  // Kirim ke Kodular (jika ada)
   if(window.AppInventor){
     window.AppInventor.setWebViewString(JSON.stringify({
       action:'vehicle_selected',
@@ -105,8 +118,8 @@ function selectVehicle(type){
   }
 
   setTimeout(()=>{
-    location.href='rute.html';
-  },800);
+    location.href = 'rute.html';
+  },500);
 }
 </script>
 
