@@ -650,18 +650,35 @@
   </audio>
 
   <script>
-    // Kode JavaScript tetap sama seperti di file asli
-    // (Kode JavaScript terlalu panjang untuk ditampilkan semua di sini)
-    // Intinya: fungsi-fungsi Firebase, GPS, Autobid, dll.
+    // ==================== BERSIHKAN KEY LAMA TIDAK TERPAKAI ====================
+    console.log('🧹 Membersihkan key localStorage lama yang tidak digunakan...');
+    const oldKeys = [
+      'jego_driver_id',
+      'jego_driver_data', 
+      'jego_driver_status',
+      'jeggo_logged_in_driver',
+      'driverData'
+    ];
     
+    oldKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        console.log(`🗑️  Hapus key lama: ${key}`);
+      }
+    });
+
     // ==================== CEK LOGIN DAN REDIRECT ====================
     function checkLoginStatus() {
-      const driverData = localStorage.getItem('jego_driver_data');
+      // HANYA gunakan key yang konsisten dengan loginDriver.html
+      const driverData = localStorage.getItem('jego_logged_in_driver');
+      
       if (!driverData || driverData === '{}') {
         console.log('❌ Driver belum login, redirect ke halaman login');
         window.location.href = 'loginDriver.html';
         return false;
       }
+      
+      console.log('✅ Driver sudah login');
       return true;
     }
 
@@ -1050,7 +1067,8 @@
     // ==================== FUNGSI DRIVER ====================
     function checkDriverData() {
       try {
-        const driverDataStr = localStorage.getItem('jego_driver_data');
+        // HANYA gunakan key yang konsisten dengan loginDriver.html
+        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
         
         if (!driverDataStr || driverDataStr === '{}') {
           console.log('❌ Tidak ada data driver di localStorage');
@@ -1060,8 +1078,23 @@
         
         const driverData = JSON.parse(driverDataStr);
         
-        if (driverData.driverId && driverData.fullName) {
-          currentDriverData = driverData;
+        // Mapping data dari struktur loginDriver.html
+        if (driverData.uid && driverData.name) {
+          currentDriverData = {
+            driverId: driverData.uid,
+            fullName: driverData.name,
+            phoneNumber: driverData.phone,
+            email: driverData.email,
+            profilePhotoUrl: driverData.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+            vehicleType: driverData.vehicleType,
+            plateNumber: driverData.plateNumber,
+            vehicleBrand: driverData.vehicleBrand,
+            status: driverData.status || driverData.driverStatus || 'pending',
+            rating: driverData.rating || 5,
+            perjalanan: driverData.perjalanan || 0,
+            balance: driverData.Balance || 0,
+            potongan: driverData.Potongan || 0
+          };
           
           // Update foto driver
           const driverPhoto = document.getElementById('driverPhoto');
@@ -1069,7 +1102,7 @@
             driverPhoto.src = currentDriverData.profilePhotoUrl;
           }
           
-          console.log('✅ Driver data valid');
+          console.log('✅ Driver data valid:', currentDriverData.fullName);
           return true;
         } else {
           showDriverNotRegistered();
@@ -1088,7 +1121,16 @@
         ordersList.innerHTML = `
           <div class="empty-state">
             <div>🚫</div>
-            <p>Anda belum terdaftar sebagai driver</p>
+            <p>Anda belum terdaftar sebagai driver atau belum login</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">
+              <a href="loginDriver.html" style="color: var(--primary); text-decoration: underline;">
+                Login sebagai Driver
+              </a>
+            </p>
+            <button onclick="localStorage.clear(); location.reload();" 
+                    style="margin-top: 10px; padding: 8px 16px; background: var(--danger); color: white; border: none; border-radius: 5px; cursor: pointer;">
+              🔄 Clear Cache & Reload
+            </button>
           </div>
         `;
       }
@@ -1198,9 +1240,39 @@
       }, 1000);
     }
 
+    // ==================== DEBUG LOCALSTORAGE ====================
+    function debugLocalStorage() {
+      console.log('🔍 Debug localStorage:');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        if (key.includes('jego')) {
+          console.log(`  ${key}: ${value.substring(0, 100)}...`);
+        }
+      }
+      
+      const driverData = localStorage.getItem('jego_logged_in_driver');
+      if (driverData) {
+        try {
+          const parsed = JSON.parse(driverData);
+          console.log('✅ Data driver ditemukan:');
+          console.log('   Nama:', parsed.name);
+          console.log('   Status:', parsed.status);
+          console.log('   UID:', parsed.uid);
+        } catch (e) {
+          console.error('❌ Error parsing driver data:', e);
+        }
+      } else {
+        console.log('❌ Tidak ada data driver di localStorage');
+      }
+    }
+
     // ==================== INISIALISASI ====================
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 Halaman JeGo Driver dimuat');
+      
+      // Debug localStorage
+      debugLocalStorage();
       
       // Cek login
       if (!checkLoginStatus()) return;
