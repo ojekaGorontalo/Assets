@@ -1,3 +1,5 @@
+[file name]: list1.html
+[file content begin]
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -549,6 +551,41 @@
   </style>
 </head>
 <body>
+  <!-- Guard Login -->
+  <script>
+    (function () {
+      const raw = localStorage.getItem('jego_logged_in_driver');
+      if (!raw) {
+        redirectLogin("not_logged_in");
+        return;
+      }
+
+      const driver = JSON.parse(raw);
+      const status = driver.status || driver.driverStatus;
+
+      if (!["active", "approved", "accepted"].includes(status)) {
+        redirectLogin("not_logged_in_or_inactive");
+        return;
+      }
+
+      function redirectLogin(reason) {
+        const payload = {
+          action: "navigate",
+          target: "login",
+          reason
+        };
+
+        if (window.AppInventor?.setWebViewString) {
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        } else if (window.android?.receiveData) {
+          window.android.receiveData(JSON.stringify(payload));
+        } else {
+          window.location.href = "loginDriver.html";
+        }
+      }
+    })();
+  </script>
+
   <!-- Header -->
   <div class="header">
     <div class="logo-container">
@@ -1274,7 +1311,7 @@
       // Debug localStorage
       debugLocalStorage();
       
-      // Cek login
+      // Cek login (guard sudah di atas, tapi tetap cek untuk backup)
       if (!checkLoginStatus()) return;
       
       // Mulai GPS
@@ -1316,3 +1353,4 @@
   </script>
 </body>
 </html>
+[file content end]
