@@ -87,7 +87,7 @@ let confirmationResult = null;
 
 /* ===== UTILS ===== */
 function formatPhone(p){
- p=p.replace(/\D/g,'');
+ p = p.replace(/\D/g,'');
  if(p.startsWith('0')) return '+62'+p.slice(1);
  if(p.startsWith('62')) return '+'+p;
  return '+62'+p;
@@ -96,16 +96,19 @@ function getOTP(){
  return o1.value+o2.value+o3.value+o4.value+o5.value+o6.value;
 }
 function saveSession(user){
- localStorage.setItem(LS_USER_KEY,JSON.stringify(user));
+ localStorage.setItem(LS_USER_KEY, JSON.stringify(user));
 }
 
 /* ===== AUTO LOGIN CHECK ===== */
 if(localStorage.getItem(LS_USER_KEY)){
- location.href='jenis_kenderaan.html';
+ location.href = 'jenis_kenderaan.html';
 }
 
 /* ===== RECAPTCHA ===== */
-const recaptcha = new firebase.auth.RecaptchaVerifier('recaptcha-container',{size:'normal'});
+const recaptcha = new firebase.auth.RecaptchaVerifier(
+ 'recaptcha-container',
+ { size:'normal' }
+);
 recaptcha.render();
 
 /* ===== STEP 1 ===== */
@@ -116,15 +119,15 @@ btnNext.onclick = async ()=>{
  const alamat = alamatInput.value.trim();
  const gender = genderInput.value;
 
- if(!nama||!phone||!alamat||!gender){
+ if(!nama || !phone || !alamat || !gender){
   alert('Lengkapi data');
   return;
  }
 
- regData={nama,email,phone,alamat,gender};
+ regData = { nama, email, phone, alamat, gender };
 
  try{
-  confirmationResult = await auth.signInWithPhoneNumber(phone,recaptcha);
+  confirmationResult = await auth.signInWithPhoneNumber(phone, recaptcha);
   phoneView.textContent = phone;
   step1.classList.add('hidden');
   step2.classList.remove('hidden');
@@ -135,29 +138,44 @@ btnNext.onclick = async ()=>{
 
 /* ===== STEP 2 ===== */
 btnVerify.onclick = async ()=>{
- if(getOTP().length!==6){alert('OTP salah');return;}
+ if(getOTP().length !== 6){
+  alert('OTP salah');
+  return;
+ }
 
  try{
   const cred = await confirmationResult.confirm(getOTP());
   const uid = cred.user.uid;
 
   const user = {
-   uid,
+   uid: uid,
    name: regData.nama,
+   email: regData.email || "",
    phone: regData.phone,
-   role: 'penumpang',
+   alamat: regData.alamat,
+   gender: regData.gender,
+
+   profilUrl: "",        // default
+   perjalanan: 0,        // default
+   rating: 5,            // default
+   status: "active",     // default
+
+   role: "penumpang",
    createdAt: new Date().toISOString()
   };
 
-  await db.ref('users/'+uid).set(user);
+  await db.ref('users/' + uid).set(user);
   saveSession(user);
 
   step2.classList.add('hidden');
   step3.classList.remove('hidden');
 
-  setTimeout(()=>location.href='jenis_kenderaan.html',3000);
- }catch{
-  alert('OTP gagal');
+  setTimeout(()=>{
+   location.href = 'jenis_kenderaan.html';
+  },3000);
+
+ }catch(err){
+  alert('OTP gagal: ' + err.message);
  }
 };
 </script>
