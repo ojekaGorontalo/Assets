@@ -13,26 +13,37 @@ header{background:#ff9800;color:#fff;padding:15px;text-align:center}
 .card:hover{border-color:#ff9800}
 .btn{display:block;text-align:center;background:#ff9800;color:#fff;padding:12px;border-radius:8px;text-decoration:none}
 .hidden{display:none}
-.loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;z-index:999}
+
+/* LOADING */
+.loading{
+  position:fixed;
+  inset:0;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  z-index:999;
+}
+.loading.hidden{
+  display:none;
+}
 </style>
 </head>
 
 <body>
 
-<!-- LOADING -->
 <div class="loading hidden" id="loading">Memproses...</div>
 
 <header>
   <h2>Pilih Kendaraan</h2>
 </header>
 
-<!-- JIKA BELUM LOGIN -->
 <div class="container hidden" id="loginRequired">
   <p>Silakan login terlebih dahulu</p>
   <a href="userLogin.html" class="btn">Login</a>
 </div>
 
-<!-- KONTEN UTAMA -->
 <div class="container hidden" id="mainContent">
   <div class="card" onclick="selectVehicle('motor')">🏍 Motor</div>
   <div class="card" onclick="selectVehicle('bentor')">🛺 Bentor</div>
@@ -42,43 +53,33 @@ header{background:#ff9800;color:#fff;padding:15px;text-align:center}
 </div>
 
 <script>
-/* ================= ERUDA (PASTI MUNCUL) ================= */
-(function () {
-  var s = document.createElement('script');
-  s.src = "https://cdn.jsdelivr.net/npm/eruda";
+/* ===== ERUDA ===== */
+(function(){
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/eruda';
   document.body.appendChild(s);
-  s.onload = function () {
-    eruda.init();
-    console.log("Eruda aktif");
-  };
+  s.onload=function(){eruda.init();};
 })();
 
-/* ================= SESSION ================= */
+/* ===== SESSION ===== */
 const LS_USER_KEY = 'jego_user_session';
-
 const loading = document.getElementById('loading');
 const mainContent = document.getElementById('mainContent');
 const loginRequired = document.getElementById('loginRequired');
 
-let userSession = null;
-
+let userSession=null;
 try{
   userSession = JSON.parse(localStorage.getItem(LS_USER_KEY));
-}catch(e){
-  console.error("Gagal parse session", e);
-}
+}catch(e){}
 
-console.log("Session:", userSession);
-
-/* ================= CEK LOGIN ================= */
 if(!userSession || !userSession.uid){
   loginRequired.classList.remove('hidden');
 }else{
   mainContent.classList.remove('hidden');
 }
 
-/* ================= DATA KENDARAAN ================= */
-const vehicleData = {
+/* ===== DATA ===== */
+const vehicleData={
   motor:{name:'Motor'},
   bentor:{name:'Bentor'},
   mobil:{name:'Mobil'},
@@ -86,30 +87,18 @@ const vehicleData = {
   kurir_bentor:{name:'Kurir Bentor'}
 };
 
-/* ================= PILIH KENDARAAN ================= */
 function selectVehicle(type){
-  console.log("Pilih kendaraan:", type);
-
   loading.classList.remove('hidden');
 
-  if(!vehicleData[type]){
-    console.error("Jenis kendaraan tidak valid");
-    loading.classList.add('hidden');
-    return;
-  }
-
-  const selected = {
-    type: type,
-    name: vehicleData[type].name,
-    userId: userSession.uid,
-    time: new Date().toISOString()
+  const selected={
+    type:type,
+    name:vehicleData[type].name,
+    userId:userSession.uid,
+    time:new Date().toISOString()
   };
 
-  console.log("Data kendaraan:", selected);
+  localStorage.setItem('jego_last_transport',JSON.stringify(selected));
 
-  localStorage.setItem('jego_last_transport', JSON.stringify(selected));
-
-  // Kirim ke Kodular (jika ada)
   if(window.AppInventor){
     window.AppInventor.setWebViewString(JSON.stringify({
       action:'vehicle_selected',
@@ -118,7 +107,7 @@ function selectVehicle(type){
   }
 
   setTimeout(()=>{
-    location.href = 'rute.html';
+    location.href='rute.html';
   },500);
 }
 </script>
