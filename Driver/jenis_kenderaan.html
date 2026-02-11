@@ -1,0 +1,3097 @@
+<!DOCTYPE html>
+
+<html lang="id">
+
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Pilih Transportasi - JeGo</title>
+
+    
+
+    <!-- Firebase SDK untuk auth dan database -->
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+
+
+    <style>
+
+        :root {
+
+            --primary: #FF9800;
+
+            --secondary: #FF5722;
+
+            --accent: #FFC107;
+
+            --light: #f8f9fa;
+
+            --dark: #343a40;
+
+            --success: #4CAF50;
+
+            --danger: #f44336;
+
+            --warning: #FFC107;
+
+            --info: #2196F3;
+
+            --gray: #9E9E9E;
+
+        }
+
+
+
+        * {
+
+            margin: 0;
+
+            padding: 0;
+
+            box-sizing: border-box;
+
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+        }
+
+
+
+        body {
+
+            background-color: #f5f5f5;
+
+            color: var(--dark);
+
+            line-height: 1.6;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+
+        .container {
+
+            max-width: 1200px;
+
+            margin: 0 auto;
+
+            padding: 20px;
+
+            flex: 1;
+
+            padding-bottom: 80px;
+
+        }
+
+
+
+        /* HEADER */
+
+        header {
+
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+
+            color: white;
+
+            padding: 8px 0;
+
+            border-radius: 0 0 20px 20px;
+
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+            min-height: 56px;
+
+            display: flex;
+
+            align-items: center;
+
+        }
+
+
+
+        .header-content {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            width: 100%;
+
+        }
+
+
+
+        .logo-container {
+
+            display: flex;
+
+            align-items: center;
+
+        }
+
+
+
+        .logo {
+
+            width: 40px;
+
+            height: 40px;
+
+            background-color: var(--accent);
+
+            border-radius: 50%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            margin-right: 12px;
+
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+            overflow: hidden;
+
+        }
+
+
+
+        .logo img {
+
+            width: 25px;
+
+            height: 25px;
+
+            object-fit: contain;
+
+        }
+
+
+
+        h1 {
+
+            font-size: 1.5rem;
+
+            margin-bottom: 0;
+
+        }
+
+
+
+        .user-info {
+
+            font-size: 0.9rem;
+
+            opacity: 0.9;
+
+            margin-right: 10px;
+
+        }
+
+
+
+        .header-actions {
+
+            display: flex;
+
+            gap: 10px;
+
+        }
+
+
+
+        .header-btn {
+
+            background: rgba(255, 255, 255, 0.2);
+
+            color: white;
+
+            border: 1px solid rgba(255, 255, 255, 0.3);
+
+            border-radius: 6px;
+
+            padding: 6px 12px;
+
+            cursor: pointer;
+
+            font-weight: 600;
+
+            text-decoration: none;
+
+            transition: all 0.3s;
+
+            display: inline-block;
+
+            text-align: center;
+
+            font-size: 0.85rem;
+
+        }
+
+
+
+        .header-btn:hover {
+
+            background: rgba(255, 255, 255, 0.3);
+
+            transform: translateY(-2px);
+
+        }
+
+
+
+        .content {
+
+            background: white;
+
+            border-radius: 15px;
+
+            padding: 25px;
+
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+            margin-top: 30px;
+
+        }
+
+
+
+        h2 {
+
+            color: var(--primary);
+
+            margin-bottom: 20px;
+
+            padding-bottom: 10px;
+
+            border-bottom: 2px solid var(--accent);
+
+            text-align: center;
+
+        }
+
+
+
+        .welcome-message {
+
+            text-align: center;
+
+            margin-bottom: 25px;
+
+            color: #666;
+
+            font-size: 1.1rem;
+
+        }
+
+
+
+        .transport-options {
+
+            display: grid;
+
+            grid-template-columns: repeat(2, 1fr);
+
+            gap: 20px;
+
+            margin-top: 20px;
+
+        }
+
+
+
+        .transport-card {
+
+            background: white;
+
+            border: 2px solid #e9ecef;
+
+            border-radius: 12px;
+
+            padding: 20px;
+
+            text-align: center;
+
+            cursor: pointer;
+
+            transition: all 0.3s ease;
+
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+            position: relative;
+
+            min-height: 240px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: space-between;
+
+        }
+
+
+
+        .transport-card:hover {
+
+            transform: translateY(-5px);
+
+            border-color: var(--secondary);
+
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+
+        }
+
+
+
+        .transport-card.selected {
+
+            border-color: var(--primary);
+
+            background-color: rgba(30, 111, 92, 0.05);
+
+        }
+
+
+
+        .transport-icon {
+
+            width: 70px;
+
+            height: 70px;
+
+            margin: 0 auto 15px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: rgba(30, 111, 92, 0.1);
+
+            border-radius: 50%;
+
+            padding: 15px;
+
+        }
+
+
+
+        .transport-icon img {
+
+            width: 100%;
+
+            height: 100%;
+
+            object-fit: contain;
+
+        }
+
+
+
+        .transport-name {
+
+            font-size: 1.2rem;
+
+            font-weight: 600;
+
+            margin-bottom: 8px;
+
+            color: var(--dark);
+
+        }
+
+
+
+        .transport-capacity {
+
+            font-size: 0.9rem;
+
+            color: var(--secondary);
+
+            margin-bottom: 10px;
+
+            font-weight: 500;
+
+        }
+
+
+
+        .transport-description {
+
+            font-size: 0.85rem;
+
+            color: #666;
+
+            margin-bottom: 15px;
+
+            flex-grow: 1;
+
+            line-height: 1.5;
+
+        }
+
+
+
+        .btn {
+
+            display: block;
+
+            width: 100%;
+
+            padding: 14px;
+
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+
+            color: white;
+
+            border: none;
+
+            border-radius: 8px;
+
+            font-size: 1.1rem;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition: all 0.3s;
+
+            margin-top: 15px;
+
+            text-decoration: none;
+
+            text-align: center;
+
+        }
+
+
+
+        .btn:hover {
+
+            transform: translateY(-2px);
+
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+
+        }
+
+
+
+        .btn:disabled {
+
+            background: #cccccc;
+
+            cursor: not-allowed;
+
+            transform: none;
+
+            box-shadow: none;
+
+        }
+
+
+
+        footer {
+
+            text-align: center;
+
+            padding: 20px;
+
+            color: var(--dark);
+
+            font-size: 0.9rem;
+
+            background-color: white;
+
+            margin-top: 40px;
+
+            border-top: 1px solid #eee;
+
+        }
+
+
+
+        .local-badge {
+
+            display: inline-block;
+
+            background-color: var(--accent);
+
+            color: var(--dark);
+
+            padding: 5px 15px;
+
+            border-radius: 20px;
+
+            font-weight: bold;
+
+            margin-top: 10px;
+
+            font-size: 0.8rem;
+
+        }
+
+
+
+        .alert {
+
+            padding: 15px;
+
+            border-radius: 8px;
+
+            margin: 20px 0;
+
+            display: none;
+
+        }
+
+
+
+        .alert-success {
+
+            background-color: rgba(40, 167, 69, 0.1);
+
+            border: 1px solid var(--success);
+
+            color: var(--success);
+
+        }
+
+
+
+        .alert-danger {
+
+            background-color: rgba(220, 53, 69, 0.1);
+
+            border: 1px solid var(--danger);
+
+            color: var(--danger);
+
+        }
+
+
+
+        /* Loading Spinner */
+
+        .loading-spinner {
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 40px;
+
+        }
+
+
+
+        .spinner {
+
+            width: 40px;
+
+            height: 40px;
+
+            border: 4px solid rgba(30, 111, 92, 0.2);
+
+            border-left: 4px solid var(--primary);
+
+            border-radius: 50%;
+
+            animation: spin 1s linear infinite;
+
+        }
+
+
+
+        @keyframes spin {
+
+            0% { transform: rotate(0deg); }
+
+            100% { transform: rotate(360deg); }
+
+        }
+
+
+
+        /* Global Loading Overlay */
+
+        .global-loading {
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background-color: rgba(255, 255, 255, 0.9);
+
+            display: none;
+
+            justify-content: center;
+
+            align-items: center;
+
+            z-index: 9999;
+
+            flex-direction: column;
+
+        }
+
+
+
+        .global-loading .spinner {
+
+            width: 60px;
+
+            height: 60px;
+
+            border: 6px solid rgba(30, 111, 92, 0.2);
+
+            border-left: 6px solid var(--primary);
+
+        }
+
+
+
+        .global-loading p {
+
+            margin-top: 20px;
+
+            font-size: 1.1rem;
+
+            color: var(--dark);
+
+            font-weight: 600;
+
+        }
+
+
+
+        /* Modal Styles */
+
+        .modal {
+
+            display: none;
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background-color: rgba(0, 0, 0, 0.5);
+
+            z-index: 1000;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 20px;
+
+        }
+
+
+
+        .modal-content {
+
+            background: white;
+
+            border-radius: 15px;
+
+            width: 100%;
+
+            max-width: 500px;
+
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+
+            overflow: hidden;
+
+            animation: modalAppear 0.3s ease-out;
+
+        }
+
+
+
+        @keyframes modalAppear {
+
+            from {
+
+                opacity: 0;
+
+                transform: translateY(-20px);
+
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform: translateY(0);
+
+            }
+
+        }
+
+
+
+        .modal-header {
+
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+
+            color: white;
+
+            padding: 20px;
+
+            text-align: center;
+
+        }
+
+
+
+        .modal-header h2 {
+
+            color: white;
+
+            border-bottom: none;
+
+            margin: 0;
+
+            padding: 0;
+
+        }
+
+
+
+        .modal-body {
+
+            padding: 20px;
+
+        }
+
+
+
+        .form-group {
+
+            margin-bottom: 20px;
+
+        }
+
+
+
+        .form-group label {
+
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-weight: 600;
+
+            color: var(--dark);
+
+        }
+
+
+
+        .input-with-icon {
+
+            position: relative;
+
+        }
+
+
+
+        .input-with-icon input {
+
+            width: 100%;
+
+            padding: 12px 50px 12px 15px;
+
+            border: 1px solid #ddd;
+
+            border-radius: 8px;
+
+            font-size: 1rem;
+
+            transition: border-color 0.3s;
+
+        }
+
+
+
+        .input-with-icon input:focus {
+
+            border-color: var(--primary);
+
+            outline: none;
+
+            box-shadow: 0 0 0 2px rgba(30, 111, 92, 0.2);
+
+        }
+
+
+
+        .contact-icon {
+
+            position: absolute;
+
+            right: 10px;
+
+            top: 50%;
+
+            transform: translateY(-50%);
+
+            background: var(--primary);
+
+            color: white;
+
+            width: 30px;
+
+            height: 30px;
+
+            border-radius: 50%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            cursor: pointer;
+
+            transition: all 0.3s;
+
+        }
+
+
+
+        .contact-icon:hover {
+
+            background: var(--secondary);
+
+            transform: translateY(-50%) scale(1.1);
+
+        }
+
+
+
+        .category-buttons {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-top: 5px;
+
+        }
+
+
+
+        .category-btn {
+
+            padding: 8px 15px;
+
+            background: white;
+
+            border: 1px solid #ddd;
+
+            border-radius: 20px;
+
+            cursor: pointer;
+
+            transition: all 0.3s;
+
+            font-size: 0.9rem;
+
+        }
+
+
+
+        .category-btn.selected {
+
+            background: var(--primary);
+
+            color: white;
+
+            border-color: var(--primary);
+
+        }
+
+
+
+        .category-btn:hover:not(.selected) {
+
+            border-color: var(--primary);
+
+            color: var(--primary);
+
+        }
+
+
+
+        textarea {
+
+            width: 100%;
+
+            padding: 12px 15px;
+
+            border: 1px solid #ddd;
+
+            border-radius: 8px;
+
+            font-size: 1rem;
+
+            font-family: inherit;
+
+            resize: vertical;
+
+            min-height: 100px;
+
+            transition: border-color 0.3s;
+
+        }
+
+
+
+        textarea:focus {
+
+            border-color: var(--primary);
+
+            outline: none;
+
+            box-shadow: 0 0 0 2px rgba(30, 111, 92, 0.2);
+
+        }
+
+
+
+        .modal-footer {
+
+            padding: 20px;
+
+            display: flex;
+
+            gap: 10px;
+
+            border-top: 1px solid #eee;
+
+        }
+
+
+
+        .modal-btn {
+
+            flex: 1;
+
+            padding: 12px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            font-size: 1rem;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition: all 0.3s;
+
+        }
+
+
+
+        .btn-primary {
+
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+
+            color: white;
+
+        }
+
+
+
+        .btn-secondary {
+
+            background: #f8f9fa;
+
+            color: var(--dark);
+
+            border: 1px solid #ddd;
+
+        }
+
+
+
+        .btn-primary:hover {
+
+            transform: translateY(-2px);
+
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+
+        }
+
+
+
+        .btn-secondary:hover {
+
+            background: #e9ecef;
+
+        }
+
+
+
+        /* Login Required Message */
+
+        .login-required {
+
+            text-align: center;
+
+            padding: 40px;
+
+            background: white;
+
+            border-radius: 15px;
+
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+            margin-top: 30px;
+
+        }
+
+
+
+        .login-required h2 {
+
+            color: var(--primary);
+
+            margin-bottom: 15px;
+
+        }
+
+
+
+        .login-required p {
+
+            color: #666;
+
+            margin-bottom: 20px;
+
+        }
+
+
+
+        /* Bottom Navigation Styles */
+
+        .bottom-nav {
+
+            position: fixed;
+
+            bottom: 0;
+
+            left: 0;
+
+            right: 0;
+
+            background-color: white;
+
+            display: flex;
+
+            justify-content: space-around;
+
+            align-items: center;
+
+            padding: 10px 0;
+
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+
+            z-index: 100;
+
+        }
+
+
+
+        .nav-item {
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex: 1;
+
+            padding: 8px 0;
+
+            cursor: pointer;
+
+            transition: all 0.3s;
+
+            text-decoration: none;
+
+            color: #666;
+
+        }
+
+
+
+        .nav-item.active {
+
+            color: var(--primary);
+
+        }
+
+
+
+        .nav-icon {
+
+            width: 24px;
+
+            height: 24px;
+
+            margin-bottom: 4px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+        }
+
+
+
+        .nav-icon svg {
+
+            width: 100%;
+
+            height: 100%;
+
+            fill: currentColor;
+
+        }
+
+
+
+        .nav-label {
+
+            font-size: 0.75rem;
+
+            font-weight: 500;
+
+        }
+
+
+
+        .nav-item:hover {
+
+            color: var(--primary);
+
+        }
+
+
+
+        @media (max-width: 768px) {
+
+            .transport-options {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+
+            h1 {
+
+                font-size: 1.4rem;
+
+            }
+
+
+
+            .modal {
+
+                padding: 10px;
+
+            }
+
+
+
+            .category-buttons {
+
+                gap: 8px;
+
+            }
+
+
+
+            .category-btn {
+
+                padding: 6px 12px;
+
+                font-size: 0.85rem;
+
+            }
+
+
+
+            .transport-card {
+
+                min-height: 220px;
+
+                padding: 15px;
+
+            }
+
+
+
+            .header-actions {
+
+                flex-direction: column;
+
+                gap: 8px;
+
+            }
+
+
+
+            .header-btn {
+
+                width: 100%;
+
+                padding: 5px 10px;
+
+                font-size: 0.8rem;
+
+            }
+
+
+
+            header {
+
+                padding: 6px 0;
+
+            }
+
+
+
+            .logo {
+
+                width: 35px;
+
+                height: 35px;
+
+            }
+
+
+
+            .logo img {
+
+                width: 20px;
+
+                height: 20px;
+
+            }
+
+
+
+            .user-info {
+
+                font-size: 0.8rem;
+
+            }
+
+        }
+
+
+
+        @media (max-width: 480px) {
+
+            .container {
+
+                padding: 15px;
+
+            }
+
+
+
+            .content {
+
+                padding: 20px;
+
+            }
+
+
+
+            .transport-options {
+
+                gap: 15px;
+
+            }
+
+
+
+            h1 {
+
+                font-size: 1.3rem;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+
+<body>
+
+    <!-- Global Loading Overlay -->
+
+    <div class="global-loading" id="globalLoading">
+
+        <div class="spinner"></div>
+
+        <p>Memproses pilihan...</p>
+
+    </div>
+
+
+
+    <header>
+
+        <div class="container">
+
+            <div class="header-content">
+
+                <div class="logo-container">
+
+                    <div class="logo">
+
+                        <img src="https://cdn-icons-png.flaticon.com/128/7890/7890227.png" alt="JeGo Logo">
+
+                    </div>
+
+                    <h1>JeGo</h1>
+
+                </div>
+
+
+
+                <div class="user-info" id="userInfo">
+
+                    <!-- Informasi user akan diisi oleh JavaScript -->
+
+                </div>
+
+
+
+                <div class="header-actions">
+
+                    <a href="registrasi_jego.html" class="header-btn" id="headerRegisterBtn">Daftar</a>
+
+                    <a href="loginUser.html" class="header-btn" id="headerLoginBtn">Login</a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <div class="container">
+
+        <div class="alert alert-success" id="successAlert">
+
+            ✅ Transportasi berhasil dipilih! Data telah disimpan dan dikirim ke aplikasi JeGo.
+
+        </div>
+
+
+
+        <div class="alert alert-danger" id="errorAlert">
+
+            ❌ Terjadi kesalahan. Silakan coba lagi.
+
+        </div>
+
+
+
+        <!-- Konten untuk user yang sudah login -->
+
+        <div id="mainContent" style="display: none;">
+
+            <div class="content">
+
+                <h2>Pilih Jenis Transportasi</h2>
+
+                <div class="welcome-message">
+
+                    Selamat datang di JeGo! Klik salah satu transportasi untuk melanjutkan.
+
+                </div>
+
+
+
+                <!-- Loading Spinner -->
+
+                <div class="loading-spinner" id="loadingSpinner">
+
+                    <div class="spinner"></div>
+
+                </div>
+
+
+
+                <!-- Transport options will be populated dynamically -->
+
+                <div class="transport-options" id="transportOptions">
+
+                    <!-- Cards will be generated here -->
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Konten untuk user yang belum login -->
+
+        <div id="loginRequiredContent" style="display: none;">
+
+            <div class="login-required">
+
+                <h2>Login Diperlukan</h2>
+
+                <p>Silakan login terlebih dahulu untuk memilih jenis transportasi.</p>
+
+                <a href="loginUser.html" class="btn">Login Sekarang</a>
+
+                <p style="margin-top: 15px; font-size: 0.9rem;">
+
+                    Belum punya akun? <a href="registrasi_jego.html">Daftar di sini</a>
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Bottom Navigation -->
+
+    <div class="bottom-nav">
+
+        <a href="jenis_kenderaan.html" class="nav-item active">
+
+            <div class="nav-icon">
+
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+
+                    <path d="M19,7H18V6a3,3,0,0,0-3-3H5A3,3,0,0,0,2,6V17a3,3,0,0,0,3,3H6a3,3,0,0,0,3-3V14h6v3a3,3,0,0,0,3,3h1a3,3,0,0,0,3-3V10A3,3,0,0,0,19,7ZM5,5H15a1,1,0,0,1,1,1V7H5A1,1,0,0,1,5,5ZM9,17a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V14.83A3,3,0,0,0,5,15H8a2.93,2.93,0,0,0,1-.18ZM17,19a1,1,0,0,1-1,1H15a1,1,0,0,1-1-1V16H8v-4h9a1,1,0,0,1,1,1Zm3-3a1,1,0,0,1-2,0V10a1,1,0,0,1,2,0Z"/>
+
+                </svg>
+
+            </div>
+
+            <span class="nav-label">Transportasi</span>
+
+        </a>
+
+        <a href="dukungan.html" class="nav-item">
+
+            <div class="nav-icon">
+
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+
+                    <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm1-6.5a1,1,0,0,0-2,0V15a1,1,0,0,0,2,0Zm-1-5a1.25,1.25,0,1,0,1.25,1.25A1.25,1.25,0,0,0,12,8.5Z"/>
+
+                </svg>
+
+            </div>
+
+            <span class="nav-label">Dukungan</span>
+
+        </a>
+
+        <a href="userAccount.html" class="nav-item">
+
+            <div class="nav-icon">
+
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+
+                    <path d="M12,12A5,5,0,1,0,7,7,5,5,0,0,0,12,12ZM12,4A3,3,0,1,1,9,7,3,3,0,0,1,12,4ZM20.5,20.5a1,1,0,0,0,0-1.42A10,10,0,0,0,4.93,4.93a1,1,0,0,0-1.42,1.42a8,8,0,0,1,11.32,11.32A8,8,0,0,1,12,20a7.94,7.94,0,0,0-5.3-2,1,1,0,0,0-1.42,1.42A10,10,0,0,0,12,22,9.94,9.94,0,0,0,20.5,20.5Z"/>
+
+                </svg>
+
+            </div>
+
+            <span class="nav-label">Akun</span>
+
+        </a>
+
+    </div>
+
+
+
+    <!-- Modal untuk data pengiriman kurir -->
+
+    <div class="modal" id="kurirModal">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h2>Data Pengiriman</h2>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="form-group">
+
+                    <label for="senderPhone">Nomor Pengirim</label>
+
+                    <div class="input-with-icon">
+
+                        <input type="tel" id="senderPhone" placeholder="Masukkan nomor pengirim">
+
+                        <div class="contact-icon" onclick="pickContact('sender')">
+
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+                                <path d="M22 16.92V19.92C22 20.52 21.53 21 20.94 21C11.44 21 3 12.56 3 3.06C3 2.47 3.48 2 4.08 2H7.08C7.63 2 8.08 2.45 8.08 3C8.08 3.04 8.07 3.08 8.07 3.12C8.16 4.19 8.4 5.23 8.78 6.22C8.88 6.48 8.82 6.78 8.62 6.98L6.55 9.05C8.06 12.63 11.37 15.94 14.95 17.45L17.02 15.38C17.22 15.18 17.52 15.12 17.78 15.22C18.77 15.6 19.81 15.84 20.88 15.93C20.92 15.93 20.96 15.92 21 15.92C21.55 15.92 22 16.37 22 16.92Z" fill="white"/>
+
+                            </svg>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="receiverPhone">Nomor Penerima</label>
+
+                    <div class="input-with-icon">
+
+                        <input type="tel" id="receiverPhone" placeholder="Masukkan nomor penerima">
+
+                        <div class="contact-icon" onclick="pickContact('receiver')">
+
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+                                <path d="M22 16.92V19.92C22 20.52 21.53 21 20.94 21C11.44 21 3 12.56 3 3.06C3 2.47 3.48 2 4.08 2H7.08C7.63 2 8.08 2.45 8.08 3C8.08 3.04 8.07 3.08 8.07 3.12C8.16 4.19 8.4 5.23 8.78 6.22C8.88 6.48 8.82 6.78 8.62 6.98L6.55 9.05C8.06 12.63 11.37 15.94 14.95 17.45L17.02 15.38C17.22 15.18 17.52 15.12 17.78 15.22C18.77 15.6 19.81 15.84 20.88 15.93C20.92 15.93 20.96 15.92 21 15.92C21.55 15.92 22 16.37 22 16.92Z" fill="white"/>
+
+                            </svg>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label>Jenis Barang</label>
+
+                    <div class="category-buttons">
+
+                        <button class="category-btn" data-category="Makanan">Makanan</button>
+
+                        <button class="category-btn" data-category="Pakaian">Pakaian</button>
+
+                        <button class="category-btn" data-category="Paket">Paket</button>
+
+                        <button class="category-btn" data-category="Elektronik">Elektronik</button>
+
+                        <button class="category-btn" data-category="Dokumen">Dokumen</button>
+
+                        <button class="category-btn" data-category="Obat-obatan">Obat-obatan</button>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="description">Deskripsi Barang</label>
+
+                    <textarea id="description" placeholder="Deskripsi barang yang akan dikirim..."></textarea>
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button class="modal-btn btn-secondary" onclick="closeModal()">Batal</button>
+
+                <button class="modal-btn btn-primary" onclick="saveDeliveryData()">Simpan & Lanjutkan</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <footer>
+
+        <div class="container">
+
+            <p>&copy; 2025 JeGo - Jasa Ekspedisi Gorontalo. Aplikasi Lokal Buatan Anak Gorontalo.</p>
+
+            <div class="local-badge">BUATAN ANAK GORONTALO</div>
+
+        </div>
+
+    </footer>
+
+
+
+    <script>
+
+        // ================================================
+
+        // KONFIGURASI FIREBASE
+
+        // ================================================
+
+        const FIREBASE_CONFIG = {
+
+            apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+
+            authDomain: "game-balap-simpel.firebaseapp.com",
+
+            databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+
+            projectId: "game-balap-simpel",
+
+            storageBucket: "game-balap-simpel.firebasestorage.app",
+
+            messagingSenderId: "864576853495",
+
+            appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+
+            measurementId: "G-YWJPK7Y3J4"
+
+        };
+
+
+
+        // Inisialisasi Firebase
+
+        let firebaseApp = null;
+
+        let firebaseAuth = null;
+
+        let firebaseDatabase = null;
+
+
+
+        async function initializeFirebase() {
+
+            try {
+
+                console.log('🔄 Menginisialisasi Firebase...');
+
+                
+
+                if (typeof firebase === 'undefined') {
+
+                    throw new Error('Firebase SDK belum dimuat');
+
+                }
+
+                
+
+                // Initialize Firebase
+
+                firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+
+                firebaseAuth = firebase.auth();
+
+                firebaseDatabase = firebase.database();
+
+                
+
+                console.log('✅ Firebase diinisialisasi');
+
+                return true;
+
+            } catch (error) {
+
+                console.error('❌ Error menginisialisasi Firebase:', error);
+
+                return false;
+
+            }
+
+        }
+
+
+
+        // ================================================
+
+        // VARIABEL GLOBAL
+
+        // ================================================
+
+        let transportData = {};
+
+        let tariffRates = {};
+
+        let currentUser = null;
+
+        let transportCards = [];
+
+        
+
+        // Elemen DOM
+
+        const transportOptions = document.getElementById('transportOptions');
+
+        const successAlert = document.getElementById('successAlert');
+
+        const errorAlert = document.getElementById('errorAlert');
+
+        const kurirModal = document.getElementById('kurirModal');
+
+        const categoryButtons = document.querySelectorAll('.category-btn');
+
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        const mainContent = document.getElementById('mainContent');
+
+        const loginRequiredContent = document.getElementById('loginRequiredContent');
+
+        const userInfo = document.getElementById('userInfo');
+
+        const headerRegisterBtn = document.getElementById('headerRegisterBtn');
+
+        const headerLoginBtn = document.getElementById('headerLoginBtn');
+
+        const globalLoading = document.getElementById('globalLoading');
+
+
+
+        // Firebase Database Path
+
+        const TRANSPORT_PATH = '/tarif.json';
+
+
+
+        // Mapping nama transportasi dari Firebase ke format internal
+
+        const transportNameMapping = {
+
+            'Bentor': 'bentor',
+
+            'Kurir Bentor': 'kurir_bentor',
+
+            'Kurir Motor': 'kurir_motor',
+
+            'Mobil': 'mobil',
+
+            'Motor': 'motor'
+
+        };
+
+
+
+        let selectedTransport = null;
+
+        let selectedCategory = null;
+
+        let currentContactField = null;
+
+        let isProcessing = false; // Untuk mencegah klik berulang
+
+
+
+        // ================================================
+
+        // FUNGSI UTAMA
+
+        // ================================================
+
+
+
+        // Fungsi untuk cek login
+
+        function checkLogin() {
+
+            const loggedInUser = localStorage.getItem('jego_logged_in_user');
+
+            
+
+            if (loggedInUser) {
+
+                try {
+
+                    currentUser = JSON.parse(loggedInUser);
+
+                    
+
+                    // Tampilkan konten utama
+
+                    mainContent.style.display = 'block';
+
+                    loginRequiredContent.style.display = 'none';
+
+                    
+
+                    // Update header tombol
+
+                    headerRegisterBtn.style.display = 'none';
+
+                    headerLoginBtn.style.display = 'none';
+
+                    
+
+                    // Update info user
+
+                    userInfo.innerHTML = `Halo, <strong>${currentUser.name}</strong>`;
+
+                    
+
+                    console.log('✅ User terdeteksi:', currentUser.name);
+
+                    
+
+                    // Inisialisasi Firebase lalu load data
+
+                    initializeFirebase().then(firebaseReady => {
+
+                        if (firebaseReady) {
+
+                            // Load data transportasi DENGAN DELAY kecil
+
+                            setTimeout(() => {
+
+                                fetchTransportData();
+
+                            }, 500);
+
+                        } else {
+
+                            // Jika Firebase gagal, gunakan fallback data
+
+                            showLoading(false);
+
+                            loadFallbackData();
+
+                        }
+
+                    });
+
+                    
+
+                    return true;
+
+                } catch (error) {
+
+                    console.error('Error parsing user data:', error);
+
+                    showLoginRequired();
+
+                    return false;
+
+                }
+
+            } else {
+
+                showLoginRequired();
+
+                return false;
+
+            }
+
+        }
+
+
+
+        // Fungsi untuk menampilkan halaman login required
+
+        function showLoginRequired() {
+
+            mainContent.style.display = 'none';
+
+            loginRequiredContent.style.display = 'block';
+
+            userInfo.innerHTML = '';
+
+            
+
+            // Update header tombol
+
+            headerRegisterBtn.style.display = 'inline-block';
+
+            headerLoginBtn.style.display = 'inline-block';
+
+        }
+
+
+
+        // Fungsi untuk mengambil data transportasi dari Firebase
+
+        async function fetchTransportData() {
+
+            try {
+
+                // CEK DULU APAKAH USER SUDAH LOGIN
+
+                const loggedInUser = localStorage.getItem('jego_logged_in_user');
+
+                if (!loggedInUser) {
+
+                    console.log('❌ User belum login, tidak bisa fetch tarif');
+
+                    showLoading(false);
+
+                    loadFallbackData(); // Langsung pakai data fallback
+
+                    return;
+
+                }
+
+                
+
+                showLoading(true);
+
+                
+
+                console.log('📡 Mengambil data transportasi dari Firebase...');
+
+                
+
+                // Gunakan Firebase SDK untuk mengambil data dengan authentication
+
+                if (!firebaseDatabase) {
+
+                    throw new Error('Firebase Database belum diinisialisasi');
+
+                }
+
+                
+
+                // Ambil data dari Firebase Realtime Database
+
+                const snapshot = await firebaseDatabase.ref('tarif').once('value');
+
+                const firebaseData = snapshot.val();
+
+                
+
+                if (!firebaseData) {
+
+                    throw new Error('Data tarif kosong di Firebase');
+
+                }
+
+                
+
+                console.log('📊 Data diterima dari Firebase:', firebaseData);
+
+                
+
+                // Konversi data Firebase ke format yang diharapkan aplikasi
+
+                transportData = {};
+
+                tariffRates = {};
+
+                
+
+                for (const [firebaseName, data] of Object.entries(firebaseData)) {
+
+                    const internalName = transportNameMapping[firebaseName];
+
+                    
+
+                    if (internalName && data) {
+
+                        transportData[internalName] = {
+
+                            name: data.Nama || firebaseName,
+
+                            capacity: data.Capacity || "N/A",
+
+                            description: data.Deskripsi || "Tidak ada deskripsi",
+
+                            icon: data.Icon || "https://cdn-icons-png.flaticon.com/128/7890/7890227.png",
+
+                            minimalDistance: data.MinimalDistance || 4,
+
+                            minimalPrice: data.MinimalPrice || 10000
+
+                        };
+
+                        
+
+                        tariffRates[internalName] = data.PricePerKm || 2000;
+
+                    }
+
+                }
+
+                
+
+                console.log('✅ Data transportasi berhasil diambil dari Firebase:', transportData);
+
+                renderTransportCards();
+
+                showLoading(false);
+
+                
+
+            } catch (error) {
+
+                console.error('❌ Error mengambil data dari Firebase:', error);
+
+                console.error('Error details:', error.message);
+
+                showLoading(false);
+
+                
+
+                // Tampilkan error spesifik
+
+                if (error.message.includes('PERMISSION_DENIED')) {
+
+                    showAlert(errorAlert, 'Tidak memiliki izin untuk membaca data tarif. Pastikan sudah login.');
+
+                } else if (error.message.includes('Data tarif kosong')) {
+
+                    showAlert(errorAlert, 'Data tarif tidak ditemukan di server.');
+
+                } else {
+
+                    showAlert(errorAlert, 'Gagal mengambil data transportasi. Silakan coba lagi.');
+
+                }
+
+                
+
+                // Fallback ke data statis
+
+                setTimeout(() => {
+
+                    loadFallbackData();
+
+                }, 1000);
+
+            }
+
+        }
+
+
+
+        // Fallback data jika Firebase tidak tersedia ATAU user belum login
+
+        function loadFallbackData() {
+
+            console.log('🔄 Menggunakan data fallback (offline/not logged in)...');
+
+            
+
+            transportData = {
+
+                motor: {
+
+                    name: "Motor",
+
+                    capacity: "1 Penumpang",
+
+                    description: "Cepat dan ekonomis untuk perjalanan solo",
+
+                    icon: "https://cdn-icons-png.flaticon.com/128/5811/5811823.png",
+
+                    minimalDistance: 4,
+
+                    minimalPrice: 10000
+
+                },
+
+                bentor: {
+
+                    name: "Bentor",
+
+                    capacity: "2 Penumpang",
+
+                    description: "Nyaman untuk perjalanan dalam kota",
+
+                    icon: "https://cdn-icons-png.flaticon.com/128/7890/7890227.png",
+
+                    minimalDistance: 4,
+
+                    minimalPrice: 11000
+
+                },
+
+                mobil: {
+
+                    name: "Mobil",
+
+                    capacity: "4 Penumpang",
+
+                    description: "Nyaman untuk perjalanan dengan grup",
+
+                    icon: "https://cdn-icons-png.flaticon.com/128/12689/12689302.png",
+
+                    minimalDistance: 4,
+
+                    minimalPrice: 15000
+
+                },
+
+                kurir_motor: {
+
+                    name: "Kurir Motor",
+
+                    capacity: "Paket Kecil",
+
+                    description: "Pengiriman cepat dengan motor",
+
+                    icon: "https://cdn-icons-png.flaticon.com/128/9561/9561688.png",
+
+                    minimalDistance: 4,
+
+                    minimalPrice: 10000
+
+                },
+
+                kurir_bentor: {
+
+                    name: "Kurir Bentor",
+
+                    capacity: "Paket Sedang",
+
+                    description: "Pengiriman dengan kapasitas lebih besar",
+
+                    icon: "https://cdn-icons-png.flaticon.com/128/7890/7890227.png",
+
+                    minimalDistance: 4,
+
+                    minimalPrice: 10000
+
+                }
+
+            };
+
+            
+
+            tariffRates = {
+
+                motor: 2200,
+
+                bentor: 3000,
+
+                mobil: 4000,
+
+                kurir_motor: 2100,
+
+                kurir_bentor: 2100
+
+            };
+
+            
+
+            renderTransportCards();
+
+            
+
+            // Tampilkan info kalau pakai data fallback
+
+            const user = localStorage.getItem('jego_logged_in_user');
+
+            if (!user) {
+
+                showAlert(successAlert, 'Menggunakan data lokal. Silakan login untuk data terbaru.');
+
+            } else {
+
+                showAlert(successAlert, 'Menggunakan data lokal (mode offline).');
+
+            }
+
+        }
+
+
+
+        // Fungsi untuk menampilkan/menyembunyikan loading spinner
+
+        function showLoading(show) {
+
+            loadingSpinner.style.display = show ? 'flex' : 'none';
+
+            transportOptions.style.display = show ? 'none' : 'grid';
+
+        }
+
+
+
+        // Fungsi untuk menampilkan/menyembunyikan global loading
+
+        function showGlobalLoading(show) {
+
+            globalLoading.style.display = show ? 'flex' : 'none';
+
+        }
+
+
+
+        // Fungsi untuk merender card transportasi (TANPA TOMBOL)
+
+        function renderTransportCards() {
+
+            transportOptions.innerHTML = '';
+
+            transportCards = [];
+
+            
+
+            // Urutan transportasi yang diinginkan
+
+            const transportOrder = ['motor', 'bentor', 'mobil', 'kurir_motor', 'kurir_bentor'];
+
+            
+
+            transportOrder.forEach(type => {
+
+                if (transportData[type]) {
+
+                    const transport = transportData[type];
+
+                    
+
+                    const card = document.createElement('div');
+
+                    card.className = 'transport-card';
+
+                    card.setAttribute('data-type', type);
+
+                    card.setAttribute('data-capacity', transport.capacity);
+
+                    
+
+                    // CARD TANPA TOMBOL "PILIH X" - HANYA KLIK LANGSUNG
+
+                    card.innerHTML = `
+
+                        <div class="transport-icon">
+
+                            <img src="${transport.icon}" alt="${transport.name}">
+
+                        </div>
+
+                        <div class="transport-name">${transport.name}</div>
+
+                        <div class="transport-capacity">${transport.capacity}</div>
+
+                        <div class="transport-description">${transport.description}</div>
+
+                    `;
+
+                    
+
+                    // Event listener untuk klik langsung
+
+                    card.addEventListener('click', function() {
+
+                        if (isProcessing) return; // Mencegah klik berulang
+
+                        
+
+                        // Tampilkan loading global
+
+                        showGlobalLoading(true);
+
+                        isProcessing = true;
+
+                        
+
+                        // Highlight card yang dipilih
+
+                        transportCards.forEach(c => c.classList.remove('selected'));
+
+                        this.classList.add('selected');
+
+                        
+
+                        // Simpan data transportasi yang dipilih
+
+                        const capacity = this.getAttribute('data-capacity');
+
+                        
+
+                        selectedTransport = {
+
+                            type: type,
+
+                            name: transportData[type].name,
+
+                            capacity: capacity,
+
+                            icon: transportData[type].icon,
+
+                            description: transportData[type].description,
+
+                            tariff: tariffRates[type],
+
+                            minimalDistance: transportData[type].minimalDistance,
+
+                            minimalPrice: transportData[type].minimalPrice
+
+                        };
+
+                        
+
+                        console.log(`✅ Transportasi dipilih: ${selectedTransport.name}`);
+
+                        
+
+                        // Untuk kurir, tampilkan modal data pengiriman
+
+                        if (type.includes('kurir')) {
+
+                            // Sembunyikan loading dulu, karena akan muncul modal
+
+                            showGlobalLoading(false);
+
+                            isProcessing = false;
+
+                            showKurirModal();
+
+                        } else {
+
+                            // Untuk transportasi biasa, langsung simpan dan lanjutkan
+
+                            setTimeout(() => {
+
+                                processTransportSelection(selectedTransport);
+
+                            }, 800); // Delay untuk efek visual loading
+
+                        }
+
+                    });
+
+                    
+
+                    transportOptions.appendChild(card);
+
+                    transportCards.push(card);
+
+                }
+
+            });
+
+        }
+
+
+
+        // Event listener untuk kategori barang
+
+        categoryButtons.forEach(button => {
+
+            button.addEventListener('click', function() {
+
+                // Hapus class selected dari semua tombol kategori
+
+                categoryButtons.forEach(btn => btn.classList.remove('selected'));
+
+                
+
+                // Tambah class selected ke tombol yang diklik
+
+                this.classList.add('selected');
+
+                
+
+                // Simpan kategori yang dipilih
+
+                selectedCategory = this.getAttribute('data-category');
+
+            });
+
+        });
+
+
+
+        // Fungsi untuk menampilkan modal data pengiriman kurir
+
+        function showKurirModal() {
+
+            kurirModal.style.display = 'flex';
+
+        }
+
+
+
+        // Fungsi untuk menutup modal
+
+        function closeModal() {
+
+            kurirModal.style.display = 'none';
+
+            // Reset form
+
+            document.getElementById('senderPhone').value = '';
+
+            document.getElementById('receiverPhone').value = '';
+
+            document.getElementById('description').value = '';
+
+            categoryButtons.forEach(btn => btn.classList.remove('selected'));
+
+            selectedCategory = null;
+
+            isProcessing = false; // Reset status processing
+
+        }
+
+
+
+        // Fungsi untuk memilih kontak - MENGIRIM PERINTAH KHUSUS KE KODULAR
+
+        function pickContact(field) {
+
+            // Simpan field yang sedang dipilih
+
+            currentContactField = field;
+
+            
+
+            // Data khusus untuk kontak picker
+
+            const contactPickerData = {
+
+                action: 'open_contact_picker',
+
+                field: field, // 'sender' atau 'receiver'
+
+                timestamp: new Date().toISOString()
+
+            };
+
+            
+
+            console.log('Mengirim permintaan kontak picker untuk field:', field);
+
+            sendContactPickerRequest(contactPickerData);
+
+        }
+
+
+
+        // Fungsi khusus untuk mengirim permintaan kontak picker ke Kodular
+
+        function sendContactPickerRequest(data) {
+
+            console.log('Mengirim data kontak picker ke Kodular:', data);
+
+            
+
+            // METODE 1: Menggunakan window.AppInventor.setWebViewString (PREFERED)
+
+            if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+
+                try {
+
+                    window.AppInventor.setWebViewString(JSON.stringify(data));
+
+                    console.log('✅ Permintaan kontak picker berhasil dikirim ke Kodular via AppInventor.setWebViewString');
+
+                } catch (error) {
+
+                    console.error('Error mengirim permintaan kontak picker via AppInventor:', error);
+
+                }
+
+            }
+
+            // METODE 2: Menggunakan window.android (Android WebView)
+
+            else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+
+                try {
+
+                    window.android.receiveData(JSON.stringify(data));
+
+                    console.log('✅ Permintaan kontak picker berhasil dikirim ke Kodular via window.android');
+
+                } catch (error) {
+
+                    console.error('Error mengirim permintaan kontak picker via window.android:', error);
+
+                }
+
+            }
+
+            // METODE 3: Menggunakan window.webkit.messageHandlers (iOS WebView)
+
+            else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+
+                try {
+
+                    window.webkit.messageHandlers.observe.postMessage(data);
+
+                    console.log('✅ Permintaan kontak picker berhasil dikirim ke Kodular via webkit.messageHandlers');
+
+                } catch (error) {
+
+                    console.error('Error mengirim permintaan kontak picker via webkit.messageHandlers:', error);
+
+                }
+
+            }
+
+            // METODE 4: Fallback - coba semua metode yang mungkin
+
+            else {
+
+                console.warn('Tidak ada metode AppInventor yang tersedia, mencoba semua metode...');
+
+                
+
+                // Coba metode yang mungkin
+
+                const methods = [
+
+                    { name: 'AppInventor.setWebViewString', check: () => window.AppInventor && window.AppInventor.setWebViewString },
+
+                    { name: 'android.receiveData', check: () => window.android && window.android.receiveData },
+
+                    { name: 'webkit.messageHandlers', check: () => window.webkit && window.webkit.messageHandlers }
+
+                ];
+
+                
+
+                let sent = false;
+
+                methods.forEach(method => {
+
+                    if (method.check() && !sent) {
+
+                        try {
+
+                            if (method.name === 'AppInventor.setWebViewString') {
+
+                                window.AppInventor.setWebViewString(JSON.stringify(data));
+
+                            } else if (method.name === 'android.receiveData') {
+
+                                window.android.receiveData(JSON.stringify(data));
+
+                            } else if (method.name === 'webkit.messageHandlers') {
+
+                                window.webkit.messageHandlers.observe.postMessage(data);
+
+                            }
+
+                            console.log(`✅ Permintaan kontak picker dikirim via ${method.name}`);
+
+                            sent = true;
+
+                        } catch (error) {
+
+                            console.error(`Error dengan ${method.name}:`, error);
+
+                        }
+
+                    }
+
+                });
+
+                
+
+                if (!sent) {
+
+                    console.error('❌ Tidak ada metode yang berhasil mengirim permintaan kontak picker ke Kodular');
+
+                    console.log('Data kontak picker yang gagal dikirim:', data);
+
+                }
+
+            }
+
+        }
+
+
+
+        // Fungsi untuk menyimpan data pengiriman
+
+        function saveDeliveryData() {
+
+            const senderPhone = document.getElementById('senderPhone').value;
+
+            const receiverPhone = document.getElementById('receiverPhone').value;
+
+            const description = document.getElementById('description').value;
+
+            
+
+            // Validasi form
+
+            if (!senderPhone || !receiverPhone || !selectedCategory) {
+
+                showAlert(errorAlert, 'Harap isi semua data yang diperlukan');
+
+                return;
+
+            }
+
+            
+
+            // Tampilkan loading global
+
+            showGlobalLoading(true);
+
+            
+
+            // Tambahkan data pengiriman ke objek transportasi yang dipilih
+
+            selectedTransport.deliveryData = {
+
+                senderPhone: senderPhone,
+
+                receiverPhone: receiverPhone,
+
+                itemCategory: selectedCategory,
+
+                description: description,
+
+                timestamp: new Date().toISOString()
+
+            };
+
+            
+
+            // Tutup modal
+
+            closeModal();
+
+            
+
+            // Simpan dan lanjutkan dengan delay untuk efek visual
+
+            setTimeout(() => {
+
+                processTransportSelection(selectedTransport);
+
+            }, 800);
+
+        }
+
+
+
+        // FUNGSI UTAMA UNTUK MEMPROSES PILIHAN TRANSPORTASI
+
+        function processTransportSelection(transportData) {
+
+            console.log('Memproses pilihan transportasi:', transportData.name);
+
+            
+
+            // Simpan data ke localStorage
+
+            saveToLocalStorage(transportData);
+
+            
+
+            // Kirim data ke Kodular
+
+            sendTransportDataToKodular(transportData);
+
+            
+
+            // Tampilkan pesan sukses
+
+            showAlert(successAlert, `${transportData.name} berhasil dipilih!`);
+
+            
+
+            // Tunggu sebentar lalu redirect ke halaman rute
+
+            setTimeout(() => {
+
+                showGlobalLoading(true); // Pastikan loading masih tampil
+
+                window.location.href = "rute.html";
+
+            }, 1200);
+
+        }
+
+
+
+        // Fungsi untuk menyimpan data ke localStorage
+
+        function saveToLocalStorage(transportData) {
+
+            const transportHistory = JSON.parse(localStorage.getItem('jego_transport_history')) || [];
+
+            
+
+            const transportRecord = {
+
+                ...transportData,
+
+                userId: currentUser ? currentUser.uid : 'anonymous',
+
+                timestamp: new Date().toISOString()
+
+            };
+
+            
+
+            transportHistory.unshift(transportRecord);
+
+            localStorage.setItem('jego_transport_history', JSON.stringify(transportHistory));
+
+            
+
+            // Simpan juga pilihan terakhir
+
+            localStorage.setItem('jego_last_transport', JSON.stringify(transportData));
+
+            
+
+            console.log('Data transportasi disimpan ke localStorage:', transportData);
+
+        }
+
+
+
+        // FUNGSI UTAMA UNTUK MENGIRIM DATA TRANSPORTASI KE KODULAR
+
+        function sendTransportDataToKodular(transportData) {
+
+            // Data yang akan dikirim ke Kodular
+
+            const kodularData = {
+
+                action: 'transport_selected',
+
+                transport_type: transportData.type,
+
+                transport_name: transportData.name,
+
+                capacity: transportData.capacity,
+
+                tariff_per_km: transportData.tariff,
+
+                minimal_distance: transportData.minimalDistance,
+
+                minimal_price: transportData.minimalPrice,
+
+                userId: currentUser ? currentUser.uid : 'anonymous',
+
+                userName: currentUser ? currentUser.name : 'Guest',
+
+                timestamp: new Date().toISOString()
+
+            };
+
+            
+
+            // Tambahkan data pengiriman jika ada (untuk kurir)
+
+            if (transportData.deliveryData) {
+
+                kodularData.delivery_data = transportData.deliveryData;
+
+            }
+
+            
+
+            console.log('Data transportasi yang akan dikirim ke Kodular:', kodularData);
+
+            
+
+            // METODE 1: Menggunakan window.AppInventor.setWebViewString (PREFERED)
+
+            if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+
+                try {
+
+                    window.AppInventor.setWebViewString(JSON.stringify(kodularData));
+
+                    console.log('✅ Data transportasi berhasil dikirim ke Kodular via AppInventor.setWebViewString');
+
+                } catch (error) {
+
+                    console.error('Error mengirim data transportasi via AppInventor:', error);
+
+                }
+
+            }
+
+            // METODE 2: Menggunakan window.android (Android WebView)
+
+            else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+
+                try {
+
+                    window.android.receiveData(JSON.stringify(kodularData));
+
+                    console.log('✅ Data transportasi berhasil dikirim ke Kodular via window.android');
+
+                } catch (error) {
+
+                    console.error('Error mengirim data transportasi via window.android:', error);
+
+                }
+
+            }
+
+            // METODE 3: Menggunakan window.webkit.messageHandlers (iOS WebView)
+
+            else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+
+                try {
+
+                    window.webkit.messageHandlers.observe.postMessage(kodularData);
+
+                    console.log('✅ Data transportasi berhasil dikirim ke Kodular via webkit.messageHandlers');
+
+                } catch (error) {
+
+                    console.error('Error mengirim data transportasi via webkit.messageHandlers:', error);
+
+                }
+
+            }
+
+            // METODE 4: Fallback - coba semua metode yang mungkin
+
+            else {
+
+                console.warn('Tidak ada metode AppInventor yang tersedia, mencoba semua metode...');
+
+                
+
+                // Coba metode yang mungkin
+
+                const methods = [
+
+                    { name: 'AppInventor.setWebViewString', check: () => window.AppInventor && window.AppInventor.setWebViewString },
+
+                    { name: 'android.receiveData', check: () => window.android && window.android.receiveData },
+
+                    { name: 'webkit.messageHandlers', check: () => window.webkit && window.webkit.messageHandlers }
+
+                ];
+
+                
+
+                let sent = false;
+
+                methods.forEach(method => {
+
+                    if (method.check() && !sent) {
+
+                        try {
+
+                            if (method.name === 'AppInventor.setWebViewString') {
+
+                                window.AppInventor.setWebViewString(JSON.stringify(kodularData));
+
+                            } else if (method.name === 'android.receiveData') {
+
+                                window.android.receiveData(JSON.stringify(kodularData));
+
+                            } else if (method.name === 'webkit.messageHandlers') {
+
+                                window.webkit.messageHandlers.observe.postMessage(kodularData);
+
+                            }
+
+                            console.log(`✅ Data transportasi dikirim via ${method.name}`);
+
+                            sent = true;
+
+                        } catch (error) {
+
+                            console.error(`Error dengan ${method.name}:`, error);
+
+                        }
+
+                    }
+
+                });
+
+                
+
+                if (!sent) {
+
+                    console.error('❌ Tidak ada metode yang berhasil mengirim data transportasi ke Kodular');
+
+                    console.log('Data transportasi yang gagal dikirim:', kodularData);
+
+                }
+
+            }
+
+        }
+
+
+
+        // Fungsi untuk menampilkan alert
+
+        function showAlert(alertElement, message) {
+
+            if (message) {
+
+                alertElement.textContent = message;
+
+            }
+
+            alertElement.style.display = 'block';
+
+            setTimeout(() => {
+
+                alertElement.style.display = 'none';
+
+            }, 3000);
+
+        }
+
+
+
+        // Fungsi untuk menerima nomor telepon dari kontak picker (dipanggil oleh Kodular)
+
+        window.setContactNumber = function(phoneNumber, field) {
+
+            console.log('Menerima nomor telepon dari kontak picker:', phoneNumber, 'untuk field:', field);
+
+            
+
+            if (field === 'sender') {
+
+                document.getElementById('senderPhone').value = phoneNumber;
+
+            } else if (field === 'receiver') {
+
+                document.getElementById('receiverPhone').value = phoneNumber;
+
+            }
+
+            
+
+            // Tampilkan pesan sukses
+
+            showAlert(successAlert, `Nomor ${field === 'sender' ? 'pengirim' : 'penerima'} berhasil diisi: ${phoneNumber}`);
+
+        };
+
+
+
+        // ================================================
+
+        // INITIALIZATION
+
+        // ================================================
+
+
+
+        // Muat data saat halaman dimuat
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            console.log('🚀 jenis_kenderaan.html loaded');
+
+            
+
+            // Cek login terlebih dahulu
+
+            const isLoggedIn = checkLogin();
+
+            
+
+            console.log('Login status:', isLoggedIn ? 'Logged in' : 'Not logged in');
+
+            
+
+            // Cek data dari localStorage
+
+            const lastTransport = localStorage.getItem('jego_last_transport');
+
+            const transportHistory = localStorage.getItem('jego_transport_history');
+
+            
+
+            if (lastTransport) {
+
+                console.log('Transportasi terakhir:', JSON.parse(lastTransport));
+
+            }
+
+            
+
+            if (transportHistory) {
+
+                console.log('Riwayat transportasi:', JSON.parse(transportHistory));
+
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>
