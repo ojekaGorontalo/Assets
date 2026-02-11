@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JeGo - Login</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<style>
+body{font-family:Arial;background:#f5f5f5;margin:0}
+.container{max-width:420px;margin:40px auto;background:#fff;padding:20px;border-radius:8px}
+h2{text-align:center}
+input,button{width:100%;padding:10px;margin-top:10px}
+button{background:#ff9800;border:none;color:#fff;font-weight:bold;cursor:pointer}
+button.secondary{background:#607d8b}
+button:disabled{background:#ccc;cursor:not-allowed}
+.hidden{display:none}
+.loading{opacity:.7}
+.note{font-size:14px;color:#d32f2f;margin-top:10px}
+</style>
+</head>
+
+<body>
+
+<div class="container" id="step1">
+<h2>Login JeGo</h2>
+
+<input id="telepon" placeholder="+628xxxxxxxxxx">
+<div id="recaptcha-container"></div>
+
+<button id="btnSendOtp">Kirim OTP</button>
+<button class="secondary" onclick="goRegister()">Belum punya akun? Daftar</button>
+
+<p id="infoText" class="note hidden"></p>
+</div>
+
+<div class="container hidden" id="step2">
+<h2>Verifikasi OTP</h2>
+<p id="phoneView"></p>
+<input id="otpInput" maxlength="6" inputmode="numeric" placeholder="Masukkan 6 digit OTP">
+<button id="btnVerify">Login</button>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const LS_USER_KEY = 'jego_user_session';
+
+firebase.initializeApp({
+ apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+ authDomain: "game-balap-simpel.firebaseapp.com",
+ databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+ projectId: "game-balap-simpel"
+});
+
+const auth = firebase.auth();
+const db = firebase.database();
+
+/* ===== DOM ===== */
+const teleponInput = document.getElementById('telepon');
+const otpInput = document.getElementById('otpInput');
+const btnSendOtp = document.getElementById('btnSendOtp');
+const btnVerify = document.getElementById('btnVerify');
+const phoneView = document.getElementById('phoneView');
+const infoText = document.getElementById('infoText');
+
+/* ===== STATE ===== */
+let confirmationResult = null;
+let loginPhone = null;
+
+/* ===== UTILS ===== */
+function formatPhone(p){
+ p=p.replace(/\D/g,'');
+ if(p.startsWith('0')) return '+62'+p.slice(1);
+ if(p.startsWith('62')) return '+'+p;
+ return '+62'+p;
+}
+
+function setLoading(btn, status, text){
+ btn.disabled = status;
+ btn.textContent = status ? text : btn.dataset.text;
+}
+
+function saveSession(user){
+ localStorage.setItem(LS_USER_KEY, JSON.stringify(user));
+}
+
+function goRegister(){
+ location.href = 'userReg.html';
+}
+
+/* ===== AUTO LOGIN CHECK ===== */
+if(localStorage.getItem(LS_USER_KEY)){
+ location.href = 'pilih_kendaraan.html';
+}
+
+/* ===== RECAPTCHA ===== */
+const recaptcha = new firebase.auth.RecaptchaVerifier(
+ 'recaptcha-container',
+ { size:'normal' }
+);
+recaptcha.render();
+
+/* ===== CHECK PHONE EXIST ===== */
+async function getUserByPhone(phone){
+ const snap = await db.ref('users')
+  .orderByChild('phone')
+  .equalTo(phone)
+  .once('value');
+
+ if(!snap.exists()) return null;
+
+ let user = null;
+ snap.forEach(s => user = s.val());
+ return user;
+}
+
+/* ===== STEP 1 : SEND OTP ===== */
+btnSendOtp.dataset.text = btnSendOtp.textContent;
+btnSendOtp.onclick = async ()=>{
+ infoText.classList.add('hidden');
+
+ const phone = formatPhone(teleponInput.value.trim());
+ if(!phone){
+  alert('Masukkan nomor');
+  return;
+ }
+
+ try{
+  setLoading(btnSendOtp,true,'Cek nomor...');
+  const user = await getUserByPhone(phone);
+
+  if(!user){
+   infoText.textContent = 'Nomor belum terdaftar, silakan daftar.';
+   infoText.classList.remove('hidden');
+   setLoading(btnSendOtp,false);
+   return;
+  }
+
+  setLoading(btnSendOtp,true,'Mengirim OTP...');
+  confirmationResult = await auth.signInWithPhoneNumber(phone, recaptcha);
+  loginPhone = phone;
+  phoneView.textContent = phone;
+
+  step1.classList.add('hidden');
+  step2.classList.remove('hidden');
+
+ }catch(e){
+  alert(e.message);
+ }finally{
+  setLoading(btnSendOtp,false);
+ }
+};
+
+/* ===== STEP 2 : VERIFY OTP ===== */
+btnVerify.dataset.text = btnVerify.textContent;
+btnVerify.onclick = async ()=>{
+ const code = otpInput.value.trim();
+ if(code.length !== 6){
+  alert('OTP harus 6 digit');
+  return;
+ }
+
+ try{
+  setLoading(btnVerify,true,'Memverifikasi...');
+  await confirmationResult.confirm(code);
+
+  const user = await getUserByPhone(loginPhone);
+  saveSession(user);
+
+  location.href = 'pilih_kendaraan.html';
+
+ }catch(err){
+  alert('OTP salah: ' + err.message);
+ }finally{
+  setLoading(btnVerify,false);
+ }
+};
+</script>
+
+</body>
+</html>
