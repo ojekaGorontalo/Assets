@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Rute - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Firebase SDK hanya untuk Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #FF9800;
+      --secondary: #FF5722;
+      --accent: #FFC107;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #4CAF50;
+      --danger: #f44336;
+      --warning: #FFC107;
+      --info: #2196F3;
+      --gray: #9E9E9E;
+      --confirm-bottom: 80px;
+      --confirm-height: 54px;
+      --confirm-gap: 10px;
+    }
+
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.98);
+      padding: 15px;
+      z-index: 5;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      box-sizing: border-box;
+    }
+
+    .input-container {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 40px 12px 15px;
+      font-size: 14px;
+      box-sizing: border-box;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: white;
+      transition: all 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px rgba(40, 150, 114, 0.1);
+    }
+
+    .clear-btn, .location-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clear-btn {
+      right: 35px;
+      color: #999;
+      font-size: 18px;
+    }
+
+    .location-btn {
+      right: 8px;
+      color: var(--primary);
+      font-size: 18px;
+    }
+
+    .map-mode-btn {
+      position: absolute;
+      bottom: 120px;
+      right: 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 5;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .map-mode-btn:hover {
+      background: var(--secondary);
+      transform: translateY(-2px);
+    }
+
+    .route-details {
+      position: fixed;
+      bottom: 90px;
+      left: 20px;
+      right: 20px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 8;
+      max-height: 30vh;
+      overflow-y: auto;
+      display: none;
+      transition: all 0.25s ease;
+    }
+
+    .route-info {
+      margin-bottom: 12px;
+    }
+
+    .route-address {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+
+    .route-address .label {
+      min-width: 70px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .route-address .value {
+      flex: 1;
+      color: var(--dark);
+      line-height: 1.4;
+    }
+
+    .route-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .route-stat {
+      text-align: center;
+      flex: 1;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .price-highlight {
+      font-weight: 700;
+      color: var(--success);
+      font-size: 1.1rem;
+    }
+
+    .confirm-btn, .cancel-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 9;
+      transition: all 0.3s;
+    }
+
+    .confirm-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+    }
+
+    .cancel-btn {
+      background: linear-gradient(to right, var(--danger), #e74c3c);
+      display: none;
+    }
+
+    .confirm-btn:hover, .cancel-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    }
+
+    .confirm-btn:disabled, .cancel-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      opacity: 0.7;
+    }
+
+    .radar {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100px;
+      height: 100px;
+      transform: translate(-50%, -50%);
+      z-index: 999;
+      transition: all 2s ease-in-out;
+      display: none;
+    }
+
+    .radar.expanding {
+      width: 300px;
+      height: 300px;
+    }
+
+    .radar::before, .radar::after {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 2px solid var(--secondary);
+      border-radius: 50%;
+      animation: radarPulse 3s infinite ease-out;
+    }
+
+    .radar::after {
+      animation-delay: 1.5s;
+    }
+
+    .radar span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--secondary);
+      font-weight: bold;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      text-align: center;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    @keyframes radarPulse {
+      0% { transform: scale(0.4); opacity: 1; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .search-status {
+      position: fixed;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-weight: 600;
+      text-align: center;
+      max-width: 80%;
+      border-left: 4px solid var(--primary);
+    }
+
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .popup-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .popup {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .popup-overlay.active .popup {
+      transform: scale(1);
+    }
+
+    .popup-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .popup-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--dark);
+      margin: 0;
+    }
+
+    .popup-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-content {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .popup-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .popup-message {
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--dark);
+      margin-bottom: 20px;
+    }
+
+    .popup-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .popup-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      min-width: 100px;
+    }
+
+    .popup-button-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .popup-button-secondary {
+      background: #f8f9fa;
+      color: var(--dark);
+      border: 1px solid #ddd;
+    }
+
+    .popup-button-warning {
+      background: linear-gradient(135deg, var(--warning), #ff9800);
+      color: white;
+    }
+
+    .popup-button-danger {
+      background: linear-gradient(135deg, var(--danger), #e74c3c);
+      color: white;
+    }
+
+    .popup-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .delivery-info-panel {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e9ecef;
+      display: none;
+    }
+
+    .delivery-item {
+      display: flex;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    .delivery-label {
+      font-weight: 600;
+      color: var(--primary);
+      min-width: 100px;
+      margin-right: 10px;
+    }
+
+    .delivery-value {
+      flex: 1;
+      color: var(--dark);
+    }
+
+    .star-rating {
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+      flex-wrap: nowrap;
+    }
+
+    .star {
+      color: #ddd;
+      font-size: 12px;
+    }
+
+    .star.filled {
+      color: #ffc107;
+    }
+
+    .star.half {
+      position: relative;
+      color: #ddd;
+    }
+
+    .star.half::before {
+      content: '★';
+      position: absolute;
+      left: 0;
+      width: 50%;
+      overflow: hidden;
+      color: #ffc107;
+    }
+
+    .driver-offer-card {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-left: 4px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+
+    .driver-offer-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .driver-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .driver-photo {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #e9ecef;
+      flex-shrink: 0;
+    }
+
+    .driver-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .driver-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .driver-name-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+
+    .driver-vehicle {
+      font-size: 12px;
+      color: #444;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .driver-rating-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #666;
+      flex-wrap: wrap;
+    }
+
+    .driver-action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      width: 100%;
+    }
+
+    .accept-btn, .reject-btn {
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      padding: 12px 20px;
+      min-width: 100px;
+      text-align: center;
+      flex: 1;
+    }
+
+    .accept-btn {
+      background: linear-gradient(135deg, #28a745, #218838);
+      color: white;
+    }
+
+    .accept-btn:hover {
+      background: linear-gradient(135deg, #218838, #1e7e34);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .reject-btn {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      color: white;
+    }
+
+    .reject-btn:hover {
+      background: linear-gradient(135deg, #c82333, #bd2130);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .accept-btn:disabled, .reject-btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      opacity: 0.7;
+    }
+
+    .priority-badge, .top-driver-badge, .position-badge {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-left: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      white-space: nowrap;
+    }
+
+    .priority-basic { background: #6c757d; color: white; }
+    .priority-standard { background: #17a2b8; color: white; }
+    .priority-regular { background: #28a745; color: white; }
+    .priority-essential { background: linear-gradient(135deg, #ffc107, #e0a800); color: #333; }
+    .top-driver-badge { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+    .position-badge { background: #6c757d; color: white; border-radius: 50%; padding: 2px 5px; }
+
+    .driver-offer-card.highlighted {
+      border: 2px solid #FFD700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+      transform: scale(1.02);
+      transition: all 0.3s ease;
+    }
+
+    .driver-dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #4285F4;
+      box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7);
+      animation: driverPulse 2s infinite;
+      z-index: 10;
+    }
+
+    @keyframes driverPulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(66, 133, 244, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
+    }
+
+    #driverOffers {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 420px;
+      z-index: 99999;
+      display: none;
+    }
+
+    #driverOffers > div {
+      background: rgba(255,255,255,0.98);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+
+    #driverOffers > div > div:first-child {
+      padding: 12px 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    #driverOffers > div > div:first-child strong {
+      color: white;
+    }
+
+    #closeDriverOffers {
+      background: none;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      color: white;
+      font-size: 18px;
+    }
+
+    #driverOfferList {
+      max-height: 60vh;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .route-details { max-height: 28vh; padding: 6px 10px; }
+      .driver-photo { width: 45px; height: 45px; }
+      .accept-btn, .reject-btn { padding: 10px 16px; font-size: 13px; min-width: 90px; }
+      .popup-buttons { flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .driver-photo { width: 40px; height: 40px; }
+      .driver-name-text { max-width: 90px; }
+      .accept-btn, .reject-btn { padding: 8px 12px; font-size: 12px; min-width: 70px; }
+    }
+
+    /* Sembunyikan watermark Google Maps */
+    .gm-style-cc, [title^="Report errors"] { display: none !important; }
+    a[href^="http://maps.google.com/maps"] { display: none !important; }
+    .gm-bundled-control { bottom: 10px !important; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="input-container">
+      <input id="fromInput" type="text" placeholder="Mo jemput dimana?" />
+      <button class="clear-btn" id="clearFromBtn">×</button>
+      <button class="location-btn" id="locationFromBtn">⌖</button>
+    </div>
+    <div class="input-container">
+      <input id="toInput" type="text" placeholder="Mo antar kamana?" />
+      <button class="clear-btn" id="clearToBtn">×</button>
+      <button class="location-btn" id="locationToBtn">⌖</button>
+    </div>
+    <div class="delivery-info-panel" id="deliveryInfoPanel">
+      <div class="delivery-item"><span class="delivery-label">Jenis Barang:</span><span class="delivery-value" id="deliveryItemCategory">-</span></div>
+      <div class="delivery-item"><span class="delivery-label">Deskripsi:</span><span class="delivery-value" id="deliveryDescription">-</span></div>
+      <div class="delivery-item"><span class="delivery-label">Pengirim:</span><span class="delivery-value" id="deliverySender">-</span></div>
+      <div class="delivery-item"><span class="delivery-label">Penerima:</span><span class="delivery-value" id="deliveryReceiver">-</span></div>
+    </div>
+  </div>
+
+  <div id="driverOffers">
+    <div>
+      <div style="padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white;">
+        <strong>🏆 Penawaran Driver</strong>
+        <button id="closeDriverOffers" style="background:none;border:none;font-weight:600;cursor:pointer;color:white;font-size:18px;">✕</button>
+      </div>
+      <div id="driverOfferList" style="max-height:60vh; overflow:auto; padding:12px;"></div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <button id="mapModeBtn" class="map-mode-btn">Mode Malam</button>
+  <div class="route-details" id="routeDetails">
+    <div class="route-info">
+      <div class="route-address"><span class="label">Penjemputan:</span><span class="value" id="routeFrom">-</span></div>
+      <div class="route-address"><span class="label">Tujuan:</span><span class="value" id="routeTo">-</span></div>
+    </div>
+    <div class="route-stats">
+      <div class="route-stat"><div class="stat-value" id="routeDuration">-</div><div class="stat-label">Durasi</div></div>
+      <div class="route-stat"><div class="stat-value"><span class="price-highlight" id="routePrice">-</span></div><div class="stat-label">Biaya</div></div>
+    </div>
+  </div>
+  <button class="confirm-btn" id="confirmBtn" disabled>Konfirmasi Rute</button>
+  <button class="cancel-btn" id="cancelBtn" disabled>BATALKAN</button>
+  <div class="radar" id="radar"><span>Mencari driver...</span></div>
+
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup">
+      <div class="popup-header"><h3 class="popup-title" id="popupTitle">Pemberitahuan</h3><button class="popup-close" id="popupCloseBtn">×</button></div>
+      <div class="popup-content">
+        <div class="popup-icon" id="popupIcon">⚠️</div>
+        <div class="popup-message" id="popupMessage">Pesan akan ditampilkan di sini</div>
+        <div class="popup-buttons"><button class="popup-button popup-button-primary" id="popupButton">OK</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="priceOfferPopup">
+    <div class="popup">
+      <div class="popup-header"><h3 class="popup-title">💡 Naikkan Tarif</h3><button class="popup-close" id="closePriceOfferBtn">×</button></div>
+      <div class="popup-content">
+        <div class="popup-icon">💰</div>
+        <div class="popup-message">
+          <p>Belum ada driver yang menerima dalam 30 detik. Coba naikkan tarif untuk menarik perhatian driver.</p>
+          <div style="margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+            <div style="font-size: 0.9rem; color: #666;">Tarif Saat Ini:</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: var(--success);" id="currentPriceDisplay">Rp 0</div>
+          </div>
+        </div>
+        <div class="popup-buttons" style="flex-direction: column; gap: 8px;">
+          <button class="popup-button popup-button-primary" id="price10Btn">+ 10% (Rp <span id="price10">0</span>)</button>
+          <button class="popup-button popup-button-primary" id="price20Btn">+ 20% (Rp <span id="price20">0</span>)</button>
+          <button class="popup-button popup-button-warning" id="price30Btn">+ 30% (Rp <span id="price30">0</span>)</button>
+          <button class="popup-button popup-button-secondary" id="continueWaitingBtn">Tidak, Terus Tunggu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== KONFIGURASI FIREBASE ====================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
+    };
+
+    // Inisialisasi Firebase (hanya database)
+    let database;
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    database = firebase.database();
+    console.log("✅ Firebase Realtime Database siap");
+
+    // ==================== VARIABEL GLOBAL ====================
+    let map, directionsService, directionsRenderer;
+    let markerA, markerB, circleB;
+    let radarInterval;
+    let currentPosition = null;
+    let isNightMode = false;
+    let styledMapType;
+    let currentRouteData = null;
+    let currentOrderId = null;
+    let isSearching = false;
+    let userData = null;
+    let currentDriverData = null;
+    let driverRef = null;
+    let driverUpdateHandler = null;
+    let driverOffersRef = null;
+    let driverOffersList = [];
+    let kurirDeliveryData = null;
+    let priceIncreaseTimer = null;
+    let currentBasePrice = 0;
+    let currentVehicleMinPrice = 0;
+    let driverMarkers = {};
+    let userDataRefreshInterval = null;
+
+    // Ambil parameter vehicle dari URL atau localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    let vehicle = urlParams.get("vehicle");
+    if (!vehicle) {
+      const lastTransport = localStorage.getItem('jego_last_transport');
+      if (lastTransport) {
+        try {
+          const transportData = JSON.parse(lastTransport);
+          vehicle = transportData.type;
+          if (transportData.deliveryData) kurirDeliveryData = transportData.deliveryData;
+        } catch (e) { console.error(e); }
+      }
+    }
+    if (!vehicle) vehicle = "motor";
+
+    const fromParam = urlParams.get("from");
+    const toParam = urlParams.get("to");
+    const coordParam = urlParams.get("coord");
+
+    // Data kendaraan akan diisi dari Firebase
+    let vehicleData = {};
+
+    const fallbackVehicleData = {
+      motor: { name: "Motor", capacity: "1 Penumpang", icon: 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png', minDistance: 4, minPrice: 10000, pricePerKm: 2200 },
+      bentor: { name: "Bentor", capacity: "2 Penumpang", icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png', minDistance: 4, minPrice: 11000, pricePerKm: 3000 },
+      mobil: { name: "Mobil", capacity: "4 Penumpang", icon: 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png', minDistance: 4, minPrice: 15000, pricePerKm: 4000 },
+      kurir_motor: { name: "Kurir Motor", capacity: "Paket Kecil", icon: 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png', minDistance: 4, minPrice: 10000, pricePerKm: 2100 },
+      kurir_bentor: { name: "Kurir Bentor", capacity: "Paket Sedang", icon: 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png', minDistance: 4, minPrice: 10000, pricePerKm: 2100 }
+    };
+
+    // ==================== FUNGSI HELPER ====================
+    function showPopup(message, title = "Pemberitahuan", type = "info") {
+      const popupOverlay = document.getElementById('popupOverlay');
+      document.getElementById('popupTitle').textContent = title;
+      document.getElementById('popupMessage').textContent = message;
+      const icon = { success: "✅", warning: "⚠️", error: "❌", info: "ℹ️" }[type] || "ℹ️";
+      document.getElementById('popupIcon').textContent = icon;
+      const btn = document.getElementById('popupButton');
+      btn.className = `popup-button popup-button-${type === 'warning' ? 'warning' : (type === 'error' ? 'danger' : 'primary')}`;
+      popupOverlay.classList.add('active');
+    }
+
+    function closePopup() {
+      document.getElementById('popupOverlay').classList.remove('active');
+    }
+
+    function showNotification(message, type = 'info') {
+      const existing = document.querySelector('.search-status');
+      if (existing) existing.remove();
+      const notif = document.createElement('div');
+      notif.className = 'search-status';
+      notif.textContent = message;
+      const color = { warning: 'var(--warning)', error: 'var(--danger)', success: 'var(--success)' }[type] || 'var(--info)';
+      notif.style.borderLeftColor = color;
+      document.body.appendChild(notif);
+      setTimeout(() => notif.remove(), 5000);
+    }
+
+    function showRadar(message) {
+      const radar = document.getElementById('radar');
+      radar.style.display = 'flex';
+      radar.querySelector('span').textContent = message || 'Memproses...';
+      if (map && map.getZoom() < 18) map.setZoom(map.getZoom() + 1);
+      setTimeout(() => radar.classList.add('expanding'), 500);
+    }
+
+    function hideRadar() {
+      clearInterval(radarInterval);
+      const radar = document.getElementById('radar');
+      radar.style.display = 'none';
+      radar.classList.remove('expanding');
+      if (map && map.getZoom() > 14) map.setZoom(map.getZoom() - 1);
+    }
+
+    function formatPhoneNumber(phone) {
+      if (!phone) return '';
+      let cleaned = phone.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) cleaned = '+62' + cleaned.substring(1);
+      else if (cleaned.startsWith('62')) cleaned = '+' + cleaned;
+      else if (!cleaned.startsWith('+')) cleaned = '+62' + cleaned;
+      return cleaned;
+    }
+
+    // ==================== AMBIL DATA USER DARI LOCALSTORAGE ====================
+    function getUserData() {
+      const loggedInUser = localStorage.getItem('jego_logged_in_user');
+      if (!loggedInUser) return null;
+      try {
+        const user = JSON.parse(loggedInUser);
+        // Mapping sesuai struktur dari registrasi
+        return {
+          firebase_key: user.uid || user.userId,
+          uid: user.uid || user.userId,
+          key: user.uid || user.userId,
+          name: user.name || '',
+          phone: user.phone || '',
+          email: user.email || '',
+          rating: user.rating || 5,
+          perjalanan: user.perjalanan || 0,
+          fotoProfilURL: user.fotoProfilURL || user.photoURL || '',
+          status: user.status || 'active',
+          role: user.role || 'penumpang',
+          createdAt: user.createdAt || new Date().toISOString()
+        };
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+        return null;
+      }
+    }
+
+    function checkIfUserLoggedIn() {
+      return !!localStorage.getItem('jego_logged_in_user');
+    }
+
+    async function getCompleteUserDataFromFirebase(userKey) {
+      if (!userKey) return null;
+      try {
+        const snap = await database.ref('users/' + userKey).once('value');
+        const data = snap.val();
+        if (!data) return null;
+        return { ...data, firebase_key: userKey, uid: userKey, key: userKey };
+      } catch (e) {
+        console.error('Gagal ambil data user dari Firebase:', e);
+        return null;
+      }
+    }
+
+    async function getCompleteDriverDataFromFirebase(driverId) {
+      if (!driverId) return null;
+      try {
+        const snap = await database.ref('drivers/' + driverId).once('value');
+        return snap.val();
+      } catch (e) {
+        console.error('Gagal ambil data driver:', e);
+        return null;
+      }
+    }
+
+    function startUserDataRefresh() {
+      if (userDataRefreshInterval) clearInterval(userDataRefreshInterval);
+      userDataRefreshInterval = setInterval(async () => {
+        if (userData && userData.firebase_key) {
+          const updated = await getCompleteUserDataFromFirebase(userData.firebase_key);
+          if (updated) userData = updated;
+        }
+      }, 30000);
+    }
+
+    function stopUserDataRefresh() {
+      if (userDataRefreshInterval) clearInterval(userDataRefreshInterval);
+    }
+
+    // ==================== LOAD DATA TARIF DARI FIREBASE ====================
+    function transformTarifData(tarifData) {
+      const transformed = {};
+      const mapping = {
+        'Motor': 'motor', 'Bentor': 'bentor', 'Mobil': 'mobil',
+        'Kurir Motor': 'kurir_motor', 'Kurir Bentor': 'kurir_bentor'
+      };
+      Object.keys(mapping).forEach(firebaseName => {
+        const internal = mapping[firebaseName];
+        const data = tarifData[firebaseName];
+        if (data) {
+          transformed[internal] = {
+            name: data.Nama || firebaseName,
+            capacity: data.Capacity || "N/A",
+            icon: data.Icon || fallbackVehicleData[internal]?.icon,
+            minDistance: data.MinimalDistance || 4,
+            minPrice: data.MinimalPrice || 10000,
+            pricePerKm: data.PricePerKm || 2000
+          };
+        } else {
+          transformed[internal] = fallbackVehicleData[internal];
+        }
+      });
+      return transformed;
+    }
+
+    async function loadVehicleData() {
+      try {
+        const snap = await database.ref('tarif').once('value');
+        const data = snap.val();
+        if (data) {
+          vehicleData = transformTarifData(data);
+        } else {
+          vehicleData = fallbackVehicleData;
+        }
+        console.log('Data kendaraan dimuat:', vehicleData);
+      } catch (e) {
+        console.error('Gagal load tarif, pakai fallback:', e);
+        vehicleData = fallbackVehicleData;
+      }
+    }
+
+    // ==================== FUNGSI GEOCODING & MAP ====================
+    function getAddressFromOSM(latlng, callback) {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1`;
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+          let display = data.display_name || '';
+          if (!display && data.address) {
+            const a = data.address;
+            display = [a.road, a.suburb, a.city, a.county, a.state, a.country].filter(Boolean).join(', ');
+          }
+          if (display.includes(', Indonesia')) display = display.replace(', Indonesia', '');
+          callback(display || `Lokasi (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`);
+        })
+        .catch(() => callback(`Lokasi (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`));
+    }
+
+    function detectLocation(inputId) {
+      if (!navigator.geolocation) {
+        showPopup("Browser tidak mendukung geolokasi", "Error", "error");
+        return;
+      }
+      showRadar('Mendeteksi lokasi...');
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          currentPosition = loc;
+          getAddressFromOSM(loc, alamat => {
+            document.getElementById(inputId).value = alamat;
+            hideRadar();
+            updateMarker(inputId, loc);
+            map.panTo(loc);
+            map.setZoom(14);
+            if (markerA && markerB) tryDirection();
+            updateConfirmButton();
+          });
+        },
+        err => {
+          let msg = "Gagal dapat lokasi";
+          if (err.code === err.PERMISSION_DENIED) msg = "Izin lokasi ditolak";
+          showPopup(msg, "Error", "error");
+          hideRadar();
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    function updateMarker(inputId, position) {
+      const isFrom = inputId === 'fromInput';
+      const icon = isFrom
+        ? { url: vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon, scaledSize: new google.maps.Size(40, 40) }
+        : { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) };
+      if (isFrom && markerA) markerA.setMap(null);
+      if (!isFrom && markerB) markerB.setMap(null);
+      const marker = new google.maps.Marker({ position, map, icon });
+      if (isFrom) markerA = marker; else markerB = marker;
+    }
+
+    function clearInput(inputId) {
+      document.getElementById(inputId).value = '';
+      if (inputId === 'fromInput' && markerA) { markerA.setMap(null); markerA = null; }
+      if (inputId === 'toInput' && markerB) { markerB.setMap(null); markerB = null; }
+      if (directionsRenderer) directionsRenderer.setMap(null);
+      if (circleB) { circleB.setMap(null); circleB = null; }
+      hideRouteDetails();
+      updateConfirmButton();
+    }
+
+    function toggleMapMode() {
+      isNightMode = !isNightMode;
+      document.getElementById('mapModeBtn').textContent = isNightMode ? 'Mode Siang' : 'Mode Malam';
+      map.setMapTypeId(isNightMode ? 'styled_map' : 'roadmap');
+    }
+
+    function roundPrice(price) {
+      const down = Math.floor(price / 1000) * 1000;
+      return (price % 1000) > 500 ? down + 1000 : down;
+    }
+
+    function calculatePrice(jarakKm, vehicleType) {
+      const info = vehicleData[vehicleType] || fallbackVehicleData[vehicleType] || fallbackVehicleData.motor;
+      const { minDistance, minPrice, pricePerKm } = info;
+      let total = jarakKm <= minDistance ? minPrice : minPrice + Math.round((jarakKm - minDistance) * pricePerKm);
+      return roundPrice(total);
+    }
+
+    function showRouteDetails(routeData) {
+      document.getElementById('routeFrom').textContent = routeData.alamat_a || '-';
+      document.getElementById('routeTo').textContent = routeData.alamat_b || '-';
+      document.getElementById('routeDuration').textContent = routeData.durasi || '-';
+      document.getElementById('routePrice').textContent = `Rp ${routeData.harga_total.toLocaleString('id-ID')}`;
+      document.getElementById('routeDetails').style.display = 'block';
+    }
+
+    function hideRouteDetails() {
+      document.getElementById('routeDetails').style.display = 'none';
+    }
+
+    function updateConfirmButton() {
+      const btn = document.getElementById('confirmBtn');
+      if (markerA && markerB && currentRouteData) {
+        btn.disabled = false;
+        btn.textContent = `CARI DRIVER | Rp. ${currentRouteData.harga_total.toLocaleString('id-ID')}`;
+        showRouteDetails(currentRouteData);
+      } else {
+        btn.disabled = true;
+        btn.textContent = 'Konfirmasi Rute';
+        hideRouteDetails();
+      }
+    }
+
+    function tryDirection() {
+      if (!markerA || !markerB) return;
+      const from = markerA.getPosition();
+      const to = markerB.getPosition();
+      const isMotor = vehicle === "motor" || vehicle === "kurir_motor";
+      if (circleB) circleB.setMap(null);
+      showRadar('Menghitung rute...');
+      if (!directionsRenderer) {
+        directionsRenderer = new google.maps.DirectionsRenderer({
+          map, suppressMarkers: true,
+          polylineOptions: { strokeColor: '#289672', strokeWeight: 6, strokeOpacity: 0.8 }
+        });
+      }
+      directionsService.route({
+        origin: from, destination: to,
+        travelMode: google.maps.TravelMode.DRIVING,
+        region: "ID", avoidTolls: isMotor
+      }, (res, status) => {
+        hideRadar();
+        if (status === "OK") {
+          directionsRenderer.setDirections(res);
+          const bounds = new google.maps.LatLngBounds();
+          bounds.extend(from); bounds.extend(to);
+          map.fitBounds(bounds);
+          const leg = res.routes[0].legs[0];
+          circleB = new google.maps.Circle({ center: to, radius: 50, map, strokeColor: "#4285f4", strokeOpacity: 0.5, strokeWeight: 2, fillColor: "#4285f4", fillOpacity: 0.1 });
+          const jarakKm = leg.distance.value / 1000;
+          const harga = calculatePrice(jarakKm, vehicle);
+          currentRouteData = {
+            jarak: leg.distance.text, jarak_km: jarakKm.toFixed(2), durasi: leg.duration.text,
+            harga_per_km: vehicleData[vehicle]?.pricePerKm || fallbackVehicleData[vehicle].pricePerKm,
+            harga_total: harga,
+            alamat_a: document.getElementById("fromInput").value,
+            alamat_b: document.getElementById("toInput").value,
+            from_lat: from.lat(), from_lng: from.lng(),
+            to_lat: to.lat(), to_lng: to.lng(),
+            vehicle, vehicle_name: vehicleData[vehicle]?.name || fallbackVehicleData[vehicle].name,
+            vehicle_capacity: vehicleData[vehicle]?.capacity || fallbackVehicleData[vehicle].capacity,
+            min_distance: vehicleData[vehicle]?.minDistance || fallbackVehicleData[vehicle].minDistance,
+            min_price: vehicleData[vehicle]?.minPrice || fallbackVehicleData[vehicle].minPrice,
+            delivery_data: kurirDeliveryData
+          };
+          updateConfirmButton();
+          saveToLocalStorage(currentRouteData);
+          sendToKodular(currentRouteData, 'route_calculated');
+        } else {
+          currentRouteData = null;
+          updateConfirmButton();
+          showPopup("Gagal menghitung rute: " + status, "Error", "error");
+        }
+      });
+    }
+
+    // ==================== ORDER & DRIVER ====================
+    function generateOrderId() {
+      return 'ORDER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    async function sendOrderToFirebase(orderData) {
+      try {
+        currentOrderId = generateOrderId();
+        const validatedUser = await getValidatedUserDataForOrder();
+        if (!validatedUser) throw new Error("Data user tidak valid");
+        userData = validatedUser;
+        const userKey = userData.firebase_key || userData.key;
+        if (!userKey) throw new Error("User key tidak ditemukan");
+
+        const orderRecord = {
+          ...orderData,
+          order_id: currentOrderId,
+          status: 'searching',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_data: userData,
+          user_phone: userData.phone || '',
+          user_email: userData.email || '',
+          user_firebase_key: userKey,
+          user_foto_profil: userData.fotoProfilURL || ''
+        };
+        if (kurirDeliveryData && (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor')) {
+          orderRecord.delivery_data = kurirDeliveryData;
+        }
+
+        saveActiveOrderToLocalStorage(orderRecord);
+        document.getElementById('cancelBtn').disabled = true;
+
+        const clean = JSON.parse(JSON.stringify(orderRecord));
+        await database.ref('orders/' + currentOrderId).set(clean);
+        console.log('Order tersimpan:', currentOrderId);
+
+        sendToKodular({ action: 'order_created', order_id: currentOrderId, ...orderData }, 'order_created');
+        document.getElementById('cancelBtn').disabled = false;
+        listenForDriver(currentOrderId);
+        listenDriverOffers(currentOrderId);
+        startPriceIncreaseTimer();
+        loadOnlineDriversOnMap();
+      } catch (error) {
+        console.error('Gagal kirim order:', error);
+        removeActiveOrderFromLocalStorage();
+        showPopup('Gagal mengirim order. Coba lagi.', "Error", "error");
+        currentOrderId = null;
+        document.getElementById('cancelBtn').disabled = true;
+        resetSearchButton();
+        hideRadar();
+      }
+    }
+
+    async function confirmRoute() {
+      if (!currentRouteData) {
+        showPopup("Silakan pilih rute terlebih dahulu", "Peringatan", "warning");
+        return;
+      }
+      const validated = await getValidatedUserDataForOrder();
+      if (!validated) return;
+      userData = validated;
+      document.getElementById('confirmBtn').disabled = true;
+      saveToLocalStorage(currentRouteData, 'confirmed');
+      sendToKodular({ ...currentRouteData, action: 'route_confirmed' }, 'route_confirmed');
+      showRadar('Mencari driver...');
+      if (markerA) { map.panTo(markerA.getPosition()); map.setZoom(18); }
+      startPriceIncreaseTimer();
+      document.getElementById('confirmBtn').style.display = 'none';
+      document.getElementById('cancelBtn').style.display = 'block';
+      isSearching = true;
+      await sendOrderToFirebase(currentRouteData);
+    }
+
+    function listenForDriver(orderId) {
+      if (!orderId) return;
+      if (driverRef && driverUpdateHandler) driverRef.off('value', driverUpdateHandler);
+      driverRef = database.ref('orders/' + orderId);
+      driverUpdateHandler = snap => {
+        const order = snap.val();
+        if (!order) {
+          removeActiveOrderFromLocalStorage();
+          resetSearchButton();
+          hideRadar();
+          return;
+        }
+        if (order.status === 'accepted' && (order.driver || order.selected_driver)) {
+          currentDriverData = order.driver || order.selected_driver;
+          const existing = getActiveOrderFromLocalStorage();
+          if (existing) saveActiveOrderToLocalStorage({ ...existing, status: 'accepted', driver: currentDriverData, selected_driver: currentDriverData });
+          hideRadar();
+          window.location.href = 'orderAcceptedForCS.html';
+          resetSearchButton();
+        } else if (order.status === 'searching') {
+          showRadar('Mencari driver...');
+        } else if (order.status === 'cancelled') {
+          hideRadar();
+          removeActiveOrderFromLocalStorage();
+          resetSearchButton();
+        }
+      };
+      driverRef.on('value', driverUpdateHandler);
+    }
+
+    function listenDriverOffers(orderId) {
+      if (!orderId) return;
+      if (driverOffersRef) driverOffersRef.off();
+      driverOffersRef = database.ref('orders/' + orderId + '/driver_offers');
+      driverOffersList = [];
+      driverOffersRef.on('child_added', snap => {
+        const offer = snap.val();
+        if (!offer) return;
+        if (offer.status === 'rejected' || offer.status === 'accepted') return;
+        offer.id = snap.key;
+        const existing = driverOffersList.findIndex(o => o.id === offer.id);
+        if (existing > -1) driverOffersList[existing] = offer;
+        else driverOffersList.push(offer);
+        if (priceIncreaseTimer) { clearTimeout(priceIncreaseTimer); priceIncreaseTimer = null; }
+        smartDriverPrioritization(driverOffersList);
+        showDriverOfferNotification(offer);
+      });
+      driverOffersRef.on('child_changed', snap => {
+        const offer = snap.val();
+        const offerId = snap.key;
+        if (offer.status === 'rejected' || offer.status === 'accepted') {
+          driverOffersList = driverOffersList.filter(o => o.id !== offerId);
+          const card = document.getElementById(`driver-${offerId}`);
+          if (card) card.remove();
+          smartDriverPrioritization(driverOffersList);
+          return;
+        }
+        const idx = driverOffersList.findIndex(o => o.id === offerId);
+        if (idx > -1) driverOffersList[idx] = { ...offer, id: offerId };
+        smartDriverPrioritization(driverOffersList);
+      });
+      driverOffersRef.on('child_removed', snap => {
+        driverOffersList = driverOffersList.filter(o => o.id !== snap.key);
+        const card = document.getElementById(`driver-${snap.key}`);
+        if (card) card.remove();
+        smartDriverPrioritization(driverOffersList);
+      });
+    }
+
+    function smartDriverPrioritization(drivers) {
+      const filtered = drivers.filter(d => !d.status || d.status === 'offered' || d.status === '');
+      if (filtered.length === 0) {
+        document.getElementById('driverOfferList').innerHTML = '<div style="text-align:center; padding:40px; color:#666;"><div style="font-size:3rem;">🚗</div><div>Belum ada driver tersedia</div></div>';
+        document.getElementById('driverOffers').style.display = 'block';
+        return;
+      }
+      document.getElementById('driverOffers').style.display = 'block';
+      filtered.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));
+      document.getElementById('driverOfferList').innerHTML = '';
+      filtered.forEach((driver, idx) => {
+        const card = document.createElement('div');
+        card.className = 'driver-offer-card';
+        card.id = `driver-${driver.id}`;
+        const rating = Math.min(parseFloat(driver.avg_rating) || 0, 5);
+        const stars = '<div class="star-rating">' + 
+          Array(5).fill(0).map((_, i) => 
+            i < Math.floor(rating) ? '<span class="star filled">★</span>' :
+            (i < rating ? '<span class="star half">★</span>' : '<span class="star">★</span>')
+          ).join('') + '</div>';
+        const badge = idx === 0 ? '<div class="top-driver-badge">🏆 TERBAIK</div>' : 
+          (rating >= 4.5 ? '<div class="priority-badge priority-essential">ESSENTIAL</div>' :
+           rating >= 4.0 ? '<div class="priority-badge priority-regular">REGULAR</div>' :
+           rating >= 3.5 ? '<div class="priority-badge priority-standard">STANDARD</div>' :
+           '<div class="priority-badge priority-basic">BASIC</div>');
+        card.innerHTML = `
+          <div class="driver-info">
+            <img src="${driver.profile_photo_url || driver.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="driver-photo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+            <div class="driver-details">
+              ${badge}
+              <div class="driver-name"><span class="driver-name-text">${driver.name || 'Driver'}</span><span class="position-badge">#${idx+1}</span></div>
+              <div class="driver-vehicle">${driver.vehicle_brand || ''} • ${driver.vehicle_type || ''}</div>
+              <div class="driver-rating-container">${stars}<span>${rating.toFixed(1)}/5</span></div>
+              <div style="margin-top:5px; font-weight:600; color:var(--success); font-size:12px;">Rp ${(driver.offered_price || currentRouteData?.harga_total || 0).toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+          <div class="driver-action-buttons">
+            <button class="accept-btn">Terima</button>
+            <button class="reject-btn">Tolak</button>
+          </div>
+        `;
+        card.querySelector('.accept-btn').addEventListener('click', () => selectDriver(driver.id));
+        card.querySelector('.reject-btn').addEventListener('click', () => rejectDriverOffer(driver.id));
+        document.getElementById('driverOfferList').appendChild(card);
+        if (idx === 0) {
+          setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 500);
+        }
+      });
+    }
+
+    function showDriverOfferNotification(offer) {
+      const notif = document.createElement('div');
+      notif.style.cssText = 'position:fixed; top:100px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; padding:12px 20px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:1000; font-weight:600; text-align:center; max-width:80%;';
+      notif.textContent = `🚗 ${offer.name || 'Driver'} mengirim penawaran!`;
+      document.body.appendChild(notif);
+      setTimeout(() => notif.remove(), 3000);
+    }
+
+    async function selectDriver(offerId) {
+      if (!currentOrderId) { showPopup('Tidak ada order aktif', "Error", "error"); return; }
+      const orderRef = database.ref('orders/' + currentOrderId);
+      const offerRef = database.ref(`orders/${currentOrderId}/driver_offers/${offerId}`);
+      const snap = await offerRef.once('value');
+      const offer = snap.val();
+      if (!offer) { showPopup('Penawaran tidak ditemukan', "Error", "error"); return; }
+      const completeDriver = await getCompleteDriverDataFromFirebase(offerId) || offer;
+      const selected = { ...completeDriver, ...offer, offer_id: offerId, selected_at: new Date().toISOString(), final_price: offer.offered_price || currentRouteData?.harga_total };
+      await offerRef.update({ status: 'accepted', accepted_at: new Date().toISOString() });
+      await orderRef.update({ status: 'accepted', selected_driver: selected, driver: selected, updated_at: new Date().toISOString() });
+      document.getElementById('driverOffers').style.display = 'none';
+      const existing = getActiveOrderFromLocalStorage();
+      if (existing) saveActiveOrderToLocalStorage({ ...existing, status: 'accepted', selected_driver: selected, driver: selected });
+      window.location.href = 'orderAcceptedForCS.html';
+    }
+
+    async function rejectDriverOffer(offerId) {
+      if (!currentOrderId) return;
+      await database.ref(`orders/${currentOrderId}/driver_offers/${offerId}`).update({ status: 'rejected', rejected_at: new Date().toISOString() });
+      driverOffersList = driverOffersList.filter(d => d.id !== offerId);
+      const card = document.getElementById(`driver-${offerId}`);
+      if (card) card.remove();
+      smartDriverPrioritization(driverOffersList);
+      showNotification('Driver ditolak', 'info');
+    }
+
+    function startPriceIncreaseTimer() {
+      if (priceIncreaseTimer) clearTimeout(priceIncreaseTimer);
+      priceIncreaseTimer = setTimeout(() => {
+        if (isSearching && driverOffersList.length === 0) showPriceOfferPopup();
+      }, 30000);
+    }
+
+    function showPriceOfferPopup() {
+      if (!currentRouteData) return;
+      const current = currentRouteData.harga_total;
+      currentBasePrice = current;
+      currentVehicleMinPrice = vehicleData[vehicle]?.minPrice || fallbackVehicleData[vehicle].minPrice;
+      document.getElementById('currentPriceDisplay').textContent = `Rp ${current.toLocaleString('id-ID')}`;
+      const p10 = Math.round(current * 1.1), p20 = Math.round(current * 1.2), p30 = Math.round(current * 1.3);
+      document.getElementById('price10').textContent = (p10 - current).toLocaleString('id-ID');
+      document.getElementById('price20').textContent = (p20 - current).toLocaleString('id-ID');
+      document.getElementById('price30').textContent = (p30 - current).toLocaleString('id-ID');
+      document.getElementById('priceOfferPopup').classList.add('active');
+    }
+
+    function closePriceOfferPopup() {
+      document.getElementById('priceOfferPopup').classList.remove('active');
+      if (isSearching && driverOffersList.length === 0) {
+        priceIncreaseTimer = setTimeout(() => { if (isSearching && driverOffersList.length === 0) showPriceOfferPopup(); }, 60000);
+      }
+    }
+
+    function increasePrice(percentage) {
+      const newPrice = Math.round(currentBasePrice * (1 + percentage));
+      if (newPrice < currentVehicleMinPrice) {
+        showPopup(`Harga tidak boleh di bawah Rp ${currentVehicleMinPrice.toLocaleString('id-ID')}`, "Peringatan", "warning");
+        return;
+      }
+      if (currentRouteData) currentRouteData.harga_total = newPrice;
+      if (currentOrderId) {
+        database.ref('orders/' + currentOrderId).update({ harga_total: newPrice, updated_at: new Date().toISOString() })
+          .then(() => {
+            updateConfirmButton();
+            showNotification(`✅ Tarif dinaikkan menjadi Rp ${newPrice.toLocaleString('id-ID')}`);
+          })
+          .catch(e => showPopup('Gagal menaikkan harga', "Error", "error"));
+      }
+      closePriceOfferPopup();
+    }
+
+    function cancelSearch() {
+      stopUserDataRefresh();
+      if (priceIncreaseTimer) clearTimeout(priceIncreaseTimer);
+      if (driverRef && driverUpdateHandler) driverRef.off('value', driverUpdateHandler);
+      if (driverOffersRef) driverOffersRef.off();
+      clearDriverMarkers();
+      if (!currentOrderId) {
+        resetSearchButton(); hideRadar(); removeActiveOrderFromLocalStorage();
+        return;
+      }
+      const orderRef = database.ref('orders/' + currentOrderId);
+      orderRef.update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .then(() => {
+          setTimeout(() => {
+            orderRef.remove().catch(() => {});
+            removeActiveOrderFromLocalStorage();
+            resetSearchButton();
+            hideRadar();
+            if (directionsRenderer) directionsRenderer.setMap(null);
+            if (circleB) { circleB.setMap(null); circleB = null; }
+            currentRouteData = null; currentOrderId = null; currentDriverData = null;
+            showPopup('Pencarian driver dibatalkan', "Info", "info");
+            updateConfirmButton();
+          }, 400);
+        })
+        .catch(() => {
+          orderRef.remove().catch(() => {});
+          removeActiveOrderFromLocalStorage();
+          resetSearchButton();
+          hideRadar();
+          currentRouteData = null; currentOrderId = null; currentDriverData = null;
+          updateConfirmButton();
+        });
+    }
+
+    function resetSearchButton() {
+      document.getElementById('confirmBtn').style.display = 'block';
+      document.getElementById('cancelBtn').style.display = 'none';
+      document.getElementById('confirmBtn').disabled = false;
+      document.getElementById('cancelBtn').disabled = true;
+      isSearching = false;
+      currentOrderId = null;
+      currentDriverData = null;
+      if (currentRouteData) {
+        document.getElementById('confirmBtn').textContent = `CARI DRIVER | Rp. ${currentRouteData.harga_total.toLocaleString('id-ID')}`;
+        showRouteDetails(currentRouteData);
+      } else {
+        document.getElementById('confirmBtn').textContent = 'Konfirmasi Rute';
+        document.getElementById('confirmBtn').disabled = true;
+        hideRouteDetails();
+      }
+    }
+
+    // ==================== LOCALSTORAGE ORDER AKTIF ====================
+    function saveActiveOrderToLocalStorage(orderData) {
+      try {
+        localStorage.setItem('jego_active_order', JSON.stringify({ ...orderData, saved_at: new Date().toISOString(), type: 'active_order', is_active: true }));
+      } catch (e) { console.error(e); }
+    }
+    function removeActiveOrderFromLocalStorage() { localStorage.removeItem('jego_active_order'); }
+    function getActiveOrderFromLocalStorage() {
+      try { return JSON.parse(localStorage.getItem('jego_active_order')); } catch { return null; }
+    }
+
+    // ==================== DRIVER MARKERS DI PETA ====================
+    function loadOnlineDriversOnMap() {
+      const driversRef = database.ref('drivers');
+      driversRef.on('value', snap => {
+        const drivers = snap.val();
+        const pickup = markerA ? markerA.getPosition() : null;
+        clearDriverMarkers();
+        if (!pickup || !drivers) return;
+        Object.keys(drivers).forEach(id => {
+          const d = drivers[id];
+          if ((d.tracking_enabled || d.online) && d.latitude && d.longitude) {
+            const loc = new google.maps.LatLng(parseFloat(d.latitude), parseFloat(d.longitude));
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(pickup, loc) / 1000;
+            if (distance <= 5) addDriverMarker(id, d, loc);
+          }
+        });
+      });
+    }
+
+    function addDriverMarker(id, driver, loc) {
+      const marker = new google.maps.Marker({
+        position: loc, map,
+        icon: { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#4285F4" opacity="0.9"/></svg>'), scaledSize: new google.maps.Size(20,20), anchor: new google.maps.Point(10,10) },
+        title: `${driver.name || 'Driver'} - ${driver.vehicle_type || 'motor'}`
+      });
+      driverMarkers[id] = marker;
+      const info = new google.maps.InfoWindow({
+        content: `<div style="padding:8px;"><div style="font-weight:bold;">${driver.name || 'Driver'}</div><div style="font-size:12px;">${driver.vehicle_type || 'motor'}</div><div style="font-size:12px;">Rating: ${driver.avg_rating || '0'}/5</div></div>`
+      });
+      marker.addListener('click', () => info.open(map, marker));
+    }
+
+    function clearDriverMarkers() {
+      Object.values(driverMarkers).forEach(m => m.setMap(null));
+      driverMarkers = {};
+    }
+
+    // ==================== VALIDASI USER UNTUK ORDER ====================
+    async function getValidatedUserDataForOrder() {
+      if (!checkIfUserLoggedIn()) {
+        showPopup("Silakan login terlebih dahulu", "Perhatian", "warning");
+        return null;
+      }
+      const local = getUserData();
+      if (!local) {
+        showPopup("Data user tidak ditemukan", "Error", "error");
+        return null;
+      }
+      const key = local.firebase_key || local.uid;
+      if (!key) {
+        showPopup("User key tidak valid", "Error", "error");
+        return null;
+      }
+      const fb = await getCompleteUserDataFromFirebase(key);
+      return fb || local;
+    }
+
+    // ==================== CEK ORDER AKTIF ====================
+    function checkActiveOrder() {
+      if (!userData) { console.log('Tidak ada user login'); return; }
+      const userKey = userData.firebase_key || userData.key;
+      if (!userKey) return;
+      database.ref('orders').once('value').then(snap => {
+        const orders = snap.val();
+        let active = null;
+        if (orders) {
+          Object.keys(orders).forEach(id => {
+            const o = orders[id];
+            if ((o.user_phone && userData.phone && o.user_phone === userData.phone) ||
+                (o.user_email && userData.email && o.user_email === userData.email) ||
+                (o.user_data && userData.phone && o.user_data.phone === userData.phone)) {
+              if (o.status === 'searching' || o.status === 'accepted') {
+                active = o; active.orderId = id;
+                // update jika rating/foto berubah
+                if (o.user_data && (o.user_data.rating !== userData.rating || o.user_data.fotoProfilURL !== userData.fotoProfilURL)) {
+                  database.ref('orders/' + id).update({ user_data: userData, updated_at: new Date().toISOString() });
+                }
+              }
+            }
+          });
+        }
+        if (active) {
+          currentOrderId = active.orderId;
+          currentRouteData = {
+            jarak: active.jarak, jarak_km: active.jarak_km, durasi: active.durasi,
+            harga_per_km: active.harga_per_km, harga_total: active.harga_total,
+            alamat_a: active.alamat_a, alamat_b: active.alamat_b,
+            from_lat: active.from_lat, from_lng: active.from_lng,
+            to_lat: active.to_lat, to_lng: active.to_lng,
+            vehicle: active.vehicle, vehicle_name: active.vehicle_name,
+            vehicle_capacity: active.vehicle_capacity,
+            min_distance: active.min_distance, min_price: active.min_price,
+            status: active.status
+          };
+          saveActiveOrderToLocalStorage({ ...active, currentRouteData });
+          vehicle = active.vehicle;
+          document.getElementById('fromInput').value = active.alamat_a;
+          document.getElementById('toInput').value = active.alamat_b;
+          if (active.delivery_data && (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor')) {
+            kurirDeliveryData = active.delivery_data;
+            document.getElementById('deliveryInfoPanel').style.display = 'block';
+            document.getElementById('deliveryItemCategory').textContent = kurirDeliveryData.itemCategory || '-';
+            document.getElementById('deliveryDescription').textContent = kurirDeliveryData.description || '-';
+            document.getElementById('deliverySender').textContent = kurirDeliveryData.senderPhone || '-';
+            document.getElementById('deliveryReceiver').textContent = kurirDeliveryData.receiverPhone || '-';
+          }
+          if (active.from_lat && active.from_lng) updateMarker('fromInput', { lat: active.from_lat, lng: active.from_lng });
+          if (active.to_lat && active.to_lng) updateMarker('toInput', { lat: active.to_lat, lng: active.to_lng });
+          setTimeout(() => { if (markerA && markerB) tryDirection(); }, 1000);
+          if (active.status === 'searching') {
+            showRadar('Mencari driver...');
+            document.getElementById('confirmBtn').style.display = 'none';
+            document.getElementById('cancelBtn').style.display = 'block';
+            isSearching = true;
+            loadOnlineDriversOnMap();
+            listenForDriver(currentOrderId);
+            listenDriverOffers(currentOrderId);
+            startPriceIncreaseTimer();
+          } else if (active.status === 'accepted' && (active.driver || active.selected_driver)) {
+            currentDriverData = active.driver || active.selected_driver;
+            saveActiveOrderToLocalStorage({ ...active, currentRouteData, driver_data: currentDriverData });
+            window.location.href = 'orderAcceptedForCS.html';
+          }
+          if (active.status !== 'accepted') showRouteDetails(currentRouteData);
+        } else {
+          removeActiveOrderFromLocalStorage();
+          if (kurirDeliveryData && (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor')) {
+            document.getElementById('deliveryInfoPanel').style.display = 'block';
+            document.getElementById('deliveryItemCategory').textContent = kurirDeliveryData.itemCategory || '-';
+            document.getElementById('deliveryDescription').textContent = kurirDeliveryData.description || '-';
+            document.getElementById('deliverySender').textContent = kurirDeliveryData.senderPhone || '-';
+            document.getElementById('deliveryReceiver').textContent = kurirDeliveryData.receiverPhone || '-';
+          }
+        }
+      }).catch(console.error);
+    }
+
+    // ==================== SAVE TO LOCALSTORAGE & KODULAR ====================
+    function saveToLocalStorage(routeData, type = 'calculated') {
+      const history = JSON.parse(localStorage.getItem('jego_route_history')) || [];
+      history.unshift({ ...routeData, type, timestamp: new Date().toISOString() });
+      if (history.length > 50) history.splice(50);
+      localStorage.setItem('jego_route_history', JSON.stringify(history));
+      localStorage.setItem('jego_last_route', JSON.stringify(routeData));
+    }
+
+    function sendToKodular(data, action = 'route_calculated') {
+      const snapshot = userData ? {
+        rating: userData.rating, perjalanan: userData.perjalanan, name: userData.name,
+        phone: userData.phone, email: userData.email, fotoProfilURL: userData.fotoProfilURL || '',
+        gender: userData.gender || '', address: userData.address || ''
+      } : null;
+      const payload = { action, timestamp: new Date().toISOString(), user_data: userData, user_snapshot: snapshot, ...data };
+      if (window.AppInventor?.setWebViewString) {
+        try { window.AppInventor.setWebViewString(JSON.stringify(payload)); } catch (e) {}
+      } else if (window.android?.receiveData) {
+        try { window.android.receiveData(JSON.stringify(payload)); } catch (e) {}
+      } else if (window.webkit?.messageHandlers?.observe) {
+        try { window.webkit.messageHandlers.observe.postMessage(payload); } catch (e) {}
+      } else {
+        console.warn('Tidak ada metode Kodular', payload);
+      }
+    }
+
+    // ==================== INISIALISASI MAP & AUTOCOMPLETE ====================
+    function initMap() {
+      styledMapType = new google.maps.StyledMapType([
+        { elementType: "geometry", stylers: [{ color: "#212121" }] },
+        { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+        { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+        { featureType: "poi", elementType: "geometry", stylers: [{ color: "#2e2e2e" }] },
+        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
+        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
+        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
+        { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
+        { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f2f2f" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
+        { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
+      ], { name: "Mode Malam" });
+
+      const lokasiA = fromParam ? fromParam.split(',').map(Number).filter(n => !isNaN(n)) : null;
+      const lokasiB = toParam ? toParam.split(',').map(Number).filter(n => !isNaN(n)) : null;
+      const lokasiAObj = lokasiA && lokasiA.length === 2 ? { lat: lokasiA[0], lng: lokasiA[1] } : null;
+      const lokasiBObj = lokasiB && lokasiB.length === 2 ? { lat: lokasiB[0], lng: lokasiB[1] } : null;
+
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 12,
+        center: { lat: 0.5441, lng: 123.0595 },
+        clickableIcons: false,
+        gestureHandling: "greedy",
+        mapTypeControlOptions: { mapTypeIds: ['roadmap', 'styled_map'] },
+        styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }]
+      });
+      map.mapTypes.set('styled_map', styledMapType);
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({ map, suppressMarkers: true, polylineOptions: { strokeColor: '#289672', strokeWeight: 6, strokeOpacity: 0.8 } });
+
+      if (navigator.geolocation && !fromParam && !coordParam) {
+        showRadar('Mendeteksi lokasi penjemputan...');
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            map.setCenter(loc); map.setZoom(14);
+            getAddressFromOSM(loc, alamat => {
+              document.getElementById("fromInput").value = alamat;
+              updateMarker("fromInput", loc);
+              hideRadar();
+            });
+          },
+          () => hideRadar(),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else if (lokasiAObj) {
+        map.setCenter(lokasiAObj); map.setZoom(14);
+        markerA = new google.maps.Marker({ position: lokasiAObj, map, icon: { url: vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon, scaledSize: new google.maps.Size(40,40) } });
+        getAddressFromOSM(lokasiAObj, alamat => document.getElementById("fromInput").value = alamat);
+      }
+      if (lokasiBObj) {
+        markerB = new google.maps.Marker({ position: lokasiBObj, map, icon: { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40,40) } });
+        getAddressFromOSM(lokasiBObj, alamat => document.getElementById("toInput").value = alamat);
+      }
+      if (lokasiAObj && lokasiBObj) setTimeout(tryDirection, 1000);
+      if (coordParam) {
+        const c = coordParam.split(',').map(Number);
+        if (c.length === 2 && !isNaN(c[0]) && !isNaN(c[1])) {
+          currentPosition = { lat: c[0], lng: c[1] };
+          getAddressFromOSM(currentPosition, alamat => {
+            document.getElementById("fromInput").value = alamat;
+            updateMarker("fromInput", currentPosition);
+            map.setCenter(currentPosition); map.setZoom(14);
+          });
+        }
+      }
+    }
+
+    function initAutocomplete() {
+      if (!google.maps.places) return;
+      const fromInput = document.getElementById('fromInput');
+      const toInput = document.getElementById('toInput');
+      const bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(0.3, 122.0),
+        new google.maps.LatLng(1.0, 123.5)
+      );
+      const opts = { bounds, componentRestrictions: { country: 'id' }, fields: ['address_components','geometry','name','formatted_address'] };
+      const autoFrom = new google.maps.places.Autocomplete(fromInput, opts);
+      const autoTo = new google.maps.places.Autocomplete(toInput, opts);
+      autoFrom.addListener('place_changed', () => {
+        const place = autoFrom.getPlace();
+        if (!place.geometry) return;
+        if (!bounds.contains(place.geometry.location)) showNotification("Lokasi di luar Gorontalo.", "info");
+        if (markerA) markerA.setMap(null);
+        markerA = new google.maps.Marker({ position: place.geometry.location, map, icon: { url: vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon, scaledSize: new google.maps.Size(40,40) } });
+        fromInput.value = place.name + (place.formatted_address ? ', ' + place.formatted_address : '');
+        map.panTo(place.geometry.location);
+        if (markerB) setTimeout(tryDirection, 500);
+        updateConfirmButton();
+      });
+      autoTo.addListener('place_changed', () => {
+        const place = autoTo.getPlace();
+        if (!place.geometry) return;
+        if (!bounds.contains(place.geometry.location)) showNotification("Lokasi tujuan di luar Gorontalo.", "info");
+        if (markerB) markerB.setMap(null);
+        markerB = new google.maps.Marker({ position: place.geometry.location, map, icon: { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40,40) } });
+        toInput.value = place.name + (place.formatted_address ? ', ' + place.formatted_address : '');
+        if (markerA) setTimeout(tryDirection, 500);
+        updateConfirmButton();
+      });
+    }
+
+    // ==================== EVENT LISTENERS ====================
+    function setupEventListeners() {
+      document.getElementById('clearFromBtn').addEventListener('click', () => clearInput('fromInput'));
+      document.getElementById('clearToBtn').addEventListener('click', () => clearInput('toInput'));
+      document.getElementById('locationFromBtn').addEventListener('click', () => detectLocation('fromInput'));
+      document.getElementById('locationToBtn').addEventListener('click', () => detectLocation('toInput'));
+      document.getElementById('mapModeBtn').addEventListener('click', toggleMapMode);
+      document.getElementById('confirmBtn').addEventListener('click', confirmRoute);
+      document.getElementById('cancelBtn').addEventListener('click', cancelSearch);
+      document.getElementById('popupCloseBtn').addEventListener('click', closePopup);
+      document.getElementById('popupButton').addEventListener('click', closePopup);
+      document.getElementById('closePriceOfferBtn').addEventListener('click', closePriceOfferPopup);
+      document.getElementById('continueWaitingBtn').addEventListener('click', closePriceOfferPopup);
+      document.getElementById('price10Btn').addEventListener('click', () => increasePrice(0.1));
+      document.getElementById('price20Btn').addEventListener('click', () => increasePrice(0.2));
+      document.getElementById('price30Btn').addEventListener('click', () => increasePrice(0.3));
+      document.getElementById('closeDriverOffers').addEventListener('click', () => document.getElementById('driverOffers').style.display = 'none');
+    }
+
+    // ==================== INISIALISASI UTAMA ====================
+    async function onLoad() {
+      console.log('Memulai aplikasi...');
+      userData = getUserData();
+      if (!userData) {
+        showPopup("Silakan login terlebih dahulu", "Info", "info");
+      } else {
+        const key = userData.firebase_key || userData.uid;
+        if (key) {
+          const fresh = await getCompleteUserDataFromFirebase(key);
+          if (fresh) userData = fresh;
+          startUserDataRefresh();
+        }
+      }
+      await loadVehicleData();
+      checkActiveOrder();
+      initAutocomplete();
+      setupEventListeners();
+    }
+
+    window.onload = onLoad;
+    window.initMap = initMap; // dipanggil oleh Google Maps API callback
+  </script>
+
+  <!-- Google Maps API dengan callback initMap -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&callback=initMap&libraries=places,geometry&v=weekly" defer></script>
+</body>
+</html>
