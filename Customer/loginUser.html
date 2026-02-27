@@ -180,7 +180,10 @@
     // ================= FIREBASE INIT =================
     async function initFirebase() {
       if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
-      firebase.initializeApp(FIREBASE_CONFIG);
+      // Inisialisasi hanya sekali
+      if (!firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+      }
       firebaseDatabase = firebase.database();
     }
 
@@ -236,7 +239,7 @@
       try {
         // Gunakan mode 'no-cors' untuk menghindari blokir CORS, tapi response tidak bisa dibaca.
         // Alternatif: jika gateway mendukung CORS, bisa gunakan mode 'cors'.
-        const response = await fetch(url, { mode: 'no-cors' });
+        await fetch(url, { mode: 'no-cors' });
         // Karena mode 'no-cors', kita tidak bisa tahu apakah sukses atau gagal.
         // Kita asumsikan sukses.
         console.log('OTP dikirim (mode no-cors, tidak ada validasi)');
@@ -303,18 +306,7 @@
 
       // OTP benar, hapus data OTP
       await ref.remove();
-
-      // Ambil data user dari database berdasarkan nomor telepon
-      const usersRef = firebaseDatabase.ref('users');
-      const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
-      const users = snapshot.val();
-      if (!users) {
-        showStatus('Nomor tidak terdaftar. Silakan daftar.', 'error');
-        return null;
-      }
-      const uid = Object.keys(users)[0];
-      const dbUser = users[uid];
-      return { uid, ...dbUser };
+      return true;
     }
 
     // ================= HANDLER LOGIN =================
@@ -327,10 +319,22 @@
       if (!validatePhoneFormat(phone)) return showStatus('Format nomor tidak valid (contoh: 08123456789)', 'error');
 
       const btn = document.getElementById('loginBtn');
-      btn.disabled = true; btn.innerText = 'Mengirim...';
+      btn.disabled = true; btn.innerText = 'Memeriksa...';
       showProgress(30);
 
       try {
+        // CEK APAKAH NOMOR SUDAH TERDAFTAR
+        const usersRef = firebaseDatabase.ref('users');
+        const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+        if (!snapshot.exists()) {
+          showStatus('Nomor tidak terdaftar. Silakan daftar.', 'error');
+          btn.disabled = false; btn.innerText = 'Kirim Kode OTP';
+          hideProgress();
+          return;
+        }
+
+        // Nomor terdaftar, lanjut kirim OTP
+        btn.innerText = 'Mengirim OTP...';
         const sent = await sendOTP(phone);
         if (sent) {
           currentPhone = phone;
@@ -356,23 +360,35 @@
       btn.disabled = true; btn.innerText = 'Memverifikasi...';
 
       try {
-        const userData = await verifyOTP(currentPhone, otp);
-        if (!userData) {
+        const isValid = await verifyOTP(currentPhone, otp);
+        if (!isValid) {
           btn.disabled = false; btn.innerText = 'Verifikasi OTP';
           return;
         }
 
+        // Ambil data user dari database berdasarkan nomor telepon
+        const usersRef = firebaseDatabase.ref('users');
+        const snapshot = await usersRef.orderByChild('phone').equalTo(currentPhone).once('value');
+        const users = snapshot.val();
+        if (!users) {
+          showStatus('Data user tidak ditemukan.', 'error');
+          btn.disabled = false; btn.innerText = 'Verifikasi OTP';
+          return;
+        }
+        const uid = Object.keys(users)[0];
+        const dbUser = users[uid];
+
         // Buat session
         const session = {
-          userId: userData.uid,
-          uid: userData.uid,
-          name: userData.name || '',
-          phone: userData.phone || currentPhone,
-          email: userData.email || '',
-          status: userData.status || 'active',
-          photoURL: userData.fotoProfilURL || '',
-          rating: userData.rating || 5,
-          perjalanan: userData.perjalanan || 0
+          userId: uid,
+          uid: uid,
+          name: dbUser.name || '',
+          phone: dbUser.phone || currentPhone,
+          email: dbUser.email || '',
+          status: dbUser.status || 'active',
+          photoURL: dbUser.fotoProfilURL || '',
+          rating: dbUser.rating || 5,
+          perjalanan: dbUser.perjalanan || 0
         };
 
         localStorage.setItem('jego_logged_in_user', JSON.stringify(session));
