@@ -2,12 +2,19 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>Rute - JeGo</title>
+  <title>Rute - JeGo (Mapbox)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <!-- Firebase SDK hanya untuk Realtime Database -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <!-- Mapbox CSS & JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <!-- Mapbox Geocoder plugin -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" rel="stylesheet" />
 
   <style>
     :root {
@@ -698,10 +705,9 @@
       .accept-btn, .reject-btn { padding: 8px 12px; font-size: 12px; min-width: 70px; }
     }
 
-    /* Sembunyikan watermark Google Maps */
-    .gm-style-cc, [title^="Report errors"] { display: none !important; }
-    a[href^="http://maps.google.com/maps"] { display: none !important; }
-    .gm-bundled-control { bottom: 10px !important; }
+    /* sembunyikan watermark Mapbox */
+    .mapboxgl-ctrl-attrib { display: none; }
+    .mapboxgl-ctrl-logo { display: none; }
   </style>
 </head>
 <body>
@@ -804,12 +810,13 @@
     console.log("✅ Firebase Realtime Database siap");
 
     // ==================== VARIABEL GLOBAL ====================
-    let map, directionsService, directionsRenderer;
-    let markerA, markerB, circleB;
+    let map;
+    let markerA = null;
+    let markerB = null;
+    let circleB = null; // untuk Mapbox kita gunakan layer lingkaran
     let radarInterval;
     let currentPosition = null;
     let isNightMode = false;
-    let styledMapType;
     let currentRouteData = null;
     let currentOrderId = null;
     let isSearching = false;
@@ -888,7 +895,9 @@
       const radar = document.getElementById('radar');
       radar.style.display = 'flex';
       radar.querySelector('span').textContent = message || 'Memproses...';
-      if (map && map.getZoom() < 18) map.setZoom(map.getZoom() + 1);
+      if (map && map.getZoom() < 18) {
+        map.flyTo({ zoom: map.getZoom() + 1, duration: 2000 });
+      }
       setTimeout(() => radar.classList.add('expanding'), 500);
     }
 
@@ -897,7 +906,9 @@
       const radar = document.getElementById('radar');
       radar.style.display = 'none';
       radar.classList.remove('expanding');
-      if (map && map.getZoom() > 14) map.setZoom(map.getZoom() - 1);
+      if (map && map.getZoom() > 14) {
+        map.flyTo({ zoom: map.getZoom() - 1, duration: 2000 });
+      }
     }
 
     function formatPhoneNumber(phone) {
@@ -915,7 +926,6 @@
       if (!loggedInUser) return null;
       try {
         const user = JSON.parse(loggedInUser);
-        // Mapping sesuai struktur dari registrasi
         return {
           firebase_key: user.uid || user.userId,
           uid: user.uid || user.userId,
@@ -1020,7 +1030,11 @@
       }
     }
 
-    // ==================== FUNGSI GEOCODING & MAP ====================
+    // ==================== FUNGSI GEOCODING & MAP (Mapbox) ====================
+    // Token Mapbox akan diambil dari Firebase
+    let mapboxToken = null;
+
+    // Fungsi reverse geocoding tetap pakai OSM
     function getAddressFromOSM(latlng, callback) {
       const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1`;
       fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -1037,6 +1051,7 @@
         .catch(() => callback(`Lokasi (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`));
     }
 
+    // Deteksi lokasi (geolokasi)
     function detectLocation(inputId) {
       if (!navigator.geolocation) {
         showPopup("Browser tidak mendukung geolokasi", "Error", "error");
@@ -1050,9 +1065,8 @@
           getAddressFromOSM(loc, alamat => {
             document.getElementById(inputId).value = alamat;
             hideRadar();
-            updateMarker(inputId, loc);
-            map.panTo(loc);
-            map.setZoom(14);
+            updateMarker(inputId, { lng: loc.lng, lat: loc.lat });
+            map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
             if (markerA && markerB) tryDirection();
             updateConfirmButton();
           });
@@ -1067,23 +1081,78 @@
       );
     }
 
-    function updateMarker(inputId, position) {
+    // Update marker (Mapbox)
+    function updateMarker(inputId, lnglat) {
       const isFrom = inputId === 'fromInput';
-      const icon = isFrom
-        ? { url: vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon, scaledSize: new google.maps.Size(40, 40) }
-        : { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40, 40) };
-      if (isFrom && markerA) markerA.setMap(null);
-      if (!isFrom && markerB) markerB.setMap(null);
-      const marker = new google.maps.Marker({ position, map, icon });
-      if (isFrom) markerA = marker; else markerB = marker;
+      const iconUrl = isFrom
+        ? (vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon)
+        : "https://cdn-icons-png.flaticon.com/512/684/684908.png";
+
+      const el = document.createElement('div');
+      el.style.backgroundImage = `url(${iconUrl})`;
+      el.style.backgroundSize = 'cover';
+      el.style.width = '40px';
+      el.style.height = '40px';
+
+      if (isFrom) {
+        if (markerA) markerA.remove();
+        markerA = new mapboxgl.Marker(el)
+          .setLngLat([lnglat.lng, lnglat.lat])
+          .addTo(map);
+      } else {
+        if (markerB) markerB.remove();
+        markerB = new mapboxgl.Marker(el)
+          .setLngLat([lnglat.lng, lnglat.lat])
+          .addTo(map);
+        // Tambahkan lingkaran di sekitar tujuan (radius 50 meter)
+        if (circleB) {
+          map.removeLayer('circleB');
+          map.removeSource('circleB');
+        }
+        map.addSource('circleB', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [lnglat.lng, lnglat.lat]
+            }
+          }
+        });
+        map.addLayer({
+          id: 'circleB',
+          type: 'circle',
+          source: 'circleB',
+          paint: {
+            'circle-radius': 50,
+            'circle-color': '#4285f4',
+            'circle-opacity': 0.1,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#4285f4'
+          }
+        });
+        circleB = true;
+      }
     }
 
     function clearInput(inputId) {
       document.getElementById(inputId).value = '';
-      if (inputId === 'fromInput' && markerA) { markerA.setMap(null); markerA = null; }
-      if (inputId === 'toInput' && markerB) { markerB.setMap(null); markerB = null; }
-      if (directionsRenderer) directionsRenderer.setMap(null);
-      if (circleB) { circleB.setMap(null); circleB = null; }
+      if (inputId === 'fromInput' && markerA) {
+        markerA.remove();
+        markerA = null;
+      }
+      if (inputId === 'toInput' && markerB) {
+        markerB.remove();
+        markerB = null;
+        if (circleB) {
+          map.removeLayer('circleB');
+          map.removeSource('circleB');
+          circleB = null;
+        }
+      }
+      // Hapus rute dari peta
+      if (map.getLayer('route')) map.removeLayer('route');
+      if (map.getSource('route')) map.removeSource('route');
       hideRouteDetails();
       updateConfirmButton();
     }
@@ -1091,7 +1160,74 @@
     function toggleMapMode() {
       isNightMode = !isNightMode;
       document.getElementById('mapModeBtn').textContent = isNightMode ? 'Mode Siang' : 'Mode Malam';
-      map.setMapTypeId(isNightMode ? 'styled_map' : 'roadmap');
+      const style = isNightMode ? 'mapbox://styles/mapbox/night-v10' : 'mapbox://styles/mapbox/streets-v11';
+      map.setStyle(style);
+    }
+
+    // Fungsi untuk menghitung jarak antara dua titik (dalam km) menggunakan rumus Haversine
+    function calculateDistance(lnglat1, lnglat2) {
+      const R = 6371; // km
+      const dLat = (lnglat2.lat - lnglat1.lat) * Math.PI / 180;
+      const dLon = (lnglat2.lng - lnglat1.lng) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lnglat1.lat * Math.PI/180) * Math.cos(lnglat2.lat * Math.PI/180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // Fungsi untuk menggambar rute dengan Mapbox Directions API
+    async function drawRoute(from, to) {
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?geometries=geojson&access_token=${mapboxToken}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.routes || data.routes.length === 0) {
+          showPopup('Tidak dapat menemukan rute', 'Error', 'error');
+          return null;
+        }
+        const route = data.routes[0];
+        const geometry = route.geometry;
+        const duration = Math.round(route.duration / 60); // menit
+        const distance = route.distance / 1000; // km
+        const durationText = duration + ' menit';
+        const distanceText = distance.toFixed(2) + ' km';
+
+        if (map.getSource('route')) {
+          map.getSource('route').setData({
+            type: 'Feature',
+            geometry: geometry
+          });
+        } else {
+          map.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: geometry
+            }
+          });
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#289672', 'line-width': 6 }
+          });
+        }
+
+        // Fit bounds ke kedua titik
+        const bounds = new mapboxgl.LngLatBounds()
+          .extend([from.lng, from.lat])
+          .extend([to.lng, to.lat]);
+        map.fitBounds(bounds, { padding: 50 });
+
+        return { distance, duration, durationText, distanceText, geometry };
+      } catch (error) {
+        console.error('Gagal mengambil rute:', error);
+        showPopup('Gagal mengambil rute', 'Error', 'error');
+        return null;
+      }
     }
 
     function roundPrice(price) {
@@ -1131,60 +1267,58 @@
       }
     }
 
-    function tryDirection() {
+    async function tryDirection() {
       if (!markerA || !markerB) return;
-      const from = markerA.getPosition();
-      const to = markerB.getPosition();
-      const isMotor = vehicle === "motor" || vehicle === "kurir_motor";
-      if (circleB) circleB.setMap(null);
-      showRadar('Menghitung rute...');
-      if (!directionsRenderer) {
-        directionsRenderer = new google.maps.DirectionsRenderer({
-          map, suppressMarkers: true,
-          polylineOptions: { strokeColor: '#289672', strokeWeight: 6, strokeOpacity: 0.8 }
+      const from = markerA.getLngLat(); // {lng, lat}
+      const to = markerB.getLngLat();
+
+      if (circleB) {
+        map.getSource('circleB').setData({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [to.lng, to.lat]
+          }
         });
       }
-      directionsService.route({
-        origin: from, destination: to,
-        travelMode: google.maps.TravelMode.DRIVING,
-        region: "ID", avoidTolls: isMotor
-      }, (res, status) => {
-        hideRadar();
-        if (status === "OK") {
-          directionsRenderer.setDirections(res);
-          const bounds = new google.maps.LatLngBounds();
-          bounds.extend(from); bounds.extend(to);
-          map.fitBounds(bounds);
-          const leg = res.routes[0].legs[0];
-          circleB = new google.maps.Circle({ center: to, radius: 50, map, strokeColor: "#4285f4", strokeOpacity: 0.5, strokeWeight: 2, fillColor: "#4285f4", fillOpacity: 0.1 });
-          const jarakKm = leg.distance.value / 1000;
-          const harga = calculatePrice(jarakKm, vehicle);
-          currentRouteData = {
-            jarak: leg.distance.text, jarak_km: jarakKm.toFixed(2), durasi: leg.duration.text,
-            harga_per_km: vehicleData[vehicle]?.pricePerKm || fallbackVehicleData[vehicle].pricePerKm,
-            harga_total: harga,
-            alamat_a: document.getElementById("fromInput").value,
-            alamat_b: document.getElementById("toInput").value,
-            from_lat: from.lat(), from_lng: from.lng(),
-            to_lat: to.lat(), to_lng: to.lng(),
-            vehicle, vehicle_name: vehicleData[vehicle]?.name || fallbackVehicleData[vehicle].name,
-            vehicle_capacity: vehicleData[vehicle]?.capacity || fallbackVehicleData[vehicle].capacity,
-            min_distance: vehicleData[vehicle]?.minDistance || fallbackVehicleData[vehicle].minDistance,
-            min_price: vehicleData[vehicle]?.minPrice || fallbackVehicleData[vehicle].minPrice,
-            delivery_data: kurirDeliveryData
-          };
-          updateConfirmButton();
-          saveToLocalStorage(currentRouteData);
-          sendToKodular(currentRouteData, 'route_calculated');
-        } else {
-          currentRouteData = null;
-          updateConfirmButton();
-          showPopup("Gagal menghitung rute: " + status, "Error", "error");
-        }
-      });
+
+      showRadar('Menghitung rute...');
+      const routeResult = await drawRoute(from, to);
+      hideRadar();
+
+      if (routeResult) {
+        const { distance, duration, durationText, distanceText } = routeResult;
+        const harga = calculatePrice(distance, vehicle);
+        currentRouteData = {
+          jarak: distanceText,
+          jarak_km: distance.toFixed(2),
+          durasi: durationText,
+          harga_per_km: vehicleData[vehicle]?.pricePerKm || fallbackVehicleData[vehicle].pricePerKm,
+          harga_total: harga,
+          alamat_a: document.getElementById("fromInput").value,
+          alamat_b: document.getElementById("toInput").value,
+          from_lat: from.lat,
+          from_lng: from.lng,
+          to_lat: to.lat,
+          to_lng: to.lng,
+          vehicle: vehicle,
+          vehicle_name: vehicleData[vehicle]?.name || fallbackVehicleData[vehicle].name,
+          vehicle_capacity: vehicleData[vehicle]?.capacity || fallbackVehicleData[vehicle].capacity,
+          min_distance: vehicleData[vehicle]?.minDistance || fallbackVehicleData[vehicle].minDistance,
+          min_price: vehicleData[vehicle]?.minPrice || fallbackVehicleData[vehicle].minPrice,
+          delivery_data: kurirDeliveryData
+        };
+        updateConfirmButton();
+        saveToLocalStorage(currentRouteData);
+        sendToKodular(currentRouteData, 'route_calculated');
+      } else {
+        currentRouteData = null;
+        updateConfirmButton();
+      }
     }
 
-    // ==================== ORDER & DRIVER ====================
+    // ==================== ORDER & DRIVER (dari file asli, tidak berubah) ====================
+    // Fungsi-fungsi berikut persis seperti di file asli, hanya disesuaikan dengan Mapbox untuk marker
     function generateOrderId() {
       return 'ORDER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
@@ -1250,7 +1384,10 @@
       saveToLocalStorage(currentRouteData, 'confirmed');
       sendToKodular({ ...currentRouteData, action: 'route_confirmed' }, 'route_confirmed');
       showRadar('Mencari driver...');
-      if (markerA) { map.panTo(markerA.getPosition()); map.setZoom(18); }
+      if (markerA) {
+        const pos = markerA.getLngLat();
+        map.flyTo({ center: [pos.lng, pos.lat], zoom: 18 });
+      }
       startPriceIncreaseTimer();
       document.getElementById('confirmBtn').style.display = 'none';
       document.getElementById('cancelBtn').style.display = 'block';
@@ -1475,8 +1612,13 @@
             removeActiveOrderFromLocalStorage();
             resetSearchButton();
             hideRadar();
-            if (directionsRenderer) directionsRenderer.setMap(null);
-            if (circleB) { circleB.setMap(null); circleB = null; }
+            if (map.getLayer('route')) map.removeLayer('route');
+            if (map.getSource('route')) map.removeSource('route');
+            if (circleB) {
+              map.removeLayer('circleB');
+              map.removeSource('circleB');
+              circleB = null;
+            }
             currentRouteData = null; currentOrderId = null; currentDriverData = null;
             showPopup('Pencarian driver dibatalkan', "Info", "info");
             updateConfirmButton();
@@ -1521,19 +1663,20 @@
       try { return JSON.parse(localStorage.getItem('jego_active_order')); } catch { return null; }
     }
 
-    // ==================== DRIVER MARKERS DI PETA ====================
+    // ==================== DRIVER MARKERS DI PETA (Mapbox) ====================
     function loadOnlineDriversOnMap() {
       const driversRef = database.ref('drivers');
       driversRef.on('value', snap => {
         const drivers = snap.val();
-        const pickup = markerA ? markerA.getPosition() : null;
+        if (!markerA) return; // butuh titik penjemputan
+        const pickup = markerA.getLngLat(); // {lng, lat}
         clearDriverMarkers();
         if (!pickup || !drivers) return;
         Object.keys(drivers).forEach(id => {
           const d = drivers[id];
           if ((d.tracking_enabled || d.online) && d.latitude && d.longitude) {
-            const loc = new google.maps.LatLng(parseFloat(d.latitude), parseFloat(d.longitude));
-            const distance = google.maps.geometry.spherical.computeDistanceBetween(pickup, loc) / 1000;
+            const loc = { lng: parseFloat(d.longitude), lat: parseFloat(d.latitude) };
+            const distance = calculateDistance({ lat: pickup.lat, lng: pickup.lng }, loc);
             if (distance <= 5) addDriverMarker(id, d, loc);
           }
         });
@@ -1541,20 +1684,23 @@
     }
 
     function addDriverMarker(id, driver, loc) {
-      const marker = new google.maps.Marker({
-        position: loc, map,
-        icon: { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg width="20" height="20"><circle cx="10" cy="10" r="8" fill="#4285F4" opacity="0.9"/></svg>'), scaledSize: new google.maps.Size(20,20), anchor: new google.maps.Point(10,10) },
-        title: `${driver.name || 'Driver'} - ${driver.vehicle_type || 'motor'}`
-      });
+      const el = document.createElement('div');
+      el.className = 'driver-dot';
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([loc.lng, loc.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+          <div style="padding:8px;">
+            <div style="font-weight:bold;">${driver.name || 'Driver'}</div>
+            <div style="font-size:12px;">${driver.vehicle_type || 'motor'}</div>
+            <div style="font-size:12px;">Rating: ${driver.avg_rating || '0'}/5</div>
+          </div>
+        `))
+        .addTo(map);
       driverMarkers[id] = marker;
-      const info = new google.maps.InfoWindow({
-        content: `<div style="padding:8px;"><div style="font-weight:bold;">${driver.name || 'Driver'}</div><div style="font-size:12px;">${driver.vehicle_type || 'motor'}</div><div style="font-size:12px;">Rating: ${driver.avg_rating || '0'}/5</div></div>`
-      });
-      marker.addListener('click', () => info.open(map, marker));
     }
 
     function clearDriverMarkers() {
-      Object.values(driverMarkers).forEach(m => m.setMap(null));
+      Object.values(driverMarkers).forEach(m => m.remove());
       driverMarkers = {};
     }
 
@@ -1594,7 +1740,6 @@
                 (o.user_data && userData.phone && o.user_data.phone === userData.phone)) {
               if (o.status === 'searching' || o.status === 'accepted') {
                 active = o; active.orderId = id;
-                // update jika rating/foto berubah
                 if (o.user_data && (o.user_data.rating !== userData.rating || o.user_data.fotoProfilURL !== userData.fotoProfilURL)) {
                   database.ref('orders/' + id).update({ user_data: userData, updated_at: new Date().toISOString() });
                 }
@@ -1627,8 +1772,8 @@
             document.getElementById('deliverySender').textContent = kurirDeliveryData.senderPhone || '-';
             document.getElementById('deliveryReceiver').textContent = kurirDeliveryData.receiverPhone || '-';
           }
-          if (active.from_lat && active.from_lng) updateMarker('fromInput', { lat: active.from_lat, lng: active.from_lng });
-          if (active.to_lat && active.to_lng) updateMarker('toInput', { lat: active.to_lat, lng: active.to_lng });
+          if (active.from_lat && active.from_lng) updateMarker('fromInput', { lng: active.from_lng, lat: active.from_lat });
+          if (active.to_lat && active.to_lng) updateMarker('toInput', { lng: active.to_lng, lat: active.to_lat });
           setTimeout(() => { if (markerA && markerB) tryDirection(); }, 1000);
           if (active.status === 'searching') {
             showRadar('Mencari driver...');
@@ -1685,112 +1830,102 @@
       }
     }
 
-    // ==================== INISIALISASI MAP & AUTOCOMPLETE ====================
+    // ==================== INISIALISASI MAP (Mapbox) ====================
     function initMap() {
-      styledMapType = new google.maps.StyledMapType([
-        { elementType: "geometry", stylers: [{ color: "#212121" }] },
-        { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-        { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-        { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-        { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-        { featureType: "poi", elementType: "geometry", stylers: [{ color: "#2e2e2e" }] },
-        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-        { featureType: "road", elementType: "geometry", stylers: [{ color: "#383838" }] },
-        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
-        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
-        { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#2c2c2c" }] },
-        { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f2f2f" }] },
-        { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-        { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
-      ], { name: "Mode Malam" });
-
-      const lokasiA = fromParam ? fromParam.split(',').map(Number).filter(n => !isNaN(n)) : null;
-      const lokasiB = toParam ? toParam.split(',').map(Number).filter(n => !isNaN(n)) : null;
-      const lokasiAObj = lokasiA && lokasiA.length === 2 ? { lat: lokasiA[0], lng: lokasiA[1] } : null;
-      const lokasiBObj = lokasiB && lokasiB.length === 2 ? { lat: lokasiB[0], lng: lokasiB[1] } : null;
-
-      map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 12,
-        center: { lat: 0.5441, lng: 123.0595 },
-        clickableIcons: false,
-        gestureHandling: "greedy",
-        mapTypeControlOptions: { mapTypeIds: ['roadmap', 'styled_map'] },
-        styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }]
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [123.0595, 0.5441],
+        zoom: 12
       });
-      map.mapTypes.set('styled_map', styledMapType);
-      directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map, suppressMarkers: true, polylineOptions: { strokeColor: '#289672', strokeWeight: 6, strokeOpacity: 0.8 } });
 
+      map.addControl(new mapboxgl.NavigationControl());
+
+      // Inisialisasi Geocoder untuk fromInput dan toInput
+      const geocoderFrom = new MapboxGeocoder({
+        accessToken: mapboxToken,
+        mapboxgl: mapboxgl,
+        input: '#fromInput', // menggunakan input yang sudah ada
+        types: 'address,poi,place',
+        country: 'id',
+        placeholder: 'Mo jemput dimana?'
+      });
+      geocoderFrom.on('result', (e) => {
+        const lnglat = e.result.center; // [lng, lat]
+        updateMarker('fromInput', { lng: lnglat[0], lat: lnglat[1] });
+        document.getElementById('fromInput').value = e.result.place_name;
+        map.flyTo({ center: lnglat, zoom: 14 });
+        if (markerB) tryDirection();
+        updateConfirmButton();
+      });
+
+      const geocoderTo = new MapboxGeocoder({
+        accessToken: mapboxToken,
+        mapboxgl: mapboxgl,
+        input: '#toInput',
+        types: 'address,poi,place',
+        country: 'id',
+        placeholder: 'Mo antar kamana?'
+      });
+      geocoderTo.on('result', (e) => {
+        const lnglat = e.result.center;
+        updateMarker('toInput', { lng: lnglat[0], lat: lnglat[1] });
+        document.getElementById('toInput').value = e.result.place_name;
+        if (markerA) tryDirection();
+        updateConfirmButton();
+      });
+
+      // Jika ada parameter dari URL, set marker dan input
+      if (fromParam) {
+        const coords = fromParam.split(',').map(Number);
+        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          const loc = { lng: coords[1], lat: coords[0] };
+          getAddressFromOSM({ lat: loc.lat, lng: loc.lng }, alamat => {
+            document.getElementById('fromInput').value = alamat;
+            updateMarker('fromInput', loc);
+            map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
+          });
+        }
+      }
+      if (toParam) {
+        const coords = toParam.split(',').map(Number);
+        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          const loc = { lng: coords[1], lat: coords[0] };
+          getAddressFromOSM({ lat: loc.lat, lng: loc.lng }, alamat => {
+            document.getElementById('toInput').value = alamat;
+            updateMarker('toInput', loc);
+          });
+        }
+      }
+      if (coordParam) {
+        const c = coordParam.split(',').map(Number);
+        if (c.length === 2 && !isNaN(c[0]) && !isNaN(c[1])) {
+          currentPosition = { lat: c[0], lng: c[1] };
+          getAddressFromOSM(currentPosition, alamat => {
+            document.getElementById('fromInput').value = alamat;
+            updateMarker('fromInput', { lng: currentPosition.lng, lat: currentPosition.lat });
+            map.flyTo({ center: [currentPosition.lng, currentPosition.lat], zoom: 14 });
+          });
+        }
+      }
+
+      // Deteksi lokasi awal jika tidak ada parameter
       if (navigator.geolocation && !fromParam && !coordParam) {
         showRadar('Mendeteksi lokasi penjemputan...');
         navigator.geolocation.getCurrentPosition(
           pos => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            map.setCenter(loc); map.setZoom(14);
+            map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
             getAddressFromOSM(loc, alamat => {
-              document.getElementById("fromInput").value = alamat;
-              updateMarker("fromInput", loc);
+              document.getElementById('fromInput').value = alamat;
+              updateMarker('fromInput', loc);
               hideRadar();
             });
           },
           () => hideRadar(),
           { enableHighAccuracy: true, timeout: 10000 }
         );
-      } else if (lokasiAObj) {
-        map.setCenter(lokasiAObj); map.setZoom(14);
-        markerA = new google.maps.Marker({ position: lokasiAObj, map, icon: { url: vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon, scaledSize: new google.maps.Size(40,40) } });
-        getAddressFromOSM(lokasiAObj, alamat => document.getElementById("fromInput").value = alamat);
       }
-      if (lokasiBObj) {
-        markerB = new google.maps.Marker({ position: lokasiBObj, map, icon: { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40,40) } });
-        getAddressFromOSM(lokasiBObj, alamat => document.getElementById("toInput").value = alamat);
-      }
-      if (lokasiAObj && lokasiBObj) setTimeout(tryDirection, 1000);
-      if (coordParam) {
-        const c = coordParam.split(',').map(Number);
-        if (c.length === 2 && !isNaN(c[0]) && !isNaN(c[1])) {
-          currentPosition = { lat: c[0], lng: c[1] };
-          getAddressFromOSM(currentPosition, alamat => {
-            document.getElementById("fromInput").value = alamat;
-            updateMarker("fromInput", currentPosition);
-            map.setCenter(currentPosition); map.setZoom(14);
-          });
-        }
-      }
-    }
-
-    function initAutocomplete() {
-      if (!google.maps.places) return;
-      const fromInput = document.getElementById('fromInput');
-      const toInput = document.getElementById('toInput');
-      const bounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(0.3, 122.0),
-        new google.maps.LatLng(1.0, 123.5)
-      );
-      const opts = { bounds, componentRestrictions: { country: 'id' }, fields: ['address_components','geometry','name','formatted_address'] };
-      const autoFrom = new google.maps.places.Autocomplete(fromInput, opts);
-      const autoTo = new google.maps.places.Autocomplete(toInput, opts);
-      autoFrom.addListener('place_changed', () => {
-        const place = autoFrom.getPlace();
-        if (!place.geometry) return;
-        if (!bounds.contains(place.geometry.location)) showNotification("Lokasi di luar Gorontalo.", "info");
-        if (markerA) markerA.setMap(null);
-        markerA = new google.maps.Marker({ position: place.geometry.location, map, icon: { url: vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon, scaledSize: new google.maps.Size(40,40) } });
-        fromInput.value = place.name + (place.formatted_address ? ', ' + place.formatted_address : '');
-        map.panTo(place.geometry.location);
-        if (markerB) setTimeout(tryDirection, 500);
-        updateConfirmButton();
-      });
-      autoTo.addListener('place_changed', () => {
-        const place = autoTo.getPlace();
-        if (!place.geometry) return;
-        if (!bounds.contains(place.geometry.location)) showNotification("Lokasi tujuan di luar Gorontalo.", "info");
-        if (markerB) markerB.setMap(null);
-        markerB = new google.maps.Marker({ position: place.geometry.location, map, icon: { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(40,40) } });
-        toInput.value = place.name + (place.formatted_address ? ', ' + place.formatted_address : '');
-        if (markerA) setTimeout(tryDirection, 500);
-        updateConfirmButton();
-      });
     }
 
     // ==================== EVENT LISTENERS ====================
@@ -1827,16 +1962,38 @@
         }
       }
       await loadVehicleData();
-      checkActiveOrder();
-      initAutocomplete();
+
+      // Ambil token Mapbox dari Firebase
+      try {
+        const tokenSnapshot = await database.ref('Secret/Key').once('value');
+        mapboxToken = tokenSnapshot.val();
+        if (!mapboxToken) {
+          console.error('Token Mapbox tidak ditemukan di Firebase');
+          showPopup('Token peta tidak ditemukan', 'Error', 'error');
+          return;
+        }
+        console.log('Token Mapbox berhasil dimuat');
+      } catch (error) {
+        console.error('Gagal mengambil token Mapbox:', error);
+        showPopup('Gagal memuat token peta', 'Error', 'error');
+        return;
+      }
+
+      // Set token Mapbox global
+      mapboxgl.accessToken = mapboxToken;
+
+      // Inisialisasi map
+      initMap();
+
+      // Cek order aktif setelah map siap
+      setTimeout(() => {
+        checkActiveOrder();
+      }, 1000);
+
       setupEventListeners();
     }
 
     window.onload = onLoad;
-    window.initMap = initMap; // dipanggil oleh Google Maps API callback
   </script>
-
-  <!-- Google Maps API dengan callback initMap -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&callback=initMap&libraries=places,geometry&v=weekly" defer></script>
 </body>
 </html>
