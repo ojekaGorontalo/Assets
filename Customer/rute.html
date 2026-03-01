@@ -5,16 +5,16 @@
   <title>Rute - JeGo (Mapbox)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <!-- Firebase SDK hanya untuk Realtime Database -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <!-- Mapbox CSS & JS -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-  <!-- Mapbox Geocoder plugin -->
-  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
-  <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" rel="stylesheet" />
+  
+  <!-- Mapbox Search JS (untuk autocomplete POI & alamat) -->
+  <script id="search-js" defer src="https://api.mapbox.com/search-js/v1.5.0/web.js"></script>
 
   <style>
     :root {
@@ -57,7 +57,8 @@
       margin-bottom: 12px;
     }
 
-    input {
+    /* Gaya untuk MapboxSearchBox */
+    .mapbox-search-input {
       width: 100%;
       padding: 12px 40px 12px 15px;
       font-size: 14px;
@@ -67,8 +68,7 @@
       background: white;
       transition: all 0.3s;
     }
-
-    input:focus {
+    .mapbox-search-input:focus {
       outline: none;
       border-color: var(--secondary);
       box-shadow: 0 0 0 3px rgba(40, 150, 114, 0.1);
@@ -86,6 +86,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 10;
     }
 
     .clear-btn {
@@ -712,16 +713,9 @@
 </head>
 <body>
   <div class="panel">
-    <div class="input-container">
-      <input id="fromInput" type="text" placeholder="Mo jemput dimana?" />
-      <button class="clear-btn" id="clearFromBtn">×</button>
-      <button class="location-btn" id="locationFromBtn">⌖</button>
-    </div>
-    <div class="input-container">
-      <input id="toInput" type="text" placeholder="Mo antar kamana?" />
-      <button class="clear-btn" id="clearToBtn">×</button>
-      <button class="location-btn" id="locationToBtn">⌖</button>
-    </div>
+    <!-- Tempat untuk search box dari MapboxSearchBox akan dimasukkan secara dinamis -->
+    <div id="from-container" class="input-container"></div>
+    <div id="to-container" class="input-container"></div>
     <div class="delivery-info-panel" id="deliveryInfoPanel">
       <div class="delivery-item"><span class="delivery-label">Jenis Barang:</span><span class="delivery-value" id="deliveryItemCategory">-</span></div>
       <div class="delivery-item"><span class="delivery-label">Deskripsi:</span><span class="delivery-value" id="deliveryDescription">-</span></div>
@@ -801,7 +795,7 @@
       appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
     };
 
-    // Inisialisasi Firebase (hanya database)
+    // Inisialisasi Firebase
     let database;
     if (!firebase.apps.length) {
       firebase.initializeApp(FIREBASE_CONFIG);
@@ -813,7 +807,7 @@
     let map;
     let markerA = null;
     let markerB = null;
-    let circleB = null; // untuk Mapbox kita gunakan layer lingkaran
+    let circleB = null;
     let radarInterval;
     let currentPosition = null;
     let isNightMode = false;
@@ -832,6 +826,7 @@
     let currentVehicleMinPrice = 0;
     let driverMarkers = {};
     let userDataRefreshInterval = null;
+    let mapboxToken = null;
 
     // Ambil parameter vehicle dari URL atau localStorage
     const urlParams = new URLSearchParams(window.location.search);
@@ -1031,10 +1026,7 @@
     }
 
     // ==================== FUNGSI GEOCODING & MAP (Mapbox) ====================
-    // Token Mapbox akan diambil dari Firebase
-    let mapboxToken = null;
-
-    // Fungsi reverse geocoding tetap pakai OSM
+    // Fungsi reverse geocoding tetap pakai OSM (untuk lokasi dari GPS)
     function getAddressFromOSM(latlng, callback) {
       const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latlng.lat}&lon=${latlng.lng}&addressdetails=1`;
       fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -1051,8 +1043,8 @@
         .catch(() => callback(`Lokasi (${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)})`));
     }
 
-    // Deteksi lokasi (geolokasi)
-    function detectLocation(inputId) {
+    // Deteksi lokasi (geolokasi) - menerima searchBox untuk mengisi nilainya
+    function detectLocation(searchBox, isFrom) {
       if (!navigator.geolocation) {
         showPopup("Browser tidak mendukung geolokasi", "Error", "error");
         return;
@@ -1063,9 +1055,9 @@
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           currentPosition = loc;
           getAddressFromOSM(loc, alamat => {
-            document.getElementById(inputId).value = alamat;
+            searchBox.value = alamat;
             hideRadar();
-            updateMarker(inputId, { lng: loc.lng, lat: loc.lat });
+            updateMarker(isFrom ? 'from' : 'to', { lng: loc.lng, lat: loc.lat });
             map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
             if (markerA && markerB) tryDirection();
             updateConfirmButton();
@@ -1082,8 +1074,8 @@
     }
 
     // Update marker (Mapbox)
-    function updateMarker(inputId, lnglat) {
-      const isFrom = inputId === 'fromInput';
+    function updateMarker(type, lnglat) {
+      const isFrom = type === 'from';
       const iconUrl = isFrom
         ? (vehicleData[vehicle]?.icon || fallbackVehicleData[vehicle].icon)
         : "https://cdn-icons-png.flaticon.com/512/684/684908.png";
@@ -1135,13 +1127,13 @@
       }
     }
 
-    function clearInput(inputId) {
-      document.getElementById(inputId).value = '';
-      if (inputId === 'fromInput' && markerA) {
+    function clearInput(type, searchBox) {
+      searchBox.value = '';
+      if (type === 'from' && markerA) {
         markerA.remove();
         markerA = null;
       }
-      if (inputId === 'toInput' && markerB) {
+      if (type === 'to' && markerB) {
         markerB.remove();
         markerB = null;
         if (circleB) {
@@ -1179,7 +1171,7 @@
 
     // Fungsi untuk menggambar rute dengan Mapbox Directions API
     async function drawRoute(from, to) {
-      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?geometries=geojson&access_token=${mapboxToken}`;
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
       try {
         const res = await fetch(url);
         const data = await res.json();
@@ -1295,8 +1287,8 @@
           durasi: durationText,
           harga_per_km: vehicleData[vehicle]?.pricePerKm || fallbackVehicleData[vehicle].pricePerKm,
           harga_total: harga,
-          alamat_a: document.getElementById("fromInput").value,
-          alamat_b: document.getElementById("toInput").value,
+          alamat_a: document.querySelector('#from-container .mapbox-search-input').value, // ambil dari search box
+          alamat_b: document.querySelector('#to-container .mapbox-search-input').value,
           from_lat: from.lat,
           from_lng: from.lng,
           to_lat: to.lat,
@@ -1317,8 +1309,7 @@
       }
     }
 
-    // ==================== ORDER & DRIVER (dari file asli, tidak berubah) ====================
-    // Fungsi-fungsi berikut persis seperti di file asli, hanya disesuaikan dengan Mapbox untuk marker
+    // ==================== ORDER & DRIVER ====================
     function generateOrderId() {
       return 'ORDER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
@@ -1762,8 +1753,11 @@
           };
           saveActiveOrderToLocalStorage({ ...active, currentRouteData });
           vehicle = active.vehicle;
-          document.getElementById('fromInput').value = active.alamat_a;
-          document.getElementById('toInput').value = active.alamat_b;
+          // Isi search box dengan alamat
+          const fromSearch = document.querySelector('#from-container .mapbox-search-input');
+          const toSearch = document.querySelector('#to-container .mapbox-search-input');
+          if (fromSearch) fromSearch.value = active.alamat_a;
+          if (toSearch) toSearch.value = active.alamat_b;
           if (active.delivery_data && (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor')) {
             kurirDeliveryData = active.delivery_data;
             document.getElementById('deliveryInfoPanel').style.display = 'block';
@@ -1772,13 +1766,14 @@
             document.getElementById('deliverySender').textContent = kurirDeliveryData.senderPhone || '-';
             document.getElementById('deliveryReceiver').textContent = kurirDeliveryData.receiverPhone || '-';
           }
-          if (active.from_lat && active.from_lng) updateMarker('fromInput', { lng: active.from_lng, lat: active.from_lat });
-          if (active.to_lat && active.to_lng) updateMarker('toInput', { lng: active.to_lng, lat: active.to_lat });
+          if (active.from_lat && active.from_lng) updateMarker('from', { lng: active.from_lng, lat: active.from_lat });
+          if (active.to_lat && active.to_lng) updateMarker('to', { lng: active.to_lng, lat: active.to_lat });
           setTimeout(() => { if (markerA && markerB) tryDirection(); }, 1000);
           if (active.status === 'searching') {
             showRadar('Mencari driver...');
             document.getElementById('confirmBtn').style.display = 'none';
             document.getElementById('cancelBtn').style.display = 'block';
+            document.getElementById('cancelBtn').disabled = false; // 🔴 Aktifkan tombol batalkan
             isSearching = true;
             loadOnlineDriversOnMap();
             listenForDriver(currentOrderId);
@@ -1830,59 +1825,129 @@
       }
     }
 
-    // ==================== INISIALISASI MAP (Mapbox) ====================
-    function initMap() {
-      map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/mapbox/streets-v11',
-        center: [123.0595, 0.5441],
-        zoom: 12
+    // ==================== SETUP SEARCH BOX (MapboxSearchBox) ====================
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
       });
+    }
 
-      map.addControl(new mapboxgl.NavigationControl());
+    function createSearchBox(placeholder, onRetrieve) {
+      const searchBox = new mapboxsearch.MapboxSearchBox();
+      searchBox.accessToken = mapboxgl.accessToken;
+      searchBox.options = {
+        language: 'id',
+        country: 'ID',
+        types: 'poi,address,place,locality,neighborhood',
+        proximity: [123.0595, 0.5441], // pusat Gorontalo
+        bbox: [122.8, 0.35, 123.3, 0.75] // batas Gorontalo
+      };
+      searchBox.placeholder = placeholder;
+      searchBox.className = 'mapbox-search-input';
+      searchBox.marker = false;
 
-      // Inisialisasi Geocoder untuk fromInput dan toInput
-      const geocoderFrom = new MapboxGeocoder({
-        accessToken: mapboxToken,
-        mapboxgl: mapboxgl,
-        input: '#fromInput', // menggunakan input yang sudah ada
-        types: 'address,poi,place',
-        country: 'id',
-        placeholder: 'Mo jemput dimana?'
+      searchBox.addEventListener('retrieve', (e) => {
+        const feature = e.detail;
+        // Periksa struktur data
+        console.log('Retrieve event detail:', feature);
+        let coordinates;
+        let name;
+        if (feature && feature.geometry && feature.geometry.coordinates) {
+          coordinates = feature.geometry.coordinates;
+          // ✅ Gunakan place_name jika ada (paling lengkap)
+          name = feature.place_name || 
+                 feature.properties?.full_address || 
+                 feature.properties?.name || 
+                 'Lokasi terpilih';
+        } else if (feature && feature.features && feature.features.length > 0) {
+          // Kadang-kadang event mengembalikan objek dengan properti features
+          const firstFeature = feature.features[0];
+          coordinates = firstFeature.geometry.coordinates;
+          name = firstFeature.place_name || 
+                 firstFeature.properties?.full_address || 
+                 firstFeature.properties?.name || 
+                 'Lokasi terpilih';
+        } else {
+          console.error('Format feature tidak dikenal:', feature);
+          return;
+        }
+        onRetrieve(coordinates, name);
       });
-      geocoderFrom.on('result', (e) => {
-        const lnglat = e.result.center; // [lng, lat]
-        updateMarker('fromInput', { lng: lnglat[0], lat: lnglat[1] });
-        document.getElementById('fromInput').value = e.result.place_name;
-        map.flyTo({ center: lnglat, zoom: 14 });
+      return searchBox;
+    }
+
+    function setupSearchBoxes() {
+      const fromContainer = document.getElementById('from-container');
+      const toContainer = document.getElementById('to-container');
+      
+      // Kosongkan container
+      fromContainer.innerHTML = '';
+      toContainer.innerHTML = '';
+
+      // From search box
+      const searchFrom = createSearchBox('Mo jemput dimana?', (coords, name) => {
+        updateMarker('from', { lng: coords[0], lat: coords[1] });
+        searchFrom.value = name;
         if (markerB) tryDirection();
         updateConfirmButton();
       });
+      fromContainer.appendChild(searchFrom);
 
-      const geocoderTo = new MapboxGeocoder({
-        accessToken: mapboxToken,
-        mapboxgl: mapboxgl,
-        input: '#toInput',
-        types: 'address,poi,place',
-        country: 'id',
-        placeholder: 'Mo antar kamana?'
-      });
-      geocoderTo.on('result', (e) => {
-        const lnglat = e.result.center;
-        updateMarker('toInput', { lng: lnglat[0], lat: lnglat[1] });
-        document.getElementById('toInput').value = e.result.place_name;
+      // Tombol clear
+      const clearFrom = document.createElement('button');
+      clearFrom.className = 'clear-btn';
+      clearFrom.textContent = '×';
+      clearFrom.onclick = () => {
+        clearInput('from', searchFrom);
+      };
+      fromContainer.appendChild(clearFrom);
+
+      // Tombol lokasi
+      const locFrom = document.createElement('button');
+      locFrom.className = 'location-btn';
+      locFrom.textContent = '⌖';
+      locFrom.onclick = () => {
+        detectLocation(searchFrom, true);
+      };
+      fromContainer.appendChild(locFrom);
+
+      // To search box
+      const searchTo = createSearchBox('Mo antar kamana?', (coords, name) => {
+        updateMarker('to', { lng: coords[0], lat: coords[1] });
+        searchTo.value = name;
         if (markerA) tryDirection();
         updateConfirmButton();
       });
+      toContainer.appendChild(searchTo);
 
-      // Jika ada parameter dari URL, set marker dan input
+      // Tombol clear
+      const clearTo = document.createElement('button');
+      clearTo.className = 'clear-btn';
+      clearTo.textContent = '×';
+      clearTo.onclick = () => {
+        clearInput('to', searchTo);
+      };
+      toContainer.appendChild(clearTo);
+
+      // Tombol lokasi
+      const locTo = document.createElement('button');
+      locTo.className = 'location-btn';
+      locTo.textContent = '⌖';
+      locTo.onclick = () => {
+        detectLocation(searchTo, false);
+      };
+      toContainer.appendChild(locTo);
+
+      // Jika ada parameter dari URL, set nilai
       if (fromParam) {
         const coords = fromParam.split(',').map(Number);
         if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
           const loc = { lng: coords[1], lat: coords[0] };
           getAddressFromOSM({ lat: loc.lat, lng: loc.lng }, alamat => {
-            document.getElementById('fromInput').value = alamat;
-            updateMarker('fromInput', loc);
+            searchFrom.value = alamat;
+            updateMarker('from', loc);
             map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
           });
         }
@@ -1892,8 +1957,8 @@
         if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
           const loc = { lng: coords[1], lat: coords[0] };
           getAddressFromOSM({ lat: loc.lat, lng: loc.lng }, alamat => {
-            document.getElementById('toInput').value = alamat;
-            updateMarker('toInput', loc);
+            searchTo.value = alamat;
+            updateMarker('to', loc);
           });
         }
       }
@@ -1902,8 +1967,8 @@
         if (c.length === 2 && !isNaN(c[0]) && !isNaN(c[1])) {
           currentPosition = { lat: c[0], lng: c[1] };
           getAddressFromOSM(currentPosition, alamat => {
-            document.getElementById('fromInput').value = alamat;
-            updateMarker('fromInput', { lng: currentPosition.lng, lat: currentPosition.lat });
+            searchFrom.value = alamat;
+            updateMarker('from', { lng: currentPosition.lng, lat: currentPosition.lat });
             map.flyTo({ center: [currentPosition.lng, currentPosition.lat], zoom: 14 });
           });
         }
@@ -1917,8 +1982,8 @@
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
             getAddressFromOSM(loc, alamat => {
-              document.getElementById('fromInput').value = alamat;
-              updateMarker('fromInput', loc);
+              searchFrom.value = alamat;
+              updateMarker('from', loc);
               hideRadar();
             });
           },
@@ -1928,12 +1993,31 @@
       }
     }
 
+    // ==================== INISIALISASI MAP (Mapbox) ====================
+    function initMap() {
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [123.0595, 0.5441],
+        zoom: 12
+      });
+
+      map.addControl(new mapboxgl.NavigationControl());
+
+      map.on('load', () => {
+        // Set token (sudah diatur global)
+        // Tunggu hingga library search-js siap
+        if (window.mapboxsearch) {
+          setupSearchBoxes();
+        } else {
+          document.getElementById('search-js').onload = setupSearchBoxes;
+        }
+      });
+    }
+
     // ==================== EVENT LISTENERS ====================
     function setupEventListeners() {
-      document.getElementById('clearFromBtn').addEventListener('click', () => clearInput('fromInput'));
-      document.getElementById('clearToBtn').addEventListener('click', () => clearInput('toInput'));
-      document.getElementById('locationFromBtn').addEventListener('click', () => detectLocation('fromInput'));
-      document.getElementById('locationToBtn').addEventListener('click', () => detectLocation('toInput'));
+      // Tombol mode peta
       document.getElementById('mapModeBtn').addEventListener('click', toggleMapMode);
       document.getElementById('confirmBtn').addEventListener('click', confirmRoute);
       document.getElementById('cancelBtn').addEventListener('click', cancelSearch);
@@ -1947,9 +2031,11 @@
       document.getElementById('closeDriverOffers').addEventListener('click', () => document.getElementById('driverOffers').style.display = 'none');
     }
 
-    // ==================== INISIALISASI UTAMA ====================
+    // ==================== INISIALISASI UTAMA (TANPA HARDCODE) ====================
     async function onLoad() {
       console.log('Memulai aplikasi...');
+      
+      // 1. Ambil data user
       userData = getUserData();
       if (!userData) {
         showPopup("Silakan login terlebih dahulu", "Info", "info");
@@ -1961,36 +2047,50 @@
           startUserDataRefresh();
         }
       }
+
+      // 2. Muat data tarif kendaraan
       await loadVehicleData();
 
-      // Ambil token Mapbox dari Firebase
+      // 3. 🔴 AMBIL TOKEN MAPBOX HANYA DARI FIREBASE
       try {
+        console.log('Mengambil token Mapbox dari Firebase...');
         const tokenSnapshot = await database.ref('Secret/Key').once('value');
         mapboxToken = tokenSnapshot.val();
+        
         if (!mapboxToken) {
-          console.error('Token Mapbox tidak ditemukan di Firebase');
-          showPopup('Token peta tidak ditemukan', 'Error', 'error');
-          return;
+          throw new Error('Token Mapbox tidak ditemukan di Firebase');
         }
-        console.log('Token Mapbox berhasil dimuat');
+        
+        console.log('✅ Token Mapbox berhasil dimuat dari Firebase');
+        
+        // Set token global Mapbox
+        mapboxgl.accessToken = mapboxToken;
+        
+        // Inisialisasi map (langsung pakai token yang sudah di-set)
+        initMap();
+        
+        // Cek order aktif setelah map siap
+        setTimeout(() => {
+          checkActiveOrder();
+        }, 2000);
+
+        setupEventListeners();
+
       } catch (error) {
-        console.error('Gagal mengambil token Mapbox:', error);
-        showPopup('Gagal memuat token peta', 'Error', 'error');
-        return;
+        console.error('❌ Gagal memuat token Mapbox:', error);
+        showPopup(
+          'Gagal memuat konfigurasi peta. Periksa koneksi atau hubungi admin.', 
+          'Error', 
+          'error'
+        );
+        
+        // Tampilkan pesan error di konsol, tapi jangan hardcode fallback
+        document.body.innerHTML += `
+          <div style="position:fixed; bottom:20px; left:20px; right:20px; background:#f44336; color:white; padding:15px; border-radius:8px; z-index:10000; text-align:center;">
+            ⚠️ Gagal memuat token Mapbox. Aplikasi tidak dapat berjalan.
+          </div>
+        `;
       }
-
-      // Set token Mapbox global
-      mapboxgl.accessToken = mapboxToken;
-
-      // Inisialisasi map
-      initMap();
-
-      // Cek order aktif setelah map siap
-      setTimeout(() => {
-        checkActiveOrder();
-      }, 1000);
-
-      setupEventListeners();
     }
 
     window.onload = onLoad;
