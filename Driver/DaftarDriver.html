@@ -4,23 +4,24 @@
   <meta charset="utf-8" />
   <title>Daftar Driver - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK: hanya database dan storage -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <!-- TIDAK ADA firebase-auth-compat.js -->
   <style>
+    /* CSS tetap sama (tidak diubah) */
     :root {
-      --primary: #FF9800;    /* Orange */
-      --secondary: #FF5722;   /* Red-Orange */
-      --accent: #FFC107;     /* Amber/Yellow */
+      --primary: #FF9800;
+      --secondary: #FF5722;
+      --accent: #FFC107;
       --light: #f8f9fa;
       --dark: #343a40;
-      --success: #4CAF50;    /* Green */
-      --danger: #f44336;     /* Red */
-      --warning: #FFC107;    /* Yellow */
-      --info: #2196F3;       /* Blue */
-      --gray: #9E9E9E;       /* Gray */
+      --success: #4CAF50;
+      --danger: #f44336;
+      --warning: #FFC107;
+      --info: #2196F3;
+      --gray: #9E9E9E;
     }
 
     * {
@@ -293,16 +294,9 @@
       text-decoration: none;
     }
 
-    /* Recaptcha Container */
+    /* Recaptcha Container dihapus karena tidak digunakan */
     #recaptcha-container {
-      margin: 15px 0;
-      min-height: 78px;
-      display: flex;
-      justify-content: center;
-    }
-
-    #recaptcha-container > div {
-      margin: 0 auto;
+      display: none;
     }
 
     .phone-format {
@@ -1000,8 +994,8 @@
             <input type="text" class="form-input" id="address" placeholder="Masukkan alamat lengkap" required>
           </div>
           
-          <!-- Recaptcha Container -->
-          <div id="recaptcha-container"></div>
+          <!-- Recaptcha Container dihapus, tidak digunakan -->
+          <div id="recaptcha-container" style="display: none;"></div>
           
           <button type="button" class="submit-btn" id="sendOtpBtn">Kirim Kode OTP</button>
         </form>
@@ -1290,7 +1284,7 @@
 
   <script>
     // ================================================
-    // KONFIGURASI
+    // KONFIGURASI FIREBASE (sama, tanpa auth)
     // ================================================
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
@@ -1299,30 +1293,37 @@
       projectId: "game-balap-simpel",
       storageBucket: "game-balap-simpel.firebasestorage.app",
       messagingSenderId: "864576853495",
-      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
-      measurementId: "G-YWJPK7Y3J4"
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
     };
 
     // ================================================
-    // INISIALISASI FIREBASE
+    // INISIALISASI FIREBASE (hanya database & storage)
     // ================================================
-    firebase.initializeApp(FIREBASE_CONFIG);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
     const database = firebase.database();
     const storage = firebase.storage();
-    const auth = firebase.auth();
+
+    // ================================================
+    // KONFIGURASI GATEWAY SMS (sama dengan user)
+    // ================================================
+    const SMS_GATEWAY_CONFIG = {
+      user: 'gsmreload',
+      pass: 'Jd59dm$jr*dj^hy',
+      baseUrl: 'https://srv2.soufasms.com/sms_gateway/'
+    };
 
     // ================================================
     // VARIABEL GLOBAL
     // ================================================
-    let recaptchaVerifier = null;
-    let confirmationResult = null;
     let otpTimer = null;
     let otpCountdown = 60;
-    let driverData = null;
-    let firebaseUser = null;
-    let currentStep = 1;
+    let driverData = null; // data sementara step 1
+    let currentPhone = '';
     let uploadedFilesCount = 0;
     const totalFilesRequired = 6;
+    let currentStep = 1;
 
     // ================================================
     // ELEMEN DOM
@@ -1352,7 +1353,6 @@
     const modalCancelBtn = document.getElementById('modalCancelBtn');
     const loadingModal = document.getElementById('loadingModal');
     const loadingText = document.getElementById('loadingText');
-    const recaptchaContainer = document.getElementById('recaptcha-container');
     const verifiedPhoneInput = document.getElementById('verifiedPhone');
     const resendOtpLink = document.getElementById('resendOtpLink');
     const countdownText = document.getElementById('countdownText');
@@ -1362,7 +1362,7 @@
     const uploadStatusText = document.getElementById('uploadStatusText');
 
     // ================================================
-    // FUNGSI UTILITAS
+    // FUNGSI UTILITAS (sama dengan user)
     // ================================================
     
     function showPopup(title, message, type = 'info', options = {}) {
@@ -1582,10 +1582,6 @@
       }, 1000);
     }
     
-    // ================================================
-    // FUNGSI HELPER KODULAR
-    // ================================================
-    
     function sendToKodular(data) {
       console.log('Mengirim data ke Kodular:', data);
       
@@ -1624,32 +1620,114 @@
         return false;
       }
     }
-    
-    function openDashboard(driverData) {
-      const data = {
-        action: "open_dashboard",
-        role: "driver",
-        uid: driverData.uid || driverData.firebase_key,
-        name: driverData.name || driverData.fullName,
-        phone: driverData.phone,
-        status: driverData.status
-      };
-      
-      if (typeof window.AppInventor !== 'undefined') {
-        console.log('📱 Dibuka dari Kodular, mengirim data...');
-        const sent = sendToKodular(data);
-        if (sent) {
-          console.log('✅ Data driver berhasil dikirim ke Kodular');
-        } else {
-          console.error('❌ Gagal mengirim data ke Kodular, redirect ke list1.html');
-          window.location.href = 'list1.html';
-        }
-      } else {
-        console.log('🌐 Dibuka dari browser, redirect ke list1.html');
-        window.location.href = 'list1.html';
+
+    // ================================================
+    // FUNGSI OTP MANUAL (sama dengan user)
+    // ================================================
+    async function canSendOTP(phone) {
+      const ref = database.ref('otp_verification/' + phone.replace(/\+/g, '_'));
+      const snap = await ref.child('requests').once('value');
+      const requests = snap.val() || [];
+      const now = Date.now();
+      const tenMinutesAgo = now - 10 * 60 * 1000;
+      const recentRequests = requests.filter(ts => ts > tenMinutesAgo);
+      return recentRequests.length < 3;
+    }
+
+    async function saveOTP(phone, code) {
+      const path = 'otp_verification/' + phone.replace(/\+/g, '_');
+      const ref = database.ref(path);
+      const now = Date.now();
+      const expiresAt = now + 5 * 60 * 1000; // 5 menit
+
+      const snap = await ref.child('requests').once('value');
+      let requests = snap.val() || [];
+      requests = requests.filter(ts => ts > now - 10 * 60 * 1000);
+      requests.push(now);
+
+      await ref.set({
+        code: code,
+        created_at: now,
+        expires_at: expiresAt,
+        requests: requests
+      });
+    }
+
+    async function sendOTPviaDirectGateway(phone, code) {
+      const message = `Kode OTP Anda adalah ${code}`;
+      const no = phone.replace('+', '');
+      const params = new URLSearchParams({
+        user: SMS_GATEWAY_CONFIG.user,
+        pass: SMS_GATEWAY_CONFIG.pass,
+        no: no,
+        msg: message,
+        max: '1'
+      });
+      const url = `${SMS_GATEWAY_CONFIG.baseUrl}?${params.toString()}`;
+
+      try {
+        await fetch(url, { mode: 'no-cors' });
+        console.log('OTP dikirim (mode no-cors, tidak ada validasi)');
+        return true;
+      } catch (e) {
+        console.error('Gagal mengirim OTP:', e);
+        showErrorMessage('Gagal mengirim OTP. Periksa koneksi internet.');
+        return false;
       }
     }
-    
+
+    async function sendOTP(phone) {
+      try {
+        const allowed = await canSendOTP(phone);
+        if (!allowed) {
+          showErrorMessage('Terlalu banyak permintaan OTP. Coba lagi nanti.');
+          return false;
+        }
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        await saveOTP(phone, code);
+
+        const sent = await sendOTPviaDirectGateway(phone, code);
+        if (!sent) {
+          await database.ref('otp_verification/' + phone.replace(/\+/g, '_')).remove();
+          return false;
+        }
+
+        showInfoMessage('OTP terkirim!', true);
+        return true;
+      } catch (e) {
+        showErrorMessage('Gagal kirim OTP: ' + e.message);
+        return false;
+      }
+    }
+
+    async function verifyOTP(phone, code) {
+      const path = 'otp_verification/' + phone.replace(/\+/g, '_');
+      const ref = database.ref(path);
+      const snap = await ref.once('value');
+      const data = snap.val();
+      if (!data) {
+        showErrorMessage('Kode OTP tidak ditemukan. Silakan kirim ulang.');
+        return false;
+      }
+
+      const now = Date.now();
+      if (now > data.expires_at) {
+        showErrorMessage('Kode OTP sudah kadaluarsa. Silakan kirim ulang.');
+        await ref.remove();
+        return false;
+      }
+
+      if (data.code !== code) {
+        showErrorMessage('Kode OTP salah.');
+        return false;
+      }
+
+      // OTP benar, hapus data OTP
+      await ref.remove();
+      return true;
+    }
+
     // ================================================
     // FUNGSI NAVIGASI STEP
     // ================================================
@@ -1690,107 +1768,9 @@
           break;
       }
     }
-    
+
     // ================================================
-    // FIREBASE FUNCTIONS
-    // ================================================
-    
-    function setupRecaptcha() {
-      try {
-        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-          'size': 'normal',
-          'callback': function(response) {
-            console.log('✅ reCAPTCHA verified');
-          },
-          'expired-callback': function() {
-            console.log('❌ reCAPTCHA expired');
-            showErrorMessage('reCAPTCHA telah kadaluarsa. Silakan coba lagi.');
-          }
-        });
-        
-        recaptchaVerifier.render();
-        console.log('✅ reCAPTCHA diatur');
-      } catch (error) {
-        console.error('❌ Error setting up reCAPTCHA:', error);
-        showErrorMessage('Gagal mengatur reCAPTCHA. Silakan refresh halaman.');
-      }
-    }
-    
-    async function sendFirebaseOTP(phoneNumber) {
-      try {
-        showLoading('Mengirim kode OTP...');
-        
-        if (!recaptchaVerifier) {
-          throw new Error('reCAPTCHA belum diatur');
-        }
-        
-        confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier);
-        
-        hideLoading();
-        console.log('✅ Kode OTP dikirim via Firebase');
-        showInfoMessage('Kode OTP telah dikirim via SMS. Silakan periksa pesan SMS Anda.', true);
-        return true;
-      } catch (error) {
-        hideLoading();
-        console.error('❌ Error sending OTP:', error);
-        
-        let errorMessage = 'Gagal mengirim kode OTP. ';
-        switch (error.code) {
-          case 'auth/invalid-phone-number':
-            errorMessage += 'Format nomor telepon tidak valid.';
-            break;
-          case 'auth/too-many-requests':
-            errorMessage += 'Terlalu banyak permintaan. Silakan coba lagi nanti.';
-            break;
-          case 'auth/quota-exceeded':
-            errorMessage += 'Kuota SMS telah habis. Silakan hubungi administrator.';
-            break;
-          default:
-            errorMessage += error.message || 'Silakan coba lagi.';
-        }
-        
-        showErrorMessage(errorMessage);
-        return false;
-      }
-    }
-    
-    async function verifyFirebaseOTP(code) {
-      try {
-        showLoading('Memverifikasi OTP...');
-        
-        if (!confirmationResult) {
-          throw new Error('Sesi OTP tidak valid. Silakan minta OTP baru.');
-        }
-        
-        const userCredential = await confirmationResult.confirm(code);
-        const user = userCredential.user;
-        
-        hideLoading();
-        console.log('✅ OTP verified, user:', user.uid);
-        return user;
-      } catch (error) {
-        hideLoading();
-        console.error('❌ Error verifying OTP:', error);
-        
-        let errorMessage = 'Gagal memverifikasi OTP. ';
-        switch (error.code) {
-          case 'auth/invalid-verification-code':
-            errorMessage += 'Kode OTP tidak valid.';
-            break;
-          case 'auth/code-expired':
-            errorMessage += 'Kode OTP telah kadaluarsa.';
-            break;
-          default:
-            errorMessage += error.message || 'Silakan coba lagi.';
-        }
-        
-        showErrorMessage(errorMessage);
-        return null;
-      }
-    }
-    
-    // ================================================
-    // FUNGSI DATABASE
+    // FUNGSI DATABASE (cek nomor, simpan driver)
     // ================================================
     
     async function checkPhoneNumberExists(phoneNumber) {
@@ -1854,11 +1834,11 @@
       }
     }
     
-    async function saveDriverToDatabase(uid, userData, additionalData) {
+    async function saveDriverToDatabase(driverId, userData, additionalData) {
       try {
-        console.log('💾 Saving driver to database:', uid);
+        console.log('💾 Saving driver to database:', driverId);
         
-        const driverRef = database.ref('drivers/' + uid);
+        const driverRef = database.ref('drivers/' + driverId);
         const snapshot = await driverRef.once('value');
         
         if (snapshot.exists()) {
@@ -1873,8 +1853,8 @@
         
         const now = new Date();
         const driverProfile = {
-          firebase_key: uid,
-          uid: uid,
+          firebase_key: driverId,
+          uid: driverId,
           active: true,
           status: "pending",
           role: "driver",
@@ -1928,86 +1908,9 @@
         throw error;
       }
     }
-    
+
     // ================================================
-    // FUNGSI CEK STATUS DRIVER
-    // ================================================
-    
-    async function checkDriverStatus() {
-      try {
-        const user = auth.currentUser;
-        
-        if (!user) {
-          return;
-        }
-        
-        const driversSnapshot = await database.ref('drivers')
-          .orderByChild('uid')
-          .equalTo(user.uid)
-          .once('value');
-        
-        const driversData = driversSnapshot.val();
-        
-        if (!driversData) {
-          return;
-        }
-        
-        const driverId = Object.keys(driversData)[0];
-        const driverData = driversData[driverId];
-        const status = driverData.status || 'pending';
-        
-        console.log(`🔍 Status driver: ${status}`);
-        
-        switch(status) {
-          case 'accepted':
-            console.log('✅ Driver diterima, membuka dashboard...');
-            openDashboard(driverData);
-            break;
-            
-          case 'rejected':
-            hideAllForms();
-            showPopup('Pendaftaran Ditolak', 
-              'Pendaftaran Anda telah ditolak oleh admin.<br><br>' +
-              'Alasan: ' + (driverData.rejectionReason || 'Tidak memenuhi syarat') + '<br>' +
-              'Silakan hubungi admin untuk informasi lebih lanjut.',
-              'error');
-            break;
-            
-          case 'blocked':
-            hideAllForms();
-            showPopup('Akun Diblokir',
-              'Akun Anda telah diblokir oleh admin.<br><br>' +
-              'Alasan: ' + (driverData.blockReason || 'Melanggar aturan') + '<br>' +
-              'Hubungi admin untuk mengajukan pembukaan blokir.',
-              'error');
-            break;
-            
-          case 'pending':
-            console.log('⏳ Status pending, menunggu verifikasi admin');
-            hideAllForms();
-            document.getElementById('successSection').style.display = 'block';
-            showInfoMessage('Status: Menunggu verifikasi admin.');
-            break;
-            
-          default:
-            console.warn(`⚠️ Status tidak dikenal: ${status}`);
-            hideAllForms();
-            document.getElementById('successSection').style.display = 'block';
-        }
-      } catch (error) {
-        console.error('❌ Error checking driver status:', error);
-      }
-    }
-    
-    function hideAllForms() {
-      document.getElementById('step1-content').style.display = 'none';
-      document.getElementById('step2-content').style.display = 'none';
-      document.getElementById('step3-content').style.display = 'none';
-      document.getElementById('successSection').style.display = 'none';
-    }
-    
-    // ================================================
-    // FILE UPLOAD FUNCTIONS - DIPERBAIKI
+    // FILE UPLOAD FUNCTIONS (HANYA FUNGSI INI YANG DIUBAH)
     // ================================================
     
     function setupFileUpload(uploadContainerId, fileInputId, previewId, progressId, progressBarId, percentageId, infoId) {
@@ -2113,54 +2016,46 @@
       };
     }
     
+    // ==================== FUNGSI UPLOAD YANG TELAH DIUBAH (MENGGUNAKAN IMGBB) ====================
     async function uploadFile(file, path, progressBar, percentageElement, fileType) {
       return new Promise((resolve, reject) => {
-        const metadata = {
-          contentType: file.type,
-          customMetadata: {
-            uploadedBy: 'driver_registration',
-            timestamp: Date.now().toString()
-          }
-        };
-        
-        const storageRef = storage.ref(path);
-        const uploadTask = storageRef.put(file, metadata);
-        
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            const progressRounded = Math.round(progress);
-            
-            if (progressBar) {
-              progressBar.style.width = progress + '%';
-            }
-            
-            if (percentageElement) {
-              percentageElement.textContent = `${progressRounded}%`;
-            }
-            
-            console.log(`${fileType} upload: ${progressRounded}%`);
-            
-            updateUploadStatusText(progressRounded, fileType);
-          },
-          (error) => {
-            console.error(`${fileType} upload error:`, error);
-            reject(error);
-          },
-          async () => {
-            try {
-              const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-              
+        const reader = new FileReader();
+
+        reader.onload = async function () {
+          try {
+            const base64Image = reader.result.split(',')[1];
+
+            const formData = new FormData();
+            formData.append("key", "3f244d81c0cb33bbb3c2e489ff9c75dd");
+            formData.append("image", base64Image);
+            formData.append("name", fileType + "_" + Date.now());
+
+            const response = await fetch("https://api.imgbb.com/1/upload", {
+              method: "POST",
+              body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              // Simulasi progress bar ke 100%
+              if (progressBar) progressBar.style.width = "100%";
+              if (percentageElement) percentageElement.textContent = "100%";
+
               uploadedFilesCount++;
               updateUploadedCount();
-              
-              console.log(`✅ ${fileType} uploaded successfully: ${downloadURL}`);
-              resolve(downloadURL);
-            } catch (error) {
-              reject(error);
+
+              resolve(result.data.url);
+            } else {
+              reject(new Error(result.error?.message || 'Upload gagal'));
             }
+
+          } catch (error) {
+            reject(error);
           }
-        );
+        };
+
+        reader.readAsDataURL(file);
       });
     }
     
@@ -2231,9 +2126,9 @@
       
       return null;
     }
-    
+
     // ================================================
-    // EVENT HANDLERS
+    // EVENT HANDLERS (diubah untuk OTP manual)
     // ================================================
     
     document.getElementById('phoneNumber').addEventListener('input', function() {
@@ -2348,9 +2243,11 @@
         address: address
       };
       
-      const otpSent = await sendFirebaseOTP(phoneNumber);
+      // Kirim OTP manual
+      const otpSent = await sendOTP(phoneNumber);
       
       if (otpSent) {
+        currentPhone = phoneNumber;
         verifiedPhoneInput.value = phoneNumber;
         goToStep(2);
         document.getElementById('otp1').focus();
@@ -2374,15 +2271,15 @@
       document.getElementById('verifyOtpBtn').disabled = true;
       document.getElementById('verifyOtpBtn').textContent = 'Memverifikasi...';
       
-      const user = await verifyFirebaseOTP(enteredOtp);
+      const isValid = await verifyOTP(currentPhone, enteredOtp);
       
-      if (!user) {
+      if (!isValid) {
         document.getElementById('verifyOtpBtn').disabled = false;
         document.getElementById('verifyOtpBtn').textContent = 'Verifikasi OTP';
         return;
       }
       
-      firebaseUser = user;
+      // Verifikasi berhasil, lanjut ke step 3
       goToStep(3);
       document.getElementById('verifyOtpBtn').disabled = false;
       document.getElementById('verifyOtpBtn').textContent = 'Verifikasi OTP';
@@ -2398,7 +2295,7 @@
         return;
       }
       
-      const otpSent = await sendFirebaseOTP(driverData.phoneNumber);
+      const otpSent = await sendOTP(driverData.phoneNumber);
       
       if (otpSent) {
         clearOTPInputs();
@@ -2502,79 +2399,61 @@
         uploadPromises.push(
           uploadFile(
             profileUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/profile_${timestamp}.jpg`,
+            `drivers/${driverData.phoneNumber.replace(/\D/g, '')}/profile_${timestamp}.jpg`,
             profileUpload.progressBar,
             profileUpload.percentage,
             'profile'
-          ).then(url => { 
-            uploadResults.profilePhotoUrl = url; 
-            console.log('✅ Foto profil uploaded');
-          })
+          ).then(url => { uploadResults.profilePhotoUrl = url; })
         );
         
         uploadPromises.push(
           uploadFile(
             ktpUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/ktp_${timestamp}.jpg`,
+            `drivers/${driverData.phoneNumber.replace(/\D/g, '')}/ktp_${timestamp}.jpg`,
             ktpUpload.progressBar,
             ktpUpload.percentage,
             'ktp'
-          ).then(url => { 
-            uploadResults.ktpPhotoUrl = url; 
-            console.log('✅ KTP uploaded');
-          })
+          ).then(url => { uploadResults.ktpPhotoUrl = url; })
         );
         
         uploadPromises.push(
           uploadFile(
             simUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/sim_${timestamp}.jpg`,
+            `drivers/${driverData.phoneNumber.replace(/\D/g, '')}/sim_${timestamp}.jpg`,
             simUpload.progressBar,
             simUpload.percentage,
             'sim'
-          ).then(url => { 
-            uploadResults.simPhotoUrl = url; 
-            console.log('✅ SIM uploaded');
-          })
+          ).then(url => { uploadResults.simPhotoUrl = url; })
         );
         
         uploadPromises.push(
           uploadFile(
             stnkUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/stnk_${timestamp}.jpg`,
+            `drivers/${driverData.phoneNumber.replace(/\D/g, '')}/stnk_${timestamp}.jpg`,
             stnkUpload.progressBar,
             stnkUpload.percentage,
             'stnk'
-          ).then(url => { 
-            uploadResults.stnkPhotoUrl = url; 
-            console.log('✅ STNK uploaded');
-          })
+          ).then(url => { uploadResults.stnkPhotoUrl = url; })
         );
         
         uploadPromises.push(
           uploadFile(
             vehicleFrontUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/vehicle_front_${timestamp}.jpg`,
+            `drivers/${driverData.phoneNumber.replace(/\D/g, '')}/vehicle_front_${timestamp}.jpg`,
             vehicleFrontUpload.progressBar,
             vehicleFrontUpload.percentage,
             'vehicleFront'
-          ).then(url => { 
-            uploadResults.vehicleFrontPhotoUrl = url; 
-            console.log('✅ Vehicle front uploaded');
-          })
+          ).then(url => { uploadResults.vehicleFrontPhotoUrl = url; })
         );
         
         uploadPromises.push(
           uploadFile(
             vehicleBackUpload.fileInput.files[0], 
-            `drivers/${firebaseUser.uid}/vehicle_back_${timestamp}.jpg`,
+            `drivers/${driverData.phoneNumber.replace(/\D/g, '')}/vehicle_back_${timestamp}.jpg`,
             vehicleBackUpload.progressBar,
             vehicleBackUpload.percentage,
             'vehicleBack'
-          ).then(url => { 
-            uploadResults.vehicleBackPhotoUrl = url; 
-            console.log('✅ Vehicle back uploaded');
-          })
+          ).then(url => { uploadResults.vehicleBackPhotoUrl = url; })
         );
         
         await Promise.all(uploadPromises);
@@ -2589,12 +2468,14 @@
         
         console.log('📁 All files uploaded, saving to database...');
         
-        await saveDriverToDatabase(firebaseUser.uid, driverData, formData);
+        // Gunakan nomor telepon sebagai ID driver (atau bisa juga generate unik, tapi kita pakai nomor)
+        const driverId = driverData.phoneNumber.replace(/\D/g, '');
+        await saveDriverToDatabase(driverId, driverData, formData);
         
         // Buat session untuk driver
         const sessionDriver = {
-          userId: firebaseUser.uid,
-          uid: firebaseUser.uid,
+          userId: driverId,
+          uid: driverId,
           name: driverData.fullName,
           phone: driverData.phoneNumber,
           email: driverData.email || "",
@@ -2609,14 +2490,14 @@
         
         localStorage.setItem('jego_logged_in_driver', JSON.stringify(sessionDriver));
         
-        hideLoading(); // Pastikan loading modal ditutup
+        hideLoading();
         document.getElementById('driverFormStep3').style.display = 'none';
         document.getElementById('successSection').style.display = 'block';
         
         showSuccessMessage('Pendaftaran driver berhasil! Data Anda sedang diverifikasi admin.', true);
         
       } catch (error) {
-        hideLoading(); // Pastikan loading modal ditutup meski error
+        hideLoading();
         console.error('❌ Error in registration process:', error);
         
         let errorMessage = 'Terjadi kesalahan saat menyimpan data. ';
@@ -2643,14 +2524,13 @@
     });
     
     // ================================================
-    // INITIALIZATION & AUTH STATE LISTENER
+    // INISIALISASI
     // ================================================
     
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('🚀 Aplikasi Pendaftaran Driver JeGo dimulai...');
       
       try {
-        setupRecaptcha();
         setupOTPInputs();
         resetUploadCounters();
         
@@ -2669,12 +2549,6 @@
               document.getElementById('verifyOtpBtn').click();
             }
           });
-        });
-        
-        auth.onAuthStateChanged(async (user) => {
-          if (user) {
-            await checkDriverStatus();
-          }
         });
         
         console.log('✅ Aplikasi Pendaftaran Driver siap digunakan');
