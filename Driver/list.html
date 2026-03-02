@@ -4,252 +4,619 @@
   <meta charset="utf-8" />
   <title>List Permintaan - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  
-  <!-- Google Maps API dengan async dan callback -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places&callback=initApp" async defer></script>
-  
-  <!-- CSS External -->
-  <link rel="stylesheet" href="css/list1.css">
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs&libraries=places"></script>
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --promo: #ff6b6b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+      padding-bottom: 70px;
+    }
+
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .driver-photo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent);
+    }
+
+    .gps-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .gps-active { background-color: #4ade80; }
+    .gps-inactive { background-color: #f87171; }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .location-toggle-btn, .autobid-btn, .refresh-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+    }
+
+    .location-toggle-btn:hover, .autobid-btn:hover, .refresh-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .location-toggle-btn.active, .autobid-btn.active {
+      background: var(--accent);
+      color: var(--dark);
+    }
+
+    /* Container */
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .order-item {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .order-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .customer-name {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .kurir-badge {
+      background-color: var(--accent);
+      color: var(--dark);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .promo-badge {
+      background: linear-gradient(135deg, var(--promo), #ff8e8e);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-searching {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .route-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.8rem;
+    }
+
+    .route-point {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .point-marker {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    .point-marker-a { background-color: var(--primary); }
+    .point-marker-b { background-color: var(--secondary); }
+
+    .point-address { flex: 1; word-break: break-word; }
+    .point-address-a { font-weight: 700; }
+
+    .delivery-info {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+      font-size: 0.75rem;
+    }
+
+    .delivery-item {
+      display: flex;
+      margin-bottom: 4px;
+    }
+
+    .delivery-label {
+      font-weight: 600;
+      color: var(--primary);
+      min-width: 80px;
+      margin-right: 8px;
+    }
+
+    .order-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+      font-size: 0.8rem;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .detail-value {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 0.75rem;
+    }
+
+    .detail-label {
+      font-size: 0.65rem;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .price-highlight { color: var(--success); font-weight: 700; }
+
+    .price-promo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .original-price {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 0.7rem;
+      margin-bottom: 2px;
+    }
+
+    .promo-price { color: var(--promo); font-weight: 700; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: 12px;
+      width: 95%;
+      max-width: 380px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover { color: var(--danger); }
+
+    .modal-body { padding: 0; }
+    .modal-map { height: 150px; width: 100%; border-radius: 0; }
+
+    .modal-details { padding: 12px 15px; }
+
+    .modal-route-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .modal-route-point {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .modal-point-marker {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    .modal-point-address {
+      flex: 1;
+      word-break: break-word;
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+
+    .modal-order-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .modal-detail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .modal-detail-value {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 0.85rem;
+    }
+
+    .modal-detail-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .modal-footer {
+      padding: 12px 15px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .ambil-btn {
+      width: 100%;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .ambil-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .ambil-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 99;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 8px 0;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 8px;
+      margin: 0 5px;
+    }
+
+    .nav-item.active {
+      background-color: rgba(30, 111, 92, 0.1);
+    }
+
+    .nav-item.active .nav-icon { color: var(--primary); }
+    .nav-item.active .nav-label { color: var(--primary); font-weight: 600; }
+
+    .nav-icon {
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+      color: #666;
+      transition: all 0.2s;
+    }
+
+    .nav-label {
+      font-size: 0.7rem;
+      color: #666;
+      transition: all 0.2s;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body { font-size: 0.8rem; }
+      .order-item { padding: 10px; }
+      .route-info { font-size: 0.75rem; }
+      .order-details { font-size: 0.75rem; }
+      .modal-content { width: 98%; max-height: 95vh; }
+      .modal-map { height: 150px; }
+      .location-toggle-btn, .autobid-btn, .refresh-btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+      }
+      .bottom-nav { padding: 8px 0; }
+      .nav-icon { font-size: 1.1rem; }
+      .nav-label { font-size: 0.65rem; }
+    }
+
+    @media (max-width: 576px) {
+      .container { padding: 10px; }
+      .order-details { grid-template-columns: repeat(3, 1fr); }
+      .modal-header, .modal-details, .modal-footer { padding: 12px 15px; }
+      .modal-order-details { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .header { padding: 12px 15px; }
+      .location-toggle-btn, .autobid-btn, .refresh-btn {
+        padding: 5px 10px;
+        font-size: 0.7rem;
+      }
+      .bottom-nav { padding: 6px 0; }
+      .nav-item { padding: 6px 0; }
+      .nav-icon { font-size: 1rem; }
+      .nav-label { font-size: 0.6rem; }
+      .modal-content { max-width: 340px; }
+      .modal-map { height: 120px; }
+      .modal-details { padding: 10px 12px; }
+    }
+  </style>
 </head>
 <body>
-  <!-- Header dengan tombol menu di kiri foto profil -->
+  <!-- Guard Login -->
+  <script>
+    (function () {
+      const raw = localStorage.getItem('jego_logged_in_driver');
+      if (!raw) {
+        redirectLogin("not_logged_in");
+        return;
+      }
+
+      const driver = JSON.parse(raw);
+      const status = driver.status || driver.driverStatus;
+
+      if (!["active", "approved", "accepted"].includes(status)) {
+        redirectLogin("not_logged_in_or_inactive");
+        return;
+      }
+
+      function redirectLogin(reason) {
+        const payload = {
+          action: "navigate",
+          target: "login",
+          reason
+        };
+
+        if (window.AppInventor?.setWebViewString) {
+          window.AppInventor.setWebViewString(JSON.stringify(payload));
+        } else if (window.android?.receiveData) {
+          window.android.receiveData(JSON.stringify(payload));
+        } else {
+          window.location.href = "loginDriver.html";
+        }
+      }
+    })();
+  </script>
+
+  <!-- Header -->
   <div class="header">
     <div class="logo-container">
-      <!-- TOMBOL MENU DIPINDAH KE KIRI FOTO PROFIL -->
-      <button class="menu-btn" id="menuBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 12h18M3 6h18M3 18h18"/>
-        </svg>
-      </button>
       <img id="driverPhoto" class="driver-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Driver Photo">
       <div class="gps-status" id="gpsStatus">
         <span class="gps-dot gps-inactive" id="gpsDot"></span>
-        <span id="gpsText" style="display: none;">Mendapatkan lokasi...</span>
       </div>
     </div>
     <div class="header-controls">
-      <button class="location-toggle-btn" id="locationToggleBtn">
-        <span>📍</span> OFF
-      </button>
-      
-      <button class="refresh-btn" id="refreshBtn" title="Refresh">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-        </svg>
-      </button>
+      <button class="location-toggle-btn" id="locationToggleBtn">📍 OFF</button>
+      <button class="autobid-btn" id="autobidBtn">Autobid: OFF</button>
+      <button class="refresh-btn" id="refreshBtn" title="Refresh">↻</button>
     </div>
-  </div>
-
-  <!-- Sidebar/Menu Layout -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div class="sidebar-content">
-      <div class="sidebar-header">
-        <h3>Pengaturan Driver</h3>
-        <button class="close-sidebar" id="closeSidebar">&times;</button>
-      </div>
-      <div class="sidebar-body">
-        <div class="menu-section">
-          <h4>Filter Order</h4>
-          
-          <div class="menu-item">
-            <div class="menu-item-label">
-              <span>📍 Terima Otomatis</span>
-              <span class="menu-item-desc">Autobid order terdekat</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="autobidToggle" disabled>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          
-          <div class="menu-item">
-            <div class="menu-item-label">
-              <span>📦 Terima Kurir</span>
-              <span class="menu-item-desc">Tampilkan order kurir</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="acceptKurirToggle" checked>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          
-          <div class="menu-item">
-            <div class="menu-item-label">
-              <span>📏 Jarak Radius</span>
-              <span class="menu-item-desc">Dalam kilometer (km)</span>
-            </div>
-            <div class="input-group">
-              <input type="number" id="radiusInput" min="0.1" max="10" step="0.1" value="1.0">
-              <span class="input-unit">km</span>
-            </div>
-          </div>
-          
-          <div class="menu-item" id="filterTujuanContainer" style="display: none;">
-            <div class="menu-item-label">
-              <span>🎯 Filter Tujuan</span>
-              <span class="menu-item-desc">Pisah dengan koma, contoh: Kota Gorontalo, Tilongkabila, Limboto</span>
-            </div>
-            <!-- INPUT GROUP DIPERBESAR UNTUK FILTER TUJUAN -->
-            <div class="input-group input-group-large">
-              <input type="text" id="filterTujuanInput" placeholder="Contoh: Kota Gorontalo, Tilongkabila, Limboto">
-              <button class="clear-btn" id="clearFilterTujuan">&times;</button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- ========== NAVIGASI CEPAT ========== -->
-        <div class="menu-section">
-          <h4>Navigasi Cepat</h4>
-          
-          <div class="sidebar-nav-buttons">
-            <!-- TOMBOL TANYA JEGO -->
-            <button class="sidebar-nav-button" id="tanyaJegoBtn" data-screen="tanya_jego">
-              <div class="sidebar-nav-button-content">
-                <div class="sidebar-nav-button-icon">💬</div>
-                <div class="sidebar-nav-button-text">
-                  <span class="sidebar-nav-button-title">Tanya Jego</span>
-                  <span class="sidebar-nav-button-desc">Pusat bantuan & pertanyaan</span>
-                </div>
-              </div>
-              <div class="sidebar-nav-button-arrow">›</div>
-            </button>
-            
-            <!-- TOMBOL PANDUAN DRIVER (contoh tambahan) -->
-            <button class="sidebar-nav-button" id="panduanDriverBtn" data-screen="panduan_driver">
-              <div class="sidebar-nav-button-content">
-                <div class="sidebar-nav-button-icon">📚</div>
-                <div class="sidebar-nav-button-text">
-                  <span class="sidebar-nav-button-title">Panduan Driver</span>
-                  <span class="sidebar-nav-button-desc">Cara penggunaan aplikasi</span>
-                </div>
-              </div>
-              <div class="sidebar-nav-button-arrow">›</div>
-            </button>
-            
-            <!-- TOMBOL KOMUNITAS (contoh tambahan) -->
-            <button class="sidebar-nav-button" id="komunitasBtn" data-screen="komunitas">
-              <div class="sidebar-nav-button-content">
-                <div class="sidebar-nav-button-icon">👥</div>
-                <div class="sidebar-nav-button-text">
-                  <span class="sidebar-nav-button-title">Komunitas Driver</span>
-                  <span class="sidebar-nav-button-desc">Forum diskusi driver</span>
-                </div>
-              </div>
-              <div class="sidebar-nav-button-arrow">›</div>
-            </button>
-            
-            <!-- TOMBOL LAPOR MASALAH (contoh tambahan) -->
-            <button class="sidebar-nav-button" id="laporMasalahBtn" data-screen="lapor_masalah">
-              <div class="sidebar-nav-button-content">
-                <div class="sidebar-nav-button-icon">⚠️</div>
-                <div class="sidebar-nav-button-text">
-                  <span class="sidebar-nav-button-title">Lapor Masalah</span>
-                  <span class="sidebar-nav-button-desc">Laporkan kendala teknis</span>
-                </div>
-              </div>
-              <div class="sidebar-nav-button-arrow">›</div>
-            </button>
-            
-            <!-- TOMBOL PENGATURAN LANJUT (contoh tambahan) -->
-            <button class="sidebar-nav-button" id="pengaturanLanjutBtn" data-screen="pengaturan_lanjut">
-              <div class="sidebar-nav-button-content">
-                <div class="sidebar-nav-button-icon">⚙️</div>
-                <div class="sidebar-nav-button-text">
-                  <span class="sidebar-nav-button-title">Pengaturan Lanjut</span>
-                  <span class="sidebar-nav-button-desc">Konfigurasi aplikasi</span>
-                </div>
-              </div>
-              <div class="sidebar-nav-button-arrow">›</div>
-            </button>
-          </div>
-        </div>
-        
-        <div class="menu-section">
-          <h4>Status Sistem</h4>
-          <div class="status-info">
-            <div class="status-item">
-              <span class="status-label">GPS:</span>
-              <span class="status-value" id="gpsStatusInfo">Mendapatkan lokasi...</span>
-            </div>
-            <div class="status-item">
-              <span class="status-label">Tracking:</span>
-              <span class="status-value" id="trackingStatusInfo">OFF</span>
-            </div>
-            <div class="status-item">
-              <span class="status-label">Saldo:</span>
-              <span class="status-value" id="balanceStatusInfo">Rp 0</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="sidebar-footer">
-          <!-- TOMBOL SIMPAN PENGATURAN YANG BERFUNGSI -->
-          <button class="save-btn" id="saveSettings">Simpan Pengaturan</button>
-          
-          <!-- INFO VERSI APLIKASI -->
-          <div class="app-version">
-            <div class="app-version-label">JeGo Driver App</div>
-            <div class="app-version-name">v2.0</div>
-            <div class="app-version-copyright">© 2025 Jasa Expedisi Gorontalo</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Driver Info - DISEMBUNYIKAN -->
-  <div class="driver-info" id="driverInfo" style="display: none;">
-    <div class="driver-details">
-      <div class="driver-name" id="driverNameDisplay">-</div>
-      <div class="driver-vehicle" id="driverVehicleDisplay">-</div>
-    </div>
-    <div class="driver-status" id="driverStatusDisplay">-</div>
   </div>
 
   <!-- Container -->
   <div class="container">
-    <!-- Filter Options - DISEMBUNYIKAN -->
-    <div class="filter-container" id="filterContainer" style="display: none;">
-      <div class="filter-label">Filter Order:</div>
-      <div class="filter-options">
-        <div class="filter-option active" data-filter="all">Semua</div>
-        <div class="filter-option" data-filter="penumpang">Penumpang</div>
-        <div class="filter-option" data-filter="kurir">Kurir</div>
-      </div>
-    </div>
-
     <div class="orders-list" id="ordersList">
-      <!-- Data akan diisi oleh JavaScript -->
       <div class="loading">
         <div class="spinner"></div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Detail Order (untuk manual) - DIUBAH -->
+  <!-- Modal Detail Order -->
   <div class="modal" id="orderModal">
     <div class="modal-content">
-      <!-- HEADER DENGAN NAMA DAN FOTO CUSTOMER -->
-      <div class="modal-header-with-customer">
-        <div class="modal-title-container">
-          <h3 class="modal-title">Detail Permintaan</h3>
-          <div class="modal-customer-name" id="modalCustomerName">
-            <img class="modal-customer-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Customer">
-            <span id="modalCustomerNameText">-</span>
-          </div>
-        </div>
+      <div class="modal-header">
+        <h3 class="modal-title">Detail Permintaan</h3>
         <button class="close-btn" id="closeModal">&times;</button>
       </div>
-      
       <div class="modal-body">
-        <!-- MAP DIPERBESAR -->
         <div class="modal-map" id="modalMap"></div>
-        
         <div class="modal-details">
           <div class="modal-route-info">
             <div class="modal-route-point">
@@ -262,150 +629,26 @@
             </div>
           </div>
           
-          <!-- INFO PROMO DI MODAL -->
-          <div class="modal-promo-info" id="modalPromoInfo" style="display: none;">
-            <div class="modal-promo-badge">🎁 ORDER PROMO</div>
-            <div class="modal-promo-item">
-              <span class="modal-promo-label">Kode Promo:</span>
-              <span class="modal-promo-value" id="modalPromoCode">-</span>
-            </div>
-            <div class="modal-promo-item">
-              <span class="modal-promo-label">Diskon:</span>
-              <span class="modal-promo-value" id="modalPromoDiscount">-</span>
-            </div>
-          </div>
-          
           <div id="modalDeliveryInfo"></div>
           
-          <!-- GRID DURASI, JARAK, HARGA -->
           <div class="modal-order-details">
             <div class="modal-detail-item">
               <span class="modal-detail-value" id="modalDuration">-</span>
-              <span class="modal-detail-label">|</span>
+              <span class="modal-detail-label">Durasi</span>
             </div>
             <div class="modal-detail-item">
               <span class="modal-detail-value" id="modalDistance">-</span>
-              <span class="modal-detail-label">|</span>
+              <span class="modal-detail-label">Jarak</span>
             </div>
             <div class="modal-detail-item">
-              <span class="modal-detail-value modal-price-highlight" id="modalPrice">-</span>
-              <span class="modal-detail-label">|</span>
+              <span class="modal-detail-value" id="modalPrice">-</span>
+              <span class="modal-detail-label">Harga</span>
             </div>
-          </div>
-          
-          <!-- JARAK DRIVER - HANYA ANGKA + SATUAN -->
-          <div class="distance-badge-container" id="driverDistanceContainer" style="display: none;">
-            <div class="distance-badge" id="driverDistance">-</div>
-          </div>
-          
-          <div class="countdown-container" id="countdownContainer">
-            <div class="countdown-text">Menunggu konfirmasi customer:</div>
-            <div class="countdown-timer" id="countdownTimer">30</div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="ambil-btn" id="ambilBtn">Kirim Penawaran</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL AUTOBID BARU DENGAN PROGRESS BAR - DIUBAH -->
-  <div class="modal autobid-modal" id="autobidModal">
-    <div class="modal-content">
-      <!-- HEADER DENGAN NAMA DAN FOTO CUSTOMER -->
-      <div class="modal-header-with-customer">
-        <div class="modal-title-container">
-          <h3 class="modal-title">🤖 AUTOBID - MENGIRIM PENAWARAN</h3>
-          <div class="modal-customer-name" id="autobidCustomerName">
-            <img class="autobid-customer-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Customer">
-            <span id="autobidCustomerNameText">-</span>
-          </div>
-        </div>
-        <!-- Tidak ada tombol close untuk modal Autobid -->
-      </div>
-      <div class="modal-body">
-        <div class="modal-details">
-          <div class="autobid-info">
-            <div class="autobid-route">
-              <div class="autobid-address autobid-address-a" id="autobidAddressA">-</div>
-              <div style="font-size: 0.7rem; color: #666;">↓</div>
-              <div class="autobid-address" id="autobidAddressB">-</div>
-            </div>
-            
-            <!-- INFO PROMO DI AUTOBID MODAL -->
-            <div class="autobid-promo-info" id="autobidPromoInfo" style="display: none;">
-              <div class="autobid-promo-badge">🎁 ORDER PROMO</div>
-            </div>
-            
-            <div id="autobidDeliveryInfo"></div>
-            
-            <!-- GRID DURASI, JARAK, HARGA -->
-            <div class="autobid-details">
-              <div class="autobid-detail-item">
-                <div class="autobid-detail-label">Jarak</div>
-                <div class="autobid-detail-value" id="autobidDistance">-</div>
-              </div>
-              <div class="autobid-detail-item">
-                <div class="autobid-detail-label">Durasi</div>
-                <div class="autobid-detail-value" id="autobidDuration">-</div>
-              </div>
-              <div class="autobid-detail-item">
-                <div class="autobid-detail-label">Harga</div>
-                <div class="autobid-detail-value autobid-price-value" id="autobidPrice">-</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- PROGRESS BAR BARU UNTUK AUTOBID -->
-          <div class="progress-text" id="autobidProgressText">Mengirim penawaran...</div>
-          <div class="progress-container">
-            <div class="progress-bar" id="autobidProgressBar"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Foto Profil Besar -->
-  <div class="modal photo-modal" id="photoModal">
-    <div class="modal-content">
-      <button class="close-btn" id="closePhotoModal">&times;</button>
-      <div class="modal-body">
-        <img class="large-customer-photo" id="largeCustomerPhoto" src="" alt="Customer Photo">
-        <div class="large-customer-name" id="largeCustomerName"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Informasi -->
-  <div class="modal info-modal" id="infoModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">Informasi</h3>
-        <button class="close-btn" id="closeInfoModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p id="infoMessage"></p>
-      </div>
-      <div class="modal-footer">
-        <button class="ok-btn" id="infoOkBtn">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Popup Overlay (Sesuai rute.html) -->
-  <div id="popupOverlay" class="popup-overlay" style="display: none;">
-    <div class="popup">
-      <div class="popup-header">
-        <span id="popupIcon">ℹ️</span>
-        <h3 id="popupTitle">Pemberitahuan</h3>
-      </div>
-      <div class="popup-body">
-        <p id="popupMessage"></p>
-      </div>
-      <div class="popup-footer">
-        <button id="popupButton" class="popup-button">OK</button>
       </div>
     </div>
   </div>
@@ -423,7 +666,6 @@
     <div class="nav-item" data-screen="active_order">
       <div class="nav-icon">🚗</div>
       <div class="nav-label">Berjalan</div>
-      <div class="nav-badge" id="activeOrderBadge" style="display: none;">1</div>
     </div>
     <div class="nav-item" data-screen="account">
       <div class="nav-icon">👤</div>
@@ -431,7 +673,7 @@
     </div>
   </div>
 
-  <!-- Element Audio untuk Notifikasi -->
+  <!-- Audio Notifikasi -->
   <audio id="newOrderSound" preload="auto">
     <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-tone-996.mp3" type="audio/mpeg">
   </audio>
@@ -442,7 +684,670 @@
     <source src="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- JavaScript External -->
-  <script src="js/list1.js"></script>
+  <script>
+    // ==================== BERSIHKAN KEY LAMA TIDAK TERPAKAI ====================
+    console.log('🧹 Membersihkan key localStorage lama yang tidak digunakan...');
+    const oldKeys = [
+      'jego_driver_id',
+      'jego_driver_data', 
+      'jego_driver_status',
+      'jeggo_logged_in_driver',
+      'driverData'
+    ];
+    
+    oldKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        console.log(`🗑️  Hapus key lama: ${key}`);
+      }
+    });
+
+    // ==================== CEK LOGIN DAN REDIRECT ====================
+    function checkLoginStatus() {
+      // HANYA gunakan key yang konsisten dengan loginDriver.html
+      const driverData = localStorage.getItem('jego_logged_in_driver');
+      
+      if (!driverData || driverData === '{}') {
+        console.log('❌ Driver belum login, redirect ke halaman login');
+        window.location.href = 'loginDriver.html';
+        return false;
+      }
+      
+      console.log('✅ Driver sudah login');
+      return true;
+    }
+
+    // ==================== KODE FIREBASE ====================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
+      authDomain: "ojeka-ba255.firebaseapp.com",
+      databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+      projectId: "ojeka-ba255",
+      storageBucket: "ojeka-ba255.firebasestorage.app",
+      messagingSenderId: "639980533353",
+      appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+      measurementId: "G-PBP64Z8VQ8"
+    };
+
+    // Initialize Firebase
+    let database;
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      database = firebase.database();
+      console.log('✅ Firebase berhasil diinisialisasi');
+    } catch (error) {
+      console.error('❌ Error inisialisasi Firebase:', error);
+    }
+
+    // Variabel global
+    let ordersRef = null;
+    let ordersListener = null;
+    let modalMap = null;
+    let directionsService = null;
+    let directionsRenderer = null;
+    let currentSelectedOrder = null;
+    let countdownInterval = null;
+    let offerListenerRef = null;
+    let offerListener = null;
+    let currentDriverId = null;
+    let currentDriverData = null;
+    let autobidEnabled = false;
+    let autobidInterval = null;
+    let isAutobidProcessing = false;
+    let driverLocation = { latitude: null, longitude: null };
+    let locationWatchId = null;
+    let processedOrders = new Set();
+    let locationTrackingEnabled = false;
+    let locationTrackingInterval = null;
+
+    // ==================== FUNGSI UTAMA ====================
+    function loadOrders() {
+      console.log('🔄 Memulai loadOrders...');
+      
+      const ordersList = document.getElementById('ordersList');
+      if (!ordersList) return;
+
+      ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+      if (!checkDriverData()) {
+        console.log('❌ Driver tidak terdaftar, berhenti load orders');
+        return;
+      }
+
+      if (!database) return;
+
+      if (ordersListener && ordersRef) {
+        ordersRef.off('value', ordersListener);
+      }
+
+      try {
+        ordersRef = database.ref('orders');
+        
+        ordersListener = ordersRef.on('value', (snapshot) => {
+          console.log('✅ Data orders diterima dari Firebase');
+          
+          const orders = snapshot.val();
+          ordersList.innerHTML = '';
+
+          if (!orders || Object.keys(orders).length === 0) {
+            ordersList.innerHTML = `
+              <div class="empty-state">
+                <div>📭</div>
+                <p>Tidak ada permintaan order saat ini</p>
+              </div>
+            `;
+            return;
+          }
+
+          // Proses dan tampilkan orders
+          const sortedOrders = Object.entries(orders)
+            .map(([id, order]) => ({ id, ...order }))
+            .filter(order => order.status === 'searching')
+            .sort((a, b) => {
+              const timeA = new Date(a.created_at || 0).getTime();
+              const timeB = new Date(b.created_at || 0).getTime();
+              return timeB - timeA;
+            });
+
+          if (sortedOrders.length === 0) {
+            ordersList.innerHTML = `
+              <div class="empty-state">
+                <div>📭</div>
+                <p>Tidak ada permintaan order</p>
+              </div>
+            `;
+            return;
+          }
+
+          renderOrdersList(sortedOrders, ordersList);
+          
+        }, (error) => {
+          console.error('❌ Error loading orders:', error);
+          ordersList.innerHTML = `
+            <div class="empty-state">
+              <div>⚠️</div>
+              <p>Gagal terhubung ke server</p>
+            </div>
+          `;
+        });
+        
+      } catch (error) {
+        console.error('❌ Error accessing Firebase:', error);
+      }
+    }
+
+    function renderOrdersList(orders, ordersList) {
+      orders.forEach(order => {
+        const orderItem = document.createElement('div');
+        orderItem.className = 'order-item';
+        orderItem.dataset.orderId = order.id;
+        
+        const customerName = order.user_data?.nama || 'Tidak diketahui';
+        const alamatA = order.alamat_a || '-';
+        const alamatB = order.alamat_b || '-';
+        const durasi = order.durasi || '-';
+        const jarak = order.jarak || '-';
+        const harga = order.harga_total || 0;
+        const isKurir = order.vehicle && order.vehicle.includes('kurir');
+        
+        let promoBadge = '';
+        if (order.diskon_persen || order.promo_data) {
+          promoBadge = '<span class="promo-badge">🎁 PROMO</span>';
+        }
+
+        orderItem.innerHTML = `
+          <div class="order-header">
+            <div class="customer-name">
+              ${customerName}
+              ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
+              ${promoBadge}
+            </div>
+            <span class="status-badge status-searching">Mencari Driver</span>
+          </div>
+          <div class="route-info">
+            <div class="route-point">
+              <div class="point-marker point-marker-a">A</div>
+              <div class="point-address point-address-a">${alamatA}</div>
+            </div>
+            <div class="route-point">
+              <div class="point-marker point-marker-b">B</div>
+              <div class="point-address">${alamatB}</div>
+            </div>
+          </div>
+          <div class="order-details">
+            <div class="detail-item">
+              <span class="detail-value">${durasi}</span>
+              <span class="detail-label">Durasi</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-value">${jarak}</span>
+              <span class="detail-label">Jarak</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-value price-highlight">Rp ${harga.toLocaleString('id-ID')}</span>
+              <span class="detail-label">Harga</span>
+            </div>
+          </div>
+        `;
+        
+        orderItem.addEventListener('click', () => {
+          showOrderDetail(order);
+        });
+        
+        ordersList.appendChild(orderItem);
+      });
+    }
+
+    function showOrderDetail(order) {
+      if (!checkDriverData()) return;
+
+      const orderKey = order.order_id || order.id;
+      const orderRef = database.ref('orders/' + orderKey);
+      
+      orderRef.once('value').then((snapshot) => {
+        const currentOrder = snapshot.val();
+        
+        if (!currentOrder || currentOrder.status !== 'searching') {
+          alert('Order ini sudah diambil oleh driver lain.');
+          loadOrders();
+          return;
+        }
+        
+        currentSelectedOrder = currentOrder;
+        currentDriverId = 'DRIVER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        
+        document.getElementById('modalAddressA').textContent = currentOrder.alamat_a || '-';
+        document.getElementById('modalAddressB').textContent = currentOrder.alamat_b || '-';
+        document.getElementById('modalDuration').textContent = currentOrder.durasi || '-';
+        document.getElementById('modalDistance').textContent = currentOrder.jarak || '-';
+        document.getElementById('modalPrice').textContent = currentOrder.harga_total ? `Rp ${currentOrder.harga_total.toLocaleString('id-ID')}` : '-';
+        
+        document.getElementById('ambilBtn').disabled = false;
+        document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
+        
+        document.getElementById('orderModal').style.display = 'flex';
+        
+        if (!modalMap) initModalMap();
+        showRouteOnMap(currentOrder);
+        
+      }).catch((error) => {
+        console.error('Error checking order status:', error);
+        alert('Gagal memuat detail order. Silakan coba lagi.');
+      });
+    }
+
+    function initModalMap() {
+      const mapElement = document.getElementById('modalMap');
+      modalMap = new google.maps.Map(mapElement, {
+        zoom: 12,
+        center: { lat: 0.5441, lng: 123.0595 },
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+      
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map: modalMap,
+        suppressMarkers: false,
+        polylineOptions: { strokeColor: '#289672', strokeWeight: 6 }
+      });
+    }
+
+    function showRouteOnMap(order) {
+      if (!order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) return;
+      
+      const from = new google.maps.LatLng(order.from_lat, order.from_lng);
+      const to = new google.maps.LatLng(order.to_lat, order.to_lng);
+      
+      directionsService.route({
+        origin: from,
+        destination: to,
+        travelMode: google.maps.TravelMode.DRIVING,
+        region: "ID"
+      }, (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+          const bounds = new google.maps.LatLngBounds();
+          bounds.extend(from);
+          bounds.extend(to);
+          modalMap.fitBounds(bounds);
+        }
+      });
+    }
+
+    function sendDriverOffer() {
+      if (!currentSelectedOrder || !currentDriverId) return;
+      
+      if (!checkDriverData()) return;
+
+      const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
+      const driverId = currentDriverId;
+      const ambilBtn = document.getElementById('ambilBtn');
+      
+      ambilBtn.disabled = true;
+      ambilBtn.textContent = 'Mengirim...';
+      
+      const orderRef = database.ref('orders/' + orderId);
+      orderRef.once('value').then((snapshot) => {
+        const currentOrder = snapshot.val();
+        
+        if (!currentOrder || currentOrder.status !== 'searching') {
+          alert('Order ini sudah diambil oleh driver lain.');
+          closeModal();
+          return;
+        }
+        
+        const driverData = {
+          id: driverId,
+          name: currentDriverData.fullName,
+          plate_number: currentDriverData.plateNumber,
+          vehicle_type: currentDriverData.vehicleType,
+          offered_at: new Date().toISOString(),
+        };
+        
+        orderRef.child('driver_offers').child(driverId).set(driverData)
+          .then(() => {
+            console.log('Penawaran driver berhasil dikirim');
+            ambilBtn.textContent = 'Menunggu Konfirmasi';
+            startCountdown(orderId, driverId);
+          })
+          .catch((error) => {
+            console.error('Gagal mengirim penawaran:', error);
+            alert('Gagal mengirim penawaran. Silakan coba lagi.');
+            ambilBtn.disabled = false;
+            ambilBtn.textContent = 'Kirim Penawaran';
+          });
+      }).catch((error) => {
+        console.error('Error checking order status:', error);
+        alert('Gagal memeriksa status order.');
+        ambilBtn.disabled = false;
+        ambilBtn.textContent = 'Kirim Penawaran';
+      });
+    }
+
+    function startCountdown(orderId, driverId) {
+      let timeLeft = 30;
+      if (countdownInterval) clearInterval(countdownInterval);
+      
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          removeDriverOffer(orderId, driverId);
+          closeModal();
+        }
+      }, 1000);
+    }
+
+    function removeDriverOffer(orderId, driverId) {
+      const orderRef = database.ref('orders/' + orderId);
+      orderRef.child('driver_offers').child(driverId).remove()
+        .then(() => console.log('Data driver dihapus karena waktu habis'))
+        .catch(error => console.error('Gagal menghapus data driver:', error));
+    }
+
+    function closeModal() {
+      document.getElementById('orderModal').style.display = 'none';
+      
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      
+      currentSelectedOrder = null;
+      currentDriverId = null;
+      loadOrders();
+    }
+
+    // ==================== FUNGSI GPS ====================
+    function startGPSMonitoring() {
+      if (!navigator.geolocation) {
+        console.error('❌ Browser tidak mendukung geolocation');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          updateDriverLocation(position);
+        },
+        (error) => {
+          console.error('❌ Error mendapatkan lokasi:', error);
+        }
+      );
+
+      locationWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+          updateDriverLocation(position);
+        },
+        (error) => {
+          console.error('❌ Error update lokasi:', error);
+        }
+      );
+    }
+
+    function updateDriverLocation(position) {
+      driverLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      };
+      
+      console.log(`📍 Lokasi driver: ${driverLocation.latitude}, ${driverLocation.longitude}`);
+      document.getElementById('gpsDot').className = 'gps-dot gps-active';
+    }
+
+    // ==================== FUNGSI DRIVER ====================
+    function checkDriverData() {
+      try {
+        // HANYA gunakan key yang konsisten dengan loginDriver.html
+        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
+        
+        if (!driverDataStr || driverDataStr === '{}') {
+          console.log('❌ Tidak ada data driver di localStorage');
+          showDriverNotRegistered();
+          return false;
+        }
+        
+        const driverData = JSON.parse(driverDataStr);
+        
+        // Mapping data dari struktur loginDriver.html
+        if (driverData.uid && driverData.name) {
+          currentDriverData = {
+            driverId: driverData.uid,
+            fullName: driverData.name,
+            phoneNumber: driverData.phone,
+            email: driverData.email,
+            profilePhotoUrl: driverData.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+            vehicleType: driverData.vehicleType,
+            plateNumber: driverData.plateNumber,
+            vehicleBrand: driverData.vehicleBrand,
+            status: driverData.status || driverData.driverStatus || 'pending',
+            rating: driverData.rating || 5,
+            perjalanan: driverData.perjalanan || 0,
+            balance: driverData.Balance || 0,
+            potongan: driverData.Potongan || 0
+          };
+          
+          // Update foto driver
+          const driverPhoto = document.getElementById('driverPhoto');
+          if (currentDriverData.profilePhotoUrl) {
+            driverPhoto.src = currentDriverData.profilePhotoUrl;
+          }
+          
+          console.log('✅ Driver data valid:', currentDriverData.fullName);
+          return true;
+        } else {
+          showDriverNotRegistered();
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Error checking driver data:', error);
+        showDriverNotRegistered();
+        return false;
+      }
+    }
+
+    function showDriverNotRegistered() {
+      const ordersList = document.getElementById('ordersList');
+      if (ordersList) {
+        ordersList.innerHTML = `
+          <div class="empty-state">
+            <div>🚫</div>
+            <p>Anda belum terdaftar sebagai driver atau belum login</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">
+              <a href="loginDriver.html" style="color: var(--primary); text-decoration: underline;">
+                Login sebagai Driver
+              </a>
+            </p>
+            <button onclick="localStorage.clear(); location.reload();" 
+                    style="margin-top: 10px; padding: 8px 16px; background: var(--danger); color: white; border: none; border-radius: 5px; cursor: pointer;">
+              🔄 Clear Cache & Reload
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    // ==================== FUNGSI NAVIGASI ====================
+    function navigateToScreen(screen) {
+      console.log(`🔄 Navigasi ke screen: ${screen}`);
+      
+      switch(screen) {
+        case 'home':
+          if (!window.location.href.includes('list.html')) {
+            window.location.href = 'list.html';
+          }
+          break;
+        case 'history':
+          window.location.href = 'riwayat.html';
+          break;
+        case 'active_order':
+          window.location.href = 'orderAccepted.html';
+          break;
+        case 'account':
+          window.location.href = 'akun.html';
+          break;
+      }
+      
+      updateActiveNavItem(screen);
+    }
+
+    function updateActiveNavItem(screen) {
+      const navItems = document.querySelectorAll('.nav-item');
+      
+      navItems.forEach(item => {
+        if (item.dataset.screen === screen) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
+    // ==================== FUNGSI TOGGLE ====================
+    function toggleLocationTracking() {
+      locationTrackingEnabled = !locationTrackingEnabled;
+      updateLocationToggleButton();
+      
+      if (locationTrackingEnabled) {
+        if (!driverLocation.latitude || !driverLocation.longitude) {
+          alert('GPS diperlukan. Pastikan lokasi Anda aktif.');
+          locationTrackingEnabled = false;
+          updateLocationToggleButton();
+          return;
+        }
+        
+        console.log('📍 Location tracking diaktifkan');
+      } else {
+        console.log('🛑 Location tracking dimatikan');
+      }
+    }
+
+    function updateLocationToggleButton() {
+      const locationToggleBtn = document.getElementById('locationToggleBtn');
+      if (locationTrackingEnabled) {
+        locationToggleBtn.innerHTML = '📍 ON';
+        locationToggleBtn.classList.add('active');
+      } else {
+        locationToggleBtn.innerHTML = '📍 OFF';
+        locationToggleBtn.classList.remove('active');
+      }
+    }
+
+    function toggleAutobid() {
+      if (!locationTrackingEnabled) {
+        alert('Aktifkan tracking terlebih dahulu');
+        return;
+      }
+
+      autobidEnabled = !autobidEnabled;
+      updateAutobidButton();
+      
+      if (autobidEnabled) {
+        console.log('🚀 Autobid diaktifkan');
+      } else {
+        console.log('🛑 Autobid dinonaktifkan');
+      }
+    }
+
+    function updateAutobidButton() {
+      const autobidBtn = document.getElementById('autobidBtn');
+      if (autobidEnabled) {
+        autobidBtn.innerHTML = 'Autobid: ON';
+        autobidBtn.classList.add('active');
+      } else {
+        autobidBtn.innerHTML = 'Autobid: OFF';
+        autobidBtn.classList.remove('active');
+      }
+    }
+
+    function refreshData() {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.disabled = true;
+      
+      loadOrders();
+      
+      setTimeout(() => {
+        refreshBtn.disabled = false;
+      }, 1000);
+    }
+
+    // ==================== DEBUG LOCALSTORAGE ====================
+    function debugLocalStorage() {
+      console.log('🔍 Debug localStorage:');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        if (key.includes('jego')) {
+          console.log(`  ${key}: ${value.substring(0, 100)}...`);
+        }
+      }
+      
+      const driverData = localStorage.getItem('jego_logged_in_driver');
+      if (driverData) {
+        try {
+          const parsed = JSON.parse(driverData);
+          console.log('✅ Data driver ditemukan:');
+          console.log('   Nama:', parsed.name);
+          console.log('   Status:', parsed.status);
+          console.log('   UID:', parsed.uid);
+        } catch (e) {
+          console.error('❌ Error parsing driver data:', e);
+        }
+      } else {
+        console.log('❌ Tidak ada data driver di localStorage');
+      }
+    }
+
+    // ==================== INISIALISASI ====================
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🚀 Halaman JeGo Driver dimuat');
+      
+      // Debug localStorage
+      debugLocalStorage();
+      
+      // Cek login (guard sudah di atas, tapi tetap cek untuk backup)
+      if (!checkLoginStatus()) return;
+      
+      // Mulai GPS
+      setTimeout(() => {
+        startGPSMonitoring();
+      }, 1000);
+      
+      // Load orders
+      setTimeout(() => {
+        loadOrders();
+      }, 500);
+      
+      // Event listeners
+      document.getElementById('locationToggleBtn').addEventListener('click', toggleLocationTracking);
+      document.getElementById('refreshBtn').addEventListener('click', refreshData);
+      document.getElementById('closeModal').addEventListener('click', closeModal);
+      document.getElementById('ambilBtn').addEventListener('click', sendDriverOffer);
+      document.getElementById('autobidBtn').addEventListener('click', toggleAutobid);
+
+      document.getElementById('orderModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('orderModal')) closeModal();
+      });
+
+      // Bottom navigation
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const screen = item.dataset.screen;
+          navigateToScreen(screen);
+        });
+      });
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+      }
+    });
+  </script>
 </body>
 </html>
