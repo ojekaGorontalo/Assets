@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Login Driver - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK hanya untuk Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- TIDAK ADA firebase-auth-compat.js -->
+  <style>
+    :root {
+      --primary: #FF9800;
+      --secondary: #FF5722;
+      --accent: #FFC107;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #4CAF50;
+      --danger: #f44336;
+      --warning: #FFC107;
+      --info: #2196F3;
+      --gray: #9E9E9E;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      font-weight: bold;
+      font-size: 16px;
+      color: var(--primary);
+    }
+
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .form-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255,152,0,0.1);
+    }
+
+    .phone-format {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .phone-format .example {
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .phone-status {
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .phone-status.available {
+      background-color: rgba(76,175,80,0.1);
+      color: var(--success);
+      border-left: 3px solid var(--success);
+      display: block;
+    }
+
+    .phone-status.registered {
+      background-color: rgba(255,193,7,0.1);
+      color: var(--warning);
+      border-left: 3px solid var(--warning);
+      display: block;
+    }
+
+    .phone-status.error {
+      background-color: rgba(244,67,54,0.1);
+      color: var(--danger);
+      border-left: 3px solid var(--danger);
+      display: block;
+    }
+
+    .phone-status-message {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .phone-status-icon {
+      font-size: 1.1rem;
+    }
+
+    .phone-status-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .phone-status-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s;
+    }
+
+    .phone-status-btn.primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .phone-status-btn.secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .submit-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      width: 100%;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .submit-btn:disabled {
+      background: var(--gray);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .secondary-btn {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .secondary-btn:hover {
+      background: rgba(255,152,0,0.05);
+    }
+
+    .otp-section {
+      display: none;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+
+    .otp-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .otp-info {
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #666;
+    }
+
+    .otp-input-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .otp-input {
+      width: 50px;
+      height: 50px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      transition: all 0.3s;
+    }
+
+    .otp-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255,152,0,0.1);
+      outline: none;
+    }
+
+    .otp-input.filled {
+      border-color: var(--primary);
+    }
+
+    .resend-otp {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 0.85rem;
+    }
+
+    .resend-link {
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .resend-link:hover {
+      color: var(--secondary);
+    }
+
+    .resend-link.disabled {
+      color: #999;
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .modal-title {
+      display: flex;
+      align-items: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .modal-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .modal-icon.success { background-color: var(--success); }
+    .modal-icon.error { background-color: var(--danger); }
+    .modal-icon.warning { background-color: var(--warning); }
+    .modal-icon.info { background-color: var(--info); }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6c757d;
+      line-height: 1;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s;
+    }
+
+    .close-btn:hover {
+      background-color: #f8f9fa;
+      color: var(--dark);
+    }
+
+    .modal-body {
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid #e9ecef;
+      background-color: #f8f9fa;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 15px;
+    }
+
+    .modal-btn.confirm {
+      background-color: var(--primary);
+      color: white;
+      margin-left: 10px;
+    }
+
+    .modal-btn.confirm:hover {
+      background-color: var(--secondary);
+    }
+
+    .modal-btn.cancel {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .modal-btn.cancel:hover {
+      background-color: #5a6268;
+    }
+
+    .loading-modal .modal-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255,152,0,0.1);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    .loading-text {
+      font-size: 16px;
+      color: var(--dark);
+      text-align: center;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .header-title { font-size: 1rem; }
+      body { font-size: 0.8rem; }
+      .form-container { padding: 15px; }
+      .otp-input { width: 40px; height: 40px; font-size: 1rem; }
+    }
+
+    @media (max-width: 576px) {
+      .container { padding: 10px; }
+      .form-title { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-container">
+      <div class="logo">JG</div>
+      <div class="header-title">JeGo - Login Driver</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="form-container">
+      <h1 class="form-title">Masuk sebagai Driver</h1>
+
+      <!-- Form Nomor Telepon -->
+      <div id="phoneForm">
+        <div class="form-group">
+          <label class="form-label" for="phoneNumber">Nomor Telepon</label>
+          <input type="tel" class="form-input" id="phoneNumber" placeholder="Contoh: +628123456789" required>
+          <div class="phone-format">
+            Format: <span class="example">+628123456789</span> (gunakan kode negara +62)
+          </div>
+          <div id="phoneStatus" class="phone-status">
+            <div class="phone-status-message">
+              <span id="phoneStatusIcon" class="phone-status-icon">ℹ️</span>
+              <span id="phoneStatusText"></span>
+            </div>
+            <div id="phoneStatusActions" class="phone-status-actions"></div>
+          </div>
+        </div>
+        <button type="button" class="submit-btn" id="sendOtpBtn">Kirim Kode OTP</button>
+        <button type="button" class="secondary-btn" id="registerBtn">Belum punya akun driver? Daftar</button>
+      </div>
+
+      <!-- OTP Verification -->
+      <div class="otp-section" id="otpSection">
+        <h2 class="otp-title">Verifikasi OTP</h2>
+        <div class="otp-info">
+          <p>Kode OTP telah dikirim via SMS ke nomor Anda.</p>
+          <p>Masukkan kode 6 digit.</p>
+        </div>
+        <div class="form-group">
+          <label>Nomor Telepon</label>
+          <input type="text" id="verifiedPhone" class="form-input" readonly style="background-color: #f8f9fa;">
+        </div>
+        <div class="otp-input-container">
+          <input type="text" class="otp-input" id="otp1" maxlength="1" data-index="0">
+          <input type="text" class="otp-input" id="otp2" maxlength="1" data-index="1">
+          <input type="text" class="otp-input" id="otp3" maxlength="1" data-index="2">
+          <input type="text" class="otp-input" id="otp4" maxlength="1" data-index="3">
+          <input type="text" class="otp-input" id="otp5" maxlength="1" data-index="4">
+          <input type="text" class="otp-input" id="otp6" maxlength="1" data-index="5">
+        </div>
+        <button type="button" class="submit-btn" id="verifyOtpBtn">Verifikasi OTP</button>
+        <div class="resend-otp">
+          <span class="resend-link" id="resendOtpLink">Kirim ulang OTP</span>
+          <span id="countdownText" style="display: none;"> (Tunggu <span id="countdown">60</span> detik)</span>
+        </div>
+        <button type="button" class="secondary-btn" id="backToPhoneBtn">Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Popup -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div id="modal" class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span id="modalIcon" class="modal-icon">!</span>
+          <span id="modalTitleText">Judul</span>
+        </h3>
+        <button id="modalCloseBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Pesan</p>
+      </div>
+      <div class="modal-footer">
+        <button id="modalCancelBtn" class="modal-btn cancel" style="display: none;">Batal</button>
+        <button id="modalConfirmBtn" class="modal-btn confirm">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Modal -->
+  <div id="loadingModal" class="modal-overlay">
+    <div class="modal loading-modal">
+      <div class="modal-body">
+        <div class="loading-spinner"></div>
+        <p id="loadingText" class="loading-text">Sedang memproses...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================= KONFIGURASI FIREBASE =================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const database = firebase.database();
+
+    // ================= KONFIGURASI SMS GATEWAY =================
+    const SMS_GATEWAY_CONFIG = {
+      user: 'gsmreload',
+      pass: 'Jd59dm$jr*dj^hy',
+      baseUrl: 'https://srv2.soufasms.com/sms_gateway/'
+    };
+
+    // ================= VARIABEL GLOBAL =================
+    let currentPhone = '';
+    let otpTimer = null;
+    let otpCountdown = 60;
+    let driverData = null; // data driver dari database setelah login sukses
+
+    // ================= ELEMEN DOM =================
+    const phoneForm = document.getElementById('phoneForm');
+    const otpSection = document.getElementById('otpSection');
+    const phoneStatus = document.getElementById('phoneStatus');
+    const phoneStatusIcon = document.getElementById('phoneStatusIcon');
+    const phoneStatusText = document.getElementById('phoneStatusText');
+    const phoneStatusActions = document.getElementById('phoneStatusActions');
+    const verifiedPhoneInput = document.getElementById('verifiedPhone');
+    const resendOtpLink = document.getElementById('resendOtpLink');
+    const countdownText = document.getElementById('countdownText');
+    const countdownElement = document.getElementById('countdown');
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const backToPhoneBtn = document.getElementById('backToPhoneBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modal = document.getElementById('modal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitleText = document.getElementById('modalTitleText');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const loadingModal = document.getElementById('loadingModal');
+    const loadingText = document.getElementById('loadingText');
+
+    // ================= FUNGSI UTILITAS =================
+    function showPopup(title, message, type = 'info', options = {}) {
+      modalTitleText.textContent = title;
+      modalMessage.innerHTML = message;
+      modal.className = 'modal ' + type;
+      modalIcon.className = 'modal-icon ' + type;
+      modalIcon.textContent = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '!' : 'i';
+      modalConfirmBtn.textContent = options.confirmText || 'OK';
+      modalCancelBtn.style.display = options.showCancel ? 'inline-block' : 'none';
+      if (options.showCancel) modalCancelBtn.textContent = options.cancelText || 'Batal';
+
+      modalConfirmBtn.onclick = function() { hidePopup(); if (options.onConfirm) options.onConfirm(); };
+      modalCancelBtn.onclick = function() { hidePopup(); if (options.onCancel) options.onCancel(); };
+      modalCloseBtn.onclick = function() { hidePopup(); if (options.onCancel) options.onCancel(); };
+
+      modalOverlay.classList.add('active');
+      if (options.autoHide) setTimeout(() => { hidePopup(); if (options.onAutoHide) options.onAutoHide(); }, options.autoHideDelay || 3000);
+    }
+
+    function hidePopup() { modalOverlay.classList.remove('active'); }
+
+    function showLoading(message = 'Sedang memproses...') { loadingText.textContent = message; loadingModal.classList.add('active'); }
+    function hideLoading() { loadingModal.classList.remove('active'); }
+
+    function showErrorMessage(msg) { showPopup('Error', msg, 'error'); }
+    function showSuccessMessage(msg, autoHide) { showPopup('Sukses', msg, 'success', { autoHide, autoHideDelay: 2000 }); }
+    function showInfoMessage(msg, autoHide) { showPopup('Informasi', msg, 'info', { autoHide, autoHideDelay: 3000 }); }
+
+    function formatPhoneNumber(phone) {
+      let cleaned = phone.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) cleaned = '+62' + cleaned.substring(1);
+      else if (cleaned.startsWith('62')) cleaned = '+' + cleaned;
+      else if (!cleaned.startsWith('+')) cleaned = '+62' + cleaned;
+      return cleaned;
+    }
+
+    function validatePhoneFormat(phone) { return /^\+62[0-9]{9,12}$/.test(phone); }
+
+    function showPhoneStatus(type, message, phoneInfo = null) {
+      phoneStatus.className = 'phone-status';
+      phoneStatusActions.innerHTML = '';
+      if (type === 'available') {
+        phoneStatus.classList.add('available');
+        phoneStatusIcon.textContent = '✅';
+        phoneStatusText.textContent = message;
+      } else if (type === 'registered') {
+        phoneStatus.classList.add('registered');
+        phoneStatusIcon.textContent = 'ℹ️';
+        phoneStatusText.textContent = message;
+        if (phoneInfo) {
+          // tidak perlu tombol di sini, akan ditangani di pengecekan setelah klik kirim OTP
+        }
+      } else if (type === 'error') {
+        phoneStatus.classList.add('error');
+        phoneStatusIcon.textContent = '❌';
+        phoneStatusText.textContent = message;
+      }
+      phoneStatus.style.display = 'block';
+    }
+    function hidePhoneStatus() { phoneStatus.style.display = 'none'; }
+
+    function setupOTPInputs() {
+      const inputs = document.querySelectorAll('.otp-input');
+      inputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          if (!/^\d*$/.test(e.target.value)) { e.target.value = ''; return; }
+          if (e.target.value.length === 1) {
+            e.target.classList.add('filled');
+            if (index < inputs.length - 1) inputs[index+1].focus();
+          } else e.target.classList.remove('filled');
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !e.target.value && index > 0) inputs[index-1].focus();
+        });
+        input.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pasted = e.clipboardData.getData('text').trim();
+          if (/^\d{6}$/.test(pasted)) {
+            for (let i=0; i<6; i++) { inputs[i].value = pasted[i]; inputs[i].classList.add('filled'); }
+            inputs[5].focus();
+          }
+        });
+      });
+    }
+
+    function getEnteredOTP() {
+      let otp = '';
+      for (let i=1; i<=6; i++) otp += document.getElementById(`otp${i}`).value;
+      return otp;
+    }
+
+    function clearOTPInputs() {
+      for (let i=1; i<=6; i++) {
+        document.getElementById(`otp${i}`).value = '';
+        document.getElementById(`otp${i}`).classList.remove('filled');
+      }
+    }
+
+    function startResendCountdown(seconds) {
+      resendOtpLink.classList.add('disabled');
+      countdownText.style.display = 'inline';
+      otpCountdown = seconds;
+      countdownElement.textContent = otpCountdown;
+      if (otpTimer) clearInterval(otpTimer);
+      otpTimer = setInterval(() => {
+        otpCountdown--;
+        countdownElement.textContent = otpCountdown;
+        if (otpCountdown <= 0) {
+          clearInterval(otpTimer);
+          resendOtpLink.classList.remove('disabled');
+          countdownText.style.display = 'none';
+        }
+      }, 1000);
+    }
+
+    // ================= FUNGSI OTP MANUAL =================
+    async function canSendOTP(phone) {
+      const ref = database.ref('otp_verification/' + phone.replace(/\+/g, '_'));
+      const snap = await ref.child('requests').once('value');
+      const requests = snap.val() || [];
+      const now = Date.now();
+      const tenMinutesAgo = now - 10 * 60 * 1000;
+      return requests.filter(ts => ts > tenMinutesAgo).length < 3;
+    }
+
+    async function saveOTP(phone, code) {
+      const path = 'otp_verification/' + phone.replace(/\+/g, '_');
+      const ref = database.ref(path);
+      const now = Date.now();
+      const snap = await ref.child('requests').once('value');
+      let requests = snap.val() || [];
+      requests = requests.filter(ts => ts > now - 10 * 60 * 1000);
+      requests.push(now);
+      await ref.set({ code, created_at: now, expires_at: now + 5 * 60 * 1000, requests });
+    }
+
+    async function sendOTPviaDirectGateway(phone, code) {
+      const message = `Kode OTP Anda adalah ${code}`;
+      const no = phone.replace('+', '');
+      const params = new URLSearchParams({ user: SMS_GATEWAY_CONFIG.user, pass: SMS_GATEWAY_CONFIG.pass, no, msg: message, max: '1' });
+      const url = `${SMS_GATEWAY_CONFIG.baseUrl}?${params.toString()}`;
+      try {
+        await fetch(url, { mode: 'no-cors' });
+        return true;
+      } catch (e) {
+        showErrorMessage('Gagal mengirim OTP. Periksa koneksi internet.');
+        return false;
+      }
+    }
+
+    async function sendOTP(phone) {
+      try {
+        if (!await canSendOTP(phone)) { showErrorMessage('Terlalu banyak permintaan OTP. Coba lagi nanti.'); return false; }
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        await saveOTP(phone, code);
+        if (!await sendOTPviaDirectGateway(phone, code)) {
+          await database.ref('otp_verification/' + phone.replace(/\+/g, '_')).remove();
+          return false;
+        }
+        showInfoMessage('OTP terkirim!', true);
+        return true;
+      } catch (e) { showErrorMessage('Gagal kirim OTP: ' + e.message); return false; }
+    }
+
+    async function verifyOTP(phone, code) {
+      const path = 'otp_verification/' + phone.replace(/\+/g, '_');
+      const ref = database.ref(path);
+      const data = (await ref.once('value')).val();
+      if (!data) { showErrorMessage('Kode OTP tidak ditemukan. Kirim ulang.'); return false; }
+      if (Date.now() > data.expires_at) { showErrorMessage('Kode OTP kadaluarsa.'); await ref.remove(); return false; }
+      if (data.code !== code) { showErrorMessage('Kode OTP salah.'); return false; }
+      await ref.remove();
+      return true;
+    }
+
+    // ================= FUNGSI CEK NOMOR DI DATABASE =================
+    async function checkPhoneNumberExists(phone) {
+      try {
+        const driversSnap = await database.ref('drivers').orderByChild('phone').equalTo(phone).once('value');
+        if (driversSnap.exists()) {
+          const driverId = Object.keys(driversSnap.val())[0];
+          const driver = driversSnap.val()[driverId];
+          return { exists: true, type: 'driver', data: driver, id: driverId };
+        }
+        return { exists: false };
+      } catch (e) { console.error(e); return { exists: false, error: e.message }; }
+    }
+
+    // ================= FUNGSI HANDLE STATUS DRIVER =================
+    function handleDriverStatus(driverData, driverId) {
+      const status = driverData.status || driverData.driverStatus || 'pending';
+      const ketGagal = driverData.ketGagal || driverData.rejectionReason || driverData.blockReason || 'Tidak ada keterangan.';
+
+      switch(status) {
+        case 'accepted':
+        case 'approved':
+        case 'active':
+          // Login berhasil
+          const sessionDriver = {
+            userId: driverId,
+            uid: driverId,
+            name: driverData.name || driverData.fullName || '',
+            phone: driverData.phone || '',
+            email: driverData.email || '',
+            address: driverData.address || '',
+            status: 'active',
+            role: 'driver',
+            fotoProfilURL: driverData.fotoProfilURL || driverData.profilePhotoUrl || '',
+            rating: driverData.rating || 5,
+            perjalanan: driverData.perjalanan || 0,
+            createdAt: driverData.createdAt || new Date().toISOString()
+          };
+          localStorage.setItem('jego_logged_in_driver', JSON.stringify(sessionDriver));
+          showSuccessMessage('Login berhasil! Mengalihkan...', true);
+          setTimeout(() => {
+            // Redirect ke dashboard driver (ganti sesuai halaman tujuan)
+            window.location.href = 'list1.html';
+          }, 1500);
+          break;
+
+        case 'rejected':
+          showPopup('Akun Ditolak',
+            `<p><strong>Status akun Anda: <span style="color: #f44336">DITOLAK</span></strong></p>
+             <p><strong>Alasan penolakan:</strong> ${ketGagal}</p>
+             <p>Silakan hubungi admin untuk informasi lebih lanjut.</p>`,
+            'error', {
+              showCancel: true,
+              confirmText: 'Hubungi Admin',
+              cancelText: 'Tutup',
+              onConfirm: () => {
+                const msg = `Halo Admin JeGo, saya ${driverData.name || ''} ingin menanyakan alasan penolakan akun driver saya. Status: Ditolak. Alasan: ${ketGagal}`;
+                window.open(`https://wa.me/6283142889149?text=${encodeURIComponent(msg)}`, '_blank');
+              }
+            });
+          break;
+
+        case 'blocked':
+          showPopup('Akun Diblokir',
+            `<p><strong>Status akun Anda: <span style="color: #dc3545">DIBLOKIR</span></strong></p>
+             <p><strong>Alasan pemblokiran:</strong> ${ketGagal}</p>
+             <p>Hubungi admin untuk mengajukan pembukaan blokir.</p>`,
+            'error', {
+              showCancel: true,
+              confirmText: 'Hubungi Admin',
+              cancelText: 'Tutup',
+              onConfirm: () => {
+                const msg = `Halo Admin JeGo, saya ${driverData.name || ''} ingin menanyakan alasan pemblokiran akun driver saya. Status: Diblokir. Alasan: ${ketGagal}`;
+                window.open(`https://wa.me/6283142889149?text=${encodeURIComponent(msg)}`, '_blank');
+              }
+            });
+          break;
+
+        case 'pending':
+          showPopup('Akun Belum Aktif',
+            `<p>Akun driver Anda masih dalam proses verifikasi oleh admin.</p>
+             <p>Proses ini biasanya membutuhkan waktu 1-2 hari kerja.</p>
+             <p>Anda akan menerima notifikasi via WhatsApp setelah diverifikasi.</p>`,
+            'warning', { confirmText: 'OK' });
+          break;
+
+        default:
+          showErrorMessage('Status akun tidak dikenal. Hubungi admin.');
+      }
+    }
+
+    // ================= EVENT LISTENERS =================
+    document.getElementById('phoneNumber').addEventListener('input', function() {
+      hidePhoneStatus();
+      const raw = this.value.trim();
+      if (!raw) return;
+      const phone = formatPhoneNumber(raw);
+      if (!validatePhoneFormat(phone)) return;
+      clearTimeout(this.checkTimeout);
+      this.checkTimeout = setTimeout(async () => {
+        const info = await checkPhoneNumberExists(phone);
+        if (info.exists) {
+          if (info.type === 'driver') {
+            showPhoneStatus('registered', `Nomor ${phone} terdaftar sebagai driver. Silakan login.`, info);
+          }
+        } else {
+          showPhoneStatus('available', `Nomor ${phone} belum terdaftar sebagai driver. Silakan daftar terlebih dahulu.`);
+        }
+      }, 800);
+    });
+
+    sendOtpBtn.addEventListener('click', async function() {
+      let phone = document.getElementById('phoneNumber').value.trim();
+      if (!phone) { showErrorMessage('Masukkan nomor telepon.'); return; }
+      phone = formatPhoneNumber(phone);
+      if (!validatePhoneFormat(phone)) { showErrorMessage('Format nomor tidak valid.'); return; }
+
+      showLoading('Memeriksa nomor...');
+      const info = await checkPhoneNumberExists(phone);
+      hideLoading();
+      if (!info.exists) {
+        showErrorMessage('Nomor tidak terdaftar sebagai driver. Silakan daftar.', {
+          onConfirm: () => window.location.href = 'daftarDriver.html'
+        });
+        return;
+      }
+
+      const otpSent = await sendOTP(phone);
+      if (otpSent) {
+        currentPhone = phone;
+        verifiedPhoneInput.value = phone;
+        phoneForm.style.display = 'none';
+        otpSection.style.display = 'block';
+        document.getElementById('otp1').focus();
+        startResendCountdown(60);
+      }
+    });
+
+    verifyOtpBtn.addEventListener('click', async function() {
+      const otp = getEnteredOTP();
+      if (otp.length !== 6) { showErrorMessage('Masukkan 6 digit OTP.'); return; }
+
+      verifyOtpBtn.disabled = true;
+      verifyOtpBtn.textContent = 'Memverifikasi...';
+
+      const valid = await verifyOTP(currentPhone, otp);
+      if (!valid) {
+        verifyOtpBtn.disabled = false;
+        verifyOtpBtn.textContent = 'Verifikasi OTP';
+        return;
+      }
+
+      // OTP benar, ambil data driver
+      showLoading('Memuat data driver...');
+      const info = await checkPhoneNumberExists(currentPhone);
+      hideLoading();
+      if (!info.exists || info.type !== 'driver') {
+        showErrorMessage('Data driver tidak ditemukan.');
+        verifyOtpBtn.disabled = false;
+        verifyOtpBtn.textContent = 'Verifikasi OTP';
+        return;
+      }
+
+      // Handle status driver
+      handleDriverStatus(info.data, info.id);
+    });
+
+    resendOtpLink.addEventListener('click', async function() {
+      if (resendOtpLink.classList.contains('disabled')) return;
+      const otpSent = await sendOTP(currentPhone);
+      if (otpSent) {
+        clearOTPInputs();
+        document.getElementById('otp1').focus();
+        startResendCountdown(60);
+      }
+    });
+
+    backToPhoneBtn.addEventListener('click', function() {
+      phoneForm.style.display = 'block';
+      otpSection.style.display = 'none';
+      currentPhone = '';
+    });
+
+    registerBtn.addEventListener('click', function() {
+      window.location.href = 'daftarDriver.html';
+    });
+
+    // Inisialisasi
+    document.addEventListener('DOMContentLoaded', function() {
+      setupOTPInputs();
+      modalOverlay.addEventListener('click', function(e) { if (e.target === modalOverlay) hidePopup(); });
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && modalOverlay.classList.contains('active')) hidePopup(); });
+
+      // Cek session driver yang sudah login
+      const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
+      if (loggedInDriver) {
+        try {
+          const driver = JSON.parse(loggedInDriver);
+          if (driver.status === 'active') {
+            showInfoMessage('Anda sudah login. Mengalihkan...', true);
+            setTimeout(() => window.location.href = 'list1.html', 1500);
+          } else {
+            localStorage.removeItem('jego_logged_in_driver');
+          }
+        } catch (e) { localStorage.removeItem('jego_logged_in_driver'); }
+      }
+    });
+  </script>
+</body>
+</html>
