@@ -10,7 +10,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <style>
-    /* Style konsisten dengan login */
     :root { --primary: #FF9800; --secondary: #FF5722; --accent: #FFC107; --dark: #343a40; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; font-size: 0.9rem; }
@@ -41,7 +40,7 @@
     .progress-container { height: 4px; background: #e0e0e0; margin: 10px 0; display: none; }
     .progress-bar { height: 100%; background: linear-gradient(to right, var(--primary), var(--secondary)); width: 0%; }
     .notification { position: fixed; top: 20px; right: 20px; background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary); display: none; max-width: 300px; z-index: 1000; }
-    #recaptcha-container { display: none; } /* tidak digunakan */
+    #recaptcha-container { display: none; }
   </style>
 </head>
 <body>
@@ -54,15 +53,11 @@
     <div class="form-container">
       <h1 class="form-title">Buat Akun Baru</h1>
 
-      <!-- Status Message -->
       <div class="status-message" id="statusMessage"></div>
-
-      <!-- Progress -->
       <div class="progress-container" id="progressContainer">
         <div class="progress-bar" id="progressBar"></div>
       </div>
 
-      <!-- Form Registrasi (dengan field baru) -->
       <form id="registerForm">
         <div class="form-group">
           <label class="form-label" for="namaInput">Nama Lengkap</label>
@@ -76,14 +71,10 @@
           <label class="form-label" for="emailInput">Email (opsional)</label>
           <input type="email" class="form-input" id="emailInput">
         </div>
-        
-        <!-- FIELD BARU: Alamat -->
         <div class="form-group">
           <label class="form-label" for="alamatInput">Alamat (opsional)</label>
           <textarea class="form-textarea" id="alamatInput" placeholder="Masukkan alamat lengkap..."></textarea>
         </div>
-
-        <!-- FIELD BARU: Jenis Kelamin -->
         <div class="form-group">
           <label class="form-label" for="genderSelect">Jenis Kelamin (opsional)</label>
           <select class="form-select" id="genderSelect">
@@ -92,11 +83,9 @@
             <option value="Perempuan">Perempuan</option>
           </select>
         </div>
-
         <button type="submit" class="submit-btn" id="registerBtn">Daftar & Kirim OTP</button>
       </form>
 
-      <!-- OTP Verification -->
       <div class="otp-section" id="otpSection">
         <h2 style="font-size: 1.3rem; text-align: center;">Verifikasi OTP</h2>
         <input type="text" class="otp-single-input" id="otpInput" maxlength="6" inputmode="numeric" placeholder="000000">
@@ -113,14 +102,12 @@
     </div>
   </div>
 
-  <!-- Notifikasi Popup -->
   <div class="notification" id="notificationPopup">
     <div id="notificationTitle"></div>
     <div id="notificationMessage"></div>
   </div>
 
   <script>
-    // ================= KONFIGURASI =================
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
       authDomain: "game-balap-simpel.firebaseapp.com",
@@ -131,20 +118,16 @@
       appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
     };
 
-    // ========== KONFIGURASI GATEWAY SMS (DIRECT) ==========
-    //  PERHATIAN: Kredensial akan terlihat di source code! Gunakan hanya untuk development.
     const SMS_GATEWAY_CONFIG = {
       user: 'gsmreload',
       pass: 'Jd59dm$jr*dj^hy',
       baseUrl: 'https://srv2.soufasms.com/sms_gateway/'
     };
 
-    // ================= GLOBAL =================
     let firebaseDatabase;
-    let currentPhone = ''; // menyimpan nomor untuk resend dan verifikasi
-    let registrationData = {}; // data sementara registrasi
+    let currentPhone = '';
+    let registrationData = {};
 
-    // ================= UTILITAS =================
     function showNotif(title, msg, type = 'info') {
       const n = document.getElementById('notificationPopup');
       document.getElementById('notificationTitle').innerText = title;
@@ -201,95 +184,63 @@
       }, 1000);
     }
 
-    // Generate OTP 6 digit acak
     function generateOTP() {
       return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // ================= FIREBASE INIT =================
     async function initFirebase() {
       if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
-      if (!firebase.apps.length) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-      }
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       firebaseDatabase = firebase.database();
     }
 
-    // ================= LOGIKA OTP =================
-
-    // Cek apakah nomor masih diizinkan mengirim OTP (maks 3x dalam 10 menit)
+    // ================= LOGIKA OTP (sama dengan login) =================
     async function canSendOTP(phone) {
       const ref = firebaseDatabase.ref('otp_verification/' + phone.replace(/\+/g, '_'));
       const snap = await ref.child('requests').once('value');
       const requests = snap.val() || [];
       const now = Date.now();
       const tenMinutesAgo = now - 10 * 60 * 1000;
-      const recentRequests = requests.filter(ts => ts > tenMinutesAgo);
-      return recentRequests.length < 3;
+      return requests.filter(ts => ts > tenMinutesAgo).length < 3;
     }
 
-    // Simpan OTP ke database dan catat waktu permintaan
     async function saveOTP(phone, code) {
       const path = 'otp_verification/' + phone.replace(/\+/g, '_');
       const ref = firebaseDatabase.ref(path);
       const now = Date.now();
-      const expiresAt = now + 5 * 60 * 1000; // 5 menit
-
       const snap = await ref.child('requests').once('value');
       let requests = snap.val() || [];
       requests = requests.filter(ts => ts > now - 10 * 60 * 1000);
       requests.push(now);
-
-      await ref.set({
-        code: code,
-        created_at: now,
-        expires_at: expiresAt,
-        requests: requests
-      });
+      await ref.set({ code, created_at: now, expires_at: now + 5 * 60 * 1000, requests });
     }
 
-    // Kirim OTP langsung ke gateway SMS via GET (kredensial terekspos!)
     async function sendOTPviaDirectGateway(phone, code) {
       const message = `Kode OTP Anda adalah ${code}`;
       const no = phone.replace('+', '');
-      const params = new URLSearchParams({
-        user: SMS_GATEWAY_CONFIG.user,
-        pass: SMS_GATEWAY_CONFIG.pass,
-        no: no,
-        msg: message,
-        max: '1'
-      });
+      const params = new URLSearchParams({ user: SMS_GATEWAY_CONFIG.user, pass: SMS_GATEWAY_CONFIG.pass, no, msg: message, max: '1' });
       const url = `${SMS_GATEWAY_CONFIG.baseUrl}?${params.toString()}`;
-
       try {
         await fetch(url, { mode: 'no-cors' });
-        console.log('OTP dikirim (mode no-cors, tidak ada validasi)');
         return true;
       } catch (e) {
-        console.error('Gagal mengirim OTP:', e);
         showStatus('Gagal mengirim OTP. Periksa koneksi internet.', 'error');
         return false;
       }
     }
 
-    // Kirim OTP (alur utama)
     async function sendOTP(phone) {
       try {
-        const allowed = await canSendOTP(phone);
-        if (!allowed) {
+        if (!await canSendOTP(phone)) {
           showStatus('Terlalu banyak permintaan OTP. Coba lagi nanti.', 'error');
           return false;
         }
-
         const code = generateOTP();
         await saveOTP(phone, code);
-
-        const sent = await sendOTPviaDirectGateway(phone, code);
-        if (!sent) {
+        if (!await sendOTPviaDirectGateway(phone, code)) {
           await firebaseDatabase.ref('otp_verification/' + phone.replace(/\+/g, '_')).remove();
           return false;
         }
-
         showStatus('OTP terkirim!', 'success');
         return true;
       } catch (e) {
@@ -298,74 +249,58 @@
       }
     }
 
-    // Verifikasi kode OTP
     async function verifyOTP(phone, code) {
       const path = 'otp_verification/' + phone.replace(/\+/g, '_');
       const ref = firebaseDatabase.ref(path);
-      const snap = await ref.once('value');
-      const data = snap.val();
-      if (!data) {
-        showStatus('Kode OTP tidak ditemukan. Silakan kirim ulang.', 'error');
-        return false;
-      }
-
-      const now = Date.now();
-      if (now > data.expires_at) {
-        showStatus('Kode OTP sudah kadaluarsa. Silakan kirim ulang.', 'error');
-        await ref.remove();
-        return false;
-      }
-
-      if (data.code !== code) {
-        showStatus('Kode OTP salah.', 'error');
-        return false;
-      }
-
-      // OTP benar, hapus data OTP
+      const data = (await ref.once('value')).val();
+      if (!data) { showStatus('Kode OTP tidak ditemukan.', 'error'); return false; }
+      if (Date.now() > data.expires_at) { showStatus('Kode OTP kadaluarsa.', 'error'); await ref.remove(); return false; }
+      if (data.code !== code) { showStatus('Kode OTP salah.', 'error'); return false; }
       await ref.remove();
       return true;
     }
 
-    // ================= HANDLER REGISTRASI (DENGAN FIELD BARU) =================
+    // ================= HANDLER REGISTRASI =================
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nama = document.getElementById('namaInput').value.trim();
       const phoneRaw = document.getElementById('teleponInput').value.trim();
       const email = document.getElementById('emailInput').value.trim();
-      const alamat = document.getElementById('alamatInput').value.trim(); // field baru
-      const gender = document.getElementById('genderSelect').value; // field baru
+      const alamat = document.getElementById('alamatInput').value.trim();
+      const gender = document.getElementById('genderSelect').value;
 
       if (!nama) return showStatus('Nama harus diisi', 'error');
       if (!phoneRaw) return showStatus('Nomor telepon harus diisi', 'error');
 
       const phone = formatPhoneNumber(phoneRaw);
-      if (!validatePhoneFormat(phone)) return showStatus('Format nomor tidak valid (contoh: 08123456789)', 'error');
+      if (!validatePhoneFormat(phone)) return showStatus('Format nomor tidak valid', 'error');
 
       const btn = document.getElementById('registerBtn');
       btn.disabled = true; btn.innerText = 'Memeriksa...';
       showProgress(30);
 
       try {
-        // Cek apakah nomor sudah terdaftar
         const usersRef = firebaseDatabase.ref('users');
         const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+        
+        // 🔴 CEK APAKAH NOMOR SUDAH TERDAFTAR (termasuk yang status delete_account)
         if (snapshot.exists()) {
-          showStatus('Nomor sudah terdaftar. Silakan login.', 'error');
+          const users = snapshot.val();
+          const uid = Object.keys(users)[0];
+          const existingUser = users[uid];
+          
+          if (existingUser.status === 'delete_account') {
+            showStatus('Nomor ini telah dihapus dan tidak dapat digunakan lagi untuk mendaftar.', 'error');
+          } else {
+            showStatus('Nomor sudah terdaftar. Silakan login.', 'error');
+          }
           btn.disabled = false; btn.innerText = 'Daftar & Kirim OTP';
           hideProgress();
           return;
         }
 
-        // Simpan data sementara (termasuk alamat dan gender)
-        registrationData = { 
-          name: nama, 
-          phone: phone, 
-          email: email,
-          address: alamat,      // field baru
-          gender: gender        // field baru
-        };
+        registrationData = { name: nama, phone, email, address: alamat, gender };
 
-        // Kirim OTP
         btn.innerText = 'Mengirim OTP...';
         const sent = await sendOTP(phone);
         if (sent) {
@@ -392,22 +327,20 @@
       btn.disabled = true; btn.innerText = 'Memverifikasi...';
 
       try {
-        const isValid = await verifyOTP(currentPhone, otp);
-        if (!isValid) {
+        if (!await verifyOTP(currentPhone, otp)) {
           btn.disabled = false; btn.innerText = 'Verifikasi & Selesai';
           return;
         }
 
-        // Buat user baru di database dengan UID unik
-        const newUserRef = firebaseDatabase.ref('users').push(); // push() menghasilkan key unik
+        const newUserRef = firebaseDatabase.ref('users').push();
         const uid = newUserRef.key;
         const userData = {
           name: registrationData.name,
           phone: registrationData.phone,
           email: registrationData.email || '',
-          address: registrationData.address || '',    // field baru
-          gender: registrationData.gender || '',      // field baru
-          uid: uid,
+          address: registrationData.address || '',
+          gender: registrationData.gender || '',
+          uid,
           status: 'active',
           fotoProfilURL: '',
           rating: 5,
@@ -416,15 +349,13 @@
         };
         await newUserRef.set(userData);
 
-        // Buat session (termasuk address dan gender)
         const session = {
-          userId: uid,
-          uid: uid,
+          userId: uid, uid,
           name: userData.name,
           phone: userData.phone,
           email: userData.email,
-          address: userData.address,   // field baru
-          gender: userData.gender,     // field baru
+          address: userData.address,
+          gender: userData.gender,
           status: 'active',
           photoURL: '',
           rating: 5,
@@ -448,15 +379,10 @@
       startResendCountdown(60);
     });
 
-    // ================= INIT =================
     window.onload = async () => {
-      // Bersihkan key lama
       ['user', 'currentUser', 'jegoUser'].forEach(k => localStorage.removeItem(k));
-
       try {
         await initFirebase();
-
-        // Cek session aktif (jika sudah login, langsung redirect)
         const session = localStorage.getItem('jego_logged_in_user');
         if (session) {
           const user = JSON.parse(session);
