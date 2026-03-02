@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dukungan - JeGo</title>
+    <style>
+        /* CSS yang sudah ada tetap sama */
+        :root {
+            --primary: #1e6f5c;
+            --secondary: #289672;
+            --accent: #e6dd3b;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 15px;
+            padding-bottom: 20px;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Filter Styles */
+        .filter-container {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+        }
+
+        .filter-option {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .filter-option.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Orders List Styles */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .date-section {
+            margin-bottom: 5px;
+        }
+
+        .date-header {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .order-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .order-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .customer-name {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .kurir-badge {
+            background-color: var(--accent);
+            color: var(--dark);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .promo-badge {
+            background-color: var(--success);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-on_the_way {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-accepted {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .route-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+
+        .route-point {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .point-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .point-marker-a {
+            background-color: var(--primary);
+        }
+
+        .point-marker-b {
+            background-color: var(--secondary);
+        }
+
+        .point-address {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .point-address-a {
+            font-weight: 700;
+        }
+
+        .order-details {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+            font-size: 0.8rem;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex: 1;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .price-highlight {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 0.7rem;
+            margin-right: 4px;
+        }
+
+        .order-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #666;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 8px;
+            margin-top: 5px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-details {
+            padding: 15px 20px;
+        }
+
+        .modal-route-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-route-point {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .modal-point-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .modal-point-address {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .modal-point-address-a {
+            font-weight: 700;
+        }
+
+        .modal-order-details {
+            display: flex;
+            justify-content: space-between;
+            background-color: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .modal-detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex: 1;
+        }
+
+        .modal-detail-value {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .modal-detail-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .modal-price-highlight {
+            color: var(--success);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .modal-original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 0.9rem;
+            margin-right: 4px;
+        }
+
+        .modal-timeline {
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .timeline-item {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+        }
+
+        .timeline-time {
+            width: 80px;
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .timeline-event {
+            flex: 1;
+        }
+
+        /* Support Button */
+        .support-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .support-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* CS Info Section */
+        .cs-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .cs-info h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .cs-info ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .cs-info li {
+            margin-bottom: 5px;
+        }
+
+        .cs-contact {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .contact-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .contact-action {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .copy-btn {
+            background-color: var(--accent);
+            color: var(--dark);
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background-color: #d4c92a;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                font-size: 0.8rem;
+            }
+            
+            .order-item {
+                padding: 10px;
+            }
+            
+            .route-info {
+                font-size: 0.75rem;
+            }
+            
+            .order-details {
+                font-size: 0.75rem;
+            }
+            
+            .modal-content {
+                width: 98%;
+                max-height: 95vh;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .order-details {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .detail-item {
+                flex: 0 0 calc(33.333% - 10px);
+            }
+            
+            .modal-header {
+                padding: 12px 15px;
+            }
+            
+            .modal-details {
+                padding: 12px 15px;
+            }
+            
+            .modal-order-details {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .modal-detail-item {
+                flex-direction: row;
+                justify-content: space-between;
+                text-align: left;
+            }
+
+            .header {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <button class="back-btn" id="backBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+        </div>
+        <div class="header-title">Dukungan</div>
+        <div style="width: 80px;"></div>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Filter Options -->
+        <div class="filter-container">
+            <div class="filter-option active" data-filter="all">Semua</div>
+            <div class="filter-option" data-filter="completed">Selesai</div>
+            <div class="filter-option" data-filter="cancelled">Dibatalkan</div>
+            <div class="filter-option" data-filter="this_week">Minggu Ini</div>
+            <div class="filter-option" data-filter="this_month">Bulan Ini</div>
+        </div>
+
+        <div class="orders-list" id="ordersList">
+            <!-- Data akan diisi oleh JavaScript -->
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detail Order -->
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detail Order</h3>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-details">
+                    <div class="modal-route-info">
+                        <div class="modal-route-point">
+                            <div class="modal-point-marker point-marker-a">A</div>
+                            <div class="modal-point-address modal-point-address-a" id="modalAddressA">-</div>
+                        </div>
+                        <div class="modal-route-point">
+                            <div class="modal-point-marker point-marker-b">B</div>
+                            <div class="modal-point-address" id="modalAddressB">-</div>
+                        </div>
+                    </div>
+                    <div class="modal-order-details">
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-value" id="modalDuration">-</span>
+                            <span class="modal-detail-label">Durasi</span>
+                        </div>
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-value" id="modalDistance">-</span>
+                            <span class="modal-detail-label">Jarak</span>
+                        </div>
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-value modal-price-highlight" id="modalPrice">-</span>
+                            <span class="modal-detail-label">Harga</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Promo Information -->
+                    <div class="modal-timeline" id="modalPromoInfo" style="display: none;">
+                        <div class="timeline-title">Detail Promo</div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">Kode Promo:</div>
+                            <div class="timeline-event" id="modalPromoCode">-</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">Diskon:</div>
+                            <div class="timeline-event" id="modalPromoDiscount">-</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">Harga Asli:</div>
+                            <div class="timeline-event" id="modalOriginalPrice">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-timeline">
+                        <div class="timeline-title">Timeline Order</div>
+                        <div class="timeline-item">
+                            <div class="timeline-time" id="timelineCreated">-</div>
+                            <div class="timeline-event">Order dibuat</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time" id="timelineAccepted">-</div>
+                            <div class="timeline-event">Driver diterima</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time" id="timelineStarted">-</div>
+                            <div class="timeline-event">Perjalanan dimulai</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time" id="timelineArrived">-</div>
+                            <div class="timeline-event">Tiba di tujuan</div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time" id="timelineCompleted">-</div>
+                            <div class="timeline-event">Order selesai</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tombol Hubungi Dukungan -->
+                    <button class="support-btn" id="hubungiDukunganBtn">Hubungi Dukungan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Dukungan CS -->
+    <div class="modal" id="csModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Hubungi Customer Service</h3>
+                <button class="close-btn" id="closeCsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-details">
+                    <div class="cs-info">
+                        <h4>Informasi Kontak CS JeGo</h4>
+                        <p>Untuk pertanyaan, keluhan, atau bantuan teknis, silakan hubungi kami melalui:</p>
+                        
+                        <div class="cs-contact">
+                            <div class="contact-item">
+                                <div class="contact-icon">📧</div>
+                                <div>
+                                    <strong>Email:</strong> cs.jego.app@gmail.com
+                                    <div class="contact-action">
+                                        <button class="copy-btn" data-text="cs.jego.app@gmail.com">Salin Email</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 15px;"><strong>Informasi yang perlu disertakan:</strong></p>
+                        <ul>
+                            <li>Nomor HP Anda</li>
+                            <li>Order ID: <span id="csOrderId">-</span></li>
+                            <li>Detail keluhan atau pertanyaan</li>
+                            <li>Screenshot perjalanan yang dikeluhkan (jika ada)</li>
+                        </ul>
+                        
+                        <p style="margin-top: 15px; font-style: italic;">
+                            <strong>Catatan:</strong> Kami akan membalas pesan Anda dalam waktu 1x24 jam.
+                        </p>
+                    </div>
+                    
+                    <button class="support-btn" id="tutupCsModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYDUjYzdG3_xBxWdGV2wk1E-mBu21pzvg",
+            authDomain: "ojeka-ba255.firebaseapp.com",
+            databaseURL: "https://ojeka-ba255-default-rtdb.firebaseio.com",
+            projectId: "ojeka-ba255",
+            storageBucket: "ojeka-ba255.firebasestorage.app",
+            messagingSenderId: "639980533353",
+            appId: "1:639980533353:web:14a9cde94065b60c8cd4f8",
+            measurementId: "G-PBP64Z8VQ8"
+        };
+
+        // Initialize Firebase dengan error handling
+        let database;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('✅ Firebase berhasil diinisialisasi');
+        } catch (error) {
+            console.error('❌ Error inisialisasi Firebase:', error);
+        }
+
+        let ordersRef = null;
+        let ordersListener = null;
+        let currentUser = null;
+        let currentFilter = 'all';
+        let currentOrderId = null; // Untuk menyimpan ID order yang sedang dilihat
+
+        // ==================== FUNGSI UTAMA ====================
+
+        // Fungsi untuk memuat data riwayat orders
+        function loadHistoryData() {
+            // Cek apakah user sudah login
+            if (!checkUserData()) {
+                const ordersList = document.getElementById('ordersList');
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div>🚫</div>
+                        <p>Anda belum login</p>
+                        <p>Silakan login terlebih dahulu untuk melihat riwayat perjalanan</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const ordersList = document.getElementById('ordersList');
+            ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            // Timeout untuk mencegah loading terus menerus
+            const loadingTimeout = setTimeout(() => {
+                if (ordersList.querySelector('.loading')) {
+                    console.log('⚠️ Timeout loading history, fallback ke mode demo');
+                    showDummyData();
+                }
+            }, 10000);
+
+            // Hentikan listener sebelumnya jika ada
+            if (ordersListener && ordersRef) {
+                ordersRef.off('value', ordersListener);
+            }
+
+            // Referensi ke data orders
+            ordersRef = database.ref('orders');
+            
+            // Listen untuk perubahan data
+            ordersListener = ordersRef.on('value', (snapshot) => {
+                clearTimeout(loadingTimeout); // Clear timeout jika data berhasil dimuat
+                
+                const orders = snapshot.val();
+                ordersList.innerHTML = '';
+
+                if (!orders || Object.keys(orders).length === 0) {
+                    ordersList.innerHTML = `
+                        <div class="empty-state">
+                            <div>📭</div>
+                            <p>Tidak ada riwayat perjalanan</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Filter orders berdasarkan user yang sedang login
+                const userOrders = Object.entries(orders)
+                    .map(([id, order]) => ({ id, ...order }))
+                    .filter(order => {
+                        // Cek apakah order ini milik user yang sedang login
+                        const isUserOrder = order.user_email === currentUser.email || 
+                                          (order.user_data && order.user_data.email === currentUser.email);
+                        
+                        // Filter berdasarkan status
+                        const isCompletedOrCancelled = ['completed', 'cancelled'].includes(order.status);
+                        
+                        return isUserOrder && isCompletedOrCancelled;
+                    })
+                    .sort((a, b) => {
+                        // Urutkan berdasarkan waktu selesai atau waktu update terbaru
+                        const timeA = new Date(a.completed_at || a.updated_at || a.created_at || 0).getTime();
+                        const timeB = new Date(b.completed_at || b.updated_at || b.created_at || 0).getTime();
+                        return timeB - timeA; // Terbaru di atas
+                    });
+
+                if (userOrders.length === 0) {
+                    ordersList.innerHTML = `
+                        <div class="empty-state">
+                            <div>📭</div>
+                            <p>Tidak ada riwayat perjalanan untuk akun ini</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Kelompokkan order berdasarkan tanggal
+                const ordersByDate = groupOrdersByDate(userOrders);
+                
+                // Tampilkan order berdasarkan filter yang dipilih
+                displayFilteredOrders(ordersByDate);
+                
+            }, (error) => {
+                clearTimeout(loadingTimeout);
+                console.error('Error loading history:', error);
+                
+                // Fallback ke data dummy jika error
+                showDummyData();
+            });
+        }
+
+        // Fungsi untuk mengelompokkan order berdasarkan tanggal
+        function groupOrdersByDate(orders) {
+            const groups = {};
+            
+            orders.forEach(order => {
+                // Gunakan completed_at jika ada, jika tidak gunakan created_at
+                const orderDate = new Date(order.completed_at || order.created_at);
+                const dateKey = formatDateKey(orderDate);
+                
+                if (!groups[dateKey]) {
+                    groups[dateKey] = [];
+                }
+                
+                groups[dateKey].push(order);
+            });
+            
+            return groups;
+        }
+
+        // Fungsi untuk menampilkan order yang sudah difilter
+        function displayFilteredOrders(ordersByDate) {
+            const ordersList = document.getElementById('ordersList');
+            ordersList.innerHTML = '';
+            
+            // Urutkan tanggal dari terbaru ke terlama
+            const sortedDates = Object.keys(ordersByDate).sort((a, b) => new Date(b) - new Date(a));
+            
+            let hasOrders = false;
+            
+            sortedDates.forEach(date => {
+                const ordersForDate = ordersByDate[date];
+                
+                // Filter order berdasarkan filter yang aktif
+                const filteredOrders = ordersForDate.filter(order => {
+                    if (currentFilter === 'all') return true;
+                    if (currentFilter === 'completed') return order.status === 'completed';
+                    if (currentFilter === 'cancelled') return order.status === 'cancelled';
+                    if (currentFilter === 'this_week') return isThisWeek(new Date(order.completed_at || order.created_at));
+                    if (currentFilter === 'this_month') return isThisMonth(new Date(order.completed_at || order.created_at));
+                    return true;
+                });
+                
+                if (filteredOrders.length === 0) return;
+                
+                hasOrders = true;
+                
+                // Tambahkan header tanggal
+                const dateSection = document.createElement('div');
+                dateSection.className = 'date-section';
+                dateSection.innerHTML = `<div class="date-header">${formatDisplayDate(date)} • ${filteredOrders.length} perjalanan</div>`;
+                ordersList.appendChild(dateSection);
+                
+                // Tambahkan order untuk tanggal ini
+                filteredOrders.forEach(order => {
+                    const orderItem = document.createElement('div');
+                    orderItem.className = 'order-item';
+                    orderItem.dataset.orderId = order.id;
+                    
+                    const driverName = order.selected_driver?.name || 'Driver JeGo';
+                    const alamatA = order.alamat_a || '-';
+                    const alamatB = order.alamat_b || '-';
+                    const durasi = order.durasi || '-';
+                    const jarak = order.jarak || '-';
+                    
+                    // Periksa apakah ada promo
+                    const hasPromo = order.diskon_persen && order.harga_asal && order.harga_diskon;
+                    let hargaDisplay;
+                    
+                    if (hasPromo) {
+                        hargaDisplay = `
+                            <span class="original-price">Rp ${order.harga_asal.toLocaleString('id-ID')}</span>
+                            <span class="price-highlight">Rp ${order.harga_diskon.toLocaleString('id-ID')}</span>
+                        `;
+                    } else {
+                        hargaDisplay = `<span class="price-highlight">Rp ${order.harga_total.toLocaleString('id-ID')}</span>`;
+                    }
+                    
+                    const isKurir = order.vehicle && order.vehicle.includes('kurir');
+                    const statusText = getStatusText(order.status);
+                    const statusClass = getStatusClass(order.status);
+                    
+                    // Format waktu order
+                    const orderTime = formatOrderTime(order.completed_at || order.created_at);
+
+                    orderItem.innerHTML = `
+                        <div class="order-header">
+                            <div class="customer-name">
+                                ${driverName}
+                                ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
+                                ${hasPromo ? `<span class="promo-badge">🎁 ${order.diskon_persen}% OFF</span>` : ''}
+                            </div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="route-info">
+                            <div class="route-point">
+                                <div class="point-marker point-marker-a">A</div>
+                                <div class="point-address point-address-a">${alamatA}</div>
+                            </div>
+                            <div class="route-point">
+                                <div class="point-marker point-marker-b">B</div>
+                                <div class="point-address">${alamatB}</div>
+                            </div>
+                        </div>
+                        <div class="order-details">
+                            <div class="detail-item">
+                                <span class="detail-value">${durasi}</span>
+                                <span class="detail-label">Durasi</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-value">${jarak}</span>
+                                <span class="detail-label">Jarak</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-value">${hargaDisplay}</span>
+                                <span class="detail-label">Harga</span>
+                            </div>
+                        </div>
+                        <div class="order-meta">
+                            <span>${orderTime}</span>
+                            <span>${order.vehicle_name || 'Motor'}</span>
+                        </div>
+                    `;
+                    
+                    orderItem.addEventListener('click', () => {
+                        showOrderDetail(order);
+                    });
+                    
+                    ordersList.appendChild(orderItem);
+                });
+            });
+            
+            // Jika tidak ada order setelah difilter
+            if (!hasOrders) {
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div>🔍</div>
+                        <p>Tidak ada perjalanan yang sesuai dengan filter</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ==================== FUNGSI BANTUAN ====================
+
+        // Fungsi untuk mendapatkan data user dari localStorage
+        function checkUserData() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('jego_logged_in_user') || '{}');
+                
+                if (userData.email && userData.nama) {
+                    currentUser = userData;
+                    return true;
+                } else {
+                    console.warn('❌ User belum terdaftar atau login');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error parsing user data:', error);
+                return false;
+            }
+        }
+
+        // Fungsi untuk mendapatkan teks status
+        function getStatusText(status) {
+            const statusMap = {
+                'completed': 'Selesai',
+                'cancelled': 'Dibatalkan',
+                'accepted': 'Diterima',
+                'on_the_way': 'Dalam Perjalanan'
+            };
+            
+            return statusMap[status] || status;
+        }
+
+        // Fungsi untuk mendapatkan class status
+        function getStatusClass(status) {
+            const classMap = {
+                'completed': 'status-completed',
+                'cancelled': 'status-cancelled',
+                'accepted': 'status-accepted',
+                'on_the_way': 'status-on_the_way'
+            };
+            
+            return classMap[status] || 'status-completed';
+        }
+
+        // Fungsi untuk memformat kunci tanggal (YYYY-MM-DD)
+        function formatDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // Fungsi untuk memformat tanggal tampilan
+        function formatDisplayDate(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (formatDateKey(date) === formatDateKey(today)) {
+                return 'Hari Ini';
+            } else if (formatDateKey(date) === formatDateKey(yesterday)) {
+                return 'Kemarin';
+            } else {
+                return date.toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+        }
+
+        // Fungsi untuk memformat waktu order
+        function formatOrderTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Fungsi untuk memformat waktu lengkap
+        function formatFullTime(dateString) {
+            if (!dateString) return '-';
+            
+            const date = new Date(dateString);
+            return date.toLocaleString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Fungsi untuk mengecek apakah tanggal dalam minggu ini
+        function isThisWeek(date) {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+            
+            const endOfWeek = new Date(today);
+            endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+            endOfWeek.setHours(23, 59, 59, 999);
+            
+            return date >= startOfWeek && date <= endOfWeek;
+        }
+
+        // Fungsi untuk mengecek apakah tanggal dalam bulan ini
+        function isThisMonth(date) {
+            const today = new Date();
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+            
+            return date >= startOfMonth && date <= endOfMonth;
+        }
+
+        // ==================== FUNGSI MODAL ====================
+
+        // Fungsi untuk menampilkan detail order di modal
+        function showOrderDetail(order) {
+            console.log('📋 Menampilkan detail order:', order.id);
+            currentOrderId = order.id; // Simpan ID order untuk modal CS
+            
+            // Update konten modal
+            document.getElementById('modalAddressA').textContent = order.alamat_a || '-';
+            document.getElementById('modalAddressB').textContent = order.alamat_b || '-';
+            document.getElementById('modalDuration').textContent = order.durasi || '-';
+            document.getElementById('modalDistance').textContent = order.jarak || '-';
+            
+            // Periksa apakah ada promo
+            const hasPromo = order.diskon_persen && order.harga_asal && order.harga_diskon;
+            
+            if (hasPromo) {
+                // Tampilkan harga dengan diskon
+                document.getElementById('modalPrice').innerHTML = `
+                    <span class="modal-original-price">Rp ${order.harga_asal.toLocaleString('id-ID')}</span>
+                    <span class="modal-price-highlight">Rp ${order.harga_diskon.toLocaleString('id-ID')}</span>
+                `;
+                
+                // Tampilkan informasi promo
+                document.getElementById('modalPromoInfo').style.display = 'block';
+                document.getElementById('modalPromoCode').textContent = order.kode_promo || '-';
+                document.getElementById('modalPromoDiscount').textContent = order.diskon_persen + '%';
+                document.getElementById('modalOriginalPrice').textContent = 'Rp ' + order.harga_asal.toLocaleString('id-ID');
+            } else {
+                // Tampilkan harga normal
+                document.getElementById('modalPrice').textContent = 'Rp ' + (order.harga_total || 0).toLocaleString('id-ID');
+                
+                // Sembunyikan informasi promo
+                document.getElementById('modalPromoInfo').style.display = 'none';
+            }
+            
+            // Isi timeline
+            document.getElementById('timelineCreated').textContent = formatFullTime(order.created_at);
+            document.getElementById('timelineAccepted').textContent = formatFullTime(order.selected_driver?.offered_at);
+            document.getElementById('timelineStarted').textContent = formatFullTime(order.trip_started_at);
+            document.getElementById('timelineArrived').textContent = formatFullTime(order.arrived_at);
+            document.getElementById('timelineCompleted').textContent = formatFullTime(order.completed_at);
+            
+            // Tampilkan modal
+            document.getElementById('orderModal').style.display = 'flex';
+        }
+
+        // Fungsi untuk menutup modal
+        function closeModal() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
+
+        // Fungsi untuk menampilkan modal CS
+        function showCsModal() {
+            if (!currentOrderId) {
+                alert('Tidak ada order yang dipilih');
+                return;
+            }
+            
+            // Set Order ID di modal CS
+            document.getElementById('csOrderId').textContent = currentOrderId;
+            
+            // Tutup modal order detail
+            closeModal();
+            
+            // Tampilkan modal CS
+            document.getElementById('csModal').style.display = 'flex';
+        }
+
+        // Fungsi untuk menutup modal CS
+        function closeCsModal() {
+            document.getElementById('csModal').style.display = 'none';
+        }
+
+        // Fungsi untuk menyalin teks ke clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Teks berhasil disalin: ' + text);
+            }).catch(err => {
+                console.error('Gagal menyalin teks: ', err);
+            });
+        }
+
+        // ==================== FUNGSI FILTER ====================
+
+        // Fungsi untuk mengubah filter
+        function changeFilter(filter) {
+            console.log('🔧 Mengubah filter menjadi:', filter);
+            currentFilter = filter;
+            
+            // Update tampilan filter
+            const filterOptions = document.querySelectorAll('.filter-option');
+            filterOptions.forEach(option => {
+                if (option.dataset.filter === filter) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+            
+            // Muat ulang data dengan filter baru
+            loadHistoryData();
+        }
+
+        // ==================== FUNGSI KODULAR ====================
+
+        // Fungsi untuk mengirim data ke Kodular
+        function sendToKodular(data) {
+            console.log('Mengirim data ke Kodular:', data);
+            
+            if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+                try {
+                    window.AppInventor.setWebViewString(JSON.stringify(data));
+                } catch (error) {
+                    console.error('Error mengirim data via AppInventor:', error);
+                }
+            }
+            else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+                try {
+                    window.android.receiveData(JSON.stringify(data));
+                } catch (error) {
+                    console.error('Error mengirim data via window.android:', error);
+                }
+            }
+            else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+                try {
+                    window.webkit.messageHandlers.observe.postMessage(data);
+                } catch (error) {
+                    console.error('Error mengirim data via webkit.messageHandlers:', error);
+                }
+            }
+            else {
+                console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+            }
+        }
+
+        // Fungsi untuk kembali ke halaman sebelumnya
+        function goBack() {
+            sendToKodular({
+                action: 'back_pressed',
+                screen: 'support',
+                message: 'Kembali dari halaman dukungan'
+            });
+            window.history.back();
+        }
+
+        // ==================== FUNGSI DATA DUMMY ====================
+
+        // Fungsi untuk menampilkan data dummy jika Firebase gagal
+        function showDummyData() {
+            const ordersList = document.getElementById('ordersList');
+            
+            // Hapus loading spinner
+            ordersList.innerHTML = '';
+            
+            // Tambahkan pesan warning
+            const warningMsg = document.createElement('div');
+            warningMsg.className = 'empty-state';
+            warningMsg.innerHTML = `
+                <div>⚠️</div>
+                <p>Mode Demo - Firebase tidak terhubung</p>
+                <p style="font-size: 0.8rem; margin-top: 10px;">Pastikan konfigurasi Firebase sudah benar</p>
+            `;
+            ordersList.appendChild(warningMsg);
+            
+            // Data dummy untuk testing (menggunakan data yang diberikan)
+            const dummyOrders = [
+                {
+                    id: 'ORDER_1764342394312_oeu0kz9gn',
+                    user_data: { 
+                        nama: 'Iki wenas',
+                        email: 'ironajalah@gmail.com'
+                    },
+                    alamat_a: 'Poowo, Iloheluma, Bone Bolango, Gorontalo, Sulawesi, 96583',
+                    alamat_b: 'Tanggilingo, Kec. Kabila, Kabupaten Bone Bolango, Gorontalo, Indonesia',
+                    durasi: '9 min',
+                    jarak: '3,6 km',
+                    harga_asal: 10000,
+                    harga_diskon: 10000,
+                    harga_total: 10000,
+                    diskon_persen: 20,
+                    kode_promo: 'JEGOIKI0440EQ4',
+                    status: 'completed',
+                    vehicle: 'motor',
+                    vehicle_name: 'Motor',
+                    created_at: '2025-11-28T15:06:34.313Z',
+                    completed_at: '2025-11-28T15:07:16.493Z',
+                    selected_driver: {
+                        name: 'Developer JeGo',
+                        offered_at: '2025-11-28T15:06:44.964Z'
+                    },
+                    trip_started_at: '2025-11-28T15:07:10.804Z',
+                    arrived_at: '2025-11-28T15:07:09.699Z',
+                    user_email: 'ironajalah@gmail.com'
+                },
+                {
+                    id: 'ORDER_1764342507390_uv4nxgm9n',
+                    user_data: { 
+                        nama: 'Iki wenas',
+                        email: 'ironajalah@gmail.com'
+                    },
+                    alamat_a: 'Poowo, Iloheluma, Bone Bolango, Gorontalo, Sulawesi, 96583',
+                    alamat_b: 'Butu, Kec. Tilongkabila, Kabupaten Bone Bolango, Gorontalo, Indonesia',
+                    durasi: '11 menit',
+                    jarak: '4,6 km',
+                    harga_total: 11000,
+                    status: 'completed',
+                    vehicle: 'motor',
+                    vehicle_name: 'Motor',
+                    created_at: '2025-11-28T15:08:27.390Z',
+                    completed_at: '2025-11-28T15:09:10.923Z',
+                    selected_driver: {
+                        name: 'Developer JeGo',
+                        offered_at: '2025-11-28T15:08:42.180Z'
+                    },
+                    trip_started_at: '2025-11-28T15:09:06.783Z',
+                    arrived_at: '2025-11-28T15:09:05.712Z',
+                    user_email: 'ironajalah@gmail.com'
+                },
+                {
+                    id: 'ORDER_DEMO_CANCELLED',
+                    user_data: { 
+                        nama: 'Iki wenas',
+                        email: 'ironajalah@gmail.com'
+                    },
+                    alamat_a: 'Jl. Demo No. 123, Gorontalo',
+                    alamat_b: 'Jl. Contoh No. 456, Gorontalo',
+                    durasi: '-',
+                    jarak: '2,5 km',
+                    harga_total: 8000,
+                    status: 'cancelled',
+                    vehicle: 'motor',
+                    vehicle_name: 'Motor',
+                    created_at: '2025-11-27T10:30:00Z',
+                    updated_at: '2025-11-27T10:35:00Z',
+                    user_email: 'ironajalah@gmail.com'
+                }
+            ];
+            
+            // Filter hanya order untuk user ini
+            const userOrders = dummyOrders.filter(order => 
+                order.user_email === currentUser.email || 
+                (order.user_data && order.user_data.email === currentUser.email)
+            );
+            
+            if (userOrders.length === 0) {
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div>📭</div>
+                        <p>Tidak ada riwayat perjalanan untuk akun ini</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Kelompokkan order berdasarkan tanggal
+            const ordersByDate = groupOrdersByDate(userOrders);
+            
+            // Tampilkan order
+            displayFilteredOrders(ordersByDate);
+            
+            // Kirim data dummy ke Kodular
+            sendToKodular({
+                action: 'demo_mode_activated',
+                message: 'Firebase tidak terhubung, menggunakan data demo'
+            });
+        }
+
+        // ==================== INISIALISASI ====================
+
+        // Inisialisasi saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Halaman Dukungan dimuat');
+            
+            // Muat data riwayat
+            loadHistoryData();
+            
+            // Inisialisasi event listeners
+            document.getElementById('backBtn').addEventListener('click', goBack);
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('hubungiDukunganBtn').addEventListener('click', showCsModal);
+            document.getElementById('closeCsModal').addEventListener('click', closeCsModal);
+            document.getElementById('tutupCsModal').addEventListener('click', closeCsModal);
+            
+            // Event listener untuk klik di luar modal
+            document.getElementById('orderModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('orderModal')) closeModal();
+            });
+            
+            document.getElementById('csModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('csModal')) closeCsModal();
+            });
+
+            // Event listener untuk tombol salin email
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const textToCopy = btn.getAttribute('data-text');
+                    copyToClipboard(textToCopy);
+                });
+            });
+
+            // Event listeners untuk filter
+            const filterOptions = document.querySelectorAll('.filter-option');
+            filterOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    changeFilter(option.dataset.filter);
+                });
+            });
+
+            // Debug: Log untuk memastikan event listener terpasang
+            console.log('✅ Event listeners terpasang untuk filter:', filterOptions.length);
+        });
+
+        // Handle visibility change (tab menjadi aktif kembali)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('🔄 Halaman menjadi aktif, memuat ulang data...');
+                loadHistoryData();
+            }
+        });
+    </script>
+</body>
+</html>
