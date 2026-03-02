@@ -828,6 +828,10 @@
     let userDataRefreshInterval = null;
     let mapboxToken = null;
 
+    // Variabel untuk menyimpan alamat lengkap
+    let fromAddress = '';
+    let toAddress = '';
+
     // Ambil parameter vehicle dari URL atau localStorage
     const urlParams = new URLSearchParams(window.location.search);
     let vehicle = urlParams.get("vehicle");
@@ -1056,6 +1060,9 @@
           currentPosition = loc;
           getAddressFromOSM(loc, alamat => {
             searchBox.value = alamat;
+            // Simpan alamat lengkap dari OSM
+            if (isFrom) fromAddress = alamat;
+            else toAddress = alamat;
             hideRadar();
             updateMarker(isFrom ? 'from' : 'to', { lng: loc.lng, lat: loc.lat });
             map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
@@ -1129,13 +1136,15 @@
 
     function clearInput(type, searchBox) {
       searchBox.value = '';
-      if (type === 'from' && markerA) {
-        markerA.remove();
+      if (type === 'from') {
+        if (markerA) markerA.remove();
         markerA = null;
+        fromAddress = ''; // reset alamat
       }
-      if (type === 'to' && markerB) {
-        markerB.remove();
+      if (type === 'to') {
+        if (markerB) markerB.remove();
         markerB = null;
+        toAddress = ''; // reset alamat
         if (circleB) {
           map.removeLayer('circleB');
           map.removeSource('circleB');
@@ -1287,8 +1296,9 @@
           durasi: durationText,
           harga_per_km: vehicleData[vehicle]?.pricePerKm || fallbackVehicleData[vehicle].pricePerKm,
           harga_total: harga,
-          alamat_a: document.querySelector('#from-container .mapbox-search-input').value, // ambil dari search box
-          alamat_b: document.querySelector('#to-container .mapbox-search-input').value,
+          // Gunakan alamat dari variabel yang sudah disimpan, fallback ke nilai input
+          alamat_a: fromAddress || document.querySelector('#from-container .mapbox-search-input').value,
+          alamat_b: toAddress || document.querySelector('#to-container .mapbox-search-input').value,
           from_lat: from.lat,
           from_lng: from.lng,
           to_lat: to.lat,
@@ -1756,8 +1766,14 @@
           // Isi search box dengan alamat
           const fromSearch = document.querySelector('#from-container .mapbox-search-input');
           const toSearch = document.querySelector('#to-container .mapbox-search-input');
-          if (fromSearch) fromSearch.value = active.alamat_a;
-          if (toSearch) toSearch.value = active.alamat_b;
+          if (fromSearch) {
+            fromSearch.value = active.alamat_a;
+            fromAddress = active.alamat_a; // simpan alamat lengkap
+          }
+          if (toSearch) {
+            toSearch.value = active.alamat_b;
+            toAddress = active.alamat_b;
+          }
           if (active.delivery_data && (vehicle === 'kurir_motor' || vehicle === 'kurir_bentor')) {
             kurirDeliveryData = active.delivery_data;
             document.getElementById('deliveryInfoPanel').style.display = 'block';
@@ -1773,7 +1789,7 @@
             showRadar('Mencari driver...');
             document.getElementById('confirmBtn').style.display = 'none';
             document.getElementById('cancelBtn').style.display = 'block';
-            document.getElementById('cancelBtn').disabled = false; // 🔴 Aktifkan tombol batalkan
+            document.getElementById('cancelBtn').disabled = false;
             isSearching = true;
             loadOnlineDriversOnMap();
             listenForDriver(currentOrderId);
@@ -1850,31 +1866,70 @@
 
       searchBox.addEventListener('retrieve', (e) => {
         const feature = e.detail;
-        // Periksa struktur data
-        console.log('Retrieve event detail:', feature);
+        console.log('=== RETRIEVE EVENT ===');
+        console.log('Full feature:', feature);
+        
         let coordinates;
-        let name;
+        let displayName = 'Lokasi terpilih';
+
+        function makeDisplayName(props) {
+          console.log('Properti yang diterima di makeDisplayName:', props);
+          if (!props) return 'Lokasi terpilih';
+
+          console.log('Kunci properti:', Object.keys(props));
+
+          const nameProp = props.name || props.poi_name || props.place_name || '';
+          
+          let addressProp = props.full_address || 
+                            props.place_formatted || 
+                            props.address || 
+                            '';
+
+          console.log('nameProp:', nameProp);
+          console.log('addressProp:', addressProp);
+
+          if (!addressProp && props.context) {
+            const context = props.context;
+            const parts = [];
+            if (context.place) parts.push(context.place.name);
+            if (context.district) parts.push(context.district.name);
+            if (context.region) parts.push(context.region.name);
+            if (context.country) parts.push(context.country.name);
+            addressProp = parts.join(', ');
+            console.log('addressProp dari context:', addressProp);
+          }
+
+          if (nameProp && addressProp) {
+            if (addressProp.includes(nameProp)) {
+              return addressProp;
+            }
+            return nameProp + ', ' + addressProp;
+          } else if (addressProp) {
+            return addressProp;
+          } else if (nameProp) {
+            return nameProp;
+          } else {
+            return 'Lokasi terpilih';
+          }
+        }
+
         if (feature && feature.geometry && feature.geometry.coordinates) {
           coordinates = feature.geometry.coordinates;
-          // ✅ Gunakan place_name jika ada (paling lengkap)
-          name = feature.place_name || 
-                 feature.properties?.full_address || 
-                 feature.properties?.name || 
-                 'Lokasi terpilih';
+          displayName = makeDisplayName(feature.properties);
         } else if (feature && feature.features && feature.features.length > 0) {
-          // Kadang-kadang event mengembalikan objek dengan properti features
           const firstFeature = feature.features[0];
+          console.log('firstFeature:', firstFeature);
           coordinates = firstFeature.geometry.coordinates;
-          name = firstFeature.place_name || 
-                 firstFeature.properties?.full_address || 
-                 firstFeature.properties?.name || 
-                 'Lokasi terpilih';
+          displayName = makeDisplayName(firstFeature.properties);
         } else {
           console.error('Format feature tidak dikenal:', feature);
           return;
         }
-        onRetrieve(coordinates, name);
+
+        console.log('displayName FINAL:', displayName);
+        onRetrieve(coordinates, displayName);
       });
+
       return searchBox;
     }
 
@@ -1882,14 +1937,25 @@
       const fromContainer = document.getElementById('from-container');
       const toContainer = document.getElementById('to-container');
       
-      // Kosongkan container
       fromContainer.innerHTML = '';
       toContainer.innerHTML = '';
 
       // From search box
       const searchFrom = createSearchBox('Mo jemput dimana?', (coords, name) => {
-        updateMarker('from', { lng: coords[0], lat: coords[1] });
+        fromAddress = name; // Simpan alamat lengkap
+        console.log('fromAddress disimpan:', fromAddress);
+        
+        // Set value ke searchBox
         searchFrom.value = name;
+        
+        // Cari elemen input internal dan set juga
+        const inputElem = searchFrom.querySelector('input');
+        if (inputElem) {
+          inputElem.value = name;
+          inputElem.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        updateMarker('from', { lng: coords[0], lat: coords[1] });
         if (markerB) tryDirection();
         updateConfirmButton();
       });
@@ -1901,6 +1967,7 @@
       clearFrom.textContent = '×';
       clearFrom.onclick = () => {
         clearInput('from', searchFrom);
+        fromAddress = ''; // reset
       };
       fromContainer.appendChild(clearFrom);
 
@@ -1915,8 +1982,17 @@
 
       // To search box
       const searchTo = createSearchBox('Mo antar kamana?', (coords, name) => {
-        updateMarker('to', { lng: coords[0], lat: coords[1] });
+        toAddress = name; // Simpan alamat lengkap
+        console.log('toAddress disimpan:', toAddress);
+        
         searchTo.value = name;
+        const inputElem = searchTo.querySelector('input');
+        if (inputElem) {
+          inputElem.value = name;
+          inputElem.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        updateMarker('to', { lng: coords[0], lat: coords[1] });
         if (markerA) tryDirection();
         updateConfirmButton();
       });
@@ -1928,6 +2004,7 @@
       clearTo.textContent = '×';
       clearTo.onclick = () => {
         clearInput('to', searchTo);
+        toAddress = ''; // reset
       };
       toContainer.appendChild(clearTo);
 
@@ -1947,6 +2024,7 @@
           const loc = { lng: coords[1], lat: coords[0] };
           getAddressFromOSM({ lat: loc.lat, lng: loc.lng }, alamat => {
             searchFrom.value = alamat;
+            fromAddress = alamat;
             updateMarker('from', loc);
             map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
           });
@@ -1958,6 +2036,7 @@
           const loc = { lng: coords[1], lat: coords[0] };
           getAddressFromOSM({ lat: loc.lat, lng: loc.lng }, alamat => {
             searchTo.value = alamat;
+            toAddress = alamat;
             updateMarker('to', loc);
           });
         }
@@ -1968,6 +2047,7 @@
           currentPosition = { lat: c[0], lng: c[1] };
           getAddressFromOSM(currentPosition, alamat => {
             searchFrom.value = alamat;
+            fromAddress = alamat;
             updateMarker('from', { lng: currentPosition.lng, lat: currentPosition.lat });
             map.flyTo({ center: [currentPosition.lng, currentPosition.lat], zoom: 14 });
           });
@@ -1983,6 +2063,7 @@
             map.flyTo({ center: [loc.lng, loc.lat], zoom: 14 });
             getAddressFromOSM(loc, alamat => {
               searchFrom.value = alamat;
+              fromAddress = alamat;
               updateMarker('from', loc);
               hideRadar();
             });
@@ -2005,8 +2086,6 @@
       map.addControl(new mapboxgl.NavigationControl());
 
       map.on('load', () => {
-        // Set token (sudah diatur global)
-        // Tunggu hingga library search-js siap
         if (window.mapboxsearch) {
           setupSearchBoxes();
         } else {
@@ -2017,7 +2096,6 @@
 
     // ==================== EVENT LISTENERS ====================
     function setupEventListeners() {
-      // Tombol mode peta
       document.getElementById('mapModeBtn').addEventListener('click', toggleMapMode);
       document.getElementById('confirmBtn').addEventListener('click', confirmRoute);
       document.getElementById('cancelBtn').addEventListener('click', cancelSearch);
@@ -2031,11 +2109,10 @@
       document.getElementById('closeDriverOffers').addEventListener('click', () => document.getElementById('driverOffers').style.display = 'none');
     }
 
-    // ==================== INISIALISASI UTAMA (TANPA HARDCODE) ====================
+    // ==================== INISIALISASI UTAMA ====================
     async function onLoad() {
       console.log('Memulai aplikasi...');
       
-      // 1. Ambil data user
       userData = getUserData();
       if (!userData) {
         showPopup("Silakan login terlebih dahulu", "Info", "info");
@@ -2048,10 +2125,8 @@
         }
       }
 
-      // 2. Muat data tarif kendaraan
       await loadVehicleData();
 
-      // 3. 🔴 AMBIL TOKEN MAPBOX HANYA DARI FIREBASE
       try {
         console.log('Mengambil token Mapbox dari Firebase...');
         const tokenSnapshot = await database.ref('Secret/Key').once('value');
@@ -2063,13 +2138,10 @@
         
         console.log('✅ Token Mapbox berhasil dimuat dari Firebase');
         
-        // Set token global Mapbox
         mapboxgl.accessToken = mapboxToken;
         
-        // Inisialisasi map (langsung pakai token yang sudah di-set)
         initMap();
         
-        // Cek order aktif setelah map siap
         setTimeout(() => {
           checkActiveOrder();
         }, 2000);
@@ -2084,7 +2156,6 @@
           'error'
         );
         
-        // Tampilkan pesan error di konsol, tapi jangan hardcode fallback
         document.body.innerHTML += `
           <div style="position:fixed; bottom:20px; left:20px; right:20px; background:#f44336; color:white; padding:15px; border-radius:8px; z-index:10000; text-align:center;">
             ⚠️ Gagal memuat token Mapbox. Aplikasi tidak dapat berjalan.
