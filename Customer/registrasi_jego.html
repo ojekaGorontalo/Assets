@@ -22,8 +22,9 @@
     .form-title { font-size: 1.5rem; font-weight: 600; color: var(--primary); text-align: center; margin-bottom: 20px; }
     .form-group { margin-bottom: 15px; }
     .form-label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--dark); }
-    .form-input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
-    .form-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(255,152,0,0.1); }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; font-family: inherit; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(255,152,0,0.1); }
+    .form-textarea { min-height: 80px; resize: vertical; }
     .submit-btn { background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
     .submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.2); }
     .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
@@ -61,7 +62,7 @@
         <div class="progress-bar" id="progressBar"></div>
       </div>
 
-      <!-- Form Registrasi -->
+      <!-- Form Registrasi (dengan field baru) -->
       <form id="registerForm">
         <div class="form-group">
           <label class="form-label" for="namaInput">Nama Lengkap</label>
@@ -75,6 +76,23 @@
           <label class="form-label" for="emailInput">Email (opsional)</label>
           <input type="email" class="form-input" id="emailInput">
         </div>
+        
+        <!-- FIELD BARU: Alamat -->
+        <div class="form-group">
+          <label class="form-label" for="alamatInput">Alamat (opsional)</label>
+          <textarea class="form-textarea" id="alamatInput" placeholder="Masukkan alamat lengkap..."></textarea>
+        </div>
+
+        <!-- FIELD BARU: Jenis Kelamin -->
+        <div class="form-group">
+          <label class="form-label" for="genderSelect">Jenis Kelamin (opsional)</label>
+          <select class="form-select" id="genderSelect">
+            <option value="">-- Pilih --</option>
+            <option value="Laki-laki">Laki-laki</option>
+            <option value="Perempuan">Perempuan</option>
+          </select>
+        </div>
+
         <button type="submit" class="submit-btn" id="registerBtn">Daftar & Kirim OTP</button>
       </form>
 
@@ -114,7 +132,7 @@
     };
 
     // ========== KONFIGURASI GATEWAY SMS (DIRECT) ==========
-    // 🔴 PERHATIAN: Kredensial akan terlihat di source code! Gunakan hanya untuk development.
+    //  PERHATIAN: Kredensial akan terlihat di source code! Gunakan hanya untuk development.
     const SMS_GATEWAY_CONFIG = {
       user: 'gsmreload',
       pass: 'Jd59dm$jr*dj^hy',
@@ -308,12 +326,14 @@
       return true;
     }
 
-    // ================= HANDLER REGISTRASI =================
+    // ================= HANDLER REGISTRASI (DENGAN FIELD BARU) =================
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const nama = document.getElementById('namaInput').value.trim();
       const phoneRaw = document.getElementById('teleponInput').value.trim();
       const email = document.getElementById('emailInput').value.trim();
+      const alamat = document.getElementById('alamatInput').value.trim(); // field baru
+      const gender = document.getElementById('genderSelect').value; // field baru
 
       if (!nama) return showStatus('Nama harus diisi', 'error');
       if (!phoneRaw) return showStatus('Nomor telepon harus diisi', 'error');
@@ -336,8 +356,14 @@
           return;
         }
 
-        // Simpan data sementara
-        registrationData = { name: nama, phone: phone, email: email };
+        // Simpan data sementara (termasuk alamat dan gender)
+        registrationData = { 
+          name: nama, 
+          phone: phone, 
+          email: email,
+          address: alamat,      // field baru
+          gender: gender        // field baru
+        };
 
         // Kirim OTP
         btn.innerText = 'Mengirim OTP...';
@@ -379,6 +405,8 @@
           name: registrationData.name,
           phone: registrationData.phone,
           email: registrationData.email || '',
+          address: registrationData.address || '',    // field baru
+          gender: registrationData.gender || '',      // field baru
           uid: uid,
           status: 'active',
           fotoProfilURL: '',
@@ -388,13 +416,15 @@
         };
         await newUserRef.set(userData);
 
-        // Buat session
+        // Buat session (termasuk address dan gender)
         const session = {
           userId: uid,
           uid: uid,
           name: userData.name,
           phone: userData.phone,
           email: userData.email,
+          address: userData.address,   // field baru
+          gender: userData.gender,     // field baru
           status: 'active',
           photoURL: '',
           rating: 5,
