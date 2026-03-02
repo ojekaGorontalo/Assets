@@ -1925,14 +1925,27 @@
           ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order saat ini</p></div>';
           return;
         }
-        const sortedOrders = Object.entries(orders)
-          .map(([id, order]) => ({ id, ...order }))
-          .filter(order => order.status === 'searching')
-          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-        if (sortedOrders.length === 0) {
-          ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order</p></div>';
+
+        // Ambil tipe kendaraan driver
+        const driverVehicleType = currentDriverData?.vehicleType;
+        if (!driverVehicleType) {
+          ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Data kendaraan driver tidak ditemukan. Silakan daftar ulang.</p></div>';
           return;
         }
+
+        const allOrders = Object.entries(orders)
+          .map(([id, order]) => ({ id, ...order }))
+          .filter(order => order.status === 'searching');
+
+        // Filter berdasarkan tipe kendaraan
+        const filteredOrders = allOrders.filter(order => order.vehicle === driverVehicleType);
+        
+        if (filteredOrders.length === 0) {
+          ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>Tidak ada permintaan order untuk kendaraan ${driverVehicleType} saat ini</p></div>`;
+          return;
+        }
+
+        const sortedOrders = filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         renderOrdersList(sortedOrders, ordersList);
       }, (error) => {
         console.error('❌ Error loading orders:', error);
@@ -2132,14 +2145,14 @@
           closeModal(); return;
         }
         const driverData = {
-  id: driverId,
-  name: currentDriverData.fullName,
-  plate_number: currentDriverData.plateNumber,
-  vehicle_type: currentDriverData.vehicleType,
-  rating: currentDriverData.rating, // tambahkan rating driver
-  offered_at: new Date().toISOString(),
-  status: 'offered'
-};
+          id: driverId,
+          name: currentDriverData.fullName,
+          plate_number: currentDriverData.plateNumber,
+          vehicle_type: currentDriverData.vehicleType,
+          rating: currentDriverData.rating, // tambahkan rating driver
+          offered_at: new Date().toISOString(),
+          status: 'offered'
+        };
         database.ref('orders/' + orderId + '/driver_offers/' + driverId).set(driverData)
           .then(() => {
             ambilBtn.textContent = 'Menunggu Konfirmasi';
@@ -2206,7 +2219,7 @@
             phoneNumber: driverData.phone,
             email: driverData.email,
             profilePhotoUrl: driverData.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-            vehicleType: driverData.vehicleType,
+            vehicleType: driverData.vehicleType,           // <-- PASTIKAN INI ADA
             plateNumber: driverData.plateNumber,
             vehicleBrand: driverData.vehicleBrand,
             status: driverData.status || driverData.driverStatus || 'pending',
