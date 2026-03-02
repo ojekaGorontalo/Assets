@@ -104,16 +104,15 @@
     };
 
     // ========== KONFIGURASI GATEWAY SMS (DIRECT) ==========
-    // 🔴 PERHATIAN: Kredensial akan terlihat di source code! Gunakan hanya untuk development.
     const SMS_GATEWAY_CONFIG = {
       user: 'gsmreload',
-      pass: 'Jd59dm$jr*dj^hy',  // pastikan password sudah di-encode jika perlu
+      pass: 'Jd59dm$jr*dj^hy',
       baseUrl: 'https://srv2.soufasms.com/sms_gateway/'
     };
 
     // ================= GLOBAL =================
     let firebaseDatabase;
-    let currentPhone = ''; // menyimpan nomor untuk resend dan verifikasi
+    let currentPhone = '';
 
     // ================= UTILITAS =================
     function showNotif(title, msg, type = 'info') {
@@ -172,7 +171,6 @@
       }, 1000);
     }
 
-    // Generate OTP 6 digit acak
     function generateOTP() {
       return Math.floor(100000 + Math.random() * 900000).toString();
     }
@@ -180,16 +178,11 @@
     // ================= FIREBASE INIT =================
     async function initFirebase() {
       if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
-      // Inisialisasi hanya sekali
-      if (!firebase.apps.length) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-      }
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       firebaseDatabase = firebase.database();
     }
 
     // ================= LOGIKA OTP =================
-
-    // Cek apakah nomor masih diizinkan mengirim OTP (maks 3x dalam 10 menit)
     async function canSendOTP(phone) {
       const ref = firebaseDatabase.ref('otp_verification/' + phone.replace(/\+/g, '_'));
       const snap = await ref.child('requests').once('value');
@@ -200,79 +193,46 @@
       return recentRequests.length < 3;
     }
 
-    // Simpan OTP ke database dan catat waktu permintaan
     async function saveOTP(phone, code) {
       const path = 'otp_verification/' + phone.replace(/\+/g, '_');
       const ref = firebaseDatabase.ref(path);
       const now = Date.now();
-      const expiresAt = now + 5 * 60 * 1000; // 5 menit
+      const expiresAt = now + 5 * 60 * 1000;
 
-      // Ambil data requests yang ada
       const snap = await ref.child('requests').once('value');
       let requests = snap.val() || [];
-      requests = requests.filter(ts => ts > now - 10 * 60 * 1000); // hanya simpan 10 menit terakhir
+      requests = requests.filter(ts => ts > now - 10 * 60 * 1000);
       requests.push(now);
 
-      await ref.set({
-        code: code,
-        created_at: now,
-        expires_at: expiresAt,
-        requests: requests
-      });
+      await ref.set({ code, created_at: now, expires_at: expiresAt, requests });
     }
 
-    // Kirim OTP langsung ke gateway SMS via GET (kredensial terekspos!)
     async function sendOTPviaDirectGateway(phone, code) {
       const message = `Kode OTP Anda adalah ${code}`;
-      // Hapus karakter '+' dari nomor untuk gateway (biasanya tidak pakai +)
       const no = phone.replace('+', '');
-      // Encode komponen URL
-      const params = new URLSearchParams({
-        user: SMS_GATEWAY_CONFIG.user,
-        pass: SMS_GATEWAY_CONFIG.pass,
-        no: no,
-        msg: message,
-        max: '1'
-      });
+      const params = new URLSearchParams({ user: SMS_GATEWAY_CONFIG.user, pass: SMS_GATEWAY_CONFIG.pass, no, msg: message, max: '1' });
       const url = `${SMS_GATEWAY_CONFIG.baseUrl}?${params.toString()}`;
-
       try {
-        // Gunakan mode 'no-cors' untuk menghindari blokir CORS, tapi response tidak bisa dibaca.
-        // Alternatif: jika gateway mendukung CORS, bisa gunakan mode 'cors'.
         await fetch(url, { mode: 'no-cors' });
-        // Karena mode 'no-cors', kita tidak bisa tahu apakah sukses atau gagal.
-        // Kita asumsikan sukses.
-        console.log('OTP dikirim (mode no-cors, tidak ada validasi)');
         return true;
       } catch (e) {
-        console.error('Gagal mengirim OTP:', e);
         showStatus('Gagal mengirim OTP. Periksa koneksi internet.', 'error');
         return false;
       }
     }
 
-    // Kirim OTP (alur utama)
     async function sendOTP(phone) {
       try {
-        // Cek batas kirim
-        const allowed = await canSendOTP(phone);
-        if (!allowed) {
+        if (!await canSendOTP(phone)) {
           showStatus('Terlalu banyak permintaan OTP. Coba lagi nanti.', 'error');
           return false;
         }
-
         const code = generateOTP();
-        // Simpan ke database
         await saveOTP(phone, code);
-
-        // Kirim via gateway langsung
-        const sent = await sendOTPviaDirectGateway(phone, code);
-        if (!sent) {
-          // Jika gagal kirim, hapus data OTP yang baru disimpan
+        if (!await sendOTPviaDirectGateway(phone, code)) {
           await firebaseDatabase.ref('otp_verification/' + phone.replace(/\+/g, '_')).remove();
           return false;
         }
-
         showStatus('OTP terkirim!', 'success');
         return true;
       } catch (e) {
@@ -281,30 +241,13 @@
       }
     }
 
-    // Verifikasi kode OTP
     async function verifyOTP(phone, code) {
       const path = 'otp_verification/' + phone.replace(/\+/g, '_');
       const ref = firebaseDatabase.ref(path);
-      const snap = await ref.once('value');
-      const data = snap.val();
-      if (!data) {
-        showStatus('Kode OTP tidak ditemukan. Silakan kirim ulang.', 'error');
-        return null;
-      }
-
-      const now = Date.now();
-      if (now > data.expires_at) {
-        showStatus('Kode OTP sudah kadaluarsa. Silakan kirim ulang.', 'error');
-        await ref.remove();
-        return null;
-      }
-
-      if (data.code !== code) {
-        showStatus('Kode OTP salah.', 'error');
-        return null;
-      }
-
-      // OTP benar, hapus data OTP
+      const data = (await ref.once('value')).val();
+      if (!data) { showStatus('Kode OTP tidak ditemukan.', 'error'); return null; }
+      if (Date.now() > data.expires_at) { showStatus('Kode OTP kadaluarsa.', 'error'); await ref.remove(); return null; }
+      if (data.code !== code) { showStatus('Kode OTP salah.', 'error'); return null; }
       await ref.remove();
       return true;
     }
@@ -316,14 +259,13 @@
       if (!phoneInput) return showStatus('Masukkan nomor telepon', 'error');
 
       const phone = formatPhoneNumber(phoneInput);
-      if (!validatePhoneFormat(phone)) return showStatus('Format nomor tidak valid (contoh: 08123456789)', 'error');
+      if (!validatePhoneFormat(phone)) return showStatus('Format nomor tidak valid', 'error');
 
       const btn = document.getElementById('loginBtn');
       btn.disabled = true; btn.innerText = 'Memeriksa...';
       showProgress(30);
 
       try {
-        // CEK APAKAH NOMOR SUDAH TERDAFTAR
         const usersRef = firebaseDatabase.ref('users');
         const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
         if (!snapshot.exists()) {
@@ -333,7 +275,19 @@
           return;
         }
 
-        // Nomor terdaftar, lanjut kirim OTP
+        // Ambil data user untuk cek status
+        const users = snapshot.val();
+        const uid = Object.keys(users)[0];
+        const dbUser = users[uid];
+
+        // 🔴 CEK STATUS AKUN
+        if (dbUser.status === 'delete_account') {
+          showStatus('Akun ini telah dihapus dan tidak dapat digunakan lagi.', 'error');
+          btn.disabled = false; btn.innerText = 'Kirim Kode OTP';
+          hideProgress();
+          return;
+        }
+
         btn.innerText = 'Mengirim OTP...';
         const sent = await sendOTP(phone);
         if (sent) {
@@ -366,7 +320,6 @@
           return;
         }
 
-        // Ambil data user dari database berdasarkan nomor telepon
         const usersRef = firebaseDatabase.ref('users');
         const snapshot = await usersRef.orderByChild('phone').equalTo(currentPhone).once('value');
         const users = snapshot.val();
@@ -378,19 +331,19 @@
         const uid = Object.keys(users)[0];
         const dbUser = users[uid];
 
-        // Buat session
+        // 🔴 CEK ULANG STATUS (untuk jaga-jaga jika berubah)
+        if (dbUser.status === 'delete_account') {
+          showStatus('Akun ini telah dihapus. Tidak dapat login.', 'error');
+          btn.disabled = false; btn.innerText = 'Verifikasi OTP';
+          return;
+        }
+
         const session = {
-          userId: uid,
-          uid: uid,
-          name: dbUser.name || '',
-          phone: dbUser.phone || currentPhone,
-          email: dbUser.email || '',
-          status: dbUser.status || 'active',
-          photoURL: dbUser.fotoProfilURL || '',
-          rating: dbUser.rating || 5,
+          userId: uid, uid, name: dbUser.name || '', phone: dbUser.phone || currentPhone,
+          email: dbUser.email || '', status: dbUser.status || 'active',
+          photoURL: dbUser.fotoProfilURL || '', rating: dbUser.rating || 5,
           perjalanan: dbUser.perjalanan || 0
         };
-
         localStorage.setItem('jego_logged_in_user', JSON.stringify(session));
 
         showStatus('Login berhasil! Mengalihkan...', 'success');
@@ -409,15 +362,10 @@
       startResendCountdown(60);
     });
 
-    // ================= INIT =================
     window.onload = async () => {
-      // Bersihkan key lama
       ['user', 'currentUser', 'jegoUser'].forEach(k => localStorage.removeItem(k));
-
       try {
         await initFirebase();
-
-        // Cek session aktif
         const session = localStorage.getItem('jego_logged_in_user');
         if (session) {
           const user = JSON.parse(session);
