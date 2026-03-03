@@ -558,7 +558,7 @@
 
     .order-details {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr); /* diubah dari 4 menjadi 3 */
       gap: 5px;
       border-top: 1px solid #eee;
       padding-top: 8px;
@@ -1180,7 +1180,7 @@
       margin-top: 2px;
     }
 
-    /* Toggle Switch (masih ada untuk autobid, tapi di sidebar tidak digunakan lagi) */
+    /* Toggle Switch */
     .toggle-switch {
       position: relative;
       display: inline-block;
@@ -1517,7 +1517,7 @@
       .radar-subtitle { font-size: 0.85rem; }
       .order-item { padding: 10px; }
       .route-info-with-photo { gap: 7px; }
-      .order-details { font-size: 0.75rem; grid-template-columns: repeat(4, 1fr); }
+      .order-details { font-size: 0.75rem; grid-template-columns: repeat(3, 1fr); }
       .detail-value { font-size: 0.7rem; }
       .detail-label { font-size: 0.6rem; }
       .modal-content { width: 98%; max-height: 95vh; }
@@ -1553,7 +1553,7 @@
       .radar-title { font-size: 1.1rem; }
       .radar-subtitle { font-size: 0.8rem; }
       .header { height: 60px; padding: 12px 15px; }
-      .order-details { grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 0.7rem; }
+      .order-details { grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 0.7rem; }
       .detail-value { font-size: 0.65rem; }
       .detail-label { font-size: 0.55rem; }
       .modal-details { padding: 12px 15px; }
@@ -1785,6 +1785,21 @@
           </div>
         </div>
 
+        <!-- Menu Terima Kurir -->
+        <div class="menu-section">
+          <h4>Preferensi Order</h4>
+          <div class="menu-item">
+            <div class="menu-item-label">
+              <span>Terima Kurir</span>
+              <span class="menu-item-desc">Tampilkan order pengiriman paket</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="acceptKurirToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
         <!-- Statistik -->
         <div class="menu-section">
           <h4>Statistik</h4>
@@ -1923,6 +1938,10 @@
     let countdownDriverId = null;
     let orderStatusListener = null;
 
+    // Variabel preferensi kurir
+    let acceptKurirEnabled = false;
+    const STORAGE_ACCEPT_KURIR = 'jego_accept_kurir';
+
     // ==================== PERSISTENSI STATUS ====================
     const STORAGE_TRACKING = 'jego_location_tracking';
     const STORAGE_AUTOBID = 'jego_autobid_enabled';
@@ -1935,6 +1954,12 @@
       const savedAutobid = localStorage.getItem(STORAGE_AUTOBID);
       autobidEnabled = savedAutobid === 'true';
       updateAutobidButton();
+
+      // Load preferensi kurir
+      const savedKurir = localStorage.getItem(STORAGE_ACCEPT_KURIR);
+      acceptKurirEnabled = savedKurir === 'true';
+      const toggle = document.getElementById('acceptKurirToggle');
+      if (toggle) toggle.checked = acceptKurirEnabled;
     }
 
     function updateTrackingButton() {
@@ -1956,6 +1981,15 @@
       } else {
         btn.innerHTML = 'Autobid: OFF';
         btn.classList.remove('active');
+      }
+    }
+
+    function updateAcceptKurirSetting() {
+      const toggle = document.getElementById('acceptKurirToggle');
+      if (toggle) {
+        acceptKurirEnabled = toggle.checked;
+        localStorage.setItem(STORAGE_ACCEPT_KURIR, acceptKurirEnabled);
+        loadOrders(); // refresh daftar order
       }
     }
 
@@ -1985,10 +2019,29 @@
           .map(([id, order]) => ({ id, ...order }))
           .filter(order => order.status === 'searching');
 
-        const filteredOrders = allOrders.filter(order => order.vehicle === driverVehicleType);
-        
+        // Filter berdasarkan preferensi kurir
+        const filteredOrders = allOrders.filter(order => {
+          if (acceptKurirEnabled) {
+            // Jika driver motor, terima motor dan kurir_motor
+            if (driverVehicleType === 'motor') {
+              return order.vehicle === 'motor' || order.vehicle === 'kurir_motor';
+            }
+            // Jika driver bentor, terima bentor dan kurir_bentor
+            if (driverVehicleType === 'bentor') {
+              return order.vehicle === 'bentor' || order.vehicle === 'kurir_bentor';
+            }
+            // Untuk tipe lain (misal mobil) tetap sama persis
+            return order.vehicle === driverVehicleType;
+          } else {
+            // Hanya terima yang sama persis
+            return order.vehicle === driverVehicleType;
+          }
+        });
+
         if (filteredOrders.length === 0) {
-          ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>Tidak ada permintaan order untuk kendaraan ${driverVehicleType} saat ini</p></div>`;
+          let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
+          if (acceptKurirEnabled) msg += ' (termasuk kurir)';
+          ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>${msg}</p></div>`;
           return;
         }
 
@@ -2026,7 +2079,7 @@
               ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
               ${promoBadge}
             </div>
-            <span class="status-badge status-searching">Mencari Driver</span>
+            <!-- Status badge "Mencari Driver" dihapus -->
           </div>
           <div class="route-info-with-photo">
             <div class="customer-info-left">
@@ -2053,7 +2106,7 @@
             <div class="detail-item"><span class="detail-value">${durasi}</span><span class="detail-label">Durasi</span></div>
             <div class="detail-item"><span class="detail-value">${jarak}</span><span class="detail-label">Jarak</span></div>
             <div class="detail-item"><span class="detail-value price-highlight">Rp ${harga.toLocaleString('id-ID')}</span><span class="detail-label">Harga</span></div>
-            <div class="detail-item"><span class="detail-value">${order.vehicle_name || '-'}</span><span class="detail-label">Kendaraan</span></div>
+            <!-- Kolom Kendaraan dihapus -->
           </div>
         `;
         orderItem.addEventListener('click', () => showOrderDetail(order));
@@ -2088,7 +2141,19 @@
           modalPhoto.style.display = 'block';
         } else modalPhoto.style.display = 'none';
 
-        // Sembunyikan countdown jika sebelumnya terlihat
+        // Tampilkan info kurir jika ada (hanya jenis barang dan deskripsi, tanpa nomor)
+        const deliveryDiv = document.getElementById('modalDeliveryInfo');
+        if (currentOrder.delivery_data) {
+          const d = currentOrder.delivery_data;
+          deliveryDiv.innerHTML = `
+            <div class="modal-delivery-item"><span class="modal-delivery-label">Jenis Barang:</span><span class="modal-delivery-value">${d.itemCategory || '-'}</span></div>
+            <div class="modal-delivery-item"><span class="modal-delivery-label">Deskripsi:</span><span class="modal-delivery-value">${d.description || '-'}</span></div>
+          `;
+          deliveryDiv.style.display = 'block';
+        } else {
+          deliveryDiv.style.display = 'none';
+        }
+
         document.getElementById('countdownContainer').style.display = 'none';
         document.getElementById('ambilBtn').disabled = false;
         document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
@@ -2483,6 +2548,9 @@
         if (e.target === document.getElementById('orderModal')) closeModal();
       });
       document.getElementById('popupButton').addEventListener('click', hidePopup);
+
+      // Event listener untuk toggle kurir
+      document.getElementById('acceptKurirToggle').addEventListener('change', updateAcceptKurirSetting);
 
       const navItems = document.querySelectorAll('.nav-item');
       navItems.forEach(item => item.addEventListener('click', () => navigateToScreen(item.dataset.screen)));
