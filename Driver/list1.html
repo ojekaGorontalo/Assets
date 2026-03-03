@@ -535,6 +535,19 @@
     .point-address { flex: 1; word-break: break-word; }
     .point-address-a { font-weight: 700; }
 
+    /* Deskripsi kurir di card */
+    .delivery-desc-card {
+      background: #f0f0f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .delivery-info {
       margin-top: 8px;
       padding: 8px;
@@ -558,7 +571,7 @@
 
     .order-details {
       display: grid;
-      grid-template-columns: repeat(3, 1fr); /* diubah dari 4 menjadi 3 */
+      grid-template-columns: repeat(4, 1fr); /* diubah dari 3 menjadi 4 */
       gap: 5px;
       border-top: 1px solid #eee;
       padding-top: 8px;
@@ -1517,7 +1530,7 @@
       .radar-subtitle { font-size: 0.85rem; }
       .order-item { padding: 10px; }
       .route-info-with-photo { gap: 7px; }
-      .order-details { font-size: 0.75rem; grid-template-columns: repeat(3, 1fr); }
+      .order-details { font-size: 0.75rem; grid-template-columns: repeat(4, 1fr); }
       .detail-value { font-size: 0.7rem; }
       .detail-label { font-size: 0.6rem; }
       .modal-content { width: 98%; max-height: 95vh; }
@@ -1553,7 +1566,7 @@
       .radar-title { font-size: 1.1rem; }
       .radar-subtitle { font-size: 0.8rem; }
       .header { height: 60px; padding: 12px 15px; }
-      .order-details { grid-template-columns: repeat(3, 1fr); gap: 4px; font-size: 0.7rem; }
+      .order-details { grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 0.7rem; }
       .detail-value { font-size: 0.65rem; }
       .detail-label { font-size: 0.55rem; }
       .modal-details { padding: 12px 15px; }
@@ -1942,6 +1955,23 @@
     let acceptKurirEnabled = false;
     const STORAGE_ACCEPT_KURIR = 'jego_accept_kurir';
 
+    // Set untuk deteksi order baru
+    let previousOrderIds = new Set();
+
+    // ==================== FUNGSI HAVERSINE ====================
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+      const R = 6371; // Radius bumi dalam km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
     // ==================== PERSISTENSI STATUS ====================
     const STORAGE_TRACKING = 'jego_location_tracking';
     const STORAGE_AUTOBID = 'jego_autobid_enabled';
@@ -2038,6 +2068,40 @@
           }
         });
 
+        // Deteksi order baru
+        const newOrderIds = new Set(filteredOrders.map(o => o.id));
+        const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
+        previousOrderIds = newOrderIds;
+
+        // Kirim notifikasi ke Kodular untuk setiap order baru
+        addedOrders.forEach(order => {
+          const payload = JSON.stringify({
+            action: 'new_order',
+            orderId: order.id,
+            message: 'Order baru masuk'
+          });
+          if (window.AppInventor?.setWebViewString) {
+            window.AppInventor.setWebViewString(payload);
+          } else if (window.android?.receiveData) {
+            window.android.receiveData(payload);
+          }
+
+          // Autobid + radius 3 km
+          if (autobidEnabled && driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
+            const dist = calculateDistance(
+              driverLocation.latitude, driverLocation.longitude,
+              order.from_lat, order.from_lng
+            );
+            if (dist !== null && dist < 3) {
+              // Tampilkan modal detail order
+              showOrderDetail(order);
+              // Kirim notifikasi autobid
+              const notif = JSON.stringify({ action: 'autobid_nearby', orderId: order.id });
+              if (window.AppInventor?.setWebViewString) window.AppInventor.setWebViewString(notif);
+            }
+          }
+        });
+
         if (filteredOrders.length === 0) {
           let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
           if (acceptKurirEnabled) msg += ' (termasuk kurir)';
@@ -2073,13 +2137,28 @@
         const isKurir = order.vehicle && order.vehicle.includes('kurir');
         const promoBadge = (order.diskon_persen || order.promo_data) ? '<span class="promo-badge">🎁 PROMO</span>' : '';
 
+        // Hitung jarak driver ke titik jemput
+        let jarakDriver = '-';
+        if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
+          const dist = calculateDistance(
+            driverLocation.latitude, driverLocation.longitude,
+            order.from_lat, order.from_lng
+          );
+          if (dist !== null) jarakDriver = dist.toFixed(1) + ' km';
+        }
+
+        // Deskripsi kurir jika ada
+        let kurirDescHtml = '';
+        if (isKurir && order.delivery_data && order.delivery_data.description) {
+          kurirDescHtml = `<div class="delivery-desc-card"><span>📦 ${order.delivery_data.description}</span></div>`;
+        }
+
         orderItem.innerHTML = `
           <div class="order-header">
             <div class="order-badges">
               ${isKurir ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
               ${promoBadge}
             </div>
-            <!-- Status badge "Mencari Driver" dihapus -->
           </div>
           <div class="route-info-with-photo">
             <div class="customer-info-left">
@@ -2100,13 +2179,14 @@
                 <div class="point-marker point-marker-b">B</div>
                 <div class="point-address">${alamatB}</div>
               </div>
+              ${kurirDescHtml}
             </div>
           </div>
           <div class="order-details">
             <div class="detail-item"><span class="detail-value">${durasi}</span><span class="detail-label">Durasi</span></div>
             <div class="detail-item"><span class="detail-value">${jarak}</span><span class="detail-label">Jarak</span></div>
             <div class="detail-item"><span class="detail-value price-highlight">Rp ${harga.toLocaleString('id-ID')}</span><span class="detail-label">Harga</span></div>
-            <!-- Kolom Kendaraan dihapus -->
+            <div class="detail-item"><span class="detail-value">${jarakDriver}</span><span class="detail-label">Jarak Driver</span></div>
           </div>
         `;
         orderItem.addEventListener('click', () => showOrderDetail(order));
@@ -2197,14 +2277,32 @@
 
     function showRouteOnMapbox(order) {
       if (!order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) return;
+      // Hapus layer dan source rute lama jika ada
       if (modalMap.getLayer('route')) modalMap.removeLayer('route');
       if (modalMap.getSource('route')) modalMap.removeSource('route');
+      // Hapus marker lama (jika ada, bisa dengan menyimpan referensi, tapi untuk sederhana kita asumsikan map baru)
+      // Tentukan ikon berdasarkan vehicleType
+      const vehicle = order.vehicle || 'motor';
+      let iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png'; // default motor
+      if (vehicle === 'motor') iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png';
+      else if (vehicle === 'bentor') iconUrl = 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png';
+      else if (vehicle === 'mobil') iconUrl = 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png';
+      else if (vehicle === 'kurir_motor') iconUrl = 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png';
+      else if (vehicle === 'kurir_bentor') iconUrl = 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png';
 
-      new mapboxgl.Marker({ color: '#FF9800' })
+      // Buat elemen marker pickup
+      const pickupEl = document.createElement('div');
+      pickupEl.innerHTML = `<img src="${iconUrl}" style="width:40px; height:40px;">`;
+
+      new mapboxgl.Marker({ element: pickupEl })
         .setLngLat([order.from_lng, order.from_lat])
         .setPopup(new mapboxgl.Popup().setHTML('Penjemputan'))
         .addTo(modalMap);
-      new mapboxgl.Marker({ color: '#FF5722' })
+
+      // Marker tujuan (bisa pakai icon default)
+      const destEl = document.createElement('div');
+      destEl.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/128/684/684908.png" style="width:40px; height:40px;">`; // icon tujuan
+      new mapboxgl.Marker({ element: destEl })
         .setLngLat([order.to_lng, order.to_lat])
         .setPopup(new mapboxgl.Popup().setHTML('Tujuan'))
         .addTo(modalMap);
