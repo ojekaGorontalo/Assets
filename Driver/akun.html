@@ -1047,7 +1047,6 @@
     let retryCount = 0;
     const MAX_RETRIES = 3;
     let driverOrders = [];
-    let driverRatings = [];
 
     // ================================================
     // ELEMEN DOM
@@ -1289,6 +1288,14 @@
         // Gabungkan data dari storage dan database
         currentDriverData = { ...storedDriver, ...driverData, uid: uid };
 
+        // Pastikan field rating dan ratingCount ada
+        if (typeof currentDriverData.rating !== 'number') {
+          currentDriverData.rating = 0;
+        }
+        if (typeof currentDriverData.ratingCount !== 'number') {
+          currentDriverData.ratingCount = 0;
+        }
+
         // Perbarui localStorage
         localStorage.setItem('jego_logged_in_driver', JSON.stringify(currentDriverData));
 
@@ -1341,8 +1348,10 @@
 
         // Muat data tambahan
         loadBalanceAndCommission(uid);
-        loadDriverRatings(uid);
         loadDriverOrders(uid);
+        
+        // Langsung tampilkan rating dari data driver
+        updateRatingDisplay();
 
         retryCount = 0;
         hideLoading();
@@ -1399,6 +1408,25 @@
     }
 
     // ================================================
+    // FUNGSI UPDATE RATING
+    // ================================================
+    function updateRatingDisplay() {
+      const avgRating = currentDriverData?.rating || 0;
+      const ratingCount = currentDriverData?.ratingCount || 0;
+
+      document.getElementById('ratingStars').innerHTML = generateStarRating(avgRating);
+      document.getElementById('ratingValue').textContent = avgRating.toFixed(1);
+      document.getElementById('ratingCount').textContent = `(${ratingCount} rating)`;
+
+      const priority = getPriorityBadge(avgRating);
+      const badgeSmall = document.getElementById('priorityBadgeSmall');
+      if (badgeSmall) {
+        badgeSmall.textContent = priority.level;
+        badgeSmall.className = priority.class;
+      }
+    }
+
+    // ================================================
     // FUNGSI LOAD BALANCE DAN KOMISI
     // ================================================
     async function loadBalanceAndCommission(uid) {
@@ -1413,46 +1441,6 @@
         document.getElementById('commissionRate').textContent = potongan + '%';
       } catch (error) {
         console.error('Error load balance:', error);
-      }
-    }
-
-    // ================================================
-    // FUNGSI LOAD RATING
-    // ================================================
-    async function loadDriverRatings(uid) {
-      try {
-        const ratingsSnap = await database.ref('drivers/' + uid + '/rating').once('value');
-        const ratingsData = ratingsSnap.val();
-        driverRatings = [];
-        if (ratingsData) {
-          Object.keys(ratingsData).forEach(key => {
-            driverRatings.push({ id: key, ...ratingsData[key] });
-          });
-        }
-        updateRatingDisplay();
-      } catch (error) {
-        console.error('Error load ratings:', error);
-      }
-    }
-
-    function calculateAverageRating(ratings) {
-      if (!ratings || ratings.length === 0) return 0;
-      const total = ratings.reduce((sum, r) => sum + (r.rating || 0), 0);
-      return total / ratings.length;
-    }
-
-    function updateRatingDisplay() {
-      const avgRating = calculateAverageRating(driverRatings);
-      const ratingCount = driverRatings.length;
-      document.getElementById('ratingStars').innerHTML = generateStarRating(avgRating);
-      document.getElementById('ratingValue').textContent = avgRating.toFixed(1);
-      document.getElementById('ratingCount').textContent = `(${ratingCount} rating)`;
-
-      const priority = getPriorityBadge(avgRating);
-      const badgeSmall = document.getElementById('priorityBadgeSmall');
-      if (badgeSmall) {
-        badgeSmall.textContent = priority.level;
-        badgeSmall.className = priority.class;
       }
     }
 
