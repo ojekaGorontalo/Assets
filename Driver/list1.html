@@ -876,7 +876,33 @@
       padding: 12px 15px;
       border-top: 1px solid #eee;
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+    }
+
+    #countdownContainer {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .progress-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 8px;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      border-radius: 10px;
+      width: 100%;
+      transition: width 0.3s ease;
+    }
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 5px;
     }
 
     .ambil-btn {
@@ -901,34 +927,6 @@
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
-    }
-
-    .progress-container {
-      width: 100%;
-      background-color: #e0e0e0;
-      border-radius: 10px;
-      margin: 15px 0;
-      overflow: hidden;
-    }
-    .progress-bar {
-      height: 8px;
-      background: linear-gradient(to right, var(--primary), var(--secondary));
-      border-radius: 10px;
-      width: 100%;
-      transition: width 0.3s ease;
-    }
-    .progress-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: #666;
-      margin-top: 5px;
-    }
-    .progress-text {
-      text-align: center;
-      font-weight: 600;
-      color: var(--primary);
-      margin: 10px 0;
     }
 
     .autobid-modal .modal-content { max-width: 350px; }
@@ -1720,6 +1718,15 @@
         </div>
       </div>
       <div class="modal-footer">
+        <div id="countdownContainer" style="display: none; width: 100%; margin-bottom: 10px;">
+          <div class="progress-container">
+            <div id="countdownProgress" class="progress-bar" style="width: 100%;"></div>
+          </div>
+          <div class="progress-info" style="justify-content: space-between;">
+            <span>Menunggu konfirmasi customer...</span>
+            <span id="countdownSeconds">30 detik</span>
+          </div>
+        </div>
         <button class="ambil-btn" id="ambilBtn">Kirim Penawaran</button>
       </div>
     </div>
@@ -1904,11 +1911,53 @@
     // Variabel global
     let ordersRef = null, ordersListener = null;
     let modalMap = null;
-    let currentSelectedOrder = null, countdownInterval = null;
+    let currentSelectedOrder = null;
     let currentDriverId = null, currentDriverData = null;
     let autobidEnabled = false, driverLocation = { latitude: null, longitude: null };
     let locationWatchId = null, locationTrackingEnabled = false;
     let mapboxAccessToken = null;
+
+    // Variabel countdown
+    let countdownInterval = null;
+    let countdownOrderId = null;
+    let countdownDriverId = null;
+    let orderStatusListener = null;
+
+    // ==================== PERSISTENSI STATUS ====================
+    const STORAGE_TRACKING = 'jego_location_tracking';
+    const STORAGE_AUTOBID = 'jego_autobid_enabled';
+
+    function loadStoredSettings() {
+      const savedTracking = localStorage.getItem(STORAGE_TRACKING);
+      locationTrackingEnabled = savedTracking === 'true';
+      updateTrackingButton();
+
+      const savedAutobid = localStorage.getItem(STORAGE_AUTOBID);
+      autobidEnabled = savedAutobid === 'true';
+      updateAutobidButton();
+    }
+
+    function updateTrackingButton() {
+      const btn = document.getElementById('locationToggleBtn');
+      if (locationTrackingEnabled) {
+        btn.innerHTML = '📍 ON';
+        btn.classList.add('active');
+      } else {
+        btn.innerHTML = '📍 OFF';
+        btn.classList.remove('active');
+      }
+    }
+
+    function updateAutobidButton() {
+      const btn = document.getElementById('autobidBtn');
+      if (autobidEnabled) {
+        btn.innerHTML = 'Autobid: ON';
+        btn.classList.add('active');
+      } else {
+        btn.innerHTML = 'Autobid: OFF';
+        btn.classList.remove('active');
+      }
+    }
 
     // ==================== FUNGSI UTAMA ====================
     function loadOrders() {
@@ -1926,7 +1975,6 @@
           return;
         }
 
-        // Ambil tipe kendaraan driver
         const driverVehicleType = currentDriverData?.vehicleType;
         if (!driverVehicleType) {
           ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Data kendaraan driver tidak ditemukan. Silakan daftar ulang.</p></div>';
@@ -1937,7 +1985,6 @@
           .map(([id, order]) => ({ id, ...order }))
           .filter(order => order.status === 'searching');
 
-        // Filter berdasarkan tipe kendaraan
         const filteredOrders = allOrders.filter(order => order.vehicle === driverVehicleType);
         
         if (filteredOrders.length === 0) {
@@ -2041,6 +2088,8 @@
           modalPhoto.style.display = 'block';
         } else modalPhoto.style.display = 'none';
 
+        // Sembunyikan countdown jika sebelumnya terlihat
+        document.getElementById('countdownContainer').style.display = 'none';
         document.getElementById('ambilBtn').disabled = false;
         document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
         document.getElementById('orderModal').style.display = 'flex';
@@ -2149,7 +2198,7 @@
           name: currentDriverData.fullName,
           plate_number: currentDriverData.plateNumber,
           vehicle_type: currentDriverData.vehicleType,
-          rating: currentDriverData.rating, // tambahkan rating driver
+          rating: currentDriverData.rating,
           offered_at: new Date().toISOString(),
           status: 'offered'
         };
@@ -2158,32 +2207,109 @@
             ambilBtn.textContent = 'Menunggu Konfirmasi';
             startCountdown(orderId, driverId);
           }).catch(error => {
-            alert('Gagal mengirim penawaran.'); ambilBtn.disabled = false;
+            alert('Gagal mengirim penawaran.');
+            ambilBtn.disabled = false;
             ambilBtn.textContent = 'Kirim Penawaran';
           });
       }).catch(error => {
-        alert('Gagal memeriksa status order.'); ambilBtn.disabled = false;
+        alert('Gagal memeriksa status order.');
+        ambilBtn.disabled = false;
         ambilBtn.textContent = 'Kirim Penawaran';
       });
     }
 
+    // ==================== COUNTDOWN ====================
+    function stopCountdown() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      if (orderStatusListener && countdownOrderId) {
+        database.ref('orders/' + countdownOrderId).off('value', orderStatusListener);
+        orderStatusListener = null;
+      }
+      const container = document.getElementById('countdownContainer');
+      if (container) container.style.display = 'none';
+      const ambilBtn = document.getElementById('ambilBtn');
+      if (ambilBtn) {
+        ambilBtn.disabled = false;
+        ambilBtn.textContent = 'Kirim Penawaran';
+      }
+      countdownOrderId = null;
+      countdownDriverId = null;
+    }
+
     function startCountdown(orderId, driverId) {
+      stopCountdown();
+
+      countdownOrderId = orderId;
+      countdownDriverId = driverId;
+
+      const container = document.getElementById('countdownContainer');
+      const progress = document.getElementById('countdownProgress');
+      const secondsSpan = document.getElementById('countdownSeconds');
+      const ambilBtn = document.getElementById('ambilBtn');
+
       let timeLeft = 30;
-      if (countdownInterval) clearInterval(countdownInterval);
+      container.style.display = 'block';
+      ambilBtn.disabled = true;
+      ambilBtn.textContent = 'Menunggu...';
+
       countdownInterval = setInterval(() => {
         timeLeft--;
+        const percent = (timeLeft / 30) * 100;
+        progress.style.width = percent + '%';
+        secondsSpan.textContent = timeLeft + ' detik';
+
         if (timeLeft <= 0) {
           clearInterval(countdownInterval);
-          database.ref('orders/' + orderId + '/driver_offers/' + driverId).remove();
-          closeModal();
+          countdownInterval = null;
+          database.ref('orders/' + orderId + '/driver_offers/' + driverId).remove()
+            .then(() => {
+              showPopup('Info', 'Waktu penawaran habis. Silakan coba lagi.', 'info');
+              closeModal();
+            })
+            .catch(err => {
+              console.error('Gagal menghapus penawaran:', err);
+              closeModal();
+            });
         }
       }, 1000);
+
+      orderStatusListener = database.ref('orders/' + orderId).on('value', (snapshot) => {
+        const order = snapshot.val();
+        if (!order) {
+          stopCountdown();
+          showPopup('Info', 'Order tidak ditemukan.', 'warning');
+          closeModal();
+          return;
+        }
+
+        if (order.status === 'accepted') {
+          if (order.driver_id === driverId) {
+            stopCountdown();
+            showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
+            setTimeout(() => {
+              window.location.href = 'orderAccepted.html?id=' + orderId;
+            }, 1500);
+          } else {
+            stopCountdown();
+            showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
+            closeModal();
+          }
+        } else if (order.status !== 'searching') {
+          stopCountdown();
+          showPopup('Info', 'Status order berubah.', 'info');
+          closeModal();
+        }
+      });
     }
 
     function closeModal() {
       document.getElementById('orderModal').style.display = 'none';
-      if (countdownInterval) clearInterval(countdownInterval);
-      currentSelectedOrder = null; currentDriverId = null;
+      stopCountdown();
+      currentSelectedOrder = null;
+      currentDriverId = null;
       loadOrders();
     }
 
@@ -2219,7 +2345,7 @@
             phoneNumber: driverData.phone,
             email: driverData.email,
             profilePhotoUrl: driverData.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-            vehicleType: driverData.vehicleType,           // <-- PASTIKAN INI ADA
+            vehicleType: driverData.vehicleType,
             plateNumber: driverData.plateNumber,
             vehicleBrand: driverData.vehicleBrand,
             status: driverData.status || driverData.driverStatus || 'pending',
@@ -2229,7 +2355,6 @@
             potongan: driverData.Potongan || 0
           };
           document.getElementById('driverPhoto').src = currentDriverData.profilePhotoUrl;
-          // Update sidebar
           document.getElementById('sidebarDriverPhoto').src = currentDriverData.profilePhotoUrl;
           document.getElementById('sidebarDriverName').textContent = currentDriverData.fullName;
           document.getElementById('sidebarDriverRating').textContent = currentDriverData.rating.toFixed(1);
@@ -2270,26 +2395,35 @@
 
     function toggleLocationTracking() {
       locationTrackingEnabled = !locationTrackingEnabled;
-      const btn = document.getElementById('locationToggleBtn');
+      localStorage.setItem(STORAGE_TRACKING, locationTrackingEnabled);
+      updateTrackingButton();
+
       if (locationTrackingEnabled) {
         if (!driverLocation.latitude || !driverLocation.longitude) {
           alert('GPS diperlukan. Pastikan lokasi Anda aktif.');
           locationTrackingEnabled = false;
-          btn.innerHTML = '📍 OFF'; btn.classList.remove('active');
+          localStorage.setItem(STORAGE_TRACKING, false);
+          updateTrackingButton();
           return;
         }
-        btn.innerHTML = '📍 ON'; btn.classList.add('active');
-      } else {
-        btn.innerHTML = '📍 OFF'; btn.classList.remove('active');
+        if (currentDriverData) {
+          database.ref('drivers/' + currentDriverData.driverId).update({
+            latitude: driverLocation.latitude,
+            longitude: driverLocation.longitude,
+            last_update: new Date().toISOString()
+          }).catch(console.error);
+        }
       }
     }
 
     function toggleAutobid() {
-      if (!locationTrackingEnabled) { alert('Aktifkan tracking terlebih dahulu'); return; }
+      if (!locationTrackingEnabled) {
+        alert('Aktifkan tracking terlebih dahulu');
+        return;
+      }
       autobidEnabled = !autobidEnabled;
-      const btn = document.getElementById('autobidBtn');
-      btn.innerHTML = autobidEnabled ? 'Autobid: ON' : 'Autobid: OFF';
-      btn.classList.toggle('active', autobidEnabled);
+      localStorage.setItem(STORAGE_AUTOBID, autobidEnabled);
+      updateAutobidButton();
     }
 
     function refreshData() {
@@ -2328,6 +2462,8 @@
 
       try { await fetchMapboxToken(); } catch (err) { console.warn('Mapbox token tidak tersedia'); }
 
+      if (!checkDriverData()) return;
+      loadStoredSettings();
       setTimeout(startGPSMonitoring, 1000);
       setTimeout(loadOrders, 500);
 
