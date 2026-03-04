@@ -2096,8 +2096,8 @@
               order.from_lat, order.from_lng
             );
             if (dist !== null && dist < 3) {
-              // Tampilkan modal detail order (tanpa autobid di sini)
-              showOrderDetail(order);
+              // Tampilkan modal detail order dengan fromAuto = true (karena muncul otomatis)
+              showOrderDetail(order, true);
             }
           }
         });
@@ -2189,12 +2189,13 @@
             <div class="detail-item"><span class="detail-value">${jarakDriver}</span><span class="detail-label">Jarak Driver</span></div>
           </div>
         `;
-        orderItem.addEventListener('click', () => showOrderDetail(order));
+        // Klik manual, fromAuto = false
+        orderItem.addEventListener('click', () => showOrderDetail(order, false));
         ordersList.appendChild(orderItem);
       });
     }
 
-    function showOrderDetail(order) {
+    function showOrderDetail(order, fromAuto = false) {
       if (!checkDriverData()) return;
       const orderKey = order.order_id || order.id;
       database.ref('orders/' + orderKey).once('value').then((snapshot) => {
@@ -2240,8 +2241,9 @@
         document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
         document.getElementById('orderModal').style.display = 'flex';
 
-        // ===== AUTOBID (HANYA UNTUK PENUMPANG) =====
-        if (autobidEnabled && currentSelectedOrder) {
+        // ===== AUTOBID =====
+        // Hanya aktif jika autobidEnabled DAN fromAuto = true
+        if (autobidEnabled && fromAuto && currentSelectedOrder) {
           // Filter: jika order mengandung kata 'kurir', lewati autobid
           if (!currentSelectedOrder.vehicle.includes('kurir')) {
             // Kirim notifikasi autobid_nearby
