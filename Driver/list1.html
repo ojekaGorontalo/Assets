@@ -2089,30 +2089,15 @@
             window.android.receiveData(payload);
           }
 
-          // Cek jarak dan autobid
+          // Cek jarak dan tampilkan modal jika <3 km
           if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
             const dist = calculateDistance(
               driverLocation.latitude, driverLocation.longitude,
               order.from_lat, order.from_lng
             );
             if (dist !== null && dist < 3) {
-              // Tampilkan modal detail order
+              // Tampilkan modal detail order (tanpa autobid di sini)
               showOrderDetail(order);
-              
-              if (autobidEnabled) {
-                // Kirim notifikasi autobid
-                const notif = JSON.stringify({ action: 'autobid_nearby', orderId: order.id });
-                if (window.AppInventor?.setWebViewString) window.AppInventor.setWebViewString(notif);
-                
-                // Otomatis kirim penawaran setelah modal tampil
-                setTimeout(() => {
-                  // Pastikan order masih yang sama dan modal masih terbuka
-                  if (currentSelectedOrder && currentSelectedOrder.id === order.id) {
-                    sendDriverOffer();
-                  }
-                }, 500);
-              }
-              // Jika autobid OFF, hanya tampilkan modal (tanpa kirim penawaran)
             }
           }
         });
@@ -2222,6 +2207,7 @@
         currentSelectedOrder = currentOrder;
         currentDriverId = currentDriverData?.driverId || 'DRIVER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
+        // Update elemen modal
         document.getElementById('modalAddressA').textContent = currentOrder.alamat_a || '-';
         document.getElementById('modalAddressB').textContent = currentOrder.alamat_b || '-';
         document.getElementById('modalDuration').textContent = currentOrder.durasi || '-';
@@ -2236,7 +2222,7 @@
           modalPhoto.style.display = 'block';
         } else modalPhoto.style.display = 'none';
 
-        // Tampilkan info kurir jika ada (hanya jenis barang dan deskripsi, tanpa nomor)
+        // Tampilkan info kurir jika ada
         const deliveryDiv = document.getElementById('modalDeliveryInfo');
         if (currentOrder.delivery_data) {
           const d = currentOrder.delivery_data;
@@ -2254,6 +2240,23 @@
         document.getElementById('ambilBtn').textContent = 'Kirim Penawaran';
         document.getElementById('orderModal').style.display = 'flex';
 
+        // ===== AUTOBID (HANYA UNTUK PENUMPANG) =====
+        if (autobidEnabled && currentSelectedOrder) {
+          // Filter: jika order mengandung kata 'kurir', lewati autobid
+          if (!currentSelectedOrder.vehicle.includes('kurir')) {
+            // Kirim notifikasi autobid_nearby
+            const notif = JSON.stringify({ action: 'autobid_nearby', orderId: currentSelectedOrder.id });
+            if (window.AppInventor?.setWebViewString) window.AppInventor.setWebViewString(notif);
+
+            // Jeda 500 ms agar modal tampil sempurna, lalu kirim penawaran
+            setTimeout(() => {
+              sendDriverOffer();
+            }, 500);
+          }
+        }
+        // ===== AKHIR AUTOBID =====
+
+        // Inisialisasi map
         if (mapboxAccessToken) {
           if (!modalMap) initModalMapbox();
           showRouteOnMapbox(currentOrder);
