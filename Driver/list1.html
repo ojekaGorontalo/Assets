@@ -1955,10 +1955,11 @@
     let acceptKurirEnabled = false;
     const STORAGE_ACCEPT_KURIR = 'jego_accept_kurir';
 
-    // Set untuk deteksi order baru dan autobid
+    // Set untuk deteksi order baru
     let previousOrderIds = new Set();
-    let processedAutobidOrders = new Set(); // Mencegah autobid ganda
-    let lastFilteredOrders = []; // Menyimpan order yang ditampilkan untuk update jarak
+
+    // Untuk menyimpan marker map
+    let mapMarkers = [];
 
     // ==================== FUNGSI HAVERSINE ====================
     function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -2088,25 +2089,33 @@
             window.android.receiveData(payload);
           }
 
-          // Autobid + radius 3 km
-          if (autobidEnabled && driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
+          // Cek jarak dan autobid
+          if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
             const dist = calculateDistance(
               driverLocation.latitude, driverLocation.longitude,
               order.from_lat, order.from_lng
             );
-            if (dist !== null && dist < 3 && !processedAutobidOrders.has(order.id)) {
-              processedAutobidOrders.add(order.id); // Tandai sudah diproses
+            if (dist !== null && dist < 3) {
               // Tampilkan modal detail order
               showOrderDetail(order);
-              // Kirim notifikasi autobid
-              const notif = JSON.stringify({ action: 'autobid_nearby', orderId: order.id });
-              if (window.AppInventor?.setWebViewString) window.AppInventor.setWebViewString(notif);
+              
+              if (autobidEnabled) {
+                // Kirim notifikasi autobid
+                const notif = JSON.stringify({ action: 'autobid_nearby', orderId: order.id });
+                if (window.AppInventor?.setWebViewString) window.AppInventor.setWebViewString(notif);
+                
+                // Otomatis kirim penawaran setelah modal tampil
+                setTimeout(() => {
+                  // Pastikan order masih yang sama dan modal masih terbuka
+                  if (currentSelectedOrder && currentSelectedOrder.id === order.id) {
+                    sendDriverOffer();
+                  }
+                }, 500);
+              }
+              // Jika autobid OFF, hanya tampilkan modal (tanpa kirim penawaran)
             }
           }
         });
-
-        // Simpan filteredOrders untuk update jarak nanti
-        lastFilteredOrders = filteredOrders;
 
         if (filteredOrders.length === 0) {
           let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
@@ -2192,27 +2201,11 @@
             <div class="detail-item"><span class="detail-value">${durasi}</span><span class="detail-label">Durasi</span></div>
             <div class="detail-item"><span class="detail-value">${jarak}</span><span class="detail-label">Jarak</span></div>
             <div class="detail-item"><span class="detail-value price-highlight">Rp ${harga.toLocaleString('id-ID')}</span><span class="detail-label">Harga</span></div>
-            <div class="detail-item"><span class="detail-value driver-distance" data-order-id="${order.id}">${jarakDriver}</span><span class="detail-label">Jarak Driver</span></div>
+            <div class="detail-item"><span class="detail-value">${jarakDriver}</span><span class="detail-label">Jarak Driver</span></div>
           </div>
         `;
         orderItem.addEventListener('click', () => showOrderDetail(order));
         ordersList.appendChild(orderItem);
-      });
-    }
-
-    // Fungsi untuk memperbarui jarak driver di semua card berdasarkan lokasi terbaru
-    function updateAllDriverDistances() {
-      if (!driverLocation.latitude || !driverLocation.longitude) return;
-      document.querySelectorAll('.driver-distance').forEach(el => {
-        const orderId = el.dataset.orderId;
-        const order = lastFilteredOrders.find(o => o.id === orderId);
-        if (order && order.from_lat && order.from_lng) {
-          const dist = calculateDistance(
-            driverLocation.latitude, driverLocation.longitude,
-            order.from_lat, order.from_lng
-          );
-          el.textContent = dist !== null ? dist.toFixed(1) + ' km' : '-';
-        }
       });
     }
 
@@ -2299,10 +2292,17 @@
 
     function showRouteOnMapbox(order) {
       if (!order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) return;
+
+      // Hapus marker sebelumnya
+      if (mapMarkers.length > 0) {
+        mapMarkers.forEach(marker => marker.remove());
+        mapMarkers = [];
+      }
+
       // Hapus layer dan source rute lama jika ada
       if (modalMap.getLayer('route')) modalMap.removeLayer('route');
       if (modalMap.getSource('route')) modalMap.removeSource('route');
-      // Hapus marker lama (jika ada, bisa dengan menyimpan referensi, tapi untuk sederhana kita asumsikan map baru)
+
       // Tentukan ikon berdasarkan vehicleType
       const vehicle = order.vehicle || 'motor';
       let iconUrl = 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png'; // default motor
@@ -2316,18 +2316,20 @@
       const pickupEl = document.createElement('div');
       pickupEl.innerHTML = `<img src="${iconUrl}" style="width:40px; height:40px;">`;
 
-      new mapboxgl.Marker({ element: pickupEl })
+      const pickupMarker = new mapboxgl.Marker({ element: pickupEl })
         .setLngLat([order.from_lng, order.from_lat])
         .setPopup(new mapboxgl.Popup().setHTML('Penjemputan'))
         .addTo(modalMap);
+      mapMarkers.push(pickupMarker);
 
       // Marker tujuan (bisa pakai icon default)
       const destEl = document.createElement('div');
       destEl.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/128/684/684908.png" style="width:40px; height:40px;">`; // icon tujuan
-      new mapboxgl.Marker({ element: destEl })
+      const destMarker = new mapboxgl.Marker({ element: destEl })
         .setLngLat([order.to_lng, order.to_lat])
         .setPopup(new mapboxgl.Popup().setHTML('Tujuan'))
         .addTo(modalMap);
+      mapMarkers.push(destMarker);
 
       const bounds = new mapboxgl.LngLatBounds()
         .extend([order.from_lng, order.from_lat])
@@ -2420,6 +2422,14 @@
         ambilBtn.disabled = false;
         ambilBtn.textContent = 'Kirim Penawaran';
       }
+
+      // Aktifkan kembali tombol close
+      const closeBtn = document.getElementById('closeModal');
+      if (closeBtn) {
+        closeBtn.classList.remove('disabled');
+        closeBtn.disabled = false;
+      }
+
       countdownOrderId = null;
       countdownDriverId = null;
     }
@@ -2439,6 +2449,13 @@
       container.style.display = 'block';
       ambilBtn.disabled = true;
       ambilBtn.textContent = 'Menunggu...';
+
+      // Nonaktifkan tombol close
+      const closeBtn = document.getElementById('closeModal');
+      if (closeBtn) {
+        closeBtn.classList.add('disabled');
+        closeBtn.disabled = true;
+      }
 
       countdownInterval = setInterval(() => {
         timeLeft--;
@@ -2507,9 +2524,6 @@
     function updateDriverLocation(position) {
       driverLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
       document.getElementById('gpsDot').className = 'gps-dot gps-active';
-      // Perbarui jarak driver di semua card
-      updateAllDriverDistances();
-
       if (locationTrackingEnabled && currentDriverData) {
         database.ref('drivers/' + currentDriverData.driverId).update({
           latitude: driverLocation.latitude, longitude: driverLocation.longitude,
@@ -2652,14 +2666,8 @@
 
       if (!checkDriverData()) return;
       loadStoredSettings();
-
-      // Mulai GPS segera
-      startGPSMonitoring();
-
-      // Tunggu sebentar agar GPS mendapatkan lokasi pertama, lalu load orders
-      setTimeout(() => {
-        loadOrders();
-      }, 1000);
+      setTimeout(startGPSMonitoring, 1000);
+      setTimeout(loadOrders, 500);
 
       document.getElementById('menuBtn').addEventListener('click', toggleSidebar);
       document.getElementById('closeSidebar').addEventListener('click', toggleSidebar);
@@ -2674,7 +2682,11 @@
       document.getElementById('ambilBtn').addEventListener('click', sendDriverOffer);
       document.getElementById('autobidBtn').addEventListener('click', toggleAutobid);
       document.getElementById('orderModal').addEventListener('click', e => {
-        if (e.target === document.getElementById('orderModal')) closeModal();
+        if (e.target === document.getElementById('orderModal')) {
+          // Jika countdown sedang berjalan, jangan tutup
+          if (countdownInterval) return;
+          closeModal();
+        }
       });
       document.getElementById('popupButton').addEventListener('click', hidePopup);
 
