@@ -2438,77 +2438,80 @@
     }
 
     function startCountdown(orderId, driverId) {
-      stopCountdown();
+  stopCountdown();
 
-      countdownOrderId = orderId;
-      countdownDriverId = driverId;
+  countdownOrderId = orderId;
+  countdownDriverId = driverId;
 
-      const container = document.getElementById('countdownContainer');
-      const progress = document.getElementById('countdownProgress');
-      const secondsSpan = document.getElementById('countdownSeconds');
-      const ambilBtn = document.getElementById('ambilBtn');
+  const container = document.getElementById('countdownContainer');
+  const progress = document.getElementById('countdownProgress');
+  const secondsSpan = document.getElementById('countdownSeconds');
+  const ambilBtn = document.getElementById('ambilBtn');
 
-      let timeLeft = 30;
-      container.style.display = 'block';
-      ambilBtn.disabled = true;
-      ambilBtn.textContent = 'Menunggu...';
+  let timeLeft = 30;
+  container.style.display = 'block';
+  ambilBtn.disabled = true;
+  ambilBtn.textContent = 'Menunggu...';
 
-      // Nonaktifkan tombol close
-      const closeBtn = document.getElementById('closeModal');
-      if (closeBtn) {
-        closeBtn.classList.add('disabled');
-        closeBtn.disabled = true;
-      }
+  // Nonaktifkan tombol close
+  const closeBtn = document.getElementById('closeModal');
+  if (closeBtn) {
+    closeBtn.classList.add('disabled');
+    closeBtn.disabled = true;
+  }
 
-      countdownInterval = setInterval(() => {
-        timeLeft--;
-        const percent = (timeLeft / 30) * 100;
-        progress.style.width = percent + '%';
-        secondsSpan.textContent = timeLeft + ' detik';
+  countdownInterval = setInterval(() => {
+    timeLeft--;
+    const percent = (timeLeft / 30) * 100;
+    progress.style.width = percent + '%';
+    secondsSpan.textContent = timeLeft + ' detik';
 
-        if (timeLeft <= 0) {
-          clearInterval(countdownInterval);
-          countdownInterval = null;
-          database.ref('orders/' + orderId + '/driver_offers/' + driverId).remove()
-            .then(() => {
-              showPopup('Info', 'Waktu penawaran habis. Silakan coba lagi.', 'info');
-              closeModal();
-            })
-            .catch(err => {
-              console.error('Gagal menghapus penawaran:', err);
-              closeModal();
-            });
-        }
-      }, 1000);
-
-      orderStatusListener = database.ref('orders/' + orderId).on('value', (snapshot) => {
-        const order = snapshot.val();
-        if (!order) {
-          stopCountdown();
-          showPopup('Info', 'Order tidak ditemukan.', 'warning');
+    if (timeLeft <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      database.ref('orders/' + orderId + '/driver_offers/' + driverId).remove()
+        .then(() => {
+          showPopup('Info', 'Waktu penawaran habis. Silakan coba lagi.', 'info');
           closeModal();
-          return;
-        }
-
-        if (order.status === 'accepted') {
-          if (order.driver_id === driverId) {
-            stopCountdown();
-            showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
-            setTimeout(() => {
-              window.location.href = 'orderAccepted.html?id=' + orderId;
-            }, 1500);
-          } else {
-            stopCountdown();
-            showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
-            closeModal();
-          }
-        } else if (order.status !== 'searching') {
-          stopCountdown();
-          showPopup('Info', 'Status order berubah.', 'info');
+        })
+        .catch(err => {
+          console.error('Gagal menghapus penawaran:', err);
           closeModal();
-        }
-      });
+        });
     }
+  }, 1000);
+
+  // HANYA SATU LISTENER INI YANG DIPERLUKAN
+  orderStatusListener = database.ref('orders/' + orderId).on('value', (snapshot) => {
+    const order = snapshot.val();
+    if (!order) {
+      stopCountdown();
+      showPopup('Info', 'Order tidak ditemukan.', 'warning');
+      closeModal();
+      return;
+    }
+
+    if (order.status === 'accepted') {
+      // Ambil id driver yang diterima dari field selected_driver atau driver
+      const acceptedDriverId = order.selected_driver?.id || order.driver?.id;
+      if (acceptedDriverId === driverId) {
+        stopCountdown();
+        showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
+        setTimeout(() => {
+          window.location.href = 'orderAccepted.html?id=' + orderId;
+        }, 1500);
+      } else {
+        stopCountdown();
+        showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
+        closeModal();
+      }
+    } else if (order.status !== 'searching') {
+      stopCountdown();
+      showPopup('Info', 'Status order berubah.', 'info');
+      closeModal();
+    }
+  });
+}
 
     function closeModal() {
       document.getElementById('orderModal').style.display = 'none';
