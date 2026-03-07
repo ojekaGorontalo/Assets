@@ -1171,11 +1171,13 @@
       } catch { return null; }
     }
 
+    // ========== PERBAIKAN UTAMA ==========
     function loadFromLocalStorage() {
       const active = getActiveOrderFromLocalStorage();
       if (active && active.is_active) {
         orderId = active.order_id;
-        orderData = active.currentRouteData || active;
+        // Gunakan active sebagai orderData karena berisi semua informasi termasuk status
+        orderData = active;
         customerData = active.user_data;
         driverData = getDriverData();
         displayOrderData();
@@ -1365,7 +1367,19 @@
     }
 
     function startTrip() {
-      if (!orderId) return;
+      if (!orderId) {
+        showInfoModal('Error', 'ID order tidak ditemukan.');
+        return;
+      }
+      // Pastikan currentOrderStatus terdefinisi
+      if (!currentOrderStatus && orderData && orderData.status) {
+        currentOrderStatus = orderData.status;
+      }
+      if (!currentOrderStatus) {
+        showInfoModal('Error', 'Status order tidak diketahui.');
+        return;
+      }
+
       const currentStatus = currentOrderStatus;
       let newStatus = '';
       let actionText = '';
