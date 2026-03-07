@@ -1286,15 +1286,15 @@
         }
 
         // Gabungkan data dari storage dan database
-        currentDriverData = { ...storedDriver, ...driverData, uid: uid };
+currentDriverData = { ...storedDriver, ...driverData, uid: uid };
 
-        // Pastikan field rating dan ratingCount ada
-        if (typeof currentDriverData.rating !== 'number') {
-          currentDriverData.rating = 0;
-        }
-        if (typeof currentDriverData.ratingCount !== 'number') {
-          currentDriverData.ratingCount = 0;
-        }
+// Pastikan field avgRating dan ratingCount ada
+if (typeof currentDriverData.avgRating !== 'number') {
+  currentDriverData.avgRating = driverData?.avgRating || 0;
+}
+if (typeof currentDriverData.ratingCount !== 'number') {
+  currentDriverData.ratingCount = driverData?.ratingCount || 0;
+}
 
         // Perbarui localStorage
         localStorage.setItem('jego_logged_in_driver', JSON.stringify(currentDriverData));
@@ -1411,20 +1411,21 @@
     // FUNGSI UPDATE RATING
     // ================================================
     function updateRatingDisplay() {
-      const avgRating = currentDriverData?.rating || 0;
-      const ratingCount = currentDriverData?.ratingCount || 0;
+  // Gunakan avgRating, bukan rating
+  const avgRating = currentDriverData?.avgRating || 0;
+  const ratingCount = currentDriverData?.ratingCount || 0;
 
-      document.getElementById('ratingStars').innerHTML = generateStarRating(avgRating);
-      document.getElementById('ratingValue').textContent = avgRating.toFixed(1);
-      document.getElementById('ratingCount').textContent = `(${ratingCount} rating)`;
+  document.getElementById('ratingStars').innerHTML = generateStarRating(avgRating);
+  document.getElementById('ratingValue').textContent = avgRating.toFixed(1);
+  document.getElementById('ratingCount').textContent = `(${ratingCount} rating)`;
 
-      const priority = getPriorityBadge(avgRating);
-      const badgeSmall = document.getElementById('priorityBadgeSmall');
-      if (badgeSmall) {
-        badgeSmall.textContent = priority.level;
-        badgeSmall.className = priority.class;
-      }
-    }
+  const priority = getPriorityBadge(avgRating);
+  const badgeSmall = document.getElementById('priorityBadgeSmall');
+  if (badgeSmall) {
+    badgeSmall.textContent = priority.level;
+    badgeSmall.className = priority.class;
+  }
+}
 
     // ================================================
     // FUNGSI LOAD BALANCE DAN KOMISI
