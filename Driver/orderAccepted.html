@@ -2911,6 +2911,7 @@
         sendToKodular({ action: 'complete_order', order_id: currentOrderId, order_data: orderCompletedData.order_data, with_rating: false });
       }
       localStorage.removeItem('jego_driver_accepted_order');
+      localStorage.removeItem('jego_driver_active_order');
       sendToKodular({ action: 'navigate_to', screen: 'list_orders', order_id: currentOrderId });
       console.log('✅ Order completed tanpa rating');
     }
@@ -2929,6 +2930,7 @@
       }).then(() => {
         console.log('Order cancelled by driver');
         localStorage.removeItem('jego_driver_accepted_order');
+        localStorage.removeItem('jego_driver_active_order');
         sendToKodular({ action: 'cancel_order', order_id: currentOrderId, order_data: currentOrderData });
         sendToKodular({ action: 'navigate_to', screen: 'list_orders', order_id: currentOrderId });
       }).catch((error) => {
@@ -3023,6 +3025,7 @@
         sendToKodular({ action: 'complete_order', order_id: currentOrderId, order_data: orderCompletedData.order_data, with_rating: false });
       }
       localStorage.removeItem('jego_driver_accepted_order');
+      localStorage.removeItem('jego_driver_active_order');
       sendToKodular({ action: 'navigate_to', screen: 'list_orders', order_id: currentOrderId });
     }
 
@@ -3060,6 +3063,7 @@
         document.getElementById('ratingOverlay').style.display = 'none';
         sendRatingToKodular();
         localStorage.removeItem('jego_driver_accepted_order');
+        localStorage.removeItem('jego_driver_active_order');
         sendToKodular({ action: 'navigate_to', screen: 'list_orders', order_id: currentOrderId });
         
       } catch (error) {
@@ -3196,7 +3200,8 @@
       }
 
       const urlParams = new URLSearchParams(window.location.search);
-      const urlOrderId = urlParams.get('id');
+      // Coba baca dari parameter 'id' dulu, lalu 'order_id' sebagai fallback
+      let urlOrderId = urlParams.get('id') || urlParams.get('order_id');
 
       if (urlOrderId) {
         console.log('✅ Order ID dari URL:', urlOrderId);
@@ -3204,19 +3209,20 @@
         startOrderListener(urlOrderId);
         sendToKodular({ action: 'order_details_driver_ready', order_id: currentOrderId });
       } else {
+        // Fallback: coba baca dari localStorage jika tidak ada di URL
         const acceptedOrder = getAcceptedOrderFromLocalStorage();
         if (acceptedOrder && acceptedOrder.order_id) {
-          console.log('✅ Order ID dari localStorage:', acceptedOrder.order_id);
+          console.log('✅ Order ID dari localStorage (fallback):', acceptedOrder.order_id);
           currentOrderId = acceptedOrder.order_id;
           startOrderListener(currentOrderId);
           sendToKodular({ action: 'order_details_driver_ready', order_id: currentOrderId });
         } else {
-          console.log('⏳ Menunggu data dari Kodular...');
+          console.log('⏳ Menunggu data dari Kodular atau tidak ada order ID...');
           document.getElementById('loading').innerHTML = `
             <div class="spinner"></div>
-            <p>Menunggu data order...</p>
+            <p>Tidak ada ID order di URL</p>
             <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">
-              Silakan buka order dari aplikasi utama
+              Silakan buka order dari halaman list driver.
             </p>
           `;
           setTimeout(() => {
