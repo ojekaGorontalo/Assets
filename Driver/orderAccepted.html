@@ -335,38 +335,6 @@
       font-size: 0.9rem;
     }
 
-    /* Navigation Buttons */
-    .nav-buttons {
-      display: flex;
-      gap: 10px;
-      padding: 0 20px 15px 20px;
-    }
-    .nav-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      color: white;
-      transition: all 0.3s;
-    }
-    .nav-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-    .nav-pickup {
-      background: #4285F4;
-    }
-    .nav-destination {
-      background: #EA4335;
-    }
-
     /* Actions Section - Fixed at Bottom */
     .actions-section {
       position: fixed;
@@ -750,7 +718,6 @@
       .chat-notification { right: 10px; left: 10px; }
       .map-section { height: 40vh; min-height: 250px; }
       .content-wrapper { max-height: calc(100vh - 40vh - 60px); }
-      .nav-buttons { flex-direction: column; }
     }
   </style>
 </head>
@@ -807,16 +774,6 @@
               <div class="arrival-title" id="arrivalTitle">Order Diterima</div>
               <div class="arrival-subtitle" id="arrivalSubtitle">Segera menuju lokasi penjemputan.</div>
             </div>
-          </div>
-
-          <!-- Navigation Buttons (akan tampil jika koordinat tersedia) -->
-          <div class="nav-buttons" id="navButtons" style="display: none;">
-            <button class="nav-btn nav-pickup" onclick="navigateToPickup()">
-              <span>🗺️</span> Navigasi ke Penjemputan
-            </button>
-            <button class="nav-btn nav-destination" onclick="navigateToDestination()">
-              <span>🗺️</span> Navigasi ke Tujuan
-            </button>
           </div>
         </div>
 
@@ -990,9 +947,6 @@
     // Untuk menghindari peta bergerak sendiri
     let lastBoundsCoords = null; // menyimpan koordinat bounds terakhir
 
-    // Flag untuk navigasi otomatis saat on_the_way (agar hanya sekali)
-    let autoNavigatedToPickup = false;
-
     // Mapping icon kendaraan (untuk marker driver, tapi di sini kita pakai icon untuk customer? Mungkin tidak perlu)
     const vehicleIconMap = {
       'motor': 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
@@ -1001,54 +955,6 @@
       'kurir_motor': 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
       'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
     };
-
-    // ==================== FUNGSI NAVIGASI GOOGLE MAPS (PERBAIKAN) ====================
-    function openGoogleMapsNavigation(lat, lng, label) {
-      if (!lat || !lng) {
-        showInfoModal('Info', 'Koordinat tidak tersedia.');
-        return;
-      }
-      
-      var destination = lat + ',' + lng;
-      var userAgent = navigator.userAgent.toLowerCase();
-      
-      // Untuk Android, gunakan intent agar langsung membuka Google Maps
-      if (/android/.test(userAgent)) {
-        var intentUrl = 'intent://maps.google.com/maps?daddr=' + destination + '&directionsmode=driving#Intent;scheme=https;package=com.google.android.apps.maps;end;';
-        window.location.href = intentUrl;
-        // Fallback ke web jika intent gagal (setelah 500ms)
-        setTimeout(function() {
-          window.location.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destination + '&travelmode=driving';
-        }, 500);
-      }
-      // Untuk iOS, coba Google Maps app dulu, lalu Apple Maps
-      else if (/iphone|ipad|ipod/.test(userAgent)) {
-        window.location.href = 'comgooglemaps://?daddr=' + destination + '&directionsmode=driving';
-        setTimeout(function() {
-          window.location.href = 'http://maps.apple.com/?daddr=' + destination + '&dirflg=d';
-        }, 500);
-      }
-      // Untuk lainnya (desktop atau tidak terdeteksi), buka di browser
-      else {
-        window.open('https://www.google.com/maps/dir/?api=1&destination=' + destination + '&travelmode=driving', '_blank');
-      }
-    }
-
-    function navigateToPickup() {
-      if (orderData && orderData.from_lat && orderData.from_lng) {
-        openGoogleMapsNavigation(orderData.from_lat, orderData.from_lng, 'Penjemputan');
-      } else {
-        showInfoModal('Info', 'Koordinat penjemputan tidak tersedia.');
-      }
-    }
-
-    function navigateToDestination() {
-      if (orderData && orderData.to_lat && orderData.to_lng) {
-        openGoogleMapsNavigation(orderData.to_lat, orderData.to_lng, 'Tujuan');
-      } else {
-        showInfoModal('Info', 'Koordinat tujuan tidak tersedia.');
-      }
-    }
 
     // ==================== FUNGSI PETA ====================
     function initMap(centerLat, centerLng) {
@@ -1339,7 +1245,6 @@
       const subtitle = document.getElementById('arrivalSubtitle');
       const actions = document.getElementById('actionsSection');
       badge.style.display = 'block';
-      const previousStatus = currentOrderStatus;
       currentOrderStatus = status;
 
       // Update tombol aksi berdasarkan status
@@ -1367,15 +1272,6 @@
           startBtn.textContent = 'Sampai di Lokasi';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'flex';
-
-          // Navigasi otomatis ke titik penjemputan saat pertama kali status on_the_way
-          if (!autoNavigatedToPickup && orderData && orderData.from_lat && orderData.from_lng) {
-            autoNavigatedToPickup = true;
-            // Beri sedikit jeda agar tidak mengganggu transisi status
-            setTimeout(() => {
-              openGoogleMapsNavigation(orderData.from_lat, orderData.from_lng, 'Penjemputan');
-            }, 500);
-          }
           break;
         case 'arrived':
           badge.textContent = 'Telah Tiba';
@@ -1432,14 +1328,6 @@
           startBtn.textContent = 'Mulai Perjalanan';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'flex';
-      }
-
-      // Tampilkan tombol navigasi jika koordinat tersedia
-      const navButtons = document.getElementById('navButtons');
-      if (orderData && orderData.from_lat && orderData.from_lng && orderData.to_lat && orderData.to_lng) {
-        navButtons.style.display = 'flex';
-      } else {
-        navButtons.style.display = 'none';
       }
     }
 
