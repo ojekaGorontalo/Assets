@@ -2126,8 +2126,6 @@
         const user = order.user_data || {};
         const customerName = user.name || 'Tidak diketahui';
         const customerPhoto = user.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-        const customerRating = user.rating || 5;
-        const stars = '★'.repeat(Math.floor(customerRating)) + '☆'.repeat(5 - Math.floor(customerRating));
 
         const alamatA = order.alamat_a || '-';
         const alamatB = order.alamat_b || '-';
@@ -2165,8 +2163,8 @@
               <img src="${customerPhoto}" class="customer-photo-left" onclick="showPhotoModal('${customerPhoto}', '${customerName}')">
               <div class="customer-name-left">${customerName}</div>
               <div class="customer-rating">
-                <span class="rating-stars">${stars}</span>
-                <span>${customerRating}</span>
+                <span class="rating-stars">☆☆☆☆☆</span>
+                <span class="rating-value" data-customer-id="${user.uid || user.userId || ''}" data-order-id="${order.id}">...</span>
               </div>
               <div class="order-time">${new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
@@ -2192,6 +2190,31 @@
         // Klik manual, fromAuto = false
         orderItem.addEventListener('click', () => showOrderDetail(order, false));
         ordersList.appendChild(orderItem);
+
+        // ===== AMBIL RATING CUSTOMER LANGSUNG DARI NODE users =====
+        const customerId = user.uid || user.userId;
+        if (customerId) {
+          database.ref('users/' + customerId).once('value').then((snap) => {
+            const customerData = snap.val();
+            if (customerData) {
+              // Cari elemen rating di dalam card ini berdasarkan order.id
+              const ratingSpan = orderItem.querySelector(`.rating-value[data-order-id="${order.id}"]`);
+              if (ratingSpan) {
+                const avgRating = customerData.avgRating ? customerData.avgRating.toFixed(1) : '0.0';
+                const ratingCount = customerData.ratingCount || 0;
+                ratingSpan.textContent = `${avgRating} (${ratingCount})`;
+
+                // Update bintang
+                const starsSpan = orderItem.querySelector('.rating-stars');
+                if (starsSpan) {
+                  const fullStars = Math.floor(avgRating);
+                  const emptyStars = 5 - fullStars;
+                  starsSpan.innerHTML = '★'.repeat(fullStars) + '☆'.repeat(emptyStars);
+                }
+              }
+            }
+          }).catch(err => console.error('Gagal ambil data customer:', err));
+        }
       });
     }
 
