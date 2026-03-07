@@ -626,7 +626,98 @@
       font-weight: bold;
     }
 
-    /* ==================== MODAL ==================== */
+    /* ==================== MODAL RATING ==================== */
+    .rating-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .rating-modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+      from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .rating-stars {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 15px 0;
+      font-size: 2rem;
+    }
+
+    .rating-star {
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #ddd;
+      user-select: none;
+    }
+
+    .rating-star:hover { transform: scale(1.2); }
+    .rating-star.active { color: #FFD700; }
+
+    .rating-comment {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 70px;
+      font-size: 0.85rem;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+
+    .modal-cancel {
+      background: #e9ecef;
+      color: #495057;
+    }
+    .modal-cancel:hover { background: #dee2e6; }
+
+    .modal-submit {
+      background: var(--primary);
+      color: white;
+    }
+    .modal-submit:hover { background: var(--secondary); }
+    .modal-submit:disabled { background: #6c757d; cursor: not-allowed; }
+
+    /* ==================== MODAL KONFIRMASI & INFORMASI ==================== */
     .confirmation-modal, .info-modal {
       display: none;
       position: fixed;
@@ -650,11 +741,6 @@
       text-align: center;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
       animation: modalAppear 0.3s ease-out;
-    }
-
-    @keyframes modalAppear {
-      from { opacity: 0; transform: scale(0.9) translateY(-20px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     .confirmation-title, .info-title {
@@ -882,6 +968,26 @@
     <small>Klik untuk membalas</small>
   </div>
 
+  <!-- Modal Rating (untuk driver menilai customer) -->
+  <div id="ratingModal" class="rating-modal">
+    <div class="rating-modal-content">
+      <h2>Beri Rating Customer</h2>
+      <p>Bagaimana pengalaman Anda dengan customer ini?</p>
+      <div class="rating-stars" id="ratingStars">
+        <span class="rating-star" data-rating="1">☆</span>
+        <span class="rating-star" data-rating="2">☆</span>
+        <span class="rating-star" data-rating="3">☆</span>
+        <span class="rating-star" data-rating="4">☆</span>
+        <span class="rating-star" data-rating="5">☆</span>
+      </div>
+      <textarea class="rating-comment" id="ratingComment" placeholder="Tambahkan komentar (opsional)..."></textarea>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-cancel" onclick="closeRatingModal()">Batal</button>
+        <button class="modal-btn modal-submit" onclick="submitRating()" id="submitRatingBtn">Kirim Rating</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Konfirmasi -->
   <div id="confirmationModal" class="confirmation-modal">
     <div class="confirmation-modal-content">
@@ -945,7 +1051,12 @@
     let routePolyline = null;
 
     // Untuk menghindari peta bergerak sendiri
-    let lastBoundsCoords = null; // menyimpan koordinat bounds terakhir
+    let lastBoundsCoords = null;
+
+    // Variabel rating
+    let selectedRating = 0;
+    let isRatingSubmitted = false;
+    let customerId = null; // akan diisi dari customerData
 
     // Mapping icon kendaraan (untuk marker driver, tapi di sini kita pakai icon untuk customer? Mungkin tidak perlu)
     const vehicleIconMap = {
@@ -1178,6 +1289,116 @@
       closeConfirmationModal();
     }
 
+    // ==================== MODAL RATING ====================
+    function showRatingModal() {
+      if (!customerData) {
+        showInfoModal('Peringatan', 'Data customer tidak tersedia');
+        return;
+      }
+      selectedRating = 0;
+      document.querySelectorAll('.rating-star').forEach(s => { s.textContent = '☆'; s.classList.remove('active'); });
+      document.getElementById('ratingComment').value = '';
+      document.getElementById('submitRatingBtn').disabled = false;
+      document.getElementById('ratingModal').style.display = 'flex';
+      setupRatingStars();
+    }
+
+    function setupRatingStars() {
+      const container = document.getElementById('ratingStars');
+      const newContainer = container.cloneNode(true);
+      container.parentNode.replaceChild(newContainer, container);
+      const stars = newContainer.querySelectorAll('.rating-star');
+      newContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('rating-star')) {
+          selectedRating = parseInt(e.target.dataset.rating);
+          stars.forEach((s, idx) => {
+            s.textContent = idx < selectedRating ? '★' : '☆';
+            s.classList.toggle('active', idx < selectedRating);
+          });
+        }
+      });
+    }
+
+    function submitRating() {
+      if (selectedRating === 0) {
+        showInfoModal('Peringatan', 'Pilih rating terlebih dahulu');
+        return;
+      }
+      if (!customerData) {
+        showInfoModal('Peringatan', 'Data customer tidak ada');
+        return;
+      }
+      // Ambil ID customer dari berbagai kemungkinan field
+      const custId = customerData.firebase_key || customerData.id || customerData.uid;
+      if (!custId) {
+        showInfoModal('Error', 'ID customer tidak ditemukan');
+        return;
+      }
+      const comment = document.getElementById('ratingComment').value.trim();
+      const btn = document.getElementById('submitRatingBtn');
+      btn.disabled = true; btn.textContent = 'Mengirim...';
+
+      // Simpan rating ke node users/[custId]/ratings
+      const ratingRef = database.ref(`users/${custId}/ratings`).push();
+      ratingRef.set({
+        rating: selectedRating,
+        order_id: orderId,
+        customer_id: custId,
+        driver_id: driverData?.driverId || 'unknown',
+        driver_name: driverData?.name || 'Driver',
+        comment: comment,
+        rated_at: new Date().toISOString(),
+        timestamp: Date.now()
+      }).then(() => {
+        return updateCustomerRating(custId, selectedRating);
+      }).catch(err => {
+        btn.disabled = false; btn.textContent = 'Kirim Rating';
+        showInfoModal('Error', 'Gagal mengirim rating: ' + err.message);
+      });
+    }
+
+    function updateCustomerRating(custId, newRating) {
+      const userRef = database.ref('users/' + custId);
+      return userRef.once('value').then(snap => {
+        const u = snap.val();
+        if (!u) throw new Error('Customer tidak ditemukan');
+        const current = {
+          avgRating: u.avgRating || u.rating || 0,
+          ratingCount: u.ratingCount || 0,
+          totalRating: u.totalRating || 0
+        };
+        const updated = {
+          ratingCount: current.ratingCount + 1,
+          totalRating: current.totalRating + newRating,
+          avgRating: parseFloat(((current.totalRating + newRating) / (current.ratingCount + 1)).toFixed(1))
+        };
+        return userRef.update({
+          avgRating: updated.avgRating,
+          ratingCount: updated.ratingCount,
+          totalRating: updated.totalRating,
+          last_rating_update: new Date().toISOString()
+        });
+      }).then(() => {
+        isRatingSubmitted = true;
+        closeRatingModal();
+        sendToKodular({ action: 'customer_rated', order_id: orderId, customer_id: custId, rating: selectedRating });
+        showInfoModal('Terima Kasih', `Anda memberi rating ${selectedRating} bintang untuk customer.`);
+        // Setelah rating, hapus active order dan kembali ke list
+        localStorage.removeItem('jego_driver_active_order');
+        setTimeout(() => window.location.href = 'list1.html', 2000);
+      }).catch(err => {
+        closeRatingModal();
+        showInfoModal('Informasi', 'Rating terkirim, tetapi gagal update statistik customer.');
+        // Tetap lanjut redirect
+        localStorage.removeItem('jego_driver_active_order');
+        setTimeout(() => window.location.href = 'list1.html', 2000);
+      });
+    }
+
+    function closeRatingModal() {
+      document.getElementById('ratingModal').style.display = 'none';
+    }
+
     // ==================== DATA DRIVER & ORDER ====================
     function getDriverData() {
       const raw = localStorage.getItem('jego_logged_in_driver');
@@ -1187,26 +1408,21 @@
       } catch { return null; }
     }
 
-    // ========== PERBAIKAN UTAMA: FUNGSI GET ACTIVE ORDER ==========
     function getActiveOrderFromLocalStorage() {
       try {
-        // Coba baca dari kunci yang benar (sesuai dengan yang disimpan di list1.html)
         let order = localStorage.getItem('jego_driver_active_order');
         if (order) {
           return JSON.parse(order);
         }
-        // Fallback ke kunci lama jika diperlukan (misalnya untuk kompatibilitas)
         order = localStorage.getItem('jego_active_order');
         return order ? JSON.parse(order) : null;
       } catch { return null; }
     }
 
-    // ========== PERBAIKAN UTAMA ==========
     function loadFromLocalStorage() {
       const active = getActiveOrderFromLocalStorage();
       if (active && active.is_active) {
         orderId = active.order_id;
-        // Gunakan active sebagai orderData karena berisi semua informasi termasuk status
         orderData = active;
         customerData = active.user_data;
         driverData = getDriverData();
@@ -1254,7 +1470,6 @@
       badge.style.display = 'block';
       currentOrderStatus = status;
 
-      // Update tombol aksi berdasarkan status
       const startBtn = document.getElementById('startBtn');
       const completeBtn = document.getElementById('completeBtn');
       const cancelBtn = document.getElementById('cancelBtn');
@@ -1307,11 +1522,10 @@
           startBtn.style.display = 'none';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'none';
-          // Setelah selesai, arahkan ke halaman lain atau kembali ke list
-          setTimeout(() => {
-            localStorage.removeItem('jego_driver_active_order');
-            window.location.href = 'list1.html';
-          }, 3000);
+          // Tampilkan modal rating setelah 1 detik (jika belum pernah)
+          if (!isRatingSubmitted) {
+            setTimeout(() => showRatingModal(), 1000);
+          }
           break;
         case 'cancelled':
           badge.textContent = 'Dibatalkan';
@@ -1343,6 +1557,8 @@
       document.getElementById('customerRating').textContent = customer.rating || '5.0';
       document.getElementById('customerPhone').textContent = customer.phone || '-';
       document.getElementById('customerPhoto').src = customer.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      // Simpan ID customer untuk keperluan rating
+      customerId = customer.firebase_key || customer.id || customer.uid;
     }
 
     function updateRouteData(route) {
@@ -1476,9 +1692,7 @@
           updated_at: new Date().toISOString()
         }).then(() => {
           showInfoModal('Sukses', 'Perjalanan selesai.');
-          // Hapus active order
-          localStorage.removeItem('jego_driver_active_order');
-          setTimeout(() => window.location.href = 'list1.html', 1500);
+          // Jangan hapus active order sekarang, karena akan ditangani setelah rating
         }).catch(err => {
           showInfoModal('Error', 'Gagal menyelesaikan: ' + err.message);
         });
@@ -1524,6 +1738,7 @@
       document.getElementById('confirmationModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeConfirmationModal(); });
       document.getElementById('infoModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeInfoModal(); });
       document.getElementById('chatOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeChat(); });
+      document.getElementById('ratingModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeRatingModal(); });
 
       // Cek driver login
       driverData = getDriverData();
@@ -1533,7 +1748,6 @@
       }
 
       const urlParams = new URLSearchParams(window.location.search);
-      // Perbaikan: dukung parameter 'id' maupun 'order_id'
       const directOrderId = urlParams.get('order_id') || urlParams.get('id');
       if (directOrderId) {
         orderId = directOrderId;
