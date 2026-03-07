@@ -1002,16 +1002,36 @@
       'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
     };
 
-    // ==================== FUNGSI NAVIGASI GOOGLE MAPS ====================
+    // ==================== FUNGSI NAVIGASI GOOGLE MAPS (PERBAIKAN) ====================
     function openGoogleMapsNavigation(lat, lng, label) {
       if (!lat || !lng) {
         showInfoModal('Info', 'Koordinat tidak tersedia.');
         return;
       }
-      // Format URL untuk membuka Google Maps dengan rute dari posisi saat ini ke tujuan
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
-      // Coba buka dengan _system agar terbuka di aplikasi eksternal
-      window.open(url, '_system');
+      
+      var destination = lat + ',' + lng;
+      var userAgent = navigator.userAgent.toLowerCase();
+      
+      // Untuk Android, gunakan intent agar langsung membuka Google Maps
+      if (/android/.test(userAgent)) {
+        var intentUrl = 'intent://maps.google.com/maps?daddr=' + destination + '&directionsmode=driving#Intent;scheme=https;package=com.google.android.apps.maps;end;';
+        window.location.href = intentUrl;
+        // Fallback ke web jika intent gagal (setelah 500ms)
+        setTimeout(function() {
+          window.location.href = 'https://www.google.com/maps/dir/?api=1&destination=' + destination + '&travelmode=driving';
+        }, 500);
+      }
+      // Untuk iOS, coba Google Maps app dulu, lalu Apple Maps
+      else if (/iphone|ipad|ipod/.test(userAgent)) {
+        window.location.href = 'comgooglemaps://?daddr=' + destination + '&directionsmode=driving';
+        setTimeout(function() {
+          window.location.href = 'http://maps.apple.com/?daddr=' + destination + '&dirflg=d';
+        }, 500);
+      }
+      // Untuk lainnya (desktop atau tidak terdeteksi), buka di browser
+      else {
+        window.open('https://www.google.com/maps/dir/?api=1&destination=' + destination + '&travelmode=driving', '_blank');
+      }
     }
 
     function navigateToPickup() {
