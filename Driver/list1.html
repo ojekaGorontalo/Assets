@@ -2499,6 +2499,8 @@
           if (acceptedDriverId === driverId) {
             stopCountdown();
             showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
+            // Simpan order ID ke localStorage untuk pengecekan aktif
+            localStorage.setItem('jego_driver_active_order', orderId);
             setTimeout(() => {
               window.location.href = 'orderAccepted.html?id=' + orderId;
             }, 1500);
@@ -2665,6 +2667,33 @@
       // Sederhana, bisa ditambahkan jika diperlukan
     }
 
+    // ==================== CEK ORDER AKTIF ====================
+    async function checkDriverActiveOrder() {
+      const activeOrderId = localStorage.getItem('jego_driver_active_order');
+      if (!activeOrderId) return false;
+      
+      try {
+        const snap = await database.ref('orders/' + activeOrderId).once('value');
+        const order = snap.val();
+        if (order) {
+          const activeStatuses = ['accepted', 'on_the_way', 'arrived', 'on_trip'];
+          if (activeStatuses.includes(order.status)) {
+            console.log('🔄 Ditemukan order aktif, redirect ke orderAccepted.html');
+            window.location.href = 'orderAccepted.html?id=' + activeOrderId;
+            return true;
+          } else {
+            // Order sudah selesai/dibatalkan, hapus dari localStorage
+            localStorage.removeItem('jego_driver_active_order');
+          }
+        } else {
+          localStorage.removeItem('jego_driver_active_order');
+        }
+      } catch (error) {
+        console.error('Error cek order aktif:', error);
+      }
+      return false;
+    }
+
     // ==================== INISIALISASI ====================
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('🚀 Halaman JeGo Driver dimuat');
@@ -2673,6 +2702,11 @@
       try { await fetchMapboxToken(); } catch (err) { console.warn('Mapbox token tidak tersedia'); }
 
       if (!checkDriverData()) return;
+      
+      // Cek order aktif terlebih dahulu
+      const hasActive = await checkDriverActiveOrder();
+      if (hasActive) return; // jika redirect, hentikan proses
+
       loadStoredSettings();
       setTimeout(startGPSMonitoring, 1000);
       setTimeout(loadOrders, 500);
