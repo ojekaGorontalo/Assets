@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Perjalanan Aktif - JeGo Driver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --primary: #FF9800;    /* Orange */
+      --secondary: #FF5722;   /* Red-Orange */
+      --accent: #FFC107;     /* Amber/Yellow */
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #4CAF50;    /* Green */
+      --danger: #f44336;     /* Red */
+      --warning: #FFC107;    /* Yellow */
+      --info: #2196F3;       /* Blue */
+      --gray: #9E9E9E;       /* Gray */
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: var(--dark);
+      height: 100vh;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 100%;
+      background: white;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+      margin-top: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px;
+      text-align: center;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      display: none;
+    }
+
+    /* ==================== PETA ==================== */
+    .map-section {
+      width: 100%;
+      height: 50vh;
+      min-height: 300px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+      display: none;
+    }
+
+    #orderMap {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .leaflet-control-zoom {
+      border: 1px solid #ddd !important;
+      border-radius: 4px !important;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
+    }
+
+    .content-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 120px; /* Space untuk tombol aksi */
+      -webkit-overflow-scrolling: touch;
+      max-height: calc(100vh - 50vh - 60px);
+    }
+
+    .status-section {
+      background: var(--primary);
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+    }
+
+    .status-badge {
+      background: var(--accent);
+      color: var(--dark);
+      padding: 6px 15px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .customer-section {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .customer-profile {
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .customer-photo-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .customer-photo {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--secondary);
+    }
+
+    .customer-info {
+      flex: 1;
+    }
+
+    .customer-name {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    .customer-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+    }
+
+    .stars {
+      color: var(--accent);
+    }
+
+    .rating-value {
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .customer-phone {
+      font-size: 0.8rem;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .call-btn {
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+
+    .arrival-info {
+      background: rgba(40, 150, 114, 0.1);
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arrival-icon {
+      width: 35px;
+      height: 35px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .arrival-text {
+      flex: 1;
+    }
+
+    .arrival-title {
+      font-weight: 600;
+      color: var(--success);
+      margin-bottom: 2px;
+      font-size: 0.85rem;
+    }
+
+    .arrival-subtitle {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .route-section {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .route-details {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .route-point {
+      display: flex;
+      gap: 10px;
+    }
+
+    .route-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+    }
+
+    .pickup-icon {
+      background: var(--success);
+      color: white;
+    }
+
+    .destination-icon {
+      background: var(--primary);
+      color: white;
+    }
+
+    .route-text {
+      flex: 1;
+    }
+
+    .route-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .route-address {
+      font-weight: 500;
+      color: var(--dark);
+      font-size: 0.8rem;
+    }
+
+    .info-section {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .info-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      text-align: center;
+      padding: 0 5px;
+    }
+
+    .info-label {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 3px;
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.8rem;
+    }
+
+    .price-highlight {
+      color: var(--success);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    /* Actions Section - Fixed at Bottom */
+    .actions-section {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: white;
+      border-top: 1px solid #eee;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+
+    .action-btn {
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .chat-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: 0 4px 15px rgba(40, 150, 114, 0.3);
+    }
+
+    .start-btn {
+      background: linear-gradient(to right, var(--success), #218838);
+      color: white;
+    }
+
+    .complete-btn {
+      background: linear-gradient(to right, var(--info), #0b7dda);
+      color: white;
+    }
+
+    .cancel-btn {
+      background: linear-gradient(to right, var(--danger), #e74c3c);
+      color: white;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px;
+      text-align: center;
+      flex: 1;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(40, 150, 114, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--secondary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    .error-message {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px;
+      text-align: center;
+      color: var(--danger);
+      flex: 1;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .retry-btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ==================== CHAT ==================== */
+    .chat-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .chat-container {
+      width: 100%;
+      height: 100%;
+      background: white;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .chat-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid white;
+    }
+
+    .chat-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .chat-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .chat-status {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .close-chat {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      background: #ECE5DD;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message-bubble {
+      max-width: 75%;
+      padding: 10px 15px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.4;
+      position: relative;
+    }
+
+    .message-left {
+      align-self: flex-start;
+      background: white;
+      border-bottom-left-radius: 5px;
+    }
+
+    .message-right {
+      align-self: flex-end;
+      background: #DCF8C6;
+      border-bottom-right-radius: 5px;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: #888;
+      margin-top: 5px;
+      text-align: right;
+    }
+
+    .chat-input-area {
+      display: flex;
+      padding: 10px;
+      background: white;
+      border-top: 1px solid #ddd;
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .chat-send-btn {
+      margin-left: 10px;
+      padding: 12px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .chat-notification {
+      position: fixed;
+      top: 70px;
+      right: 10px;
+      left: 10px;
+      background: #25D366;
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 2001;
+      cursor: pointer;
+      display: none;
+    }
+
+    .chat-notification strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .chat-notification p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .chat-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #ff4444;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    /* ==================== MODAL ==================== */
+    .confirmation-modal, .info-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .confirmation-modal-content, .info-modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+      from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .confirmation-title, .info-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: var(--dark);
+    }
+
+    .confirmation-message, .info-message {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .confirmation-buttons, .info-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .confirmation-btn, .info-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+      min-width: 80px;
+    }
+
+    .btn-cancel { background: #e9ecef; color: #495057; }
+    .btn-cancel:hover { background: #dee2e6; }
+    .btn-confirm { background: var(--danger); color: white; }
+    .btn-confirm:hover { background: #c82333; }
+    .btn-ok { background: var(--primary); color: white; }
+    .btn-ok:hover { background: var(--secondary); }
+
+    .content-wrapper::-webkit-scrollbar { width: 6px; }
+    .content-wrapper::-webkit-scrollbar-track { background: #f1f1f1; }
+    .content-wrapper::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+    .content-wrapper::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 0; }
+      .container { border-radius: 0; height: 100vh; }
+      .status-section, .customer-section, .route-section, .info-section { padding: 15px; }
+      .customer-profile { gap: 12px; }
+      .customer-photo { width: 60px; height: 60px; }
+      .info-row { flex-wrap: wrap; }
+      .info-item { min-width: 50%; margin-bottom: 8px; }
+      .confirmation-modal-content, .info-modal-content { padding: 18px; }
+      .chat-container { width: 100%; height: 100%; }
+      .chat-notification { right: 10px; left: 10px; }
+      .map-section { height: 40vh; min-height: 250px; }
+      .content-wrapper { max-height: calc(100vh - 40vh - 60px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Perjalanan Aktif</h1>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Memuat data perjalanan...</p>
+    </div>
+
+    <div id="error" class="error-message" style="display: none;">
+      <div class="error-icon">⚠️</div>
+      <h3>Data Tidak Tersedia</h3>
+      <p>Tidak ada perjalanan aktif saat ini.</p>
+      <button class="retry-btn" onclick="goBack()">Kembali</button>
+    </div>
+
+    <div id="content" style="display: none;">
+      <!-- Map Section -->
+      <div class="map-section" id="mapSection" style="display: none;">
+        <div id="orderMap"></div>
+      </div>
+
+      <div class="content-wrapper">
+        <div class="status-section">
+          <div class="status-badge" id="statusBadge" style="display: none;">Menuju Lokasi</div>
+        </div>
+
+        <div class="customer-section">
+          <div class="customer-profile">
+            <div class="customer-photo-container">
+              <img id="customerPhoto" src="" alt="Customer Photo" class="customer-photo">
+            </div>
+            <div class="customer-info">
+              <div class="customer-name" id="customerName">-</div>
+              <div class="customer-rating">
+                <div class="stars">★★★★★</div>
+                <div class="rating-value" id="customerRating">5.0</div>
+              </div>
+              <div class="customer-phone">
+                <span id="customerPhone">-</span>
+                <button class="call-btn" onclick="callCustomer()">📞 Hubungi</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="arrival-info">
+            <div class="arrival-icon">🚗</div>
+            <div class="arrival-text">
+              <div class="arrival-title" id="arrivalTitle">Order Diterima</div>
+              <div class="arrival-subtitle" id="arrivalSubtitle">Segera menuju lokasi penjemputan.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="route-section">
+          <div class="section-title">Detail Perjalanan</div>
+          <div class="route-details">
+            <div class="route-point">
+              <div class="route-icon pickup-icon">A</div>
+              <div class="route-text">
+                <div class="route-label">Penjemputan</div>
+                <div class="route-address" id="pickupAddress">-</div>
+              </div>
+            </div>
+            <div class="route-point">
+              <div class="route-icon destination-icon">B</div>
+              <div class="route-text">
+                <div class="route-label">Tujuan</div>
+                <div class="route-address" id="destinationAddress">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="section-title">Informasi Perjalanan</div>
+          <div class="info-grid">
+            <!-- Baris 1: Jenis Layanan | Kapasitas | Durasi -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">Jenis Layanan</div>
+                <div class="info-value" id="serviceType">-</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Kapasitas</div>
+                <div class="info-value" id="serviceCapacity">-</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Durasi</div>
+                <div class="info-value" id="tripDuration">-</div>
+              </div>
+            </div>
+            <!-- Baris 2: Jarak | Waktu Order -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">Jarak</div>
+                <div class="info-value" id="tripDistance">-</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Waktu Order</div>
+                <div class="info-value" id="orderTime">-</div>
+              </div>
+            </div>
+            <!-- Baris 3: Biaya -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">Biaya</div>
+                <div class="info-value">
+                  <div id="priceContainer">
+                    <span class="price-highlight" id="tripPrice">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Section -->
+    <div class="actions-section" id="actionsSection" style="display: none;">
+      <button class="action-btn chat-btn" onclick="openChat()" id="contactBtn" style="position: relative;">
+        <span>💬</span> Chat Customer
+        <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
+      </button>
+      <button class="action-btn start-btn" onclick="startTrip()" id="startBtn">Mulai Perjalanan</button>
+      <button class="action-btn complete-btn" onclick="completeTrip()" id="completeBtn" style="display: none;">Selesaikan Perjalanan</button>
+      <button class="action-btn cancel-btn" onclick="cancelTrip()" id="cancelBtn">Batalkan Perjalanan</button>
+    </div>
+  </div>
+
+  <!-- Overlay Chat -->
+  <div class="chat-overlay" id="chatOverlay">
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar" id="chatAvatar"></div>
+          <div>
+            <div class="chat-name" id="chatName">Customer</div>
+            <div class="chat-status" id="chatStatus">Online</div>
+          </div>
+        </div>
+        <button class="close-chat" onclick="closeChat()">✕</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Ketik pesan..." />
+        <button class="chat-send-btn" id="chatSendBtn">Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifikasi Chat -->
+  <div class="chat-notification" id="chatNotification">
+    <strong>💬 Pesan Baru</strong>
+    <p id="notificationMessage"></p>
+    <small>Klik untuk membalas</small>
+  </div>
+
+  <!-- Modal Konfirmasi -->
+  <div id="confirmationModal" class="confirmation-modal">
+    <div class="confirmation-modal-content">
+      <div class="confirmation-title" id="confirmationTitle">Konfirmasi</div>
+      <div class="confirmation-message" id="confirmationMessage"></div>
+      <div class="confirmation-buttons">
+        <button class="confirmation-btn btn-cancel" onclick="closeConfirmationModal()">Batal</button>
+        <button class="confirmation-btn btn-confirm" onclick="confirmAction()">Ya</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Informasi -->
+  <div id="infoModal" class="info-modal">
+    <div class="info-modal-content">
+      <div class="info-title" id="infoTitle">Informasi</div>
+      <div class="info-message" id="infoMessage"></div>
+      <div class="info-buttons">
+        <button class="info-btn btn-ok" onclick="closeInfoModal()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // ==================== KONFIGURASI FIREBASE ====================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    const database = firebase.database();
+
+    // ==================== VARIABEL GLOBAL ====================
+    let orderData = null;
+    let customerData = null;
+    let driverData = null;
+    let orderId = null;
+    let orderRef = null;
+    let orderUpdateHandler = null;
+    let dataTimeout = null;
+    let confirmCallback = null;
+    let chatRef = null;
+    let chatListener = null;
+    let unreadMessages = 0;
+    let chatOpen = false;
+    let currentOrderStatus = '';
+    let orderMap = null;
+    let customerMarker = null;
+    let destinationMarker = null;
+    let routePolyline = null;
+
+    // Untuk menghindari peta bergerak sendiri
+    let lastBoundsCoords = null; // menyimpan koordinat bounds terakhir
+
+    // Mapping icon kendaraan (untuk marker driver, tapi di sini kita pakai icon untuk customer? Mungkin tidak perlu)
+    const vehicleIconMap = {
+      'motor': 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+      'bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png',
+      'mobil': 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+      'kurir_motor': 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+      'kurir_bentor': 'https://cdn-icons-png.flaticon.com/128/7890/7890227.png'
+    };
+
+    // ==================== FUNGSI PETA ====================
+    function initMap(centerLat, centerLng) {
+      if (!orderMap) {
+        orderMap = L.map('orderMap').setView([centerLat, centerLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
+        }).addTo(orderMap);
+        L.control.zoom({ position: 'bottomright' }).addTo(orderMap);
+        console.log('✅ Peta diinisialisasi');
+      } else {
+        // Hanya setView jika belum pernah atau koordinat berbeda signifikan? Untuk sementara kita tidak setView otomatis
+        // agar peta tidak bergerak sendiri. Pengguna bisa menggeser manual.
+        // orderMap.setView([centerLat, centerLng], 13);
+      }
+    }
+
+    function addPickupMarker(lat, lng, address) {
+      if (customerMarker) customerMarker.setLatLng([lat, lng]);
+      else {
+        customerMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #28a745; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">A</div>',
+            iconSize: [40, 40],
+            className: 'pickup-marker'
+          })
+        }).addTo(orderMap).bindPopup(`<b>📍 Penjemputan</b><br>${address}`);
+      }
+    }
+
+    function addDestinationMarker(lat, lng, address) {
+      if (destinationMarker) destinationMarker.setLatLng([lat, lng]);
+      else {
+        destinationMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color: #dc3545; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">B</div>',
+            iconSize: [40, 40],
+            className: 'destination-marker'
+          })
+        }).addTo(orderMap).bindPopup(`<b>🎯 Tujuan</b><br>${address}`);
+      }
+    }
+
+    async function drawRouteOnMap(startLat, startLng, endLat, endLng) {
+      try {
+        const startCoords = `${startLng},${startLat}`;
+        const endCoords = `${endLng},${endLat}`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${startCoords};${endCoords}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        const data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+          if (routePolyline) orderMap.removeLayer(routePolyline);
+          routePolyline = L.polyline(coordinates, { color: '#289672', weight: 5, opacity: 0.8 }).addTo(orderMap);
+          
+          // Hitung bounds dari rute
+          const bounds = routePolyline.getBounds();
+          const boundsStr = `${bounds.getNorth()},${bounds.getSouth()},${bounds.getEast()},${bounds.getWest()}`;
+          
+          // Hanya lakukan fitBounds jika bounds berubah (untuk menghindari peta bergerak sendiri)
+          if (lastBoundsCoords !== boundsStr) {
+            orderMap.fitBounds(bounds, { padding: [50, 50] });
+            lastBoundsCoords = boundsStr;
+          }
+          
+          const distanceKm = (route.distance / 1000).toFixed(1);
+          const durationMin = Math.round(route.duration / 60);
+          document.getElementById('tripDistance').textContent = `${distanceKm} km`;
+          document.getElementById('tripDuration').textContent = `${durationMin} menit`;
+          return true;
+        } else {
+          throw new Error('No route');
+        }
+      } catch (e) {
+        console.warn('Gagal mengambil rute, menggunakan garis lurus', e);
+        if (routePolyline) orderMap.removeLayer(routePolyline);
+        routePolyline = L.polyline([[startLat, startLng], [endLat, endLng]], {
+          color: '#289672', weight: 4, opacity: 0.7, dashArray: '10,10'
+        }).addTo(orderMap);
+        
+        // Hitung bounds dari garis lurus
+        const bounds = routePolyline.getBounds();
+        const boundsStr = `${bounds.getNorth()},${bounds.getSouth()},${bounds.getEast()},${bounds.getWest()}`;
+        if (lastBoundsCoords !== boundsStr) {
+          orderMap.fitBounds(bounds, { padding: [50, 50] });
+          lastBoundsCoords = boundsStr;
+        }
+        return false;
+      }
+    }
+
+    // ==================== SISTEM CHAT ====================
+    function initializeChatSystem(orderId) {
+      if (chatRef && chatListener) chatRef.off('child_added', chatListener);
+      chatRef = database.ref('chat/' + orderId);
+      chatListener = chatRef.on('child_added', (snapshot) => {
+        const msg = snapshot.val();
+        if (chatOpen) {
+          displayMessage(msg);
+        } else {
+          unreadMessages++;
+          updateChatBadge();
+          showChatNotification(msg);
+        }
+      });
+      loadExistingMessages();
+    }
+
+    function loadExistingMessages() {
+      chatRef.once('value').then((snap) => {
+        const msgs = snap.val();
+        document.getElementById('chatMessages').innerHTML = '';
+        if (msgs) {
+          Object.keys(msgs).forEach(key => displayMessage(msgs[key]));
+        }
+        scrollChatToBottom();
+      });
+    }
+
+    function displayMessage(msg) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = `message-bubble ${msg.sender === 'driver' ? 'message-right' : 'message-left'}`;
+      div.innerHTML = `${msg.message}<div class="message-time">${new Date(msg.timestamp).getHours().toString().padStart(2,'0')}:${new Date(msg.timestamp).getMinutes().toString().padStart(2,'0')}</div>`;
+      container.appendChild(div);
+      scrollChatToBottom();
+    }
+
+    function scrollChatToBottom() {
+      const cm = document.getElementById('chatMessages');
+      cm.scrollTop = cm.scrollHeight;
+    }
+
+    function showChatNotification(msg) {
+      const notif = document.getElementById('chatNotification');
+      document.getElementById('notificationMessage').textContent = msg.message;
+      notif.style.display = 'block';
+      setTimeout(() => notif.style.display = 'none', 5000);
+      notif.onclick = () => { notif.style.display = 'none'; openChat(); };
+    }
+
+    function updateChatBadge() {
+      const badge = document.getElementById('chatBadge');
+      if (unreadMessages > 0) {
+        badge.textContent = unreadMessages > 99 ? '99+' : unreadMessages;
+        badge.style.display = 'flex';
+      } else badge.style.display = 'none';
+    }
+
+    function openChat() {
+      chatOpen = true;
+      unreadMessages = 0;
+      updateChatBadge();
+      setupChatUI();
+      loadExistingMessages();
+      document.getElementById('chatOverlay').style.display = 'flex';
+      setTimeout(() => document.getElementById('chatInput').focus(), 300);
+      document.getElementById('chatNotification').style.display = 'none';
+    }
+
+    function closeChat() {
+      chatOpen = false;
+      document.getElementById('chatOverlay').style.display = 'none';
+    }
+
+    function setupChatUI() {
+      if (!customerData) return;
+      const chatName = document.getElementById('chatName');
+      const chatAvatar = document.getElementById('chatAvatar');
+      chatName.textContent = customerData.name || 'Customer';
+      if (customerData.fotoProfilURL) {
+        chatAvatar.innerHTML = `<img src="${customerData.fotoProfilURL}" alt="${customerData.name}">`;
+      } else {
+        chatAvatar.innerHTML = '';
+        chatAvatar.style.backgroundImage = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23006699\"><path d=\"M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\"/></svg>')";
+        chatAvatar.style.backgroundColor = '#cce7ff';
+        chatAvatar.style.backgroundRepeat = 'no-repeat';
+        chatAvatar.style.backgroundPosition = 'center';
+        chatAvatar.style.backgroundSize = '60%';
+      }
+      document.getElementById('chatSendBtn').onclick = sendChatMessage;
+      document.getElementById('chatInput').onkeypress = (e) => { if (e.key === 'Enter') sendChatMessage(); };
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg || !driverData) return;
+      chatRef.push({
+        sender: 'driver',
+        sender_id: driverData.driverId,
+        message: msg,
+        timestamp: Date.now()
+      }).then(() => input.value = '');
+    }
+
+    // ==================== MODAL ====================
+    function showConfirmationModal(title, message, callback) {
+      document.getElementById('confirmationTitle').textContent = title;
+      document.getElementById('confirmationMessage').textContent = message;
+      confirmCallback = callback;
+      document.getElementById('confirmationModal').style.display = 'flex';
+    }
+    function closeConfirmationModal() {
+      document.getElementById('confirmationModal').style.display = 'none';
+      confirmCallback = null;
+    }
+    function showInfoModal(title, message) {
+      document.getElementById('infoTitle').textContent = title;
+      document.getElementById('infoMessage').textContent = message;
+      document.getElementById('infoModal').style.display = 'flex';
+    }
+    function closeInfoModal() {
+      document.getElementById('infoModal').style.display = 'none';
+    }
+    function confirmAction() {
+      if (confirmCallback) confirmCallback();
+      closeConfirmationModal();
+    }
+
+    // ==================== DATA DRIVER & ORDER ====================
+    function getDriverData() {
+      const raw = localStorage.getItem('jego_logged_in_driver');
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch { return null; }
+    }
+
+    function getActiveOrderFromLocalStorage() {
+      try {
+        const order = localStorage.getItem('jego_active_order');
+        return order ? JSON.parse(order) : null;
+      } catch { return null; }
+    }
+
+    // ========== PERBAIKAN UTAMA ==========
+    function loadFromLocalStorage() {
+      const active = getActiveOrderFromLocalStorage();
+      if (active && active.is_active) {
+        orderId = active.order_id;
+        // Gunakan active sebagai orderData karena berisi semua informasi termasuk status
+        orderData = active;
+        customerData = active.user_data;
+        driverData = getDriverData();
+        displayOrderData();
+        if (orderId) listenToOrderUpdates(orderId);
+        return true;
+      }
+      return false;
+    }
+
+    function getStatusMessage(status) {
+      const msgs = {
+        'accepted': 'Driver telah menerima pesanan',
+        'on_the_way': 'Driver menuju lokasi penjemputan',
+        'arrived': 'Driver telah tiba',
+        'on_trip': 'Perjalanan sedang berlangsung',
+        'completed': 'Perjalanan selesai',
+        'cancelled': 'Perjalanan dibatalkan'
+      };
+      return msgs[status] || 'Status diperbarui';
+    }
+
+    function listenToOrderUpdates(orderId) {
+      if (orderRef && orderUpdateHandler) orderRef.off('value', orderUpdateHandler);
+      orderRef = database.ref('orders/' + orderId);
+      orderUpdateHandler = (snapshot) => {
+        const od = snapshot.val();
+        if (od) {
+          updateOrderStatus(od.status, od);
+          if (od.user_data) updateCustomerData(od.user_data);
+          if (od.alamat_a || od.alamat_b) updateRouteData(od);
+        } else {
+          if (!loadFromLocalStorage()) showError('Data perjalanan tidak ditemukan');
+        }
+      };
+      orderRef.on('value', orderUpdateHandler);
+      initializeChatSystem(orderId);
+    }
+
+    function updateOrderStatus(status, od = null) {
+      const badge = document.getElementById('statusBadge');
+      const title = document.getElementById('arrivalTitle');
+      const subtitle = document.getElementById('arrivalSubtitle');
+      const actions = document.getElementById('actionsSection');
+      badge.style.display = 'block';
+      currentOrderStatus = status;
+
+      // Update tombol aksi berdasarkan status
+      const startBtn = document.getElementById('startBtn');
+      const completeBtn = document.getElementById('completeBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+
+      switch(status) {
+        case 'accepted':
+          badge.textContent = 'Order Diterima';
+          badge.style.background = '#e6dd3b'; badge.style.color = '#343a40';
+          title.textContent = 'Order Diterima';
+          subtitle.innerHTML = 'Segera menuju lokasi penjemputan.';
+          startBtn.style.display = 'flex';
+          startBtn.textContent = 'Mulai Perjalanan';
+          completeBtn.style.display = 'none';
+          cancelBtn.style.display = 'flex';
+          break;
+        case 'on_the_way':
+          badge.textContent = 'Menuju Lokasi';
+          badge.style.background = '#289672'; badge.style.color = 'white';
+          title.textContent = 'Menuju Penjemputan';
+          subtitle.innerHTML = 'Anda sedang dalam perjalanan ke titik jemput.';
+          startBtn.style.display = 'flex';
+          startBtn.textContent = 'Sampai di Lokasi';
+          completeBtn.style.display = 'none';
+          cancelBtn.style.display = 'flex';
+          break;
+        case 'arrived':
+          badge.textContent = 'Telah Tiba';
+          badge.style.background = '#28a745'; badge.style.color = 'white';
+          title.textContent = 'Tiba di Lokasi';
+          subtitle.innerHTML = 'Anda sudah di titik penjemputan.';
+          startBtn.style.display = 'flex';
+          startBtn.textContent = 'Mulai Perjalanan';
+          completeBtn.style.display = 'none';
+          cancelBtn.style.display = 'flex';
+          break;
+        case 'on_trip':
+          badge.textContent = 'Dalam Perjalanan';
+          badge.style.background = '#1e6f5c'; badge.style.color = 'white';
+          title.textContent = 'Perjalanan Berlangsung';
+          subtitle.innerHTML = 'Anda sedang menuju tujuan.';
+          startBtn.style.display = 'none';
+          completeBtn.style.display = 'flex';
+          cancelBtn.style.display = 'flex';
+          break;
+        case 'completed':
+          badge.textContent = 'Selesai';
+          badge.style.background = '#28a745'; badge.style.color = 'white';
+          title.textContent = 'Perjalanan Selesai';
+          subtitle.innerHTML = 'Terima kasih telah menggunakan JeGo.';
+          startBtn.style.display = 'none';
+          completeBtn.style.display = 'none';
+          cancelBtn.style.display = 'none';
+          // Setelah selesai, arahkan ke halaman lain atau kembali ke list
+          setTimeout(() => {
+            localStorage.removeItem('jego_active_order');
+            window.location.href = 'list1.html';
+          }, 3000);
+          break;
+        case 'cancelled':
+          badge.textContent = 'Dibatalkan';
+          badge.style.background = '#dc3545'; badge.style.color = 'white';
+          title.textContent = 'Perjalanan Dibatalkan';
+          subtitle.innerHTML = 'Pesanan telah dibatalkan.';
+          startBtn.style.display = 'none';
+          completeBtn.style.display = 'none';
+          cancelBtn.style.display = 'none';
+          setTimeout(() => {
+            localStorage.removeItem('jego_active_order');
+            window.location.href = 'list1.html';
+          }, 2000);
+          break;
+        default:
+          badge.textContent = 'Menunggu';
+          badge.style.background = '#e6dd3b'; badge.style.color = '#343a40';
+          title.textContent = 'Menunggu Konfirmasi';
+          subtitle.innerHTML = 'Sedang memproses pesanan.';
+          startBtn.style.display = 'flex';
+          startBtn.textContent = 'Mulai Perjalanan';
+          completeBtn.style.display = 'none';
+          cancelBtn.style.display = 'flex';
+      }
+    }
+
+    function updateCustomerData(customer) {
+      document.getElementById('customerName').textContent = customer.name || '-';
+      document.getElementById('customerRating').textContent = customer.rating || '5.0';
+      document.getElementById('customerPhone').textContent = customer.phone || '-';
+      document.getElementById('customerPhoto').src = customer.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+    }
+
+    function updateRouteData(route) {
+      document.getElementById('pickupAddress').textContent = route.alamat_a || '-';
+      document.getElementById('destinationAddress').textContent = route.alamat_b || '-';
+      document.getElementById('serviceType').textContent = route.vehicle_name || route.vehicle || '-';
+      document.getElementById('serviceCapacity').textContent = route.vehicle_capacity || '-';
+      if (route.durasi) document.getElementById('tripDuration').textContent = route.durasi;
+      if (route.jarak) document.getElementById('tripDistance').textContent = route.jarak;
+      if (route.created_at) {
+        const t = new Date(route.created_at);
+        document.getElementById('orderTime').textContent = t.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      }
+      if (route.harga_total) {
+        document.getElementById('tripPrice').textContent = 'Rp ' + route.harga_total.toLocaleString('id-ID');
+      }
+    }
+
+    function displayOrderData() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      document.getElementById('actionsSection').style.display = 'flex';
+      updateCustomerData(customerData);
+      updateRouteData(orderData);
+      if (orderData && orderData.from_lat && orderData.from_lng && orderData.to_lat && orderData.to_lng) {
+        document.getElementById('mapSection').style.display = 'block';
+        const centerLat = (orderData.from_lat + orderData.to_lat) / 2;
+        const centerLng = (orderData.from_lng + orderData.to_lng) / 2;
+        initMap(centerLat, centerLng);
+        addPickupMarker(orderData.from_lat, orderData.from_lng, orderData.alamat_a);
+        addDestinationMarker(orderData.to_lat, orderData.to_lng, orderData.alamat_b);
+        setTimeout(() => drawRouteOnMap(orderData.from_lat, orderData.from_lng, orderData.to_lat, orderData.to_lng), 500);
+      } else {
+        document.getElementById('mapSection').style.display = 'none';
+      }
+      if (orderData && orderData.status) updateOrderStatus(orderData.status, orderData);
+    }
+
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('actionsSection').style.display = 'none';
+      document.getElementById('error').style.display = 'flex';
+    }
+
+    // ==================== AKSI DRIVER ====================
+    function callCustomer() {
+      const phone = document.getElementById('customerPhone').textContent;
+      if (phone && phone !== '-') {
+        window.location.href = `tel:${phone}`;
+      } else {
+        showInfoModal('Info', 'Nomor telepon tidak tersedia.');
+      }
+    }
+
+    function startTrip() {
+  if (!orderId) {
+    showInfoModal('Error', 'ID order tidak ditemukan.');
+    return;
+  }
+  if (!currentOrderStatus && orderData && orderData.status) {
+    currentOrderStatus = orderData.status;
+  }
+  if (!currentOrderStatus) {
+    showInfoModal('Error', 'Status order tidak diketahui.');
+    return;
+  }
+
+  const currentStatus = currentOrderStatus.toLowerCase().trim();
+  let newStatus = '';
+  let actionText = '';
+
+  if (currentStatus === 'accepted') {
+    newStatus = 'on_the_way';
+    actionText = 'mulai menuju lokasi penjemputan';
+  } else if (currentStatus === 'on_the_way') {
+    newStatus = 'arrived';
+    actionText = 'menandai telah tiba di lokasi';
+  } else if (currentStatus === 'arrived') {
+    newStatus = 'on_trip';
+    actionText = 'memulai perjalanan ke tujuan';
+  } else {
+    showInfoModal('Info', 'Tidak dapat melakukan aksi ini. Status saat ini: ' + currentStatus);
+    return;
+  }
+
+  showConfirmationModal('Konfirmasi', `Apakah Anda yakin ingin ${actionText}?`, () => {
+    database.ref('orders/' + orderId).update({
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    }).then(() => {
+      showInfoModal('Sukses', 'Status berhasil diperbarui.');
+
+      // Kirim data ke Kodular sesuai dengan status baru
+      let payload = {
+        event: 'driver_status_update',
+        order_id: orderId,
+        status: newStatus
+      };
+
+      if (newStatus === 'on_the_way') {
+        // Kirim koordinat penjemputan
+        payload.lat = orderData.from_lat;
+        payload.lng = orderData.from_lng;
+        payload.type = 'pickup';
+      } else if (newStatus === 'on_trip') {
+        // Kirim koordinat tujuan
+        payload.lat = orderData.to_lat;
+        payload.lng = orderData.to_lng;
+        payload.type = 'destination';
+      }
+
+      // Jika ada data koordinat, kirim ke Kodular
+      if (payload.lat && payload.lng) {
+        sendToKodular(payload);
+      }
+    }).catch(err => {
+      showInfoModal('Error', 'Gagal memperbarui status: ' + err.message);
+    });
+  });
+}
+
+    function completeTrip() {
+      if (currentOrderStatus !== 'on_trip') {
+        showInfoModal('Info', 'Perjalanan belum dimulai.');
+        return;
+      }
+      showConfirmationModal('Konfirmasi', 'Apakah Anda yakin ingin menyelesaikan perjalanan?', () => {
+        database.ref('orders/' + orderId).update({
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        }).then(() => {
+          showInfoModal('Sukses', 'Perjalanan selesai.');
+          // Hapus active order
+          localStorage.removeItem('jego_active_order');
+          setTimeout(() => window.location.href = 'list1.html', 1500);
+        }).catch(err => {
+          showInfoModal('Error', 'Gagal menyelesaikan: ' + err.message);
+        });
+      });
+    }
+
+    function cancelTrip() {
+      if (['completed', 'cancelled'].includes(currentOrderStatus)) {
+        showInfoModal('Info', 'Perjalanan sudah selesai/dibatalkan.');
+        return;
+      }
+      showConfirmationModal('Konfirmasi Pembatalan', 'Batalkan perjalanan ini?', () => {
+        database.ref('orders/' + orderId).update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+          cancelled_by: 'driver'
+        }).then(() => {
+          showInfoModal('Info', 'Perjalanan dibatalkan.');
+          localStorage.removeItem('jego_active_order');
+          setTimeout(() => window.location.href = 'list1.html', 1500);
+        }).catch(err => {
+          showInfoModal('Error', 'Gagal membatalkan: ' + err.message);
+        });
+      });
+    }
+
+    function goBack() {
+      window.location.href = 'list1.html';
+    }
+
+    // ==================== KODULAR ====================
+    function sendToKodular(data) {
+      const payload = { ...data, timestamp: new Date().toISOString() };
+      if (window.AppInventor?.setWebViewString) {
+        try { window.AppInventor.setWebViewString(JSON.stringify(payload)); } catch (e) {}
+      } else {
+        console.warn('Tidak ada metode Kodular', payload);
+      }
+    }
+
+    // ==================== INISIALISASI ====================
+    window.onload = function() {
+      document.getElementById('confirmationModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeConfirmationModal(); });
+      document.getElementById('infoModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeInfoModal(); });
+      document.getElementById('chatOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeChat(); });
+
+      // Cek driver login
+      driverData = getDriverData();
+      if (!driverData) {
+        showError('Driver belum login');
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const directOrderId = urlParams.get('order_id');
+      if (directOrderId) {
+        orderId = directOrderId;
+        // Ambil data order dari Firebase
+        database.ref('orders/' + orderId).once('value').then(snap => {
+          const od = snap.val();
+          if (od) {
+            orderData = od;
+            customerData = od.user_data;
+            displayOrderData();
+            listenToOrderUpdates(orderId);
+          } else {
+            loadFromLocalStorage();
+          }
+        }).catch(() => loadFromLocalStorage());
+        dataTimeout = setTimeout(() => { if (!orderData && !loadFromLocalStorage()) showError('Data tidak ditemukan'); }, 5000);
+      } else {
+        if (!loadFromLocalStorage()) dataTimeout = setTimeout(() => { if (!orderData) showError('Tidak ada data'); }, 5000);
+      }
+    };
+  </script>
+</body>
+</html>
