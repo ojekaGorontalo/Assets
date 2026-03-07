@@ -944,6 +944,9 @@
     let destinationMarker = null;
     let routePolyline = null;
 
+    // Untuk menghindari peta bergerak sendiri
+    let lastBoundsCoords = null; // menyimpan koordinat bounds terakhir
+
     // Mapping icon kendaraan (untuk marker driver, tapi di sini kita pakai icon untuk customer? Mungkin tidak perlu)
     const vehicleIconMap = {
       'motor': 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
@@ -964,7 +967,9 @@
         L.control.zoom({ position: 'bottomright' }).addTo(orderMap);
         console.log('✅ Peta diinisialisasi');
       } else {
-        orderMap.setView([centerLat, centerLng], 13);
+        // Hanya setView jika belum pernah atau koordinat berbeda signifikan? Untuk sementara kita tidak setView otomatis
+        // agar peta tidak bergerak sendiri. Pengguna bisa menggeser manual.
+        // orderMap.setView([centerLat, centerLng], 13);
       }
     }
 
@@ -1007,7 +1012,17 @@
           const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
           if (routePolyline) orderMap.removeLayer(routePolyline);
           routePolyline = L.polyline(coordinates, { color: '#289672', weight: 5, opacity: 0.8 }).addTo(orderMap);
-          orderMap.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+          
+          // Hitung bounds dari rute
+          const bounds = routePolyline.getBounds();
+          const boundsStr = `${bounds.getNorth()},${bounds.getSouth()},${bounds.getEast()},${bounds.getWest()}`;
+          
+          // Hanya lakukan fitBounds jika bounds berubah (untuk menghindari peta bergerak sendiri)
+          if (lastBoundsCoords !== boundsStr) {
+            orderMap.fitBounds(bounds, { padding: [50, 50] });
+            lastBoundsCoords = boundsStr;
+          }
+          
           const distanceKm = (route.distance / 1000).toFixed(1);
           const durationMin = Math.round(route.duration / 60);
           document.getElementById('tripDistance').textContent = `${distanceKm} km`;
@@ -1022,6 +1037,14 @@
         routePolyline = L.polyline([[startLat, startLng], [endLat, endLng]], {
           color: '#289672', weight: 4, opacity: 0.7, dashArray: '10,10'
         }).addTo(orderMap);
+        
+        // Hitung bounds dari garis lurus
+        const bounds = routePolyline.getBounds();
+        const boundsStr = `${bounds.getNorth()},${bounds.getSouth()},${bounds.getEast()},${bounds.getWest()}`;
+        if (lastBoundsCoords !== boundsStr) {
+          orderMap.fitBounds(bounds, { padding: [50, 50] });
+          lastBoundsCoords = boundsStr;
+        }
         return false;
       }
     }
@@ -1236,6 +1259,7 @@
           title.textContent = 'Order Diterima';
           subtitle.innerHTML = 'Segera menuju lokasi penjemputan.';
           startBtn.style.display = 'flex';
+          startBtn.textContent = 'Mulai Perjalanan';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'flex';
           break;
@@ -1301,6 +1325,7 @@
           title.textContent = 'Menunggu Konfirmasi';
           subtitle.innerHTML = 'Sedang memproses pesanan.';
           startBtn.style.display = 'flex';
+          startBtn.textContent = 'Mulai Perjalanan';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'flex';
       }
@@ -1380,7 +1405,8 @@
         return;
       }
 
-      const currentStatus = currentOrderStatus;
+      // Normalisasi status (lowercase, trim)
+      const currentStatus = currentOrderStatus.toLowerCase().trim();
       let newStatus = '';
       let actionText = '';
 
@@ -1394,7 +1420,7 @@
         newStatus = 'on_trip';
         actionText = 'memulai perjalanan ke tujuan';
       } else {
-        showInfoModal('Info', 'Tidak dapat melakukan aksi ini.');
+        showInfoModal('Info', 'Tidak dapat melakukan aksi ini. Status saat ini: ' + currentStatus);
         return;
       }
 
