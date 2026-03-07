@@ -1187,17 +1187,26 @@
       } catch { return null; }
     }
 
+    // ========== PERBAIKAN UTAMA: FUNGSI GET ACTIVE ORDER ==========
     function getActiveOrderFromLocalStorage() {
       try {
-        const order = localStorage.getItem('jego_active_order');
+        // Coba baca dari kunci yang benar (sesuai dengan yang disimpan di list1.html)
+        let order = localStorage.getItem('jego_driver_active_order');
+        if (order) {
+          return JSON.parse(order);
+        }
+        // Fallback ke kunci lama jika diperlukan (misalnya untuk kompatibilitas)
+        order = localStorage.getItem('jego_active_order');
         return order ? JSON.parse(order) : null;
       } catch { return null; }
     }
 
+    // ========== PERBAIKAN UTAMA ==========
     function loadFromLocalStorage() {
       const active = getActiveOrderFromLocalStorage();
       if (active && active.is_active) {
         orderId = active.order_id;
+        // Gunakan active sebagai orderData karena berisi semua informasi termasuk status
         orderData = active;
         customerData = active.user_data;
         driverData = getDriverData();
@@ -1245,6 +1254,7 @@
       badge.style.display = 'block';
       currentOrderStatus = status;
 
+      // Update tombol aksi berdasarkan status
       const startBtn = document.getElementById('startBtn');
       const completeBtn = document.getElementById('completeBtn');
       const cancelBtn = document.getElementById('cancelBtn');
@@ -1297,8 +1307,9 @@
           startBtn.style.display = 'none';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'none';
+          // Setelah selesai, arahkan ke halaman lain atau kembali ke list
           setTimeout(() => {
-            localStorage.removeItem('jego_active_order');
+            localStorage.removeItem('jego_driver_active_order');
             window.location.href = 'list1.html';
           }, 3000);
           break;
@@ -1311,7 +1322,7 @@
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'none';
           setTimeout(() => {
-            localStorage.removeItem('jego_active_order');
+            localStorage.removeItem('jego_driver_active_order');
             window.location.href = 'list1.html';
           }, 2000);
           break;
@@ -1423,35 +1434,30 @@
           status: newStatus,
           updated_at: new Date().toISOString()
         }).then(() => {
-          showInfoModal('Sukses', `Status berhasil diperbarui.`);
+          showInfoModal('Sukses', 'Status berhasil diperbarui.');
 
-          // Kirim data navigasi ke Kodular sesuai transisi
-          if (newStatus === 'on_the_way' && orderData && orderData.from_lat && orderData.from_lng) {
-            // Kirim koordinat penjemputan ke Kodular
-            const payload = JSON.stringify({
-              action: 'navigate_to_pickup',
-              from_lat: orderData.from_lat,
-              from_lng: orderData.from_lng,
-              from_address: orderData.alamat_a || ''
-            });
-            if (window.AppInventor?.setWebViewString) {
-              window.AppInventor.setWebViewString(payload);
-            } else {
-              console.warn('Tidak dapat mengirim ke Kodular: AppInventor tidak tersedia', payload);
-            }
-          } else if (newStatus === 'on_trip' && orderData && orderData.to_lat && orderData.to_lng) {
-            // Kirim koordinat tujuan ke Kodular
-            const payload = JSON.stringify({
-              action: 'navigate_to_destination',
-              to_lat: orderData.to_lat,
-              to_lng: orderData.to_lng,
-              to_address: orderData.alamat_b || ''
-            });
-            if (window.AppInventor?.setWebViewString) {
-              window.AppInventor.setWebViewString(payload);
-            } else {
-              console.warn('Tidak dapat mengirim ke Kodular: AppInventor tidak tersedia', payload);
-            }
+          // Kirim data ke Kodular sesuai dengan status baru
+          let payload = {
+            event: 'driver_status_update',
+            order_id: orderId,
+            status: newStatus
+          };
+
+          if (newStatus === 'on_the_way') {
+            // Kirim koordinat penjemputan
+            payload.lat = orderData.from_lat;
+            payload.lng = orderData.from_lng;
+            payload.type = 'pickup';
+          } else if (newStatus === 'on_trip') {
+            // Kirim koordinat tujuan
+            payload.lat = orderData.to_lat;
+            payload.lng = orderData.to_lng;
+            payload.type = 'destination';
+          }
+
+          // Jika ada data koordinat, kirim ke Kodular
+          if (payload.lat && payload.lng) {
+            sendToKodular(payload);
           }
         }).catch(err => {
           showInfoModal('Error', 'Gagal memperbarui status: ' + err.message);
@@ -1470,7 +1476,8 @@
           updated_at: new Date().toISOString()
         }).then(() => {
           showInfoModal('Sukses', 'Perjalanan selesai.');
-          localStorage.removeItem('jego_active_order');
+          // Hapus active order
+          localStorage.removeItem('jego_driver_active_order');
           setTimeout(() => window.location.href = 'list1.html', 1500);
         }).catch(err => {
           showInfoModal('Error', 'Gagal menyelesaikan: ' + err.message);
@@ -1490,7 +1497,7 @@
           cancelled_by: 'driver'
         }).then(() => {
           showInfoModal('Info', 'Perjalanan dibatalkan.');
-          localStorage.removeItem('jego_active_order');
+          localStorage.removeItem('jego_driver_active_order');
           setTimeout(() => window.location.href = 'list1.html', 1500);
         }).catch(err => {
           showInfoModal('Error', 'Gagal membatalkan: ' + err.message);
@@ -1518,6 +1525,7 @@
       document.getElementById('infoModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeInfoModal(); });
       document.getElementById('chatOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeChat(); });
 
+      // Cek driver login
       driverData = getDriverData();
       if (!driverData) {
         showError('Driver belum login');
@@ -1525,9 +1533,11 @@
       }
 
       const urlParams = new URLSearchParams(window.location.search);
-      const directOrderId = urlParams.get('order_id');
+      // Perbaikan: dukung parameter 'id' maupun 'order_id'
+      const directOrderId = urlParams.get('order_id') || urlParams.get('id');
       if (directOrderId) {
         orderId = directOrderId;
+        // Ambil data order dari Firebase
         database.ref('orders/' + orderId).once('value').then(snap => {
           const od = snap.val();
           if (od) {
