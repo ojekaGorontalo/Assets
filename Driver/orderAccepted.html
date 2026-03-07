@@ -1194,12 +1194,10 @@
       } catch { return null; }
     }
 
-    // ========== PERBAIKAN UTAMA ==========
     function loadFromLocalStorage() {
       const active = getActiveOrderFromLocalStorage();
       if (active && active.is_active) {
         orderId = active.order_id;
-        // Gunakan active sebagai orderData karena berisi semua informasi termasuk status
         orderData = active;
         customerData = active.user_data;
         driverData = getDriverData();
@@ -1247,7 +1245,6 @@
       badge.style.display = 'block';
       currentOrderStatus = status;
 
-      // Update tombol aksi berdasarkan status
       const startBtn = document.getElementById('startBtn');
       const completeBtn = document.getElementById('completeBtn');
       const cancelBtn = document.getElementById('cancelBtn');
@@ -1300,7 +1297,6 @@
           startBtn.style.display = 'none';
           completeBtn.style.display = 'none';
           cancelBtn.style.display = 'none';
-          // Setelah selesai, arahkan ke halaman lain atau kembali ke list
           setTimeout(() => {
             localStorage.removeItem('jego_active_order');
             window.location.href = 'list1.html';
@@ -1392,71 +1388,76 @@
     }
 
     function startTrip() {
-  if (!orderId) {
-    showInfoModal('Error', 'ID order tidak ditemukan.');
-    return;
-  }
-  if (!currentOrderStatus && orderData && orderData.status) {
-    currentOrderStatus = orderData.status;
-  }
-  if (!currentOrderStatus) {
-    showInfoModal('Error', 'Status order tidak diketahui.');
-    return;
-  }
-
-  const currentStatus = currentOrderStatus.toLowerCase().trim();
-  let newStatus = '';
-  let actionText = '';
-
-  if (currentStatus === 'accepted') {
-    newStatus = 'on_the_way';
-    actionText = 'mulai menuju lokasi penjemputan';
-  } else if (currentStatus === 'on_the_way') {
-    newStatus = 'arrived';
-    actionText = 'menandai telah tiba di lokasi';
-  } else if (currentStatus === 'arrived') {
-    newStatus = 'on_trip';
-    actionText = 'memulai perjalanan ke tujuan';
-  } else {
-    showInfoModal('Info', 'Tidak dapat melakukan aksi ini. Status saat ini: ' + currentStatus);
-    return;
-  }
-
-  showConfirmationModal('Konfirmasi', `Apakah Anda yakin ingin ${actionText}?`, () => {
-    database.ref('orders/' + orderId).update({
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    }).then(() => {
-      showInfoModal('Sukses', 'Status berhasil diperbarui.');
-
-      // Kirim data ke Kodular sesuai dengan status baru
-      let payload = {
-        event: 'driver_status_update',
-        order_id: orderId,
-        status: newStatus
-      };
-
-      if (newStatus === 'on_the_way') {
-        // Kirim koordinat penjemputan
-        payload.lat = orderData.from_lat;
-        payload.lng = orderData.from_lng;
-        payload.type = 'pickup';
-      } else if (newStatus === 'on_trip') {
-        // Kirim koordinat tujuan
-        payload.lat = orderData.to_lat;
-        payload.lng = orderData.to_lng;
-        payload.type = 'destination';
+      if (!orderId) {
+        showInfoModal('Error', 'ID order tidak ditemukan.');
+        return;
+      }
+      if (!currentOrderStatus && orderData && orderData.status) {
+        currentOrderStatus = orderData.status;
+      }
+      if (!currentOrderStatus) {
+        showInfoModal('Error', 'Status order tidak diketahui.');
+        return;
       }
 
-      // Jika ada data koordinat, kirim ke Kodular
-      if (payload.lat && payload.lng) {
-        sendToKodular(payload);
+      const currentStatus = currentOrderStatus.toLowerCase().trim();
+      let newStatus = '';
+      let actionText = '';
+
+      if (currentStatus === 'accepted') {
+        newStatus = 'on_the_way';
+        actionText = 'mulai menuju lokasi penjemputan';
+      } else if (currentStatus === 'on_the_way') {
+        newStatus = 'arrived';
+        actionText = 'menandai telah tiba di lokasi';
+      } else if (currentStatus === 'arrived') {
+        newStatus = 'on_trip';
+        actionText = 'memulai perjalanan ke tujuan';
+      } else {
+        showInfoModal('Info', 'Tidak dapat melakukan aksi ini. Status saat ini: ' + currentStatus);
+        return;
       }
-    }).catch(err => {
-      showInfoModal('Error', 'Gagal memperbarui status: ' + err.message);
-    });
-  });
-}
+
+      showConfirmationModal('Konfirmasi', `Apakah Anda yakin ingin ${actionText}?`, () => {
+        database.ref('orders/' + orderId).update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        }).then(() => {
+          showInfoModal('Sukses', `Status berhasil diperbarui.`);
+
+          // Kirim data navigasi ke Kodular sesuai transisi
+          if (newStatus === 'on_the_way' && orderData && orderData.from_lat && orderData.from_lng) {
+            // Kirim koordinat penjemputan ke Kodular
+            const payload = JSON.stringify({
+              action: 'navigate_to_pickup',
+              from_lat: orderData.from_lat,
+              from_lng: orderData.from_lng,
+              from_address: orderData.alamat_a || ''
+            });
+            if (window.AppInventor?.setWebViewString) {
+              window.AppInventor.setWebViewString(payload);
+            } else {
+              console.warn('Tidak dapat mengirim ke Kodular: AppInventor tidak tersedia', payload);
+            }
+          } else if (newStatus === 'on_trip' && orderData && orderData.to_lat && orderData.to_lng) {
+            // Kirim koordinat tujuan ke Kodular
+            const payload = JSON.stringify({
+              action: 'navigate_to_destination',
+              to_lat: orderData.to_lat,
+              to_lng: orderData.to_lng,
+              to_address: orderData.alamat_b || ''
+            });
+            if (window.AppInventor?.setWebViewString) {
+              window.AppInventor.setWebViewString(payload);
+            } else {
+              console.warn('Tidak dapat mengirim ke Kodular: AppInventor tidak tersedia', payload);
+            }
+          }
+        }).catch(err => {
+          showInfoModal('Error', 'Gagal memperbarui status: ' + err.message);
+        });
+      });
+    }
 
     function completeTrip() {
       if (currentOrderStatus !== 'on_trip') {
@@ -1469,7 +1470,6 @@
           updated_at: new Date().toISOString()
         }).then(() => {
           showInfoModal('Sukses', 'Perjalanan selesai.');
-          // Hapus active order
           localStorage.removeItem('jego_active_order');
           setTimeout(() => window.location.href = 'list1.html', 1500);
         }).catch(err => {
@@ -1518,7 +1518,6 @@
       document.getElementById('infoModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeInfoModal(); });
       document.getElementById('chatOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeChat(); });
 
-      // Cek driver login
       driverData = getDriverData();
       if (!driverData) {
         showError('Driver belum login');
@@ -1529,7 +1528,6 @@
       const directOrderId = urlParams.get('order_id');
       if (directOrderId) {
         orderId = directOrderId;
-        // Ambil data order dari Firebase
         database.ref('orders/' + orderId).once('value').then(snap => {
           const od = snap.val();
           if (od) {
