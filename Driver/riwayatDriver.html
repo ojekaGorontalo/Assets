@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Riwayat Order - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --primary: #FF9800;    /* Orange */
+      --secondary: #FF5722;   /* Red-Orange */
+      --accent: #FFC107;     /* Amber/Yellow */
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #4CAF50;    /* Green */
+      --danger: #f44336;     /* Red */
+      --warning: #FFC107;    /* Yellow */
+      --info: #2196F3;       /* Blue */
+      --gray: #9E9E9E;       /* Gray */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+    }
+
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      flex: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    /* Filter Styles */
+    .filter-container {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+    }
+
+    .filter-option {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 20px;
+      padding: 8px 15px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .filter-option.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Orders List Styles */
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .date-section {
+      margin-bottom: 5px;
+    }
+
+    .date-header {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .order-item {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .order-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .customer-name {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .kurir-badge {
+      background-color: var(--accent);
+      color: var(--dark);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-completed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-cancelled {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-on_the_way {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-accepted {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .status-search {
+      background-color: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .route-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.8rem;
+    }
+
+    .route-point {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .point-marker {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    .point-marker-a {
+      background-color: var(--primary);
+    }
+
+    .point-marker-b {
+      background-color: var(--secondary);
+    }
+
+    .point-address {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .point-address-a {
+      font-weight: 700;
+    }
+
+    .order-details {
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+      font-size: 0.8rem;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+    }
+
+    .detail-value {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .detail-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .price-highlight {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .order-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: #666;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 8px;
+      margin-top: 5px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    /* Loading spinner */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: 12px;
+      width: 95%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: white;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      color: var(--accent);
+    }
+
+    .modal-body {
+      padding: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-map {
+      height: 250px;
+      width: 100%;
+      border-radius: 0;
+      z-index: 1;
+    }
+
+    .modal-details {
+      padding: 15px 20px;
+    }
+
+    .modal-route-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .modal-route-point {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .modal-point-marker {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      flex-shrink: 0;
+      font-size: 0.8rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    .modal-point-address {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .modal-point-address-a {
+      font-weight: 700;
+    }
+
+    .modal-order-details {
+      display: flex;
+      justify-content: space-between;
+      background-color: #f9f9f9;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .modal-detail-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+    }
+
+    .modal-detail-value {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+
+    .modal-detail-label {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .modal-price-highlight {
+      color: var(--success);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .modal-timeline {
+      margin-top: 15px;
+    }
+
+    .timeline-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+
+    .timeline-item {
+      display: flex;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+    }
+
+    .timeline-time {
+      width: 80px;
+      color: #666;
+      flex-shrink: 0;
+    }
+
+    .timeline-event {
+      flex: 1;
+    }
+
+    /* Route Loading Indicator */
+    .route-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+    }
+
+    /* Login Required */
+    .login-required {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .login-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      margin-top: 15px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body {
+        font-size: 0.8rem;
+      }
+      
+      .order-item {
+        padding: 10px;
+      }
+      
+      .route-info {
+        font-size: 0.75rem;
+      }
+      
+      .order-details {
+        font-size: 0.75rem;
+      }
+      
+      .modal-content {
+        width: 98%;
+        max-height: 95vh;
+      }
+      
+      .modal-map {
+        height: 200px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .order-details {
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      
+      .detail-item {
+        flex: 0 0 calc(33.333% - 10px);
+      }
+      
+      .modal-header {
+        padding: 12px 15px;
+      }
+      
+      .modal-details {
+        padding: 12px 15px;
+      }
+      
+      .modal-order-details {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .modal-detail-item {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+      }
+
+      .header {
+        padding: 12px 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="back-btn" id="backBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+    </div>
+    <div class="header-title">Riwayat Order</div>
+    <div style="width: 80px;"></div>
+  </div>
+
+  <!-- Container -->
+  <div class="container">
+    <!-- Filter Options -->
+    <div class="filter-container">
+      <div class="filter-option active" data-filter="all">Semua</div>
+      <div class="filter-option" data-filter="completed">Selesai</div>
+      <div class="filter-option" data-filter="cancelled">Dibatalkan</div>
+      <div class="filter-option" data-filter="this_week">Minggu Ini</div>
+      <div class="filter-option" data-filter="this_month">Bulan Ini</div>
+    </div>
+
+    <div class="orders-list" id="ordersList">
+      <!-- Data akan diisi oleh JavaScript -->
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Memuat data riwayat...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detail Order -->
+  <div class="modal" id="orderModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Detail Order</h3>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-map" id="modalMap">
+          <div class="route-loading" id="routeLoading" style="display: none;">
+            <div class="spinner" style="width: 20px; height: 20px;"></div>
+            Memuat peta...
+          </div>
+        </div>
+        <div class="modal-details">
+          <div class="modal-route-info">
+            <div class="modal-route-point">
+              <div class="modal-point-marker point-marker-a">A</div>
+              <div class="modal-point-address modal-point-address-a" id="modalAddressA">-</div>
+            </div>
+            <div class="modal-route-point">
+              <div class="modal-point-marker point-marker-b">B</div>
+              <div class="modal-point-address" id="modalAddressB">-</div>
+            </div>
+          </div>
+          <div class="modal-order-details">
+            <div class="modal-detail-item">
+              <span class="modal-detail-value" id="modalDuration">-</span>
+              <span class="modal-detail-label">Durasi</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-value" id="modalDistance">-</span>
+              <span class="modal-detail-label">Jarak</span>
+            </div>
+            <div class="modal-detail-item">
+              <span class="modal-detail-value modal-price-highlight" id="modalPrice">-</span>
+              <span class="modal-detail-label">Harga</span>
+            </div>
+          </div>
+          
+          <div class="modal-timeline">
+            <div class="timeline-title">Timeline Order</div>
+            <div class="timeline-item">
+              <div class="timeline-time" id="timelineCreated">-</div>
+              <div class="timeline-event">Order dibuat</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time" id="timelineAccepted">-</div>
+              <div class="timeline-event">Driver diterima</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time" id="timelineStarted">-</div>
+              <div class="timeline-event">Perjalanan dimulai</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time" id="timelineArrived">-</div>
+              <div class="timeline-event">Tiba di tujuan</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time" id="timelineCompleted">-</div>
+              <div class="timeline-event">Order selesai</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // ==================== KONFIGURASI FIREBASE ====================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
+    };
+
+    // ==================== VARIABEL GLOBAL ====================
+    let database;
+    let ordersRef = null;
+    let ordersListener = null;
+    let currentDriverData = null;
+    let currentFilter = 'all';
+    let driverId = null;
+    let modalMap = null;
+    let routePolyline = null;
+    let startMarker = null;
+    let endMarker = null;
+    let mapLayers = [];
+
+    // ==================== FUNGSI MANAJEMEN PETA ====================
+    function clearMapLayers() {
+      mapLayers.forEach(layer => {
+        if (layer && modalMap && modalMap.hasLayer(layer)) {
+          modalMap.removeLayer(layer);
+        }
+      });
+      mapLayers = [];
+      routePolyline = null;
+      startMarker = null;
+      endMarker = null;
+    }
+
+    function addMapLayer(layer) {
+      if (layer && modalMap) {
+        modalMap.addLayer(layer);
+        mapLayers.push(layer);
+      }
+    }
+
+    function initMap() {
+      if (modalMap) {
+        modalMap.remove();
+        modalMap = null;
+      }
+      
+      clearMapLayers();
+      
+      const mapElement = document.getElementById('modalMap');
+      modalMap = L.map('modalMap').setView([0.5441, 123.0595], 13);
+      
+      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      });
+      addMapLayer(tileLayer);
+    }
+
+    function showStraightLineRoute(order) {
+      if (!order.from_lat || !order.from_lng || !order.to_lat || !order.to_lng) return;
+      
+      const startCoords = [order.from_lat, order.from_lng];
+      const endCoords = [order.to_lat, order.to_lng];
+      
+      routePolyline = L.polyline([startCoords, endCoords], {
+        color: '#FF5722',
+        weight: 6,
+        opacity: 0.8,
+        lineJoin: 'round',
+        dashArray: '10, 10'
+      });
+      addMapLayer(routePolyline);
+      
+      startMarker = L.marker(startCoords)
+        .bindPopup('<b>Lokasi Penjemputan</b><br>' + (order.alamat_a || 'Lokasi A'));
+      addMapLayer(startMarker);
+      
+      endMarker = L.marker(endCoords)
+        .bindPopup('<b>Lokasi Tujuan</b><br>' + (order.alamat_b || 'Lokasi B'));
+      addMapLayer(endMarker);
+      
+      const bounds = L.latLngBounds([startCoords, endCoords]);
+      modalMap.fitBounds(bounds, { padding: [20, 20] });
+    }
+
+    // ==================== FUNGSI MODAL ====================
+    function showOrderDetail(order) {
+      document.getElementById('modalAddressA').textContent = order.alamat_a || '-';
+      document.getElementById('modalAddressB').textContent = order.alamat_b || '-';
+      document.getElementById('modalDuration').textContent = order.durasi || '-';
+      document.getElementById('modalDistance').textContent = order.jarak || '-';
+      document.getElementById('modalPrice').textContent = order.harga_total ? `Rp ${order.harga_total.toLocaleString('id-ID')}` : '-';
+      
+      let acceptedTime = '-';
+      if (order.driver_offers && driverId) {
+        const driverOffer = Object.values(order.driver_offers).find(
+          offer => offer.driver_id === driverId || offer.id === driverId
+        );
+        if (driverOffer && driverOffer.offered_at) {
+          acceptedTime = formatFullTime(driverOffer.offered_at);
+        }
+      }
+      
+      document.getElementById('timelineCreated').textContent = formatFullTime(order.created_at);
+      document.getElementById('timelineAccepted').textContent = acceptedTime;
+      document.getElementById('timelineStarted').textContent = formatFullTime(order.trip_started_at);
+      document.getElementById('timelineArrived').textContent = formatFullTime(order.arrived_at);
+      document.getElementById('timelineCompleted').textContent = formatFullTime(order.completed_at);
+      
+      document.getElementById('orderModal').style.display = 'flex';
+      
+      setTimeout(() => {
+        document.getElementById('routeLoading').style.display = 'none';
+        if (!modalMap) initMap();
+        showStraightLineRoute(order);
+      }, 100);
+    }
+
+    function closeModal() {
+      clearMapLayers();
+      document.getElementById('orderModal').style.display = 'none';
+      document.getElementById('routeLoading').style.display = 'none';
+    }
+
+    // ==================== FUNGSI CEK DRIVER ====================
+    function checkDriverData() {
+      try {
+        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
+        if (!driverDataStr || driverDataStr === '{}') {
+          showLoginRequired('Anda belum login sebagai driver');
+          return false;
+        }
+        
+        const driverData = JSON.parse(driverDataStr);
+        const status = driverData.status || driverData.driverStatus;
+        
+        if (!["active", "approved", "accepted"].includes(status)) {
+          showLoginRequired(`Status driver Anda: ${status || 'pending'}. Menunggu verifikasi admin.`);
+          return false;
+        }
+        
+        if (!driverData.uid && !driverData.driverId) {
+          showLoginRequired('Data driver tidak lengkap');
+          return false;
+        }
+        
+        currentDriverData = {
+          driverId: driverData.uid || driverData.driverId,
+          fullName: driverData.name,
+          phone: driverData.phone,
+          ...driverData
+        };
+        
+        driverId = currentDriverData.driverId;
+        return true;
+      } catch (error) {
+        console.error('Error parsing driver data:', error);
+        showLoginRequired('Data driver tidak valid');
+        return false;
+      }
+    }
+
+    function showLoginRequired(message) {
+      const ordersList = document.getElementById('ordersList');
+      ordersList.innerHTML = `
+        <div class="login-required">
+          <div style="font-size: 3rem; margin-bottom: 15px; color: var(--primary)">🚗</div>
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Akses Dibatasi</h3>
+          <p>${message}</p>
+          <div style="margin-top: 20px;">
+            <button class="login-btn" onclick="window.location.href='loginDriver.html'" style="margin-right: 10px;">
+              Login Driver
+            </button>
+            <button class="login-btn" onclick="window.location.href='list.html'" style="background: var(--gray);">
+              Kembali
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==================== FUNGSI LOAD RIWAYAT ====================
+    function loadHistoryData() {
+      const ordersList = document.getElementById('ordersList');
+      
+      if (!checkDriverData()) return;
+      
+      ordersList.innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Memuat riwayat order...</p>
+        </div>
+      `;
+      
+      if (!database) {
+        try {
+          if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+          database = firebase.database();
+        } catch (error) {
+          ordersList.innerHTML = `<div class="empty-state">Gagal terhubung ke database</div>`;
+          return;
+        }
+      }
+      
+      if (ordersListener && ordersRef) {
+        ordersRef.off('value', ordersListener);
+      }
+      
+      ordersRef = database.ref('orders');
+      
+      ordersListener = ordersRef.on('value', (snapshot) => {
+        const orders = snapshot.val();
+        
+        if (!orders || Object.keys(orders).length === 0) {
+          ordersList.innerHTML = `<div class="empty-state">Tidak ada data order</div>`;
+          return;
+        }
+        
+        const allOrders = Object.entries(orders).map(([id, order]) => ({ id, ...order }));
+        
+        const driverOrders = allOrders.filter(order => {
+          if (!['completed', 'cancelled'].includes(order.status)) return false;
+          
+          // Cek driver_offers
+          if (order.driver_offers && Object.keys(order.driver_offers).length > 0) {
+            const found = Object.values(order.driver_offers).some(
+              offer => offer.driver_id === driverId || offer.id === driverId
+            );
+            if (found) return true;
+          }
+          
+          // Cek accepted_driver atau selected_driver
+          if (order.accepted_driver && (order.accepted_driver.driver_id === driverId || order.accepted_driver.id === driverId)) return true;
+          if (order.selected_driver && (order.selected_driver.driver_id === driverId || order.selected_driver.id === driverId)) return true;
+          
+          return false;
+        });
+        
+        if (driverOrders.length === 0) {
+          ordersList.innerHTML = `
+            <div class="empty-state">
+              <div>📭</div>
+              <p>Tidak ada riwayat order</p>
+              <p style="font-size:0.8rem;">Driver ID: ${driverId || 'Tidak diketahui'}</p>
+            </div>
+          `;
+          return;
+        }
+        
+        displayOrders(driverOrders);
+      }, (error) => {
+        ordersList.innerHTML = `<div class="empty-state">Gagal memuat data: ${error.message}</div>`;
+      });
+    }
+
+    function displayOrders(orders) {
+      const ordersList = document.getElementById('ordersList');
+      
+      orders.sort((a, b) => {
+        const timeA = new Date(a.completed_at || a.updated_at || a.created_at || 0).getTime();
+        const timeB = new Date(b.completed_at || b.updated_at || b.created_at || 0).getTime();
+        return timeB - timeA;
+      });
+      
+      const ordersByDate = {};
+      orders.forEach(order => {
+        const date = new Date(order.completed_at || order.created_at);
+        const dateKey = date.toLocaleDateString('id-ID', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        if (!ordersByDate[dateKey]) ordersByDate[dateKey] = [];
+        ordersByDate[dateKey].push(order);
+      });
+      
+      ordersList.innerHTML = '';
+      
+      const sortedDates = Object.keys(ordersByDate).sort((a, b) => {
+        return new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'));
+      });
+      
+      sortedDates.forEach(dateKey => {
+        const ordersForDate = ordersByDate[dateKey];
+        
+        let filteredOrders = ordersForDate;
+        if (currentFilter !== 'all') {
+          if (currentFilter === 'completed') {
+            filteredOrders = ordersForDate.filter(order => order.status === 'completed');
+          } else if (currentFilter === 'cancelled') {
+            filteredOrders = ordersForDate.filter(order => order.status === 'cancelled');
+          } else if (currentFilter === 'this_week') {
+            filteredOrders = ordersForDate.filter(order => isThisWeek(new Date(order.completed_at || order.created_at)));
+          } else if (currentFilter === 'this_month') {
+            filteredOrders = ordersForDate.filter(order => isThisMonth(new Date(order.completed_at || order.created_at)));
+          }
+        }
+        
+        if (filteredOrders.length === 0) return;
+        
+        const dateHeader = document.createElement('div');
+        dateHeader.className = 'date-header';
+        dateHeader.textContent = `${dateKey} • ${filteredOrders.length} order`;
+        
+        const dateSection = document.createElement('div');
+        dateSection.className = 'date-section';
+        dateSection.appendChild(dateHeader);
+        ordersList.appendChild(dateSection);
+        
+        filteredOrders.forEach(order => {
+          ordersList.appendChild(createOrderItem(order));
+        });
+      });
+      
+      if (ordersList.children.length === 0) {
+        ordersList.innerHTML = `
+          <div class="empty-state">
+            <div>🔍</div>
+            <p>Tidak ada order yang sesuai dengan filter</p>
+            <button class="login-btn" onclick="changeFilter('all')" style="background: var(--info);">Tampilkan Semua</button>
+          </div>
+        `;
+      }
+    }
+
+    function createOrderItem(order) {
+      const orderItem = document.createElement('div');
+      orderItem.className = 'order-item';
+      
+      const customerName = order.user_data?.name || order.user_name || 'Tidak diketahui';
+      const alamatA = order.alamat_a || 'Lokasi penjemputan tidak tersedia';
+      const alamatB = order.alamat_b || 'Lokasi tujuan tidak tersedia';
+      const durasi = order.durasi || '-';
+      const jarak = order.jarak || '-';
+      const harga = order.harga_total ? `Rp ${parseInt(order.harga_total).toLocaleString('id-ID')}` : 'Rp 0';
+      const statusText = getStatusText(order.status);
+      const statusClass = getStatusClass(order.status);
+      const orderTime = formatOrderTime(order.completed_at || order.created_at);
+      const vehicleName = order.vehicle_name || (order.vehicle || 'motor');
+      
+      orderItem.innerHTML = `
+        <div class="order-header">
+          <div class="customer-name">
+            ${customerName}
+            ${order.vehicle && order.vehicle.includes('kurir') ? '<span class="kurir-badge">📦 KURIR</span>' : ''}
+          </div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        <div class="route-info">
+          <div class="route-point">
+            <div class="point-marker point-marker-a">A</div>
+            <div class="point-address point-address-a">${alamatA}</div>
+          </div>
+          <div class="route-point">
+            <div class="point-marker point-marker-b">B</div>
+            <div class="point-address">${alamatB}</div>
+          </div>
+        </div>
+        <div class="order-details">
+          <div class="detail-item">
+            <span class="detail-value">${durasi}</span>
+            <span class="detail-label">Durasi</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-value">${jarak}</span>
+            <span class="detail-label">Jarak</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-value price-highlight">${harga}</span>
+            <span class="detail-label">Harga</span>
+          </div>
+        </div>
+        <div class="order-meta">
+          <span>${orderTime}</span>
+          <span>${vehicleName}</span>
+        </div>
+      `;
+      
+      orderItem.addEventListener('click', () => showOrderDetail(order));
+      return orderItem;
+    }
+
+    // ==================== FUNGSI BANTUAN ====================
+    function getStatusText(status) {
+      const statusMap = {
+        'completed': 'Selesai',
+        'cancelled': 'Dibatalkan',
+        'accepted': 'Diterima',
+        'on_the_way': 'Dalam Perjalanan',
+        'searching': 'Mencari Driver',
+        'pending': 'Menunggu'
+      };
+      return statusMap[status] || status;
+    }
+
+    function getStatusClass(status) {
+      const classMap = {
+        'completed': 'status-completed',
+        'cancelled': 'status-cancelled',
+        'accepted': 'status-accepted',
+        'on_the_way': 'status-on_the_way',
+        'searching': 'status-search',
+        'pending': 'status-accepted'
+      };
+      return classMap[status] || 'status-completed';
+    }
+
+    function formatOrderTime(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatFullTime(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      return date.toLocaleString('id-ID', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function isThisWeek(date) {
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+      endOfWeek.setHours(23, 59, 59, 999);
+      return date >= startOfWeek && date <= endOfWeek;
+    }
+
+    function isThisMonth(date) {
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+      return date >= startOfMonth && date <= endOfMonth;
+    }
+
+    function changeFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.filter === filter);
+      });
+      loadHistoryData();
+    }
+
+    function goBack() {
+      window.location.href = 'list.html';
+    }
+
+    // ==================== INISIALISASI APLIKASI ====================
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('backBtn').addEventListener('click', goBack);
+      document.getElementById('closeModal').addEventListener('click', closeModal);
+      document.getElementById('orderModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('orderModal')) closeModal();
+      });
+      
+      document.querySelectorAll('.filter-option').forEach(option => {
+        option.addEventListener('click', () => changeFilter(option.dataset.filter));
+      });
+      
+      loadHistoryData();
+    });
+  </script>
+</body>
+</html>
