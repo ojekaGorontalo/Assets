@@ -2163,7 +2163,7 @@
               <img src="${customerPhoto}" class="customer-photo-left" onclick="showPhotoModal('${customerPhoto}', '${customerName}')">
               <div class="customer-name-left">${customerName}</div>
               <div class="customer-rating">
-                <span class="rating-stars">☆☆☆☆☆</span>
+                <span class="rating-stars">★</span>
                 <span class="rating-value" data-customer-id="${user.uid || user.userId || ''}" data-order-id="${order.id}">...</span>
               </div>
               <div class="order-time">${new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -2203,14 +2203,6 @@
                 const avgRating = customerData.avgRating ? customerData.avgRating.toFixed(1) : '0.0';
                 const ratingCount = customerData.ratingCount || 0;
                 ratingSpan.textContent = `${avgRating} (${ratingCount})`;
-
-                // Update bintang
-                const starsSpan = orderItem.querySelector('.rating-stars');
-                if (starsSpan) {
-                  const fullStars = Math.floor(avgRating);
-                  const emptyStars = 5 - fullStars;
-                  starsSpan.innerHTML = '★'.repeat(fullStars) + '☆'.repeat(emptyStars);
-                }
               }
             }
           }).catch(err => console.error('Gagal ambil data customer:', err));
@@ -2398,6 +2390,20 @@
     // ==================== KIRIM PENAWARAN ====================
     function sendDriverOffer() {
       if (!currentSelectedOrder || !currentDriverId || !checkDriverData()) return;
+      
+       // ===== CEK SALDO =====
+  const hargaTotal = currentSelectedOrder.harga_total || 0;
+  const requiredBalance = hargaTotal * 0.1; // 10% dari tarif
+  const driverBalance = currentDriverData.balance || 0;
+
+  if (driverBalance < requiredBalance) {
+    showPopup(
+      'Saldo Tidak Cukup',
+      `Saldo Anda Rp ${driverBalance.toLocaleString('id-ID')} tidak mencukupi untuk membayar 10% dari tarif (Rp ${requiredBalance.toLocaleString('id-ID')}).`,
+      'warning'
+    );
+    return;
+  }
       const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
       const driverId = currentDriverId;
       const ambilBtn = document.getElementById('ambilBtn');
