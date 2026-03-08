@@ -262,6 +262,7 @@
       background-color: #f8f9fa;
       border-radius: 6px;
       border-left: 3px solid var(--info);
+      word-break: break-word;
     }
 
     .rating-date {
@@ -371,50 +372,55 @@
         return;
       }
 
-      const driverData = JSON.parse(loggedInDriver);
-      driverId = driverData.uid || driverData.firebase_key || driverData.userId;
-      if (!driverId) {
-        showErrorState('Data driver tidak valid.');
-        return;
+      try {
+        const driverData = JSON.parse(loggedInDriver);
+        driverId = driverData.uid || driverData.firebase_key || driverData.userId;
+        if (!driverId) {
+          showErrorState('Data driver tidak valid.');
+          return;
+        }
+
+        showLoadingState();
+
+        // Ambil data driver lengkap dari node drivers/{driverId}
+        database.ref('drivers/' + driverId).once('value')
+          .then(snapshot => {
+            const fullDriverData = snapshot.val();
+            if (!fullDriverData) {
+              // Jika tidak ditemukan, coba cari berdasarkan phone (fallback)
+              return findDriverByPhone(driverData.phone);
+            }
+            return fullDriverData;
+          })
+          .then(driverDataFull => {
+            if (!driverDataFull) {
+              showEmptyState();
+              return;
+            }
+
+            // Simpan avgRating dan ratingCount dari data driver
+            driverAvgRating = driverDataFull.avgRating || 0;
+            driverRatingCount = driverDataFull.ratingCount || 0;
+
+            // Proses data ratings jika ada
+            if (driverDataFull.ratings && typeof driverDataFull.ratings === 'object') {
+              processRatingsData(driverDataFull.ratings);
+            } else {
+              driverRatings = [];
+              displayRatingsData();
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showErrorState('Gagal memuat data.');
+          });
+      } catch (e) {
+        showErrorState('Data login rusak.');
       }
-
-      showLoadingState();
-
-      // Ambil data driver lengkap dari node drivers/{driverId}
-      database.ref('drivers/' + driverId).once('value')
-        .then(snapshot => {
-          const fullDriverData = snapshot.val();
-          if (!fullDriverData) {
-            // Jika tidak ditemukan, coba cari berdasarkan phone (fallback)
-            return findDriverByPhone(driverData.phone);
-          }
-          return fullDriverData;
-        })
-        .then(driverDataFull => {
-          if (!driverDataFull) {
-            showEmptyState();
-            return;
-          }
-
-          // Simpan avgRating dan ratingCount dari data driver
-          driverAvgRating = driverDataFull.avgRating || 0;
-          driverRatingCount = driverDataFull.ratingCount || 0;
-
-          // Proses data ratings jika ada
-          if (driverDataFull.ratings) {
-            processRatingsData(driverDataFull.ratings);
-          } else {
-            driverRatings = [];
-            displayRatingsData();
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          showErrorState('Gagal memuat data.');
-        });
     }
 
     function findDriverByPhone(phone) {
+      if (!phone) return Promise.resolve(null);
       return database.ref('drivers')
         .orderByChild('phone')
         .equalTo(phone)
@@ -431,6 +437,8 @@
       driverRatings = [];
       Object.keys(ratingsObj).forEach(key => {
         const r = ratingsObj[key];
+        // Pastikan data valid
+        if (!r || typeof r !== 'object') return;
         driverRatings.push({
           id: key,
           rating: r.rating || 0,
@@ -514,6 +522,8 @@
 
     function generateRatingCard(r) {
       const emoji = getSatisfactionEmoji(r.rating);
+      // Gunakan teks biasa untuk bintang agar kompatibel
+      const stars = generatePlainStars(r.rating);
       return `
         <div class="rating-card">
           <div class="rating-header">
@@ -523,7 +533,7 @@
             </div>
             <div class="rating-meta">
               <span class="satisfaction-emoji">${emoji}</span>
-              <span class="small-rating-stars">${generateStarRating(r.rating, 'small-star')}</span>
+              <span class="small-rating-stars">${stars}</span>
             </div>
           </div>
           <div class="rating-comment">${r.comment}</div>
@@ -536,8 +546,19 @@
       const full = Math.floor(rating);
       const half = rating % 1 >= 0.5 ? 1 : 0;
       const empty = 5 - full - half;
-      return '★'.repeat(full) + (half ? '★' : '') + '☆'.repeat(empty)
-        .split('').map(s => `<span class="${cls} ${s === '★' ? 'filled' : ''}">${s}</span>`).join('');
+      let stars = '';
+      for (let i = 0; i < full; i++) stars += `<span class="${cls} filled">★</span>`;
+      if (half) stars += `<span class="${cls} filled">★</span>`;
+      for (let i = 0; i < empty; i++) stars += `<span class="${cls}">☆</span>`;
+      return stars;
+    }
+
+    // Fungsi alternatif untuk bintang teks biasa (fallback)
+    function generatePlainStars(rating) {
+      const full = Math.floor(rating);
+      const half = rating % 1 >= 0.5 ? 1 : 0;
+      const empty = 5 - full - half;
+      return '★'.repeat(full) + (half ? '★' : '') + '☆'.repeat(empty);
     }
 
     function getSatisfactionEmoji(r) {
