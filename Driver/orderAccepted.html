@@ -1253,17 +1253,57 @@
       document.getElementById('chatInput').onkeypress = (e) => { if (e.key === 'Enter') sendChatMessage(); };
     }
 
+    // ==================== PERBAIKAN FUNGSI KIRIM PESAN ====================
     function sendChatMessage() {
       const input = document.getElementById('chatInput');
       const msg = input.value.trim();
-      if (!msg || !driverData) return;
+      if (!msg) {
+        showInfoModal('Info', 'Pesan tidak boleh kosong');
+        return;
+      }
+
+      // Pastikan driverData tersedia
+      if (!driverData) {
+        console.error('Driver data tidak tersedia');
+        showInfoModal('Error', 'Data driver tidak tersedia');
+        return;
+      }
+
+      // Dapatkan ID driver dari berbagai kemungkinan field
+      const senderId = driverData.uid || driverData.driverId || driverData.id;
+      if (!senderId) {
+        console.error('ID driver tidak ditemukan di driverData:', driverData);
+        showInfoModal('Error', 'ID driver tidak ditemukan');
+        return;
+      }
+
+      // Pastikan chatRef sudah diinisialisasi
+      if (!chatRef) {
+        console.error('chatRef belum diinisialisasi');
+        showInfoModal('Error', 'Koneksi chat belum siap');
+        // Coba inisialisasi ulang
+        if (orderId) {
+          initializeChatSystem(orderId);
+        } else {
+          return;
+        }
+      }
+
+      // Kirim pesan
       chatRef.push({
         sender: 'driver',
-        sender_id: driverData.driverId,
+        sender_id: senderId,
         message: msg,
         timestamp: Date.now()
-      }).then(() => input.value = '');
+      }).then(() => {
+        input.value = ''; // Kosongkan input setelah berhasil
+        console.log('Pesan terkirim');
+      }).catch((err) => {
+        console.error('Gagal mengirim pesan:', err);
+        showInfoModal('Error', 'Gagal mengirim pesan: ' + err.message);
+      });
     }
+    // ==================== AKHIR PERBAIKAN ====================
 
     // ==================== MODAL ====================
     function showConfirmationModal(title, message, callback) {
@@ -1553,21 +1593,21 @@
     }
 
     function updateCustomerData(customer) {
-  document.getElementById('customerName').textContent = customer.name || '-';
-  document.getElementById('customerPhone').textContent = customer.phone || '-';
-  document.getElementById('customerPhoto').src = customer.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-  
-  // Ambil rating dari customer.avgRating (langsung dari user_data)
-  const ratingValue = customer.avgRating ? customer.avgRating.toFixed(1) : '5.0';
-  document.getElementById('customerRating').textContent = ratingValue;
+      document.getElementById('customerName').textContent = customer.name || '-';
+      document.getElementById('customerPhone').textContent = customer.phone || '-';
+      document.getElementById('customerPhoto').src = customer.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      
+      // Ambil rating dari customer.avgRating (langsung dari user_data)
+      const ratingValue = customer.avgRating ? customer.avgRating.toFixed(1) : '5.0';
+      document.getElementById('customerRating').textContent = ratingValue;
 
-  // Update tampilan bintang (opsional)
-  const starsContainer = document.querySelector('.stars');
-  if (starsContainer) {
-    const fullStars = Math.floor(parseFloat(ratingValue));
-    starsContainer.innerHTML = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
-  }
-}
+      // Update tampilan bintang (opsional)
+      const starsContainer = document.querySelector('.stars');
+      if (starsContainer) {
+        const fullStars = Math.floor(parseFloat(ratingValue));
+        starsContainer.innerHTML = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+      }
+    }
 
     function updateRouteData(route) {
       document.getElementById('pickupAddress').textContent = route.alamat_a || '-';
