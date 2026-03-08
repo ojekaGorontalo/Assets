@@ -824,6 +824,7 @@
       document.getElementById('modalDistance').textContent = order.jarak || '-';
       document.getElementById('modalPrice').textContent = order.harga_total ? `Rp ${order.harga_total.toLocaleString('id-ID')}` : '-';
       
+      // Cari waktu accepted dari driver_offers
       let acceptedTime = '-';
       if (order.driver_offers && driverId) {
         const driverOffer = Object.values(order.driver_offers).find(
@@ -831,14 +832,24 @@
         );
         if (driverOffer && driverOffer.offered_at) {
           acceptedTime = formatFullTime(driverOffer.offered_at);
+        } else if (driverOffer && driverOffer.accepted_at) {
+          acceptedTime = formatFullTime(driverOffer.accepted_at);
         }
+      }
+      
+      // Jika tidak ada di driver_offers, coba cek di order.selected_driver atau order.driver
+      if (acceptedTime === '-' && order.selected_driver) {
+        const selDriver = order.selected_driver;
+        if (selDriver.offered_at) acceptedTime = formatFullTime(selDriver.offered_at);
+        else if (selDriver.accepted_at) acceptedTime = formatFullTime(selDriver.accepted_at);
+        else if (selDriver.selected_at) acceptedTime = formatFullTime(selDriver.selected_at);
       }
       
       document.getElementById('timelineCreated').textContent = formatFullTime(order.created_at);
       document.getElementById('timelineAccepted').textContent = acceptedTime;
       document.getElementById('timelineStarted').textContent = formatFullTime(order.trip_started_at);
       document.getElementById('timelineArrived').textContent = formatFullTime(order.arrived_at);
-      document.getElementById('timelineCompleted').textContent = formatFullTime(order.completed_at);
+      document.getElementById('timelineCompleted').textContent = formatFullTime(order.completed_at || order.updated_at); // fallback ke updated_at jika completed_at tidak ada
       
       document.getElementById('orderModal').style.display = 'flex';
       
@@ -1146,11 +1157,16 @@
 
     function formatFullTime(dateString) {
       if (!dateString) return '-';
-      const date = new Date(dateString);
-      return date.toLocaleString('id-ID', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      });
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleString('id-ID', {
+          day: 'numeric', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+      } catch {
+        return '-';
+      }
     }
 
     function isThisWeek(date) {
