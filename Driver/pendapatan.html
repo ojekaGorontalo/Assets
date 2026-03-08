@@ -276,81 +276,6 @@
       color: var(--primary);
     }
 
-    /* Transaction History Styles - Konsisten */
-    .transaction-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 12px 0;
-      border-bottom: 1px solid #f5f5f5;
-      transition: background-color 0.3s;
-    }
-
-    .transaction-item:hover {
-      background-color: rgba(255, 152, 0, 0.05);
-      border-radius: 6px;
-      padding: 12px 10px;
-    }
-
-    .transaction-item:last-child {
-      border-bottom: none;
-    }
-
-    .transaction-details {
-      flex: 1;
-    }
-
-    .transaction-type {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--dark);
-      margin-bottom: 4px;
-    }
-
-    .transaction-description {
-      font-size: 0.75rem;
-      color: #666;
-      margin-bottom: 2px;
-    }
-
-    .transaction-meta {
-      font-size: 0.7rem;
-      color: #888;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .transaction-meta::before {
-      content: "";
-      font-size: 0.6rem;
-    }
-
-    .transaction-amount {
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-align: right;
-      min-width: 100px;
-    }
-
-    .transaction-amount.positive {
-      color: var(--success);
-    }
-
-    .transaction-amount.negative {
-      color: var(--danger);
-    }
-
-    .transaction-order {
-      font-size: 0.7rem;
-      color: var(--primary);
-      background: rgba(255, 152, 0, 0.1);
-      padding: 2px 6px;
-      border-radius: 4px;
-      display: inline-block;
-      margin-top: 2px;
-    }
-
     /* Empty state - Konsisten */
     .empty-state {
       text-align: center;
@@ -466,7 +391,7 @@
   <div class="header">
     <div class="logo-container">
       <button class="back-btn" id="backBtn">
-        <span style="font-size: 18px;"></span>
+        <span style="font-size: 18px;">←</span>
         Kembali
       </button>
       <div class="logo">JG</div>
@@ -497,20 +422,20 @@
     // ================================================
     // INISIALISASI FIREBASE DENGAN GUARD
     // ================================================
-    console.log(' Memulai inisialisasi Firebase...');
+    console.log('🚀 Memulai inisialisasi Firebase...');
     let database;
     
     try {
       if (!firebase.apps.length) {
         firebase.initializeApp(FIREBASE_CONFIG);
-        console.log(' Firebase berhasil diinisialisasi');
+        console.log('✅ Firebase berhasil diinisialisasi');
       } else {
-        console.log(' Firebase sudah diinisialisasi sebelumnya');
+        console.log('✅ Firebase sudah diinisialisasi sebelumnya');
       }
       
       database = firebase.database();
     } catch (error) {
-      console.error(' Error inisialisasi Firebase:', error);
+      console.error('❌ Error inisialisasi Firebase:', error);
       showErrorState('Gagal menginisialisasi Firebase. Silakan refresh halaman.');
     }
 
@@ -532,23 +457,23 @@
         const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
         
         if (!loggedInDriver) {
-          console.error(' Driver belum login');
+          console.error('❌ Driver belum login');
           showErrorState('Anda belum login. Silakan login terlebih dahulu.');
           return;
         }
 
         driverData = JSON.parse(loggedInDriver);
-        console.log(' Data driver:', driverData);
+        console.log('📋 Data driver:', driverData);
         
         driverId = driverData.uid || driverData.firebase_key || driverData.userId;
         
         if (!driverId) {
-          console.error(' Driver ID tidak ditemukan');
+          console.error('❌ Driver ID tidak ditemukan');
           showErrorState('Data driver tidak valid. Silakan login ulang.');
           return;
         }
 
-        console.log(' Memuat data untuk driver ID:', driverId);
+        console.log('💰 Memuat data untuk driver ID:', driverId);
         showLoadingState();
 
         Promise.all([
@@ -556,16 +481,16 @@
           loadBalanceHistory()
         ])
         .then(() => {
-          console.log(' Semua data berhasil dimuat');
+          console.log('✅ Semua data berhasil dimuat');
           displayEarningsData();
         })
         .catch((error) => {
-          console.error(' Error memuat data:', error);
+          console.error('❌ Error memuat data:', error);
           showErrorState('Gagal memuat data. Periksa koneksi internet Anda.');
         });
           
       } catch (error) {
-        console.error(' Error parsing driver data:', error);
+        console.error('❌ Error parsing driver data:', error);
         showErrorState('Data session tidak valid. Silakan login ulang.');
       }
     }
@@ -573,7 +498,7 @@
     // Fungsi untuk memuat order driver - DIPERBARUI dengan deteksi yang lebih baik
     function loadDriverOrders() {
       return new Promise((resolve, reject) => {
-        console.log(' Memuat data orders...');
+        console.log('📦 Memuat data orders...');
         
         const ordersRef = database.ref('orders');
         ordersRef.once('value')
@@ -613,24 +538,24 @@
                 }
               });
               
-              console.log(` ${driverOrders.length} order selesai ditemukan`);
+              console.log(`✅ ${driverOrders.length} order selesai ditemukan`);
               
               // Urutkan berdasarkan tanggal terbaru
               driverOrders.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
             } else {
-              console.log(' Tidak ada data order');
+              console.log('ℹ️ Tidak ada data order');
             }
             
             resolve();
           })
           .catch((error) => {
-            console.error(' Error memuat orders:', error);
+            console.error('❌ Error memuat orders:', error);
             reject(error);
           });
       });
     }
 
-    // Fungsi untuk memuat balance_history - tetap sama
+    // Fungsi untuk memuat balance_history
     function loadBalanceHistory() {
       return new Promise((resolve) => {
         if (!driverId) {
@@ -638,7 +563,7 @@
           return;
         }
 
-        console.log(' Memuat balance history...');
+        console.log('💳 Memuat balance history...');
         
         const pathsToTry = [
           'drivers/' + driverId + '/balance_history',
@@ -657,7 +582,7 @@
           .then(results => {
             for (let result of results) {
               if (result.data && Object.keys(result.data).length > 0) {
-                console.log(` Balance history ditemukan di: ${result.path}`);
+                console.log(`✅ Balance history ditemukan di: ${result.path}`);
                 
                 if (result.path === 'transactions') {
                   // Filter hanya transaksi milik driver ini
@@ -672,44 +597,44 @@
                   balanceHistory = result.data;
                 }
                 
-                console.log(` ${Object.keys(balanceHistory).length} transaksi ditemukan`);
+                console.log(`📊 ${Object.keys(balanceHistory).length} transaksi ditemukan`);
                 resolve();
                 return;
               }
             }
             
-            console.log(' Tidak ada balance history');
+            console.log('ℹ️ Tidak ada balance history');
             balanceHistory = {};
             resolve();
           })
           .catch(error => {
-            console.error(' Error memuat balance history:', error);
+            console.error('❌ Error memuat balance history:', error);
             balanceHistory = {};
             resolve();
           });
       });
     }
 
-    // Fungsi untuk menampilkan data di UI
+    // Fungsi untuk menampilkan data di UI (TANPA RIWAYAT TRANSAKSI)
     function displayEarningsData() {
       const container = document.getElementById('mainContainer');
       
       const filteredOrders = filterOrdersByDateWITA(driverOrders, currentDate);
-      const filteredTransactions = getFilteredTransactionsForDate();
+      const filteredTransactions = getFilteredTransactionsForDate(); // masih digunakan untuk perhitungan potongan
       
       if (filteredOrders.length === 0 && Object.keys(filteredTransactions).length === 0) {
         container.innerHTML = `
           <div class="date-navigation">
-            <button class="nav-btn" id="prevBtn">�</button>
+            <button class="nav-btn" id="prevBtn">‹</button>
             <div class="current-date">
               <div class="date-display">${formatDateDisplay(currentDate)}</div>
               <div class="day-display">${getDayName(currentDate)}</div>
             </div>
-            <button class="nav-btn" id="nextBtn" disabled>�</button>
+            <button class="nav-btn" id="nextBtn" disabled>›</button>
           </div>
           
           <div class="empty-state">
-            <div class="empty-state-icon"></div>
+            <div class="empty-state-icon">💰</div>
             <h3 style="color: var(--primary); margin-bottom: 10px;">Tidak Ada Data</h3>
             <p>Tidak ada order yang diselesaikan pada tanggal ini.</p>
             <button class="nav-btn" id="retryBtn" style="margin-top: 15px; width: auto; padding: 8px 20px;">
@@ -731,47 +656,47 @@
       
       let html = `
         <div class="date-navigation">
-          <button class="nav-btn" id="prevBtn">�</button>
+          <button class="nav-btn" id="prevBtn">‹</button>
           <div class="current-date">
             <div class="date-display">${formatDateDisplay(currentDate)}</div>
             <div class="day-display">${getDayName(currentDate)}</div>
           </div>
-          <button class="nav-btn" id="nextBtn">�</button>
+          <button class="nav-btn" id="nextBtn">›</button>
         </div>
         
         <div class="summary-grid">
           <div class="summary-card">
-            <div class="summary-icon"></div>
+            <div class="summary-icon">🚚</div>
             <div class="summary-label">Total Order</div>
             <div class="summary-value">${stats.totalOrders}</div>
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon"></div>
+            <div class="summary-icon">📏</div>
             <div class="summary-label">Total Jarak</div>
             <div class="summary-value distance">${stats.totalDistance}</div>
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon"></div>
+            <div class="summary-icon">⚡</div>
             <div class="summary-label">Rata-rata per KM</div>
             <div class="summary-value">Rp ${stats.averagePerKm.toLocaleString('id-ID')}</div>
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon"></div>
+            <div class="summary-icon">💵</div>
             <div class="summary-label">Pendapatan Bersih</div>
             <div class="summary-value earnings">Rp ${stats.netEarnings.toLocaleString('id-ID')}</div>
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon"></div>
+            <div class="summary-icon">💸</div>
             <div class="summary-label">Total Potongan</div>
             <div class="summary-value fees">Rp ${stats.totalFees.toLocaleString('id-ID')}</div>
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon"></div>
+            <div class="summary-icon">📊</div>
             <div class="summary-label">Persentase Potongan</div>
             <div class="summary-value">${stats.feePercentage}%</div>
           </div>
@@ -794,7 +719,7 @@
           html += `
             <div class="breakdown-item">
               <div class="breakdown-label">
-                <div>${orderTime} � ${vehicleType}</div>
+                <div>${orderTime} • ${vehicleType}</div>
                 <div style="font-size: 0.75rem; color: #999;">${distance.toFixed(1)} km</div>
               </div>
               <div class="breakdown-value">Rp ${earnings.toLocaleString('id-ID')}</div>
@@ -808,55 +733,7 @@
         `;
       }
       
-      html += `
-        <div class="breakdown-section">
-          <div class="section-title">
-            <span style="margin-right: 8px;"></span>
-            Riwayat Transaksi
-          </div>
-          <div class="breakdown-list">
-      `;
-      
-      if (Object.keys(filteredTransactions).length === 0) {
-        html += `
-          <div style="text-align: center; padding: 20px; color: #999;">
-            <div style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></div>
-            <div>Belum ada riwayat transaksi</div>
-          </div>
-        `;
-      } else {
-        const sortedTransactions = Object.entries(filteredTransactions)
-          .sort(([, a], [, b]) => new Date(b.timestamp) - new Date(a.timestamp));
-        
-        sortedTransactions.forEach(([key, transaction]) => {
-          const amount = parseFloat(transaction.amount) || 0;
-          const isPositive = amount >= 0;
-          const amountFormatted = formatCurrency(Math.abs(amount));
-          const timeFormatted = formatTransactionTime(transaction.timestamp);
-          const typeText = getTransactionTypeText(transaction.type);
-          const description = transaction.description || transaction.note || '-';
-          
-          html += `
-            <div class="transaction-item">
-              <div class="transaction-details">
-                <div class="transaction-type">${typeText}</div>
-                <div class="transaction-description">${description}</div>
-                ${transaction.order_id ? 
-                  `<div class="transaction-order">Order: ${transaction.order_id}</div>` : ''}
-                <div class="transaction-meta">${timeFormatted}</div>
-              </div>
-              <div class="transaction-amount ${isPositive ? 'positive' : 'negative'}">
-                ${isPositive ? '+' : '-'} ${amountFormatted}
-              </div>
-            </div>
-          `;
-        });
-      }
-      
-      html += `
-          </div>
-        </div>
-      `;
+      // Bagian Riwayat Transaksi TELAH DIHAPUS sesuai permintaan
       
       container.innerHTML = html;
       
@@ -975,43 +852,6 @@
       return dateWITA.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
     }
 
-    function formatTransactionTime(timestamp) {
-      if (!timestamp) return '-';
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diffMins = Math.floor((now - date) / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHours / 24);
-      
-      if (diffMins < 60) return `${diffMins} menit lalu`;
-      if (diffHours < 24) return `${diffHours} jam lalu`;
-      if (diffDays < 7) return `${diffDays} hari lalu`;
-      return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-
-    function getTransactionTypeText(type) {
-      const map = {
-        'order_fee': 'Biaya Layanan Order',
-        'withdrawal': 'Penarikan Saldo',
-        'deposit': 'Deposit',
-        'refund': 'Pengembalian Dana',
-        'bonus': 'Bonus',
-        'fee': 'Biaya Layanan',
-        'payment': 'Pembayaran',
-        'topup': 'Top Up'
-      };
-      return map[type] || type || 'Transaksi';
-    }
-
-    function formatCurrency(amount) {
-      if (!amount && amount !== 0) return 'Rp 0';
-      try {
-        return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
-      } catch {
-        return 'Rp 0';
-      }
-    }
-
     // ==================== NAVIGASI TANGGAL ====================
     function goToPreviousDay() {
       currentDate.setDate(currentDate.getDate() - 1);
@@ -1066,7 +906,7 @@
       const container = document.getElementById('mainContainer');
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon"></div>
+          <div class="empty-state-icon">⚠️</div>
           <div style="color: var(--danger); margin: 10px 0; font-weight: 600;">${message}</div>
           <button class="nav-btn" id="retryBtn" style="margin-top: 15px; width: auto; padding: 8px 20px;">
             Coba Lagi
@@ -1102,7 +942,7 @@
 
     // ==================== INISIALISASI ====================
     document.addEventListener('DOMContentLoaded', () => {
-      console.log(' Halaman Ringkasan Pendapatan dimuat');
+      console.log('🚀 Halaman Ringkasan Pendapatan dimuat');
       currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
       loadEarningsData();
