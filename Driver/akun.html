@@ -1286,15 +1286,15 @@
         }
 
         // Gabungkan data dari storage dan database
-currentDriverData = { ...storedDriver, ...driverData, uid: uid };
+        currentDriverData = { ...storedDriver, ...driverData, uid: uid };
 
-// Pastikan field avgRating dan ratingCount ada
-if (typeof currentDriverData.avgRating !== 'number') {
-  currentDriverData.avgRating = driverData?.avgRating || 0;
-}
-if (typeof currentDriverData.ratingCount !== 'number') {
-  currentDriverData.ratingCount = driverData?.ratingCount || 0;
-}
+        // Pastikan field avgRating dan ratingCount ada
+        if (typeof currentDriverData.avgRating !== 'number') {
+          currentDriverData.avgRating = driverData?.avgRating || 0;
+        }
+        if (typeof currentDriverData.ratingCount !== 'number') {
+          currentDriverData.ratingCount = driverData?.ratingCount || 0;
+        }
 
         // Perbarui localStorage
         localStorage.setItem('jego_logged_in_driver', JSON.stringify(currentDriverData));
@@ -1411,21 +1411,21 @@ if (typeof currentDriverData.ratingCount !== 'number') {
     // FUNGSI UPDATE RATING
     // ================================================
     function updateRatingDisplay() {
-  // Gunakan avgRating, bukan rating
-  const avgRating = currentDriverData?.avgRating || 0;
-  const ratingCount = currentDriverData?.ratingCount || 0;
+      // Gunakan avgRating, bukan rating
+      const avgRating = currentDriverData?.avgRating || 0;
+      const ratingCount = currentDriverData?.ratingCount || 0;
 
-  document.getElementById('ratingStars').innerHTML = generateStarRating(avgRating);
-  document.getElementById('ratingValue').textContent = avgRating.toFixed(1);
-  document.getElementById('ratingCount').textContent = `(${ratingCount} rating)`;
+      document.getElementById('ratingStars').innerHTML = generateStarRating(avgRating);
+      document.getElementById('ratingValue').textContent = avgRating.toFixed(1);
+      document.getElementById('ratingCount').textContent = `(${ratingCount} rating)`;
 
-  const priority = getPriorityBadge(avgRating);
-  const badgeSmall = document.getElementById('priorityBadgeSmall');
-  if (badgeSmall) {
-    badgeSmall.textContent = priority.level;
-    badgeSmall.className = priority.class;
-  }
-}
+      const priority = getPriorityBadge(avgRating);
+      const badgeSmall = document.getElementById('priorityBadgeSmall');
+      if (badgeSmall) {
+        badgeSmall.textContent = priority.level;
+        badgeSmall.className = priority.class;
+      }
+    }
 
     // ================================================
     // FUNGSI LOAD BALANCE DAN KOMISI
@@ -1446,20 +1446,38 @@ if (typeof currentDriverData.ratingCount !== 'number') {
     }
 
     // ================================================
-    // FUNGSI LOAD ORDERS
+    // FUNGSI LOAD ORDERS (DIPERBAIKI)
     // ================================================
     async function loadDriverOrders(uid) {
       try {
         const ordersSnap = await database.ref('orders').once('value');
         const ordersData = ordersSnap.val();
         driverOrders = [];
+        
         if (ordersData) {
-          Object.values(ordersData).forEach(order => {
-            if (order.selected_driver && order.selected_driver.driver_id === uid) {
-              driverOrders.push(order);
+          Object.entries(ordersData).forEach(([orderId, order]) => {
+            // Deteksi apakah order milik driver ini (dari berbagai kemungkinan field)
+            const isDriverOrder = 
+              (order.selected_driver && 
+                (order.selected_driver.id === uid || 
+                 order.selected_driver.driver_id === uid)) ||
+              (order.driver && 
+                (order.driver.id === uid || 
+                 order.driver.driver_id === uid)) ||
+              order.driverId === uid ||
+              order.driver_id === uid;
+
+            // Hanya ambil order yang sudah selesai (status completed)
+            if (isDriverOrder && order.status === 'completed') {
+              driverOrders.push({
+                ...order,
+                completed_at: order.completed_at || order.finished_at || order.updated_at || order.created_at
+              });
             }
           });
         }
+        
+        console.log(`📦 Ditemukan ${driverOrders.length} order selesai untuk driver ${uid}`);
         updateTodayEarnings();
         updateOrderStats();
       } catch (error) {
@@ -1467,12 +1485,17 @@ if (typeof currentDriverData.ratingCount !== 'number') {
       }
     }
 
+    // ================================================
+    // FUNGSI UPDATE PENDAPATAN HARI INI (DIPERBAIKI)
+    // ================================================
     function updateTodayEarnings() {
       if (!driverOrders.length) {
         document.getElementById('todayEarnings').textContent = 'Rp 0';
         return;
       }
+
       const now = new Date();
+      // Konversi ke WITA (UTC+8)
       const todayWITA = new Date(now.getTime() + (8 * 60 * 60 * 1000));
       const todayDateString = todayWITA.toISOString().split('T')[0];
 
@@ -1489,6 +1512,8 @@ if (typeof currentDriverData.ratingCount !== 'number') {
 
       const earnings = todayOrders.reduce((sum, order) => sum + (parseInt(order.harga_total) || 0), 0);
       document.getElementById('todayEarnings').textContent = formatCurrency(earnings);
+      
+      console.log(`💰 Pendapatan hari ini: ${earnings} dari ${todayOrders.length} order`);
     }
 
     function updateOrderStats() {
