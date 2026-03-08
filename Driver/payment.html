@@ -2,12 +2,12 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>Pembayaran Deposit - JeGo</title>
+  <title>Isi Saldo Deposit - JeGo Driver</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <!-- Firebase SDK (konsisten dengan loginDriver.html) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     :root {
       --primary: #FF9800;    /* Orange */
@@ -51,12 +51,6 @@
       z-index: 100;
     }
 
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
     .back-btn {
       background: rgba(255,255,255,0.2);
       color: white;
@@ -71,23 +65,20 @@
       gap: 5px;
       font-size: 0.85rem;
     }
-
-    .back-btn:hover {
-      background: rgba(255,255,255,0.3);
-    }
+    .back-btn:hover { background: rgba(255,255,255,0.3); }
 
     .header-title {
       font-size: 1.1rem;
       font-weight: 600;
     }
 
-    /* Container Styles */
+    /* Container */
     .container {
       max-width: 100%;
       padding: 15px;
     }
 
-    /* Card Styles */
+    /* Card */
     .card {
       background: white;
       border-radius: 12px;
@@ -126,24 +117,21 @@
       gap: 6px;
       transition: all 0.3s;
     }
-
     .history-btn:hover {
       background: #3d8b40;
       transform: translateY(-1px);
     }
 
-    /* Form Styles */
+    /* Form */
     .form-group {
       margin-bottom: 15px;
     }
-
     .form-label {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
       color: #555;
     }
-
     .form-input {
       width: 100%;
       padding: 12px 15px;
@@ -152,14 +140,13 @@
       font-size: 0.9rem;
       transition: all 0.3s;
     }
-
     .form-input:focus {
       outline: none;
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
     }
 
-    /* Button Styles */
+    /* Buttons */
     .btn {
       padding: 14px;
       border-radius: 8px;
@@ -174,22 +161,18 @@
       gap: 8px;
       width: 100%;
     }
-
     .btn-primary {
       background: linear-gradient(to right, var(--primary), var(--secondary));
       color: white;
     }
-
     .btn-success {
       background: var(--success);
       color: white;
     }
-
     .btn-whatsapp {
       background: #25D366;
       color: white;
     }
-
     .btn-copy {
       background: var(--info);
       color: white;
@@ -197,10 +180,14 @@
       width: auto;
       margin-top: 10px;
     }
-
     .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
 
     /* Amount Display */
@@ -214,26 +201,23 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       position: relative;
     }
-
     .amount-label {
       font-size: 0.85rem;
       margin-bottom: 5px;
       opacity: 0.9;
     }
-
     .amount-value {
       font-size: 1.8rem;
       font-weight: 700;
       margin-bottom: 10px;
     }
-
     .unique-info {
       font-size: 0.8rem;
       opacity: 0.9;
       margin-top: 5px;
     }
 
-    /* QR Code Styles */
+    /* QR Code */
     .qrcode-container {
       text-align: center;
       padding: 15px;
@@ -242,14 +226,12 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       margin: 15px 0;
     }
-
     .qrcode-image {
       max-width: 100%;
       height: auto;
       border-radius: 8px;
       border: 1px solid #eee;
     }
-
     .qrcode-label {
       font-size: 0.9rem;
       color: #666;
@@ -264,13 +246,11 @@
       border-radius: 8px;
       margin: 15px 0;
     }
-
     .info-title {
       font-weight: 600;
       color: var(--info);
       margin-bottom: 8px;
     }
-
     .info-text {
       color: #555;
       font-size: 0.85rem;
@@ -284,13 +264,11 @@
       gap: 10px;
       margin: 20px 0;
     }
-
     .step {
       display: flex;
       align-items: flex-start;
       gap: 10px;
     }
-
     .step-number {
       background: var(--primary);
       color: white;
@@ -304,14 +282,13 @@
       font-weight: 600;
       flex-shrink: 0;
     }
-
     .step-text {
       font-size: 0.85rem;
       color: #555;
       padding-top: 2px;
     }
 
-    /* Loading spinner */
+    /* Loading */
     .loading {
       display: flex;
       justify-content: center;
@@ -321,7 +298,6 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
-
     .spinner {
       width: 40px;
       height: 40px;
@@ -330,18 +306,14 @@
       border-top-color: var(--primary);
       animation: spin 1s ease-in-out infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Toast Notification */
+    /* Toast */
     .toast {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--success);
       color: white;
       padding: 12px 20px;
       border-radius: 8px;
@@ -350,66 +322,26 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
+    .toast.show { opacity: 1; }
 
-    .toast.show {
-      opacity: 1;
-    }
-
-    /* Responsive adjustments */
+    /* Responsive */
     @media (max-width: 768px) {
-      body {
-        font-size: 0.8rem;
-      }
-      
-      .card {
-        padding: 15px;
-      }
-      
-      .btn {
-        padding: 12px;
-        font-size: 0.85rem;
-      }
-      
-      .amount-value {
-        font-size: 1.5rem;
-      }
-      
-      .history-btn {
-        padding: 6px 12px;
-        font-size: 0.75rem;
-      }
+      .amount-value { font-size: 1.5rem; }
+      .history-btn { padding: 6px 12px; font-size: 0.75rem; }
     }
-
     @media (max-width: 576px) {
-      .container {
-        padding: 10px;
-      }
-      
-      .steps {
-        gap: 15px;
-      }
-      
-      .card-title {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-      }
-      
-      .history-btn {
-        align-self: flex-end;
-      }
+      .card-title { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .history-btn { align-self: flex-end; }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <div class="header">
-    <div style="width: 80px;"></div>
+    <button class="back-btn" id="backBtn">← Kembali</button>
     <div class="header-title">Isi Saldo Deposit</div>
     <div style="width: 80px;"></div>
   </div>
 
-  <!-- Container -->
   <div class="container">
     <!-- Form Input Deposit -->
     <div class="card">
@@ -435,7 +367,7 @@
       
       <div class="form-group">
         <label class="form-label" for="depositAmount">Jumlah Deposit (Rp)</label>
-        <input type="number" id="depositAmount" class="form-input" placeholder="Masukkan jumlah deposit" min="10000">
+        <input type="number" id="depositAmount" class="form-input" placeholder="Masukkan jumlah deposit (min Rp 10.000)" min="10000" step="1000">
         <div class="info-text" style="margin-top: 5px; color: #666; font-size: 0.8rem;">
           Minimal deposit: Rp 10.000
         </div>
@@ -502,26 +434,11 @@
       </div>
       
       <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <div class="step-text">Buka aplikasi mobile banking atau e-wallet Anda</div>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-text">Pilih fitur pembayaran QRIS</div>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-text">Scan QR Code di atas</div>
-        </div>
-        <div class="step">
-          <div class="step-number">4</div>
-          <div class="step-text">Masukkan jumlah yang harus dibayar sesuai dengan yang tertera</div>
-        </div>
-        <div class="step">
-          <div class="step-number">5</div>
-          <div class="step-text">Konfirmasi pembayaran</div>
-        </div>
+        <div class="step"><div class="step-number">1</div><div class="step-text">Buka aplikasi mobile banking atau e-wallet Anda</div></div>
+        <div class="step"><div class="step-number">2</div><div class="step-text">Pilih fitur pembayaran QRIS</div></div>
+        <div class="step"><div class="step-number">3</div><div class="step-text">Scan QR Code di atas</div></div>
+        <div class="step"><div class="step-number">4</div><div class="step-text">Masukkan jumlah yang harus dibayar sesuai dengan yang tertera</div></div>
+        <div class="step"><div class="step-number">5</div><div class="step-text">Konfirmasi pembayaran</div></div>
       </div>
     </div>
 
@@ -539,7 +456,7 @@
       <div class="info-box">
         <div class="info-title">Langkah Terakhir</div>
         <div class="info-text">
-          Setelah melakukan pembayaran, harap konfirmasi ke admin dengan mengirimkan bukti transfer.
+          Setelah melakukan pembayaran, harap konfirmasi ke admin dengan mengirimkan bukti transfer melalui WhatsApp.
         </div>
       </div>
       
@@ -562,8 +479,8 @@
   <div class="toast" id="toast">Teks berhasil disalin!</div>
 
   <script>
-    // Firebase Configuration - SAMA DENGAN loginDriver.html
-    const firebaseConfig = {
+    // ==================== KONFIGURASI FIREBASE ====================
+    const FIREBASE_CONFIG = {
       apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
       authDomain: "game-balap-simpel.firebaseapp.com",
       databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
@@ -574,23 +491,19 @@
       measurementId: "G-YWJPK7Y3J4"
     };
 
-    // Initialize Firebase
-    let database;
-    let auth;
+    let database, auth;
     let isFirebaseInitialized = false;
-
     try {
-      firebase.initializeApp(firebaseConfig);
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       database = firebase.database();
       auth = firebase.auth();
       isFirebaseInitialized = true;
       console.log('✅ Firebase berhasil diinisialisasi');
     } catch (error) {
       console.error('❌ Error inisialisasi Firebase:', error);
-      isFirebaseInitialized = false;
     }
 
-    // Variabel global
+    // ==================== VARIABEL GLOBAL ====================
     let depositAmount = 0;
     let uniqueAmount = 0;
     let uniqueDigits = '000';
@@ -598,428 +511,253 @@
     let qrisUrl = '';
     let paymentId = '';
 
-    // Inisialisasi saat halaman dimuat
-    document.addEventListener('DOMContentLoaded', async function() {
+    // ==================== INISIALISASI ====================
+    document.addEventListener('DOMContentLoaded', async () => {
       console.log('🚀 Halaman Pembayaran dimuat');
       
-      // Cek apakah user sudah login dengan Firebase Auth
-      auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          console.log('✅ User sudah login dengan Firebase:', user.uid);
-          
-          // Ambil data driver dari localStorage atau Firebase
-          await loadDriverData(user.uid);
-          
-          // Inisialisasi tombol
-          initButtons();
-          
-          // Muat data QRIS dari Firebase
-          loadQrisData();
-        } else {
-          console.log('❌ User belum login dengan Firebase');
-          // Coba ambil data dari localStorage
-          driverData = getDriverDataFromStorage();
-          
-          if (!driverData || !driverData.uid) {
-            alert('Anda harus login terlebih dahulu!');
-            window.location.href = 'loginDriver.html';
-            return;
-          }
-          
-          console.log('⚠️ Menggunakan data dari localStorage:', driverData);
-          initButtons();
-          loadQrisData();
-        }
-      });
-    });
-
-    // Fungsi untuk mendapatkan data driver
-    async function loadDriverData(firebaseUid) {
-      try {
-        // Coba ambil dari 'jego_logged_in_driver' (sesuai loginDriver.html)
-        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
-        if (driverDataStr) {
-          const data = JSON.parse(driverDataStr);
-          
-          // Verifikasi bahwa UID cocok
-          if (data.uid === firebaseUid) {
-            driverData = data;
-            console.log('✅ Data driver dari localStorage:', driverData);
-            return;
-          }
-        }
-        
-        // Jika tidak ada di localStorage atau UID tidak cocok, ambil dari Firebase
-        console.log('🔄 Mengambil data driver dari Firebase...');
-        const driverSnapshot = await database.ref('drivers/' + firebaseUid).once('value');
-        
-        if (driverSnapshot.exists()) {
-          driverData = driverSnapshot.val();
-          driverData.uid = firebaseUid; // Tambahkan UID ke data
-          
-          // Simpan ke localStorage untuk penggunaan selanjutnya
-          localStorage.setItem('jego_logged_in_driver', JSON.stringify(driverData));
-          console.log('✅ Data driver dari Firebase:', driverData);
-        } else {
-          console.error('❌ Data driver tidak ditemukan di Firebase');
-          alert('Data driver tidak ditemukan. Silakan login ulang.');
-          window.location.href = 'loginDriver.html';
-        }
-      } catch (error) {
-        console.error('❌ Error loading driver data:', error);
-      }
-    }
-
-    // Fungsi untuk mendapatkan data driver dari localStorage - FALLBACK
-    function getDriverDataFromStorage() {
-      try {
-        // Coba ambil dari 'jego_logged_in_driver'
-        const driverDataStr = localStorage.getItem('jego_logged_in_driver');
-        if (driverDataStr) {
-          return JSON.parse(driverDataStr);
-        }
-        
-        // Fallback: coba dari 'jego_driver_data'
-        const oldDataStr = localStorage.getItem('jego_driver_data');
-        if (oldDataStr) {
-          return JSON.parse(oldDataStr);
-        }
-        
-        console.warn('⚠️ Tidak ada data driver di localStorage');
-        return {};
-      } catch (error) {
-        console.error('❌ Error parsing driver data from storage:', error);
-        return {};
-      }
-    }
-
-    // Fungsi untuk memuat data QRIS dari Firebase
-    function loadQrisData() {
-      console.log('🔄 Memuat data QRIS...');
-      
-      // Tampilkan loading state
-      document.getElementById('loadingState').style.display = 'flex';
-      
-      // Ambil data dari Firebase (gunakan URL yang sesuai dengan rules)
-      fetch('https://game-balap-simpel-default-rtdb.firebaseio.com/payment_qris.json')
-        .then(response => {
-          if (!response.ok) {
-            // Jika tidak ada di database ini, coba database lain
-            return fetch('https://ojeka-ba255-default-rtdb.firebaseio.com/DataJego/Payment.json');
-          }
-          return response.json();
-        })
-        .then(data => {
-          console.log('✅ Data QRIS berhasil dimuat:', data);
-          
-          if (data && data.QrisUrl) {
-            qrisUrl = data.QrisUrl;
-            document.getElementById('qrcodeImage').src = qrisUrl;
-          } else if (data && data.qris_url) {
-            qrisUrl = data.qris_url;
-            document.getElementById('qrcodeImage').src = qrisUrl;
-          } else {
-            // Fallback: gunakan QRIS placeholder
-            qrisUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://jego.com/deposit';
-            document.getElementById('qrcodeImage').src = qrisUrl;
-          }
-          
-          // Sembunyikan loading state
-          document.getElementById('loadingState').style.display = 'none';
-        })
-        .catch(error => {
-          console.error('❌ Error memuat data QRIS:', error);
-          document.getElementById('loadingState').style.display = 'none';
-          
-          // Gunakan QRIS placeholder
-          qrisUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://jego.com/deposit';
-          document.getElementById('qrcodeImage').src = qrisUrl;
-          console.log('⚠️ Menggunakan QRIS placeholder');
-        });
-    }
-
-    // Fungsi untuk inisialisasi tombol
-    function initButtons() {
-      // Tombol history (riwayat deposit)
-      document.getElementById('historyBtn').addEventListener('click', function() {
-        window.location.href = 'historyDeposit.html';
-      });
-      
-      // Tombol generate kode pembayaran
-      document.getElementById('generateBtn').addEventListener('click', generatePaymentCode);
-      
-      // Tombol copy jumlah
-      document.getElementById('copyAmountBtn').addEventListener('click', copyPaymentAmount);
-      
-      // Tombol WhatsApp
-      document.getElementById('whatsappBtn').addEventListener('click', sendWhatsAppConfirmation);
-    }
-
-    // Fungsi untuk generate kode pembayaran dengan angka unik
-    async function generatePaymentCode() {
-      const depositInput = document.getElementById('depositAmount');
-      const depositValue = parseInt(depositInput.value);
-      
-      // Validasi input
-      if (isNaN(depositValue) || depositValue < 10000) {
-        alert('Masukkan jumlah deposit yang valid (minimal Rp 10.000)');
-        depositInput.focus();
-        return;
-      }
-      
-      // Cek apakah driver data valid
-      if (!driverData || !driverData.uid) {
-        alert('Data driver tidak valid. Silakan login ulang.');
+      // Cek login via localStorage (sama seperti list1.html)
+      const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
+      if (!loggedInDriver) {
+        alert('Anda harus login terlebih dahulu!');
         window.location.href = 'loginDriver.html';
         return;
       }
-      
-      // Simpan jumlah deposit
-      depositAmount = depositValue;
-      
-      // Generate angka unik (3 digit random)
+
+      try {
+        driverData = JSON.parse(loggedInDriver);
+        if (!driverData.uid) {
+          throw new Error('UID tidak ditemukan');
+        }
+        console.log('✅ Data driver dari localStorage:', driverData);
+      } catch (e) {
+        console.error('❌ Data driver tidak valid:', e);
+        alert('Data login rusak, silakan login ulang.');
+        localStorage.removeItem('jego_logged_in_driver');
+        window.location.href = 'loginDriver.html';
+        return;
+      }
+
+      // Inisialisasi tombol
+      initButtons();
+
+      // Muat data QRIS
+      loadQrisData();
+    });
+
+    // ==================== FUNGSI UTAMA ====================
+    function initButtons() {
+      document.getElementById('backBtn').addEventListener('click', () => window.location.href = 'akun.html');
+      document.getElementById('historyBtn').addEventListener('click', () => window.location.href = 'historyDeposit.html');
+      document.getElementById('generateBtn').addEventListener('click', generatePaymentCode);
+      document.getElementById('copyAmountBtn').addEventListener('click', copyPaymentAmount);
+      document.getElementById('whatsappBtn').addEventListener('click', sendWhatsAppConfirmation);
+    }
+
+    // Fungsi memuat QRIS - sekarang bisa handle string langsung atau objek
+    function loadQrisData() {
+      console.log('🔄 Memuat data QRIS...');
+      document.getElementById('loadingState').style.display = 'flex';
+
+      database.ref('payment_qris').once('value')
+        .then(snapshot => {
+          const data = snapshot.val();
+          
+          // Jika data adalah string, anggap itu URL langsung
+          if (typeof data === 'string') {
+            qrisUrl = data;
+          }
+          // Jika data adalah objek, cari properti QrisUrl atau qris_url
+          else if (data && typeof data === 'object') {
+            if (data.QrisUrl) {
+              qrisUrl = data.QrisUrl;
+            } else if (data.qris_url) {
+              qrisUrl = data.qris_url;
+            } else {
+              // Objek ada tapi tidak mengandung URL yang dikenal
+              console.warn('Objek payment_qris tidak memiliki properti QrisUrl/qris_url, menggunakan fallback');
+              qrisUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=JEGO-DEPOSIT';
+            }
+          } else {
+            // Data null atau tipe lain
+            console.warn('Data payment_qris tidak valid, menggunakan fallback');
+            qrisUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=JEGO-DEPOSIT';
+          }
+
+          document.getElementById('qrcodeImage').src = qrisUrl;
+          document.getElementById('loadingState').style.display = 'none';
+        })
+        .catch(error => {
+          console.error('❌ Error memuat QRIS:', error);
+          document.getElementById('loadingState').style.display = 'none';
+          // Fallback QRIS
+          qrisUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=JEGO-DEPOSIT';
+          document.getElementById('qrcodeImage').src = qrisUrl;
+        });
+    }
+
+    async function generatePaymentCode() {
+      const depositInput = document.getElementById('depositAmount');
+      const rawValue = depositInput.value.trim();
+      if (!rawValue) {
+        showToast('Masukkan jumlah deposit', 'warning');
+        depositInput.focus();
+        return;
+      }
+
+      const amount = parseInt(rawValue);
+      if (isNaN(amount) || amount < 10000) {
+        showToast('Minimal deposit Rp 10.000', 'warning');
+        depositInput.focus();
+        return;
+      }
+
+      // Cek koneksi Firebase
+      if (!isFirebaseInitialized || !database) {
+        showToast('Firebase tidak tersedia', 'error');
+        return;
+      }
+
+      // Nonaktifkan tombol sementara
+      const generateBtn = document.getElementById('generateBtn');
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Memproses...';
+
+      depositAmount = amount;
       uniqueDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      
-      // Hitung jumlah yang harus dibayar (deposit + angka unik)
       uniqueAmount = depositAmount + parseInt(uniqueDigits);
-      
-      // Generate payment ID
       paymentId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8).toUpperCase();
-      
-      // Format tampilan jumlah yang harus dibayar
-      const formattedAmount = formatCurrency(uniqueAmount);
-      
+
       // Update tampilan
-      document.getElementById('paymentAmount').textContent = formattedAmount;
+      document.getElementById('paymentAmount').textContent = formatCurrency(uniqueAmount);
       document.getElementById('uniqueInfo').textContent = `Termasuk angka unik: ${uniqueDigits}`;
-      
-      // Tampilkan card pembayaran
       document.getElementById('paymentAmountCard').style.display = 'block';
       document.getElementById('qrcodeCard').style.display = 'block';
       document.getElementById('whatsappCard').style.display = 'block';
-      
-      // Simpan data deposit ke Firebase
-      await saveDepositToFirebase();
-      
-      console.log(`💰 Deposit: ${depositAmount}, Angka Unik: ${uniqueDigits}, Total: ${uniqueAmount}`);
+
+      // Simpan ke Firebase
+      const saved = await saveDepositToFirebase();
+      if (saved) {
+        showToast('Kode pembayaran berhasil dibuat!', 'success');
+      } else {
+        showToast('Gagal menyimpan data, tetapi kode tetap bisa digunakan', 'warning');
+      }
+
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+        </svg>
+        Generate Kode Pembayaran
+      `;
     }
 
-    // Fungsi untuk menyimpan data deposit ke Firebase - HANYA di drivers/{uid}/deposits/
     async function saveDepositToFirebase() {
-      if (!isFirebaseInitialized || !database) {
-        console.error('❌ Firebase tidak terinisialisasi');
-        showErrorToast('Firebase tidak terinisialisasi');
-        return;
-      }
-
       if (!driverData.uid) {
-        console.error('❌ Driver ID tidak ditemukan');
-        showErrorToast('Driver ID tidak ditemukan');
-        return;
+        console.error('UID driver tidak ditemukan');
+        return false;
       }
 
-      // Data deposit sesuai dengan rules
       const depositData = {
         paymentId: paymentId,
         driverId: driverData.uid,
         driverName: driverData.name || driverData.fullName || 'Driver',
-        driverPhone: driverData.phone || 'Tidak diketahui',
+        driverPhone: driverData.phone || '-',
         depositAmount: depositAmount,
         uniqueAmount: uniqueAmount,
         uniqueDigits: uniqueDigits,
-        status: 'pending', // pending, paid, verified, cancelled
-        timestamp: new Date().toISOString(),
-        updatedAt: firebase.database.ServerValue.TIMESTAMP
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
       };
-
-      console.log('🔄 Menyimpan data deposit ke Firebase:', depositData);
 
       try {
-        // SIMPAN HANYA DI drivers/{uid}/deposits/{paymentId}
-        const driverDepositRef = database.ref('drivers/' + driverData.uid + '/deposits/' + paymentId);
-        await driverDepositRef.set(depositData);
-        console.log('✅ Data deposit berhasil disimpan ke drivers node');
-        
-        showSuccessToast('Kode pembayaran berhasil dibuat!');
-        
+        // Simpan di path drivers/{uid}/deposits/{paymentId}
+        await database.ref(`drivers/${driverData.uid}/deposits/${paymentId}`).set(depositData);
+        console.log('✅ Deposit tersimpan di:', `drivers/${driverData.uid}/deposits/${paymentId}`);
+        return true;
       } catch (error) {
-        console.error('❌ Error menyimpan data deposit ke Firebase:', error);
-        showErrorToast('Gagal menyimpan data deposit: ' + error.message);
-      }
-    }
-
-    // Fungsi untuk menyalin jumlah pembayaran ke clipboard
-    function copyPaymentAmount() {
-      if (!uniqueAmount) {
-        alert('Silakan generate kode pembayaran terlebih dahulu');
-        return;
-      }
-      
-      // Format teks untuk disalin (tanpa simbol Rp)
-      const textToCopy = uniqueAmount.toString();
-      
-      // Salin ke clipboard
-      navigator.clipboard.writeText(textToCopy)
-        .then(() => {
-          // Tampilkan toast notifikasi
-          showToast('Jumlah transfer berhasil disalin!');
-        })
-        .catch(err => {
-          console.error('Gagal menyalin teks: ', err);
-          // Fallback untuk browser lama
-          const textArea = document.createElement('textarea');
-          textArea.value = textToCopy;
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-          showToast('Jumlah transfer berhasil disalin!');
-        });
-    }
-
-    // Fungsi untuk menampilkan toast notifikasi
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      
-      // Set warna berdasarkan type
-      if (type === 'success') {
-        toast.style.background = 'var(--success)';
-      } else if (type === 'error') {
-        toast.style.background = 'var(--danger)';
-      } else if (type === 'warning') {
-        toast.style.background = 'var(--warning)';
-      } else {
-        toast.style.background = 'var(--info)';
-      }
-      
-      toast.classList.add('show');
-      
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
-    }
-    
-    function showSuccessToast(message) {
-      showToast(message, 'success');
-    }
-    
-    function showErrorToast(message) {
-      showToast(message, 'error');
-    }
-
-    // Fungsi untuk mengirim konfirmasi via Kodular
-    function sendWhatsAppConfirmation() {
-      if (!depositAmount || !uniqueAmount) {
-        alert('Silakan generate kode pembayaran terlebih dahulu');
-        return;
-      }
-      
-      // Cek apakah driver data valid
-      if (!driverData || !driverData.uid) {
-        alert('Data driver tidak valid. Silakan login ulang.');
-        window.location.href = 'loginDriver.html';
-        return;
-      }
-      
-      // Siapkan data untuk dikirim ke Kodular
-      const paymentData = {
-        action: 'confirm_deposit',
-        driverId: driverData.uid,
-        driverName: driverData.name || driverData.fullName || 'Driver',
-        phoneNumber: driverData.phone || 'Tidak diketahui',
-        depositAmount: depositAmount,
-        uniqueAmount: uniqueAmount,
-        uniqueDigits: uniqueDigits,
-        paymentId: paymentId,
-        timestamp: new Date().toISOString(),
-        driverStatus: driverData.status || 'pending',
-        driverBalance: driverData.Balance || 0
-      };
-      
-      console.log('📤 Mengirim data konfirmasi ke Kodular:', paymentData);
-      
-      // Kirim data ke Kodular
-      const sent = sendToKodular(paymentData);
-      
-      if (sent) {
-        // Tampilkan pesan sukses
-        showSuccessToast('Konfirmasi pembayaran berhasil dikirim!');
-        
-        // Juga buka WhatsApp untuk konfirmasi manual
-        const whatsappNumber = '6281234567890'; // Ganti dengan nomor admin
-        const message = `Halo Admin JeGo%0A%0ASaya ${paymentData.driverName} (ID: ${paymentData.driverId}) telah melakukan deposit.%0A%0A📋 Detail Pembayaran:%0A• Jumlah Deposit: Rp ${depositAmount.toLocaleString('id-ID')}%0A• Total Transfer: Rp ${uniqueAmount.toLocaleString('id-ID')}%0A• Angka Unik: ${uniqueDigits}%0A• Kode Pembayaran: ${paymentId}%0A• Waktu: ${new Date().toLocaleString('id-ID')}%0A%0ATerima kasih.`;
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
-        
-        // Buka WhatsApp di tab baru
-        window.open(whatsappUrl, '_blank');
-      } else {
-        showErrorToast('Gagal mengirim konfirmasi. Silakan hubungi admin manual.');
-      }
-    }
-
-    // Fungsi untuk mengirim data ke Kodular
-    function sendToKodular(data) {
-      console.log('Mengirim data ke Kodular:', data);
-      
-      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
-        try {
-          window.AppInventor.setWebViewString(JSON.stringify(data));
-          console.log('✅ Data berhasil dikirim ke Kodular via AppInventor');
-          return true;
-        } catch (error) {
-          console.error('Error mengirim data via AppInventor:', error);
-          return false;
-        }
-      }
-      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
-        try {
-          window.android.receiveData(JSON.stringify(data));
-          console.log('✅ Data berhasil dikirim ke Kodular via window.android');
-          return true;
-        } catch (error) {
-          console.error('Error mengirim data via window.android:', error);
-          return false;
-        }
-      }
-      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
-        try {
-          window.webkit.messageHandlers.observe.postMessage(data);
-          console.log('✅ Data berhasil dikirim ke Kodular via webkit.messageHandlers');
-          return true;
-        } catch (error) {
-          console.error('Error mengirim data via webkit.messageHandlers:', error);
-          return false;
-        }
-      }
-      else {
-        console.warn('❌ Tidak ada metode yang berhasil mengirim data ke Kodular');
+        console.error('❌ Gagal menyimpan deposit:', error);
         return false;
       }
     }
 
-    // Fungsi untuk memformat mata uang
-    function formatCurrency(amount) {
-      if (!amount && amount !== 0) return 'Rp 0';
-      
-      try {
-        return 'Rp ' + parseInt(amount).toLocaleString('id-ID');
-      } catch (error) {
-        console.error('Error formatting currency:', error);
-        return 'Rp 0';
+    function copyPaymentAmount() {
+      if (!uniqueAmount) {
+        showToast('Generate kode pembayaran terlebih dahulu', 'warning');
+        return;
+      }
+      const text = uniqueAmount.toString();
+      navigator.clipboard.writeText(text)
+        .then(() => showToast('Jumlah transfer disalin!', 'success'))
+        .catch(() => {
+          // Fallback
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          showToast('Jumlah transfer disalin!', 'success');
+        });
+    }
+
+    function sendWhatsAppConfirmation() {
+      if (!depositAmount || !uniqueAmount) {
+        showToast('Generate kode pembayaran terlebih dahulu', 'warning');
+        return;
+      }
+
+      const data = {
+        action: 'confirm_deposit',
+        driverId: driverData.uid,
+        driverName: driverData.name || driverData.fullName || 'Driver',
+        phoneNumber: driverData.phone || '-',
+        depositAmount: depositAmount,
+        uniqueAmount: uniqueAmount,
+        uniqueDigits: uniqueDigits,
+        paymentId: paymentId,
+        timestamp: new Date().toISOString()
+      };
+
+      // Kirim ke Kodular
+      sendToKodular(data);
+
+      // Buka WhatsApp (nomor admin, bisa diambil dari Firebase nantinya)
+      const adminPhone = '6281234567890'; // Ganti dengan nomor admin sebenarnya
+      const message = `Halo Admin JeGo%0A%0ASaya *${data.driverName}* (ID: ${data.driverId}) telah melakukan deposit.%0A%0A📋 Detail Pembayaran:%0A• Jumlah Deposit: Rp ${depositAmount.toLocaleString('id-ID')}%0A• Total Transfer: Rp ${uniqueAmount.toLocaleString('id-ID')}%0A• Angka Unik: ${uniqueDigits}%0A• Kode Pembayaran: ${paymentId}%0A• Waktu: ${new Date().toLocaleString('id-ID')}%0A%0AMohon segera diproses. Terima kasih.`;
+      const whatsappUrl = `https://wa.me/${adminPhone}?text=${message}`;
+      window.open(whatsappUrl, '_blank');
+
+      showToast('Konfirmasi dikirim!', 'success');
+    }
+
+    function sendToKodular(data) {
+      const json = JSON.stringify(data);
+      if (window.AppInventor?.setWebViewString) {
+        window.AppInventor.setWebViewString(json);
+        console.log('✅ Data ke Kodular via AppInventor');
+      } else if (window.android?.receiveData) {
+        window.android.receiveData(json);
+        console.log('✅ Data ke Kodular via android');
+      } else {
+        console.warn('⚠️ Tidak ada metode Kodular');
       }
     }
 
-    // Fungsi untuk memformat angka tanpa simbol
-    function formatNumber(amount) {
-      if (!amount && amount !== 0) return '0';
-      
-      try {
-        return parseInt(amount).toLocaleString('id-ID');
-      } catch (error) {
-        console.error('Error formatting number:', error);
-        return '0';
-      }
+    // ==================== HELPER ====================
+    function formatCurrency(amount) {
+      return 'Rp ' + (amount || 0).toLocaleString('id-ID');
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.background = 
+        type === 'success' ? 'var(--success)' :
+        type === 'error' ? 'var(--danger)' :
+        type === 'warning' ? 'var(--warning)' : 'var(--info)';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
   </script>
 </body>
