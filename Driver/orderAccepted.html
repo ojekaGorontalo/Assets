@@ -1553,13 +1553,21 @@
     }
 
     function updateCustomerData(customer) {
-      document.getElementById('customerName').textContent = customer.name || '-';
-      document.getElementById('customerRating').textContent = customer.rating || '5.0';
-      document.getElementById('customerPhone').textContent = customer.phone || '-';
-      document.getElementById('customerPhoto').src = customer.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-      // Simpan ID customer untuk keperluan rating
-      customerId = customer.firebase_key || customer.id || customer.uid;
-    }
+  document.getElementById('customerName').textContent = customer.name || '-';
+  document.getElementById('customerPhone').textContent = customer.phone || '-';
+  document.getElementById('customerPhoto').src = customer.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+  
+  // Ambil rating dari customer.avgRating (langsung dari user_data)
+  const ratingValue = customer.avgRating ? customer.avgRating.toFixed(1) : '5.0';
+  document.getElementById('customerRating').textContent = ratingValue;
+
+  // Update tampilan bintang (opsional)
+  const starsContainer = document.querySelector('.stars');
+  if (starsContainer) {
+    const fullStars = Math.floor(parseFloat(ratingValue));
+    starsContainer.innerHTML = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+  }
+}
 
     function updateRouteData(route) {
       document.getElementById('pickupAddress').textContent = route.alamat_a || '-';
