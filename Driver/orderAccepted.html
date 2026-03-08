@@ -1652,40 +1652,54 @@
         }).then(() => {
           showInfoModal('Sukses', 'Status berhasil diperbarui.');
 
-          // ===== TAMBAHKAN LOGIKA PENGURANGAN SALDO SAAT STATUS 'on_trip' =====
+          // ===== LOGIKA PENGURANGAN SALDO (ON_TRIP) =====
           if (newStatus === 'on_trip') {
-            const driverId = driverData?.driverId;
-            if (driverId) {
-              // Ambil data driver terbaru dari Firebase untuk mendapatkan nilai Potongan
+            // Coba dapatkan ID driver dari berbagai kemungkinan field
+            const driverId = driverData?.driverId || driverData?.uid || driverData?.id;
+            
+            if (!driverId) {
+              console.error('❌ ID driver tidak ditemukan di localStorage');
+              showInfoModal('Error', 'ID driver tidak ditemukan. Saldo tidak dapat dipotong.');
+            } else {
+              // Ambil data driver terbaru dari Firebase
               database.ref('drivers/' + driverId).once('value').then((snap) => {
                 const driverInfo = snap.val();
                 if (driverInfo) {
-                  const potonganPersen = driverInfo.Potongan || 0; // Persentase potongan (misal 10)
-                  const hargaTotal = orderData?.harga_total || 0;   // Harga perjalanan
-                  const potonganNominal = hargaTotal * (potonganPersen / 100); // Hitung nominal potongan
+                  const potonganPersen = driverInfo.Potongan || 0;
+                  const hargaTotal = orderData?.harga_total || 0;
+                  const potonganNominal = hargaTotal * (potonganPersen / 100);
+
+                  console.log('💳 Potongan:', potonganPersen, '%, Harga:', hargaTotal, 'Nominal:', potonganNominal);
 
                   if (potonganNominal > 0) {
-                    // Kurangi balance menggunakan transaction (untuk menghindari race condition)
                     database.ref('drivers/' + driverId + '/Balance').transaction((currentBalance) => {
                       return (currentBalance || 0) - potonganNominal;
-                    }).then(() => {
-                      console.log('✅ Saldo berhasil dikurangi');
-                      // Perbarui data driver di localStorage agar sinkron
-                      if (driverData) {
-                        driverData.Balance = (driverData.Balance || 0) - potonganNominal;
-                        localStorage.setItem('jego_logged_in_driver', JSON.stringify(driverData));
+                    }).then((result) => {
+                      if (result.committed) {
+                        console.log('✅ Saldo berhasil dikurangi. Saldo baru:', result.snapshot.val());
+                        // Perbarui localStorage
+                        if (driverData) {
+                          driverData.Balance = (driverData.Balance || 0) - potonganNominal;
+                          localStorage.setItem('jego_logged_in_driver', JSON.stringify(driverData));
+                        }
+                        // Tampilkan notifikasi sukses (opsional, bisa dihapus setelah stabil)
+                        showInfoModal('Sukses', `Saldo dipotong Rp ${potonganNominal.toLocaleString('id-ID')}`);
                       }
                     }).catch((err) => {
                       console.error('❌ Gagal update balance:', err);
+                      showInfoModal('Error', 'Gagal memperbarui saldo: ' + err.message);
                     });
+                  } else {
+                    console.log('ℹ️ Tidak ada potongan (0 atau negatif)');
                   }
                 }
               }).catch((err) => {
                 console.error('❌ Gagal mengambil data driver:', err);
+                showInfoModal('Error', 'Gagal mengambil data driver: ' + err.message);
               });
             }
           }
-          // ===== AKHIR PENAMBAHAN =====
+          // ===== AKHIR LOGIKA PENGURANGAN SALDO =====
 
           // Kirim data ke Kodular sesuai dengan status baru
           let payload = {
