@@ -2517,21 +2517,32 @@
         }
 
         if (order.status === 'accepted') {
-          // Ambil id driver yang diterima dari field selected_driver atau driver
-          const acceptedDriverId = order.selected_driver?.id || order.driver?.id;
-          if (acceptedDriverId === driverId) {
-            stopCountdown();
-            showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
-            // Simpan order ID ke localStorage untuk pengecekan aktif
-            localStorage.setItem('jego_driver_active_order', orderId);
-            setTimeout(() => {
-              window.location.href = 'orderAccepted.html?id=' + orderId;
-            }, 1500);
-          } else {
-            stopCountdown();
-            showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
-            closeModal();
-          }
+  const acceptedDriverId = order.selected_driver?.id || order.driver?.id;
+  if (acceptedDriverId === driverId) {
+    stopCountdown();
+    showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
+    localStorage.setItem('jego_driver_active_order', orderId);
+
+    // Kirim notifikasi ke Kodular
+    const acceptedPayload = JSON.stringify({
+      action: 'order_accepted',
+      orderId: orderId
+    });
+    if (window.AppInventor?.setWebViewString) {
+      window.AppInventor.setWebViewString(acceptedPayload);
+    } else if (window.android?.receiveData) {
+      window.android.receiveData(acceptedPayload);
+    }
+
+    setTimeout(() => {
+      window.location.href = 'orderAccepted.html?id=' + orderId;
+    }, 1500);
+  } else {
+    stopCountdown();
+    showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
+    closeModal();
+  }
+}
         } else if (order.status !== 'searching') {
           stopCountdown();
           showPopup('Info', 'Status order berubah.', 'info');
