@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Penilaian Layanan - JeGo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Firebase SDK - KONSISTEN dengan loginDriver.html -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #FF9800;    /* Orange */
+      --secondary: #FF5722;   /* Red-Orange */
+      --accent: #FFC107;     /* Amber/Yellow */
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #4CAF50;    /* Green */
+      --danger: #f44336;     /* Red */
+      --warning: #FFC107;    /* Yellow */
+      --info: #2196F3;       /* Blue */
+      --gray: #9E9E9E;       /* Gray */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.4;
+      font-size: 0.85rem;
+      padding-bottom: 20px;
+    }
+
+    /* Header Styles - Konsisten dengan loginDriver.html */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      min-height: 60px;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 32px;
+      height: 32px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-left: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 100%;
+      padding: 15px;
+    }
+
+    /* Rating Summary Styles - Warna konsisten */
+    .rating-summary {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      text-align: center;
+      border: 1px solid rgba(255, 152, 0, 0.1);
+    }
+
+    .overall-rating {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .rating-stars {
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+      margin-bottom: 10px;
+    }
+
+    .star {
+      color: #ddd;
+      font-size: 1.5rem;
+    }
+
+    .star.filled {
+      color: var(--accent);
+    }
+
+    .rating-count {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    .policy-btn {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .policy-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Rating List Styles */
+    .rating-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .date-section {
+      margin-bottom: 5px;
+    }
+
+    .date-header {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid rgba(255, 152, 0, 0.2);
+    }
+
+    .rating-card {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-left: 4px solid var(--primary);
+      transition: transform 0.3s;
+    }
+
+    .rating-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .rating-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .passenger-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .passenger-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .passenger-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--dark);
+    }
+
+    .rating-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .satisfaction-emoji {
+      font-size: 1.2rem;
+    }
+
+    .small-rating-stars {
+      display: flex;
+      gap: 1px;
+    }
+
+    .small-star {
+      color: #ddd;
+      font-size: 0.9rem;
+    }
+
+    .small-star.filled {
+      color: var(--accent);
+    }
+
+    .rating-comment {
+      color: #333;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 8px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      border-left: 3px solid var(--info);
+    }
+
+    .rating-date {
+      color: #666;
+      font-size: 0.75rem;
+      text-align: right;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    .rating-date::before {
+      content: "";
+      font-size: 0.7rem;
+    }
+
+    /* Empty state - Konsisten dengan tema */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      border: 2px dashed rgba(255, 152, 0, 0.3);
+    }
+
+    .empty-state-icon {
+      font-size: 3.5rem;
+      margin-bottom: 15px;
+      color: var(--primary);
+      opacity: 0.5;
+    }
+
+    /* Loading spinner - Konsisten */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 50px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 152, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body {
+        font-size: 0.8rem;
+      }
+      
+      .header-title {
+        font-size: 1rem;
+        margin-left: 8px;
+      }
+      
+      .rating-summary {
+        padding: 15px;
+      }
+      
+      .overall-rating {
+        font-size: 2.5rem;
+      }
+      
+      .rating-card {
+        padding: 12px;
+      }
+      
+      .logo {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 12px 15px;
+      }
+      
+      .back-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header - Konsisten dengan loginDriver.html -->
+  <div class="header">
+    <div class="logo-container">
+      <button class="back-btn" id="backBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Kembali
+      </button>
+      <div class="logo">JG</div>
+      <div class="header-title">Penilaian Layanan</div>
+    </div>
+  </div>
+
+  <!-- Container -->
+  <div class="container" id="mainContainer">
+    <!-- Loading state akan ditampilkan di sini -->
+  </div>
+
+  <script>
+    // ================================================
+    // KONFIGURASI FIREBASE (KONSISTEN DENGAN LOGINDRIVER.HTML)
+    // ================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
+      authDomain: "game-balap-simpel.firebaseapp.com",
+      databaseURL: "https://game-balap-simpel-default-rtdb.firebaseio.com",
+      projectId: "game-balap-simpel",
+      storageBucket: "game-balap-simpel.firebasestorage.app",
+      messagingSenderId: "864576853495",
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
+      measurementId: "G-YWJPK7Y3J4"
+    };
+
+    // ================================================
+    // INISIALISASI FIREBASE DENGAN GUARD
+    // ================================================
+    console.log(' Memulai inisialisasi Firebase...');
+    let database;
+    
+    try {
+      // Gunakan guard untuk menghindari inisialisasi berulang
+      if (!firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        console.log(' Firebase berhasil diinisialisasi');
+      } else {
+        console.log(' Firebase sudah diinisialisasi sebelumnya');
+      }
+      
+      database = firebase.database();
+      
+    } catch (error) {
+      console.error(' Error inisialisasi Firebase:', error);
+      showErrorState('Gagal menginisialisasi Firebase. Silakan refresh halaman.');
+    }
+
+    // ================================================
+    // VARIABEL GLOBAL
+    // ================================================
+    let driverRatings = [];
+    let driverId = null;
+
+    // ================================================
+    // FUNGSI UTAMA - DIPERBARUI SESUAI RULES FIREBASE
+    // ================================================
+
+    // Fungsi untuk memuat data rating dari Firebase
+    function loadRatingsData() {
+      try {
+        // Cek apakah driver sudah login - Gunakan key yang sama dengan loginDriver.html
+        const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
+        
+        if (!loggedInDriver) {
+          console.error(' Driver belum login - tidak ada data di jego_logged_in_driver');
+          console.log(' Isi localStorage:', localStorage);
+          showErrorState('Anda belum login. Silakan login terlebih dahulu.');
+          return;
+        }
+
+        const driverData = JSON.parse(loggedInDriver);
+        console.log(' Data driver dari localStorage:', driverData);
+        
+        driverId = driverData.uid || driverData.firebase_key || driverData.userId;
+        
+        if (!driverId) {
+          console.error(' Driver ID tidak ditemukan dalam data driver');
+          showErrorState('Data driver tidak valid. Silakan login ulang.');
+          return;
+        }
+
+        console.log(' Memuat data rating untuk driver ID:', driverId);
+
+        // Tampilkan loading state
+        showLoadingState();
+
+        // Menurut rules Firebase Anda:
+        // "drivers": { ".read": "auth != null || query.orderByChild === 'phone'" }
+        // Jadi kita perlu query dengan orderByChild untuk mendapatkan driver
+        
+        // METHOD 1: Coba akses langsung ke ratings dengan driverId
+        // Mungkin data ratings disimpan di path yang berbeda
+        console.log(' Mencoba mengakses ratings dengan beberapa metode...');
+        
+        // Coba metode 1: akses langsung ke drivers/{driverId}/ratings
+        const ratingsRef1 = database.ref('drivers/' + driverId + '/ratings');
+        ratingsRef1.once('value')
+          .then((snapshot) => {
+            console.log(' Metode 1: Akses langsung berhasil');
+            processRatingsData(snapshot.val());
+          })
+          .catch((error1) => {
+            console.log(' Metode 1 gagal:', error1.message);
+            
+            // Coba metode 2: cari driver berdasarkan phone terlebih dahulu
+            const driverPhone = driverData.phone;
+            if (!driverPhone) {
+              console.error(' Nomor telepon tidak ditemukan di data driver');
+              showErrorState('Data driver tidak lengkap. Silakan login ulang.');
+              return;
+            }
+            
+            console.log(' Mencoba metode 2 dengan phone:', driverPhone);
+            const driversRef = database.ref('drivers');
+            const query = driversRef.orderByChild('phone').equalTo(driverPhone);
+            
+            query.once('value')
+              .then((snapshot) => {
+                const driversData = snapshot.val();
+                
+                if (!driversData) {
+                  console.log(' Driver tidak ditemukan dengan phone:', driverPhone);
+                  showEmptyState();
+                  return;
+                }
+                
+                // Dapatkan driverId dari hasil query
+                const foundDriverId = Object.keys(driversData)[0];
+                console.log(' Driver ditemukan dengan ID:', foundDriverId);
+                
+                // Coba akses ratings
+                const ratingsRef2 = database.ref('drivers/' + foundDriverId + '/ratings');
+                ratingsRef2.once('value')
+                  .then((ratingsSnapshot) => {
+                    console.log(' Metode 2: Akses ratings berhasil');
+                    processRatingsData(ratingsSnapshot.val());
+                  })
+                  .catch((error2) => {
+                    console.error(' Metode 2 gagal akses ratings:', error2.message);
+                    
+                    if (error2.code === 'PERMISSION_DENIED') {
+                      console.log(' Akses ditolak. Cek struktur data di Firebase...');
+                      
+                      // Coba metode 3: cari di node 'ratings' global
+                      console.log(' Mencoba metode 3: Node ratings global');
+                      const globalRatingsRef = database.ref('ratings');
+                      const ratingsQuery = globalRatingsRef.orderByChild('driverId').equalTo(foundDriverId);
+                      
+                      ratingsQuery.once('value')
+                        .then((globalSnapshot) => {
+                          const globalRatingsData = globalSnapshot.val();
+                          console.log(' Metode 3: Data dari global ratings:', globalRatingsData);
+                          
+                          if (globalRatingsData) {
+                            processRatingsData(globalRatingsData);
+                          } else {
+                            // Coba alternatif lain: ratings mungkin disimpan di orders
+                            console.log(' Mencoba metode 4: Cari di orders');
+                            searchRatingsInOrders(foundDriverId, driverPhone);
+                          }
+                        })
+                        .catch((error3) => {
+                          console.error(' Metode 3 gagal:', error3.message);
+                          searchRatingsInOrders(foundDriverId, driverPhone);
+                        });
+                    } else {
+                      searchRatingsInOrders(foundDriverId, driverPhone);
+                    }
+                  });
+              })
+              .catch((queryError) => {
+                console.error(' Error query driver:', queryError.message);
+                showErrorState('Gagal memuat data driver. Periksa koneksi internet Anda.');
+              });
+          });
+          
+      } catch (error) {
+        console.error(' Error parsing driver data:', error);
+        showErrorState('Data session tidak valid. Silakan login ulang.');
+      }
+    }
+
+    // Fungsi untuk mencari ratings di orders
+    function searchRatingsInOrders(driverId, driverPhone) {
+      console.log(' Mencari ratings di orders untuk driver:', driverId);
+      
+      const ordersRef = database.ref('orders');
+      
+      // Cari orders dengan driverId atau driverPhone
+      ordersRef.orderByChild('driverId').equalTo(driverId).once('value')
+        .then((snapshot) => {
+          const ordersData = snapshot.val();
+          let ratingsFromOrders = [];
+          
+          if (ordersData) {
+            Object.keys(ordersData).forEach(orderId => {
+              const order = ordersData[orderId];
+              if (order.rating && order.rating !== '') {
+                ratingsFromOrders.push({
+                  id: orderId,
+                  rating: parseFloat(order.rating) || 0,
+                  comment: order.ratingComment || 'Tidak ada komentar',
+                  passengerName: order.userName || 'Passenger',
+                  timestamp: order.createdAt || Date.now(),
+                  rated_at: order.ratedAt || order.createdAt || Date.now()
+                });
+              }
+            });
+          }
+          
+          if (ratingsFromOrders.length > 0) {
+            console.log(` Ditemukan ${ratingsFromOrders.length} rating dari orders`);
+            driverRatings = ratingsFromOrders;
+            driverRatings.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            displayRatingsData();
+          } else {
+            // Coba dengan driverPhone
+            console.log(' Mencari dengan driverPhone:', driverPhone);
+            ordersRef.orderByChild('driverPhone').equalTo(driverPhone).once('value')
+              .then((phoneSnapshot) => {
+                const phoneOrdersData = phoneSnapshot.val();
+                let phoneRatings = [];
+                
+                if (phoneOrdersData) {
+                  Object.keys(phoneOrdersData).forEach(orderId => {
+                    const order = phoneOrdersData[orderId];
+                    if (order.rating && order.rating !== '') {
+                      phoneRatings.push({
+                        id: orderId,
+                        rating: parseFloat(order.rating) || 0,
+                        comment: order.ratingComment || 'Tidak ada komentar',
+                        passengerName: order.userName || 'Passenger',
+                        timestamp: order.createdAt || Date.now(),
+                        rated_at: order.ratedAt || order.createdAt || Date.now()
+                      });
+                    }
+                  });
+                }
+                
+                if (phoneRatings.length > 0) {
+                  console.log(` Ditemukan ${phoneRatings.length} rating dari orders (by phone)`);
+                  driverRatings = phoneRatings;
+                  driverRatings.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                  displayRatingsData();
+                } else {
+                  console.log(' Tidak ada rating ditemukan di orders');
+                  showEmptyState();
+                }
+              })
+              .catch((phoneError) => {
+                console.error(' Error query orders by phone:', phoneError.message);
+                showEmptyState();
+              });
+          }
+        })
+        .catch((ordersError) => {
+          console.error(' Error query orders:', ordersError.message);
+          showEmptyState();
+        });
+    }
+
+    // Fungsi untuk memproses data ratings
+    function processRatingsData(ratingsData) {
+      driverRatings = [];
+      
+      if (ratingsData) {
+        // Konversi object menjadi array
+        Object.keys(ratingsData).forEach(key => {
+          const rating = ratingsData[key];
+          driverRatings.push({
+            id: key,
+            rating: rating.rating || rating.value || 0,
+            comment: rating.comment || rating.feedback || 'Tidak ada komentar',
+            passengerName: rating.passengerName || rating.userName || 'Passenger',
+            timestamp: rating.timestamp || rating.createdAt || rating.rated_at || Date.now(),
+            rated_at: rating.rated_at || rating.timestamp || rating.createdAt || Date.now()
+          });
+        });
+        
+        console.log(` ${driverRatings.length} rating berhasil dimuat`);
+        
+        // Urutkan rating berdasarkan timestamp terbaru pertama
+        driverRatings.sort((a, b) => {
+          const timeA = a.timestamp || a.rated_at || 0;
+          const timeB = b.timestamp || b.rated_at || 0;
+          return timeB - timeA;
+        });
+        
+        // Tampilkan data di UI
+        displayRatingsData();
+      } else {
+        console.log(' Tidak ada data rating ditemukan');
+        showEmptyState();
+      }
+    }
+
+    // ================================================
+    // FUNGSI TAMPILAN UI
+    // ================================================
+
+    function displayRatingsData() {
+      const container = document.getElementById('mainContainer');
+      
+      if (!driverRatings || driverRatings.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon"></div>
+            <h3 style="color: var(--primary); margin-bottom: 10px;">Belum Ada Penilaian</h3>
+            <p>Anda belum memiliki penilaian dari penumpang.</p>
+            <button class="policy-btn" id="refreshBtn" style="margin-top: 15px;">
+              Muat Ulang
+            </button>
+          </div>
+        `;
+        
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', loadRatingsData);
+        }
+        return;
+      }
+
+      // Hitung statistik rating
+      const totalRatings = driverRatings.length;
+      const averageRating = driverRatings.reduce((sum, item) => sum + (item.rating || 0), 0) / totalRatings;
+      
+      // Kelompokkan rating berdasarkan tanggal (dengan H+1 untuk grup)
+      const ratingsByDate = groupRatingsByDate(driverRatings);
+      
+      // Generate HTML untuk rating summary
+      let html = `
+        <div class="rating-summary">
+          <div class="overall-rating">${averageRating.toFixed(1)}</div>
+          <div class="rating-stars">${generateStarRating(averageRating)}</div>
+          <div class="rating-count">${totalRatings} ulasan</div>
+          <button class="policy-btn" id="policyBtn">Kebijakan Ulasan</button>
+        </div>
+        
+        <div class="rating-list">
+      `;
+      
+      // Generate HTML untuk setiap grup tanggal (urut dari terbaru)
+      Object.keys(ratingsByDate).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+        html += `
+          <div class="date-section">
+            <div class="date-header">${formatDisplayDate(date)} • ${ratingsByDate[date].length} ulasan</div>
+        `;
+        
+        // Tambahkan setiap rating dalam grup tanggal ini
+        ratingsByDate[date].forEach(rating => {
+          html += generateRatingCard(rating);
+        });
+        
+        html += `</div>`;
+      });
+      
+      html += `</div>`;
+      
+      container.innerHTML = html;
+      
+      // Inisialisasi tombol setelah UI ditampilkan
+      initButtons();
+    }
+
+    function groupRatingsByDate(ratings) {
+      const groups = {};
+      const nowWITA = convertToWITA(new Date());
+      
+      ratings.forEach(rating => {
+        const originalDate = new Date(rating.rated_at || rating.timestamp || Date.now());
+        let witaDate = convertToWITA(originalDate);
+
+        // Waktu ulasan boleh tampil = H+1
+        let visibleDate = new Date(witaDate);
+        visibleDate.setDate(visibleDate.getDate() + 1);
+
+        // Jika belum waktunya tampil, sembunyikan
+        if (nowWITA < visibleDate) {
+          return;
+        }
+
+        // Grup tanggal menggunakan visibleDate (H+1)
+        const dateKey = formatDateKey(visibleDate);
+        
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        
+        groups[dateKey].push(rating);
+      });
+      
+      return groups;
+    }
+
+    function generateRatingCard(ratingData) {
+      const satisfactionEmoji = getSatisfactionEmoji(ratingData.rating);
+      const passengerName = ratingData.passengerName || 'Passenger';
+      const passengerInitial = passengerName.charAt(0).toUpperCase();
+      
+      // Konversi waktu ke WITA
+      const originalDate = new Date(ratingData.rated_at || ratingData.timestamp || Date.now());
+      const witaDate = convertToWITA(originalDate);
+      
+      return `
+        <div class="rating-card">
+          <div class="rating-header">
+            <div class="passenger-info">
+              <div class="passenger-avatar">${passengerInitial}</div>
+              <div class="passenger-name">${passengerName}</div>
+            </div>
+            <div class="rating-meta">
+              <div class="satisfaction-emoji">${satisfactionEmoji}</div>
+              <div class="small-rating-stars">${generateStarRating(ratingData.rating || 0, 'small-star')}</div>
+            </div>
+          </div>
+          <div class="rating-comment">${ratingData.comment || 'Tidak ada komentar'}</div>
+          <div class="rating-date">${formatTime(witaDate)}</div>
+        </div>
+      `;
+    }
+
+    // ================================================
+    // FUNGSI BANTUAN
+    // ================================================
+
+    function convertToWITA(date) {
+      const offset = 8 * 60; // WITA adalah UTC+8
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      return new Date(utc + (3600000 * offset / 60));
+    }
+
+    function generateStarRating(rating, starClass = 'star') {
+      const fullStars = Math.floor(rating);
+      const hasHalfStar = rating % 1 >= 0.5;
+      const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+      
+      let starsHTML = '';
+      
+      for (let i = 0; i < fullStars; i++) {
+        starsHTML += `<span class="${starClass} filled"></span>`;
+      }
+      
+      if (hasHalfStar) {
+        starsHTML += `<span class="${starClass} filled"></span>`;
+      }
+      
+      for (let i = 0; i < emptyStars; i++) {
+        starsHTML += `<span class="${starClass}"></span>`;
+      }
+      
+      return starsHTML;
+    }
+
+    function getSatisfactionEmoji(rating) {
+      if (rating >= 4.5) return '';
+      if (rating >= 4) return '';
+      if (rating >= 3) return '';
+      if (rating >= 2) return '';
+      return '';
+    }
+
+    function formatDateKey(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function formatDisplayDate(dateString) {
+      const date = new Date(dateString);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const witaToday = convertToWITA(today);
+      const witaYesterday = convertToWITA(yesterday);
+      const witaDate = convertToWITA(date);
+      
+      if (formatDateKey(witaDate) === formatDateKey(witaToday)) {
+        return 'Hari Ini';
+      } else if (formatDateKey(witaDate) === formatDateKey(witaYesterday)) {
+        return 'Kemarin';
+      } else {
+        return witaDate.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'Asia/Makassar'
+        });
+      }
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Makassar'
+      });
+    }
+
+    // ================================================
+    // FUNGSI UI STATES
+    // ================================================
+
+    function showLoadingState() {
+      const container = document.getElementById('mainContainer');
+      container.innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <div style="color: var(--primary); font-weight: 600; margin-top: 10px;">Memuat data penilaian...</div>
+        </div>
+      `;
+    }
+
+    function showEmptyState() {
+      const container = document.getElementById('mainContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon"></div>
+          <h3 style="color: var(--primary); margin-bottom: 10px;">Belum Ada Penilaian</h3>
+          <p>Anda belum memiliki penilaian dari penumpang.</p>
+          <button class="policy-btn" id="refreshBtn" style="margin-top: 15px;">
+            Muat Ulang
+          </button>
+        </div>
+      `;
+      
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadRatingsData);
+      }
+    }
+
+    function showErrorState(message) {
+      const container = document.getElementById('mainContainer');
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon"></div>
+          <div style="color: var(--danger); margin: 10px 0; font-weight: 600;">${message}</div>
+          <button class="policy-btn" id="retryBtn" style="margin-top: 15px;">
+            Coba Lagi
+          </button>
+          <button class="policy-btn" id="logoutBtn" style="margin-top: 10px; background: #6c757d;">
+            Login Ulang
+          </button>
+        </div>
+      `;
+      
+      const retryBtn = document.getElementById('retryBtn');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', loadRatingsData);
+      }
+      
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+          localStorage.removeItem('jego_logged_in_driver');
+          window.location.href = 'loginDriver.html';
+        });
+      }
+    }
+
+    // ================================================
+    // FUNGSI INISIALISASI TOMBOL
+    // ================================================
+
+    function initButtons() {
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) {
+        backBtn.addEventListener('click', goBack);
+      }
+
+      const policyBtn = document.getElementById('policyBtn');
+      if (policyBtn) {
+        policyBtn.addEventListener('click', openRatingPolicy);
+      }
+    }
+
+    // ================================================
+    // NAVIGATION FUNCTIONS
+    // ================================================
+
+    function goBack() {
+      // Coba kirim data ke Kodular
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify({
+            action: 'back_pressed',
+            screen: 'ratings'
+          }));
+        } catch (error) {
+          console.error('Error sending to Kodular:', error);
+        }
+      }
+      window.location.href = "akun.html";
+    }
+
+    function openRatingPolicy() {
+      window.location.href = "kebijakanUlasan.html";
+    }
+
+    // ================================================
+    // INISIALISASI APLIKASI
+    // ================================================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log(' Halaman Penilaian Layanan dimuat');
+      console.log(' Memeriksa localStorage:', localStorage);
+      
+      // Muat data rating
+      loadRatingsData();
+    });
+
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        console.log(' Halaman menjadi aktif, memuat ulang data...');
+        loadRatingsData();
+      }
+    });
+  </script>
+</body>
+</html>
