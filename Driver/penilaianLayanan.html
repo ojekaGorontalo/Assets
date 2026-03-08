@@ -439,15 +439,25 @@
         const r = ratingsObj[key];
         // Pastikan data valid
         if (!r || typeof r !== 'object') return;
+        
+        // Gunakan rated_at atau timestamp
+        let ratedAt = r.rated_at || r.timestamp;
+        if (!ratedAt) {
+          console.warn('Rating tanpa timestamp:', r);
+          return;
+        }
+
         driverRatings.push({
           id: key,
           rating: r.rating || 0,
           comment: r.comment || 'Tidak ada komentar',
           customerName: 'Passenger', // Nama customer disembunyikan
-          timestamp: r.timestamp || r.rated_at || Date.now(),
-          rated_at: r.rated_at || r.timestamp || Date.now()
+          timestamp: r.timestamp || Date.parse(ratedAt) || Date.now(),
+          rated_at: ratedAt
         });
       });
+
+      console.log('Jumlah rating diproses:', driverRatings.length); // Debug
 
       // Urutkan dari terbaru
       driverRatings.sort((a, b) => b.timestamp - a.timestamp);
@@ -471,8 +481,11 @@
         return;
       }
 
-      const ratingsByDate = groupRatingsByDate(driverRatings);
-      
+      // Untuk sementara, nonaktifkan filter tanggal agar semua rating tampil
+      // const ratingsByDate = groupRatingsByDate(driverRatings);
+      // Gunakan semua rating tanpa filter tanggal
+      const ratingsByDate = { 'Semua': driverRatings }; 
+
       let html = `
         <div class="rating-summary">
           <div class="overall-rating">${driverAvgRating.toFixed(1)}</div>
@@ -483,14 +496,10 @@
         <div class="rating-list">
       `;
 
-      Object.keys(ratingsByDate).sort((a,b) => new Date(b) - new Date(a)).forEach(date => {
-        html += `
-          <div class="date-section">
-            <div class="date-header">${formatDisplayDate(date)} • ${ratingsByDate[date].length} ulasan</div>
-        `;
-        ratingsByDate[date].forEach(r => html += generateRatingCard(r));
-        html += `</div>`;
-      });
+      // Tampilkan semua rating tanpa pengelompokan tanggal
+      html += `<div class="date-section"><div class="date-header">Semua Ulasan</div>`;
+      driverRatings.forEach(r => html += generateRatingCard(r));
+      html += `</div>`;
 
       html += `</div>`;
       container.innerHTML = html;
@@ -500,6 +509,8 @@
       });
     }
 
+    // Fungsi groupRatingsByDate asli (dikomentari sementara)
+    /*
     function groupRatingsByDate(ratings) {
       const groups = {};
       const now = new Date();
@@ -519,11 +530,12 @@
       });
       return groups;
     }
+    */
 
     function generateRatingCard(r) {
       const emoji = getSatisfactionEmoji(r.rating);
-      // Gunakan teks biasa untuk bintang agar kompatibel
-      const stars = generatePlainStars(r.rating);
+      // Gunakan generateStarRating untuk konsistensi
+      const stars = generateStarRating(r.rating, 'small-star');
       return `
         <div class="rating-card">
           <div class="rating-header">
@@ -551,14 +563,6 @@
       if (half) stars += `<span class="${cls} filled">★</span>`;
       for (let i = 0; i < empty; i++) stars += `<span class="${cls}">☆</span>`;
       return stars;
-    }
-
-    // Fungsi alternatif untuk bintang teks biasa (fallback)
-    function generatePlainStars(rating) {
-      const full = Math.floor(rating);
-      const half = rating % 1 >= 0.5 ? 1 : 0;
-      const empty = 5 - full - half;
-      return '★'.repeat(full) + (half ? '★' : '') + '☆'.repeat(empty);
     }
 
     function getSatisfactionEmoji(r) {
