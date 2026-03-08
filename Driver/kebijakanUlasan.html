@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kebijakan Ulasan - JeGo Driver</title>
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e6f5c;
+      --secondary: #289672;
+      --accent: #e6dd3b;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --info: #17a2b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+      font-size: 0.9rem;
+      padding-bottom: 20px;
+    }
+
+    /* Header Styles */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,186.7C384,213,480,235,576,213.3C672,192,768,128,864,128C960,128,1056,192,1152,192C1248,192,1344,128,1392,96L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+      background-size: cover;
+      background-position: center;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .driver-icon {
+      font-size: 2.5rem;
+      color: var(--accent);
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      padding: 10px;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .header-subtitle {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    /* Back Button */
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.85rem;
+      z-index: 2;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Container Styles */
+    .container {
+      max-width: 100%;
+      padding: 20px;
+    }
+
+    /* Intro Section */
+    .intro-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .intro-icon {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .intro-text {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    /* Requirements Grid */
+    .requirements-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .requirements-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .requirement-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .requirement-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .card-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .card-content {
+      flex: 1;
+    }
+
+    .requirement-list {
+      list-style-type: none;
+    }
+
+    .requirement-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+
+    .requirement-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .bullet-icon {
+      color: var(--primary);
+      font-size: 1rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Tips Section */
+    .tips-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title-icon {
+      color: var(--accent);
+    }
+
+    .tips-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 576px) {
+      .tips-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .tip-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .tip-icon {
+      color: var(--secondary);
+      font-size: 1.2rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Contact Section */
+    .contact-section {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .contact-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .contact-methods {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+
+    .contact-icon {
+      font-size: 1.2rem;
+    }
+
+    .footer-note {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      margin-top: 15px;
+      font-style: italic;
+    }
+
+    /* Modal Popup Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: white;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      opacity: 0.8;
+    }
+
+    .modal-body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-message {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .modal-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      font-size: 0.9rem;
+    }
+
+    .modal-btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .modal-btn-secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .modal-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body {
+        font-size: 0.85rem;
+      }
+      
+      .header-title {
+        font-size: 1.3rem;
+      }
+      
+      .header-subtitle {
+        font-size: 0.9rem;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+      
+      .requirement-card {
+        padding: 15px;
+      }
+      
+      .card-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .container {
+        padding: 10px;
+      }
+      
+      .tips-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .modal-content {
+        width: 95%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <button class="back-btn" id="backBtn">
+      <span class="material-icons">arrow_back</span>
+    </button>
+    <div class="header-content">
+      <div class="logo-container">
+        <div class="driver-icon">
+          <span class="material-icons">reviews</span>
+        </div>
+        <div>
+          <h1 class="header-title">Kebijakan Ulasan</h1>
+          <p class="header-subtitle">Panduan sistem rating dan ulasan JeGo</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container -->
+  <div class="container">
+    <!-- Intro Section -->
+    <div class="intro-section">
+      <div class="intro-icon">
+        <span class="material-icons">star_rate</span>
+      </div>
+      <p class="intro-text">Sistem rating dan ulasan JeGo membantu meningkatkan kualitas layanan dan memberikan pengalaman terbaik bagi pelanggan dan driver.</p>
+    </div>
+
+    <!-- Requirements Grid -->
+    <div class="requirements-grid">
+      <!-- Rating System Card -->
+      <div class="requirement-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: var(--warning);">
+            <span class="material-icons">star</span>
+          </div>
+          <h3 class="card-title">Sistem Rating</h3>
+        </div>
+        <div class="card-content">
+          <ul class="requirement-list">
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Pelanggan dapat memberikan rating 1-5 bintang setelah perjalanan selesai</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Rating rata-rata akan ditampilkan di profil driver</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Driver dengan rating tinggi akan mendapatkan prioritas lebih dalam menerima order</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Review Policy Card -->
+      <div class="requirement-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: var(--info);">
+            <span class="material-icons">description</span>
+          </div>
+          <h3 class="card-title">Kebijakan Ulasan</h3>
+        </div>
+        <div class="card-content">
+          <ul class="requirement-list">
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Ulasan harus relevan dengan pengalaman layanan</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Tidak mengandung konten SARA, ujaran kebencian, atau pelecehan</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Ulasan palsu atau tidak akurat dapat dilaporkan untuk ditinjau</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Impact Card -->
+      <div class="requirement-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: var(--success);">
+            <span class="material-icons">trending_up</span>
+          </div>
+          <h3 class="card-title">Dampak Rating</h3>
+        </div>
+        <div class="card-content">
+          <ul class="requirement-list">
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Rating di bawah 3.5 akan mendapatkan peringatan dari sistem</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Rating konsisten di bawah 3.0 dapat mengakibatkan penangguhan sementara</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Driver dengan rating tinggi mendapatkan akses ke fitur prioritas</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Improvement Card -->
+      <div class="requirement-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: var(--primary);">
+            <span class="material-icons">thumb_up</span>
+          </div>
+          <h3 class="card-title">Tips Meningkatkan Rating</h3>
+        </div>
+        <div class="card-content">
+          <ul class="requirement-list">
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Selalu bersikap sopan dan ramah kepada pelanggan</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Pastikan kendaraan dalam kondisi bersih dan nyaman</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Tepati janji waktu dan ikuti rute yang disepakati</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Dispute Card -->
+      <div class="requirement-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: var(--secondary);">
+            <span class="material-icons">gavel</span>
+          </div>
+          <h3 class="card-title">Sengkata Ulasan</h3>
+        </div>
+        <div class="card-content">
+          <ul class="requirement-list">
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Driver dapat mengajukan banding untuk ulasan yang tidak adil</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Tim JeGo akan meninjau sengkata dalam waktu 3-5 hari kerja</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Ulasan yang terbukti tidak akurat akan dihapus dari sistem</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Privacy Card -->
+      <div class="requirement-card">
+        <div class="card-header">
+          <div class="card-icon" style="background: var(--accent); color: #333;">
+            <span class="material-icons">privacy_tip</span>
+          </div>
+          <h3 class="card-title">Privasi dan Anonimitas</h3>
+        </div>
+        <div class="card-content">
+          <ul class="requirement-list">
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Identitas pelanggan yang memberikan ulasan dirahasiakan</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Driver tidak dapat melihat siapa yang memberikan ulasan tertentu</span>
+            </li>
+            <li class="requirement-item">
+              <span class="bullet-icon material-icons">check_circle</span>
+              <span>Data pribadi dilindungi sesuai kebijakan privasi JeGo</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips Section -->
+    <div class="tips-section">
+      <h2 class="section-title">
+        <span class="section-title-icon material-icons">lightbulb</span>
+        Tips Meningkatkan Ulasan Positif
+      </h2>
+      <div class="tips-grid">
+        <div class="tip-item">
+          <span class="tip-icon material-icons">directions_car</span>
+          <span>Pastikan kendaraan bersih dan nyaman sebelum menjemput pelanggan</span>
+        </div>
+        <div class="tip-item">
+          <span class="tip-icon material-icons">schedule</span>
+          <span>Tiba tepat waktu di lokasi penjemputan</span>
+        </div>
+        <div class="tip-item">
+          <span class="tip-icon material-icons">chat</span>
+          <span>Komunikasikan dengan jelas mengenai rute dan estimasi waktu</span>
+        </div>
+        <div class="tip-item">
+          <span class="tip-icon material-icons">local_offer</span>
+          <span>Tawarkan bantuan dengan barang bawaan jika diperlukan</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="contact-section">
+      <h2 class="contact-title">Pertanyaan tentang Kebijakan Ulasan?</h2>
+      <div class="contact-methods">
+        <div class="contact-item">
+          <span class="contact-icon material-icons">email</span>
+          <span>support@jego.co.id</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon material-icons">whatsapp</span>
+          <span>+62-8314-2889-149</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon material-icons">phone</span>
+          <span>(0435) xxx xxx xxxx</span>
+        </div>
+      </div>
+      <p class="footer-note">Terima kasih telah menjadi bagian dari JeGo Driver Family! 🚗💚</p>
+    </div>
+  </div>
+
+  <!-- Modal Popup -->
+  <div class="modal" id="infoModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Informasi</h3>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="modalMessage">Pesan akan ditampilkan di sini.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-primary" id="modalOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Fungsi untuk menampilkan popup informasi
+    function showInfoPopup(message) {
+      const modal = document.getElementById('infoModal');
+      const modalMessage = document.getElementById('modalMessage');
+      
+      modalMessage.textContent = message;
+      modal.style.display = 'flex';
+    }
+
+    // Fungsi untuk menutup popup
+    function closeInfoPopup() {
+      document.getElementById('infoModal').style.display = 'none';
+    }
+
+    // Fungsi untuk kembali ke halaman penilaianLayanan.html
+    function goBackToRating() {
+      // Cek apakah kita berada dalam aplikasi Kodular
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify({
+            action: 'navigate_to',
+            screen: 'penilaianLayanan',
+            message: 'Kembali ke halaman penilaian layanan'
+          }));
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+          // Fallback jika gagal
+          window.location.href = 'penilaianLayanan.html';
+        }
+      } else {
+        // Jika tidak dalam Kodular, redirect langsung
+        window.location.href = 'penilaianLayanan.html';
+      }
+    }
+
+    // Event listener untuk tombol back
+    document.getElementById('backBtn').addEventListener('click', function() {
+      
+      // Set timeout untuk kembali setelah popup ditutup
+      setTimeout(() => {
+        goBackToRating();
+      }, 1500);
+    });
+
+    // Event listener untuk modal
+    document.getElementById('closeModal').addEventListener('click', closeInfoPopup);
+    document.getElementById('modalOkBtn').addEventListener('click', closeInfoPopup);
+    
+    // Tutup modal jika klik di luar konten modal
+    document.getElementById('infoModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeInfoPopup();
+      }
+    });
+
+    // Fungsi untuk mengirim data ke Kodular (jika diperlukan)
+    function sendToKodular(data) {
+      console.log('Mengirim data ke Kodular:', data);
+      
+      if (typeof window.AppInventor !== 'undefined' && window.AppInventor.setWebViewString) {
+        try {
+          window.AppInventor.setWebViewString(JSON.stringify(data));
+        } catch (error) {
+          console.error('Error mengirim data via AppInventor:', error);
+        }
+      }
+      else if (typeof window.android !== 'undefined' && window.android.receiveData) {
+        try {
+          window.android.receiveData(JSON.stringify(data));
+        } catch (error) {
+          console.error('Error mengirim data via window.android:', error);
+        }
+      }
+      else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        try {
+          window.webkit.messageHandlers.observe.postMessage(data);
+        } catch (error) {
+          console.error('Error mengirim data via webkit.messageHandlers:', error);
+        }
+      }
+    }
+
+    // Inisialisasi saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Halaman Kebijakan Ulasan dimuat');
+      
+      // Kirim notifikasi ke Kodular bahwa halaman ini telah dimuat
+      sendToKodular({
+        action: 'page_loaded',
+        screen: 'kebijakan_ulasan',
+        message: 'Halaman kebijakan ulasan berhasil dimuat'
+      });
+    });
+  </script>
+</body>
+</html>
