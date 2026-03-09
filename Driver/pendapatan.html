@@ -4,21 +4,21 @@
   <meta charset="utf-8" />
   <title>Ringkasan Pendapatan - JeGo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Firebase SDK - KONSISTEN dengan loginDriver.html -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     :root {
-      --primary: #FF9800;    /* Orange */
-      --secondary: #FF5722;   /* Red-Orange */
-      --accent: #FFC107;     /* Amber/Yellow */
+      --primary: #FF9800;
+      --secondary: #FF5722;
+      --accent: #FFC107;
       --light: #f8f9fa;
       --dark: #343a40;
-      --success: #4CAF50;    /* Green */
-      --danger: #f44336;     /* Red */
-      --warning: #FFC107;    /* Yellow */
-      --info: #2196F3;       /* Blue */
-      --gray: #9E9E9E;       /* Gray */
+      --success: #4CAF50;
+      --danger: #f44336;
+      --warning: #FFC107;
+      --info: #2196F3;
+      --gray: #9E9E9E;
     }
 
     * {
@@ -36,7 +36,6 @@
       padding-bottom: 20px;
     }
 
-    /* Header Styles - Konsisten dengan loginDriver.html */
     .header {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
@@ -90,10 +89,6 @@
       background: rgba(255,255,255,0.3);
     }
 
-    .back-btn i {
-      font-size: 16px;
-    }
-
     .header-title {
       font-size: 1.1rem;
       font-weight: 600;
@@ -103,13 +98,11 @@
       text-overflow: ellipsis;
     }
 
-    /* Container Styles */
     .container {
       max-width: 100%;
       padding: 15px;
     }
 
-    /* Date Navigation */
     .date-navigation {
       background: white;
       border-radius: 12px;
@@ -167,7 +160,6 @@
       color: #666;
     }
 
-    /* Summary Cards - Warna konsisten */
     .summary-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -228,7 +220,6 @@
       color: var(--secondary);
     }
 
-    /* Breakdown Section */
     .breakdown-section {
       background: white;
       border-radius: 12px;
@@ -276,7 +267,6 @@
       color: var(--primary);
     }
 
-    /* Empty state - Konsisten */
     .empty-state {
       text-align: center;
       padding: 40px 20px;
@@ -294,7 +284,6 @@
       opacity: 0.5;
     }
 
-    /* Loading spinner - Konsisten */
     .loading {
       display: flex;
       flex-direction: column;
@@ -321,73 +310,27 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Responsive adjustments */
     @media (max-width: 768px) {
-      body {
-        font-size: 0.8rem;
-      }
-      
-      .header-title {
-        font-size: 1rem;
-        margin-left: 8px;
-      }
-      
-      .summary-grid {
-        gap: 8px;
-      }
-      
-      .summary-card {
-        padding: 10px;
-        min-height: 90px;
-      }
-      
-      .summary-value {
-        font-size: 1rem;
-      }
-      
-      .summary-icon {
-        font-size: 1.3rem;
-      }
-      
-      .logo {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-      }
+      body { font-size: 0.8rem; }
+      .header-title { font-size: 1rem; margin-left: 8px; }
+      .summary-grid { gap: 8px; }
+      .summary-card { padding: 10px; min-height: 90px; }
+      .summary-value { font-size: 1rem; }
+      .summary-icon { font-size: 1.3rem; }
+      .logo { width: 28px; height: 28px; font-size: 12px; }
     }
 
     @media (max-width: 576px) {
-      .container {
-        padding: 10px;
-      }
-      
-      .header {
-        padding: 12px 15px;
-      }
-      
-      .back-btn {
-        padding: 6px 10px;
-        font-size: 0.8rem;
-      }
-      
-      .date-navigation {
-        padding: 12px;
-      }
-      
-      .nav-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
-      }
-      
-      .date-display {
-        font-size: 1rem;
-      }
+      .container { padding: 10px; }
+      .header { padding: 12px 15px; }
+      .back-btn { padding: 6px 10px; font-size: 0.8rem; }
+      .date-navigation { padding: 12px; }
+      .nav-btn { width: 36px; height: 36px; font-size: 1rem; }
+      .date-display { font-size: 1rem; }
     }
   </style>
 </head>
 <body>
-  <!-- Header - Konsisten dengan loginDriver.html -->
   <div class="header">
     <div class="logo-container">
       <button class="back-btn" id="backBtn">
@@ -399,15 +342,9 @@
     </div>
   </div>
 
-  <!-- Container -->
-  <div class="container" id="mainContainer">
-    <!-- Loading state akan ditampilkan di sini -->
-  </div>
+  <div class="container" id="mainContainer"></div>
 
   <script>
-    // ================================================
-    // KONFIGURASI FIREBASE (KONSISTEN DENGAN LOGINDRIVER.HTML)
-    // ================================================
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyDpGc_CsbNi1igA29n6qDhcX0oDkHNVscc",
       authDomain: "game-balap-simpel.firebaseapp.com",
@@ -415,93 +352,59 @@
       projectId: "game-balap-simpel",
       storageBucket: "game-balap-simpel.firebasestorage.app",
       messagingSenderId: "864576853495",
-      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2",
-      measurementId: "G-YWJPK7Y3J4"
+      appId: "1:864576853495:web:6f16eb757fd3d8affb0af2"
     };
 
-    // ================================================
-    // INISIALISASI FIREBASE DENGAN GUARD
-    // ================================================
-    console.log('🚀 Memulai inisialisasi Firebase...');
     let database;
-    
     try {
-      if (!firebase.apps.length) {
-        firebase.initializeApp(FIREBASE_CONFIG);
-        console.log('✅ Firebase berhasil diinisialisasi');
-      } else {
-        console.log('✅ Firebase sudah diinisialisasi sebelumnya');
-      }
-      
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       database = firebase.database();
     } catch (error) {
-      console.error('❌ Error inisialisasi Firebase:', error);
-      showErrorState('Gagal menginisialisasi Firebase. Silakan refresh halaman.');
+      console.error('Error Firebase:', error);
     }
 
-    // ================================================
-    // VARIABEL GLOBAL
-    // ================================================
     let currentDate = new Date();
     let driverOrders = [];
     let driverId = null;
     let driverData = null;
     let balanceHistory = {};
 
-    // ================================================
-    // FUNGSI UTAMA
-    // ================================================
-
     function loadEarningsData() {
       try {
         const loggedInDriver = localStorage.getItem('jego_logged_in_driver');
-        
         if (!loggedInDriver) {
-          console.error('❌ Driver belum login');
           showErrorState('Anda belum login. Silakan login terlebih dahulu.');
           return;
         }
 
         driverData = JSON.parse(loggedInDriver);
-        console.log('📋 Data driver:', driverData);
-        
         driverId = driverData.uid || driverData.firebase_key || driverData.userId;
         
         if (!driverId) {
-          console.error('❌ Driver ID tidak ditemukan');
           showErrorState('Data driver tidak valid. Silakan login ulang.');
           return;
         }
 
-        console.log('💰 Memuat data untuk driver ID:', driverId);
         showLoadingState();
 
-        Promise.all([
-          loadDriverOrders(),
-          loadBalanceHistory()
-        ])
-        .then(() => {
-          console.log('✅ Semua data berhasil dimuat');
-          displayEarningsData();
-        })
-        .catch((error) => {
-          console.error('❌ Error memuat data:', error);
-          showErrorState('Gagal memuat data. Periksa koneksi internet Anda.');
-        });
+        Promise.all([ loadDriverOrders(), loadBalanceHistory() ])
+          .then(() => {
+            displayEarningsData();
+          })
+          .catch((error) => {
+            console.error('Error memuat data:', error);
+            showErrorState('Gagal memuat data. Periksa koneksi internet Anda.');
+          });
           
       } catch (error) {
-        console.error('❌ Error parsing driver data:', error);
+        console.error('Error parsing driver data:', error);
         showErrorState('Data session tidak valid. Silakan login ulang.');
       }
     }
 
-    // Fungsi untuk memuat order driver - DIPERBARUI dengan deteksi yang lebih baik
     function loadDriverOrders() {
       return new Promise((resolve, reject) => {
-        console.log('📦 Memuat data orders...');
-        
-        const ordersRef = database.ref('orders');
-        ordersRef.once('value')
+        database.ref('orders').once('value')
           .then((snapshot) => {
             const ordersData = snapshot.val();
             driverOrders = [];
@@ -510,52 +413,37 @@
               Object.keys(ordersData).forEach(key => {
                 const order = ordersData[key];
                 
-                // Deteksi apakah order ini milik driver yang sedang login
-                // dengan memeriksa berbagai kemungkinan field
                 const isDriverOrder = 
-                  // Dari selected_driver (yang dipilih)
                   (order.selected_driver && 
                     (order.selected_driver.id === driverId || 
                      order.selected_driver.driver_id === driverId)) ||
-                  // Dari field driver (untuk order lama)
                   (order.driver && 
                     (order.driver.id === driverId || 
                      order.driver.driver_id === driverId)) ||
-                  // Field langsung
                   (order.driverId === driverId) ||
-                  (order.driver_id === driverId) ||
-                  (order.driverPhone === driverData.phone);
+                  (order.driver_id === driverId);
                 
-                // Hanya ambil order yang sudah selesai
                 if (isDriverOrder && order.status === 'completed') {
                   driverOrders.push({
                     id: key,
                     ...order,
                     jarak_km: order.jarak_km || order.distance || '0',
-                    harga_total: order.harga_total || order.total_price || order.amount || 0,
+                    harga_total: order.harga_total || order.total_price || 0,
                     completed_at: order.completed_at || order.finished_at || order.updated_at || order.created_at || Date.now()
                   });
                 }
               });
               
-              console.log(`✅ ${driverOrders.length} order selesai ditemukan`);
-              
-              // Urutkan berdasarkan tanggal terbaru
               driverOrders.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
-            } else {
-              console.log('ℹ️ Tidak ada data order');
             }
             
             resolve();
           })
-          .catch((error) => {
-            console.error('❌ Error memuat orders:', error);
-            reject(error);
-          });
+          .catch(reject);
       });
     }
 
-    // Fungsi untuk memuat balance_history
+    // ==================== PERBAIKAN: HANYA BACA DARI drivers/{driverId}/transactions ====================
     function loadBalanceHistory() {
       return new Promise((resolve) => {
         if (!driverId) {
@@ -563,66 +451,30 @@
           return;
         }
 
-        console.log('💳 Memuat balance history...');
-        
-        const pathsToTry = [
-          'drivers/' + driverId + '/balance_history',
-          'users/' + driverId + '/balance_history',
-          'driver_transactions/' + driverId,
-          'transactions'
-        ];
-        
-        let promises = pathsToTry.map(path => 
-          database.ref(path).once('value')
-            .then(snapshot => ({ path, data: snapshot.val() }))
-            .catch(() => ({ path, data: null }))
-        );
-        
-        Promise.all(promises)
-          .then(results => {
-            for (let result of results) {
-              if (result.data && Object.keys(result.data).length > 0) {
-                console.log(`✅ Balance history ditemukan di: ${result.path}`);
-                
-                if (result.path === 'transactions') {
-                  // Filter hanya transaksi milik driver ini
-                  const driverTransactions = {};
-                  Object.entries(result.data).forEach(([key, trans]) => {
-                    if (trans.userId === driverId || trans.driverId === driverId) {
-                      driverTransactions[key] = trans;
-                    }
-                  });
-                  balanceHistory = driverTransactions;
-                } else {
-                  balanceHistory = result.data;
-                }
-                
-                console.log(`📊 ${Object.keys(balanceHistory).length} transaksi ditemukan`);
-                resolve();
-                return;
-              }
+        database.ref('drivers/' + driverId + '/transactions').once('value')
+          .then((snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+              balanceHistory = data;
+            } else {
+              balanceHistory = {};
             }
-            
-            console.log('ℹ️ Tidak ada balance history');
-            balanceHistory = {};
             resolve();
           })
-          .catch(error => {
-            console.error('❌ Error memuat balance history:', error);
+          .catch((error) => {
+            console.error('Error memuat transaksi:', error);
             balanceHistory = {};
             resolve();
           });
       });
     }
 
-    // Fungsi untuk menampilkan data di UI (TANPA RIWAYAT TRANSAKSI)
     function displayEarningsData() {
       const container = document.getElementById('mainContainer');
       
       const filteredOrders = filterOrdersByDateWITA(driverOrders, currentDate);
-      const filteredTransactions = getFilteredTransactionsForDate(); // masih digunakan untuk perhitungan potongan
       
-      if (filteredOrders.length === 0 && Object.keys(filteredTransactions).length === 0) {
+      if (filteredOrders.length === 0) {
         container.innerHTML = `
           <div class="date-navigation">
             <button class="nav-btn" id="prevBtn">‹</button>
@@ -632,9 +484,8 @@
             </div>
             <button class="nav-btn" id="nextBtn" disabled>›</button>
           </div>
-          
           <div class="empty-state">
-            <div class="empty-state-icon">💰</div>
+            <div class="empty-state-icon">📭</div>
             <h3 style="color: var(--primary); margin-bottom: 10px;">Tidak Ada Data</h3>
             <p>Tidak ada order yang diselesaikan pada tanggal ini.</p>
             <button class="nav-btn" id="retryBtn" style="margin-top: 15px; width: auto; padding: 8px 20px;">
@@ -666,7 +517,7 @@
         
         <div class="summary-grid">
           <div class="summary-card">
-            <div class="summary-icon">🚚</div>
+            <div class="summary-icon">📊</div>
             <div class="summary-label">Total Order</div>
             <div class="summary-value">${stats.totalOrders}</div>
           </div>
@@ -678,7 +529,7 @@
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon">⚡</div>
+            <div class="summary-icon">💰</div>
             <div class="summary-label">Rata-rata per KM</div>
             <div class="summary-value">Rp ${stats.averagePerKm.toLocaleString('id-ID')}</div>
           </div>
@@ -690,13 +541,13 @@
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon">💸</div>
+            <div class="summary-icon">📉</div>
             <div class="summary-label">Total Potongan</div>
             <div class="summary-value fees">Rp ${stats.totalFees.toLocaleString('id-ID')}</div>
           </div>
           
           <div class="summary-card">
-            <div class="summary-icon">📊</div>
+            <div class="summary-icon">⚖️</div>
             <div class="summary-label">Persentase Potongan</div>
             <div class="summary-value">${stats.feePercentage}%</div>
           </div>
@@ -733,17 +584,11 @@
         `;
       }
       
-      // Bagian Riwayat Transaksi TELAH DIHAPUS sesuai permintaan
-      
       container.innerHTML = html;
       
       initButtons();
       updateNavButtons();
     }
-
-    // ================================================
-    // FUNGSI BANTUAN
-    // ================================================
 
     function filterOrdersByDateWITA(orders, date) {
       const dateWITA = new Date(date.getTime() + (8 * 60 * 60 * 1000));
@@ -759,26 +604,6 @@
           return false;
         }
       });
-    }
-
-    function getFilteredTransactionsForDate() {
-      if (!balanceHistory || Object.keys(balanceHistory).length === 0) return {};
-      
-      const dateWITA = new Date(currentDate.getTime() + (8 * 60 * 60 * 1000));
-      const dateStringWITA = dateWITA.toISOString().split('T')[0];
-      
-      const filtered = {};
-      Object.entries(balanceHistory).forEach(([key, transaction]) => {
-        if (!transaction.timestamp) return;
-        try {
-          const transDate = new Date(transaction.timestamp);
-          const transDateWITA = new Date(transDate.getTime() + (8 * 60 * 60 * 1000));
-          if (transDateWITA.toISOString().split('T')[0] === dateStringWITA) {
-            filtered[key] = transaction;
-          }
-        } catch {}
-      });
-      return filtered;
     }
 
     function calculateStats(orders, selectedDate) {
@@ -852,7 +677,6 @@
       return dateWITA.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
     }
 
-    // ==================== NAVIGASI TANGGAL ====================
     function goToPreviousDay() {
       currentDate.setDate(currentDate.getDate() - 1);
       displayEarningsData();
@@ -891,7 +715,6 @@
       nextBtn.disabled = tomorrowWITA > todayWITA;
     }
 
-    // ==================== FUNGSI UI STATES ====================
     function showLoadingState() {
       const container = document.getElementById('mainContainer');
       container.innerHTML = `
@@ -924,7 +747,6 @@
       });
     }
 
-    // ==================== INISIALISASI TOMBOL ====================
     function initButtons() {
       document.getElementById('backBtn')?.addEventListener('click', goBack);
       document.getElementById('prevBtn')?.addEventListener('click', goToPreviousDay);
@@ -932,17 +754,10 @@
     }
 
     function goBack() {
-      if (window.AppInventor?.setWebViewString) {
-        try {
-          window.AppInventor.setWebViewString(JSON.stringify({ action: 'back_pressed', screen: 'earnings' }));
-        } catch {}
-      }
       window.location.href = 'akun.html';
     }
 
-    // ==================== INISIALISASI ====================
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('🚀 Halaman Ringkasan Pendapatan dimuat');
       currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
       loadEarningsData();
