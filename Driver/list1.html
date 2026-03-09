@@ -1944,22 +1944,25 @@
     let autobidEnabled = false, driverLocation = { latitude: null, longitude: null };
     let locationWatchId = null, locationTrackingEnabled = false;
     let mapboxAccessToken = null;
- function sendToKodular(action, message = '') {
-  const payload = JSON.stringify({
-    action: action,
-    message: message,
-    timestamp: new Date().toISOString()
-  });
-  
-  // Untuk Kodular (WebView) atau App Inventor
-  if (window.AppInventor?.setWebViewString) {
-    window.AppInventor.setWebViewString(payload);
-  } else if (window.android?.receiveData) {
-    window.android.receiveData(payload);
-  } else {
-    console.log('📤 Notifikasi ke Kodular:', payload);
-  }
-}
+    
+    // Fungsi kirim notifikasi ke Kodular
+    function sendToKodular(action, message = '') {
+      const payload = JSON.stringify({
+        action: action,
+        message: message,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Untuk Kodular (WebView) atau App Inventor
+      if (window.AppInventor?.setWebViewString) {
+        window.AppInventor.setWebViewString(payload);
+      } else if (window.android?.receiveData) {
+        window.android.receiveData(payload);
+      } else {
+        console.log('📤 Notifikasi ke Kodular:', payload);
+      }
+    }
+
     // Variabel countdown
     let countdownInterval = null;
     let countdownOrderId = null;
@@ -2042,91 +2045,92 @@
     }
 
     // ==================== FUNGSI UTAMA ====================
-function loadOrders() {
-  const ordersList = document.getElementById('ordersList');
-  if (!ordersList) return;
-  ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  if (!checkDriverData() || !database) return;
-  if (ordersListener && ordersRef) ordersRef.off('value', ordersListener);
-  ordersRef = database.ref('orders');
-  ordersListener = ordersRef.on('value', (snapshot) => {
-    const orders = snapshot.val();
-    ordersList.innerHTML = '';
-    if (!orders || Object.keys(orders).length === 0) {
-      ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order saat ini</p></div>';
-      sendToKodular('orders_empty', 'Tidak ada order sama sekali');
-      return;
-    }
-
-    const driverVehicleType = currentDriverData?.vehicleType;
-    if (!driverVehicleType) {
-      ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Data kendaraan driver tidak ditemukan. Silakan daftar ulang.</p></div>';
-      return;
-    }
-
-    const allOrders = Object.entries(orders)
-      .map(([id, order]) => ({ id, ...order }))
-      .filter(order => order.status === 'searching');
-
-    // Filter berdasarkan preferensi kurir
-    const filteredOrders = allOrders.filter(order => {
-      if (acceptKurirEnabled) {
-        if (driverVehicleType === 'motor') {
-          return order.vehicle === 'motor' || order.vehicle === 'kurir_motor';
+    function loadOrders() {
+      const ordersList = document.getElementById('ordersList');
+      if (!ordersList) return;
+      ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      if (!checkDriverData() || !database) return;
+      if (ordersListener && ordersRef) ordersRef.off('value', ordersListener);
+      ordersRef = database.ref('orders');
+      ordersListener = ordersRef.on('value', (snapshot) => {
+        const orders = snapshot.val();
+        ordersList.innerHTML = '';
+        if (!orders || Object.keys(orders).length === 0) {
+          ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order saat ini</p></div>';
+          sendToKodular('orders_empty', 'Tidak ada order sama sekali');
+          return;
         }
-        if (driverVehicleType === 'bentor') {
-          return order.vehicle === 'bentor' || order.vehicle === 'kurir_bentor';
+
+        const driverVehicleType = currentDriverData?.vehicleType;
+        if (!driverVehicleType) {
+          ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Data kendaraan driver tidak ditemukan. Silakan daftar ulang.</p></div>';
+          return;
         }
-        return order.vehicle === driverVehicleType;
-      } else {
-        return order.vehicle === driverVehicleType;
-      }
-    });
 
-    // Deteksi order baru
-    const newOrderIds = new Set(filteredOrders.map(o => o.id));
-    const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
-    previousOrderIds = newOrderIds;
+        const allOrders = Object.entries(orders)
+          .map(([id, order]) => ({ id, ...order }))
+          .filter(order => order.status === 'searching');
 
-    // Kirim notifikasi ke Kodular untuk setiap order baru
-    addedOrders.forEach(order => {
-      const payload = JSON.stringify({
-        action: 'new_order',
-        orderId: order.id,
-        message: 'Order baru masuk'
+        // Filter berdasarkan preferensi kurir
+        const filteredOrders = allOrders.filter(order => {
+          if (acceptKurirEnabled) {
+            if (driverVehicleType === 'motor') {
+              return order.vehicle === 'motor' || order.vehicle === 'kurir_motor';
+            }
+            if (driverVehicleType === 'bentor') {
+              return order.vehicle === 'bentor' || order.vehicle === 'kurir_bentor';
+            }
+            return order.vehicle === driverVehicleType;
+          } else {
+            return order.vehicle === driverVehicleType;
+          }
+        });
+
+        // Deteksi order baru
+        const newOrderIds = new Set(filteredOrders.map(o => o.id));
+        const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
+        previousOrderIds = newOrderIds;
+
+        // Kirim notifikasi ke Kodular untuk setiap order baru
+        addedOrders.forEach(order => {
+          const payload = JSON.stringify({
+            action: 'new_order',
+            orderId: order.id,
+            message: 'Order baru masuk'
+          });
+          if (window.AppInventor?.setWebViewString) {
+            window.AppInventor.setWebViewString(payload);
+          } else if (window.android?.receiveData) {
+            window.android.receiveData(payload);
+          }
+
+          // Cek jarak dan tampilkan modal jika <3 km
+          if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
+            const dist = calculateDistance(
+              driverLocation.latitude, driverLocation.longitude,
+              order.from_lat, order.from_lng
+            );
+            if (dist !== null && dist < 3) {
+              showOrderDetail(order, true);
+            }
+          }
+        });
+
+        if (filteredOrders.length === 0) {
+          let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
+          if (acceptKurirEnabled) msg += ' (termasuk kurir)';
+          ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>${msg}</p></div>`;
+          sendToKodular('no_matching_orders', msg);   // <--- TAMBAHKAN INI
+          return;
+        }
+
+        const sortedOrders = filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        renderOrdersList(sortedOrders, ordersList);
+      }, (error) => {
+        console.error('❌ Error loading orders:', error);
+        ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Gagal terhubung ke server</p></div>';
       });
-      if (window.AppInventor?.setWebViewString) {
-        window.AppInventor.setWebViewString(payload);
-      } else if (window.android?.receiveData) {
-        window.android.receiveData(payload);
-      }
-
-      // Cek jarak dan tampilkan modal jika <3 km
-      if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
-        const dist = calculateDistance(
-          driverLocation.latitude, driverLocation.longitude,
-          order.from_lat, order.from_lng
-        );
-        if (dist !== null && dist < 3) {
-          showOrderDetail(order, true);
-        }
-      }
-    });
-
-    if (filteredOrders.length === 0) {
-      let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
-      if (acceptKurirEnabled) msg += ' (termasuk kurir)';
-      ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>${msg}</p></div>`;
-      return;
     }
-
-    const sortedOrders = filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    renderOrdersList(sortedOrders, ordersList);
-  }, (error) => {
-    console.error('❌ Error loading orders:', error);
-    ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Gagal terhubung ke server</p></div>';
-  });
-}
 
     function renderOrdersList(orders, ordersList) {
       orders.forEach(order => {
@@ -2403,18 +2407,18 @@ function loadOrders() {
       if (!currentSelectedOrder || !currentDriverId || !checkDriverData()) return;
       
        // ===== CEK SALDO =====
-  const hargaTotal = currentSelectedOrder.harga_total || 0;
-  const requiredBalance = hargaTotal * 0.1; // 10% dari tarif
-  const driverBalance = currentDriverData.balance || 0;
+      const hargaTotal = currentSelectedOrder.harga_total || 0;
+      const requiredBalance = hargaTotal * 0.1; // 10% dari tarif
+      const driverBalance = currentDriverData.balance || 0;
 
-  if (driverBalance < requiredBalance) {
-    showPopup(
-      'Saldo Tidak Cukup',
-      `Saldo Anda Rp ${driverBalance.toLocaleString('id-ID')} tidak mencukupi untuk membayar 10% dari tarif (Rp ${requiredBalance.toLocaleString('id-ID')}).`,
-      'warning'
-    );
-    return;
-  }
+      if (driverBalance < requiredBalance) {
+        showPopup(
+          'Saldo Tidak Cukup',
+          `Saldo Anda Rp ${driverBalance.toLocaleString('id-ID')} tidak mencukupi untuk membayar 10% dari tarif (Rp ${requiredBalance.toLocaleString('id-ID')}).`,
+          'warning'
+        );
+        return;
+      }
       const orderId = currentSelectedOrder.order_id || currentSelectedOrder.id;
       const driverId = currentDriverId;
       const ambilBtn = document.getElementById('ambilBtn');
@@ -2534,31 +2538,31 @@ function loadOrders() {
         }
 
         if (order.status === 'accepted') {
-  const acceptedDriverId = order.selected_driver?.id || order.driver?.id;
-  if (acceptedDriverId === driverId) {
-    stopCountdown();
-    showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
-    localStorage.setItem('jego_driver_active_order', orderId);
+          const acceptedDriverId = order.selected_driver?.id || order.driver?.id;
+          if (acceptedDriverId === driverId) {
+            stopCountdown();
+            showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
+            localStorage.setItem('jego_driver_active_order', orderId);
 
-    // Kirim notifikasi ke Kodular
-    const acceptedPayload = JSON.stringify({
-      action: 'order_accepted',
-      orderId: orderId
-    });
-    if (window.AppInventor?.setWebViewString) {
-      window.AppInventor.setWebViewString(acceptedPayload);
-    } else if (window.android?.receiveData) {
-      window.android.receiveData(acceptedPayload);
-    }
+            // Kirim notifikasi ke Kodular
+            const acceptedPayload = JSON.stringify({
+              action: 'order_accepted',
+              orderId: orderId
+            });
+            if (window.AppInventor?.setWebViewString) {
+              window.AppInventor.setWebViewString(acceptedPayload);
+            } else if (window.android?.receiveData) {
+              window.android.receiveData(acceptedPayload);
+            }
 
-    setTimeout(() => {
-      window.location.href = 'orderAccepted.html?id=' + orderId;
-    }, 1500);
-  } else {
-    stopCountdown();
-    showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
-    closeModal();
-  }
+            setTimeout(() => {
+              window.location.href = 'orderAccepted.html?id=' + orderId;
+            }, 1500);
+          } else {
+            stopCountdown();
+            showPopup('Info', 'Order sudah diambil driver lain.', 'warning');
+            closeModal();
+          }
         } else if (order.status !== 'searching') {
           stopCountdown();
           showPopup('Info', 'Status order berubah.', 'info');
