@@ -11,8 +11,6 @@
       --accent: #FFC107;
       --light: #f8f9fa;
       --dark: #343a40;
-      --success: #4CAF50;
-      --danger: #f44336;
     }
 
     * {
@@ -152,6 +150,13 @@
       font-size: 0.85rem;
     }
 
+    #statusMessage {
+      margin-top: 20px;
+      color: #666;
+      font-size: 0.9rem;
+      min-height: 24px;
+    }
+
     @media (max-width: 480px) {
       .role-options {
         flex-direction: column;
@@ -193,6 +198,9 @@
           <p>Dapatkan order dan mulailah menghasilkan</p>
         </div>
       </div>
+
+      <!-- Status pengiriman ke Kodular -->
+      <div id="statusMessage"></div>
     </div>
   </div>
 
@@ -201,16 +209,47 @@
   </div>
 
   <script>
-    // Fungsi untuk navigasi ke halaman login sesuai peran
-    document.getElementById('penumpangBtn').addEventListener('click', function() {
-      // Redirect ke halaman login penumpang
-      window.location.href = 'loginUser.html';
-    });
+    (function() {
+      const statusEl = document.getElementById('statusMessage');
 
-    document.getElementById('driverBtn').addEventListener('click', function() {
-      // Redirect ke halaman login driver
-      window.location.href = 'loginDriver.html';
-    });
+      /**
+       * Mengirim pilihan peran ke Kodular/App Inventor melalui WebViewString.
+       * @param {string} role - 'penumpang' atau 'driver'
+       */
+      function sendToKodular(role) {
+        // Cek apakah berada di dalam lingkungan Kodular (biasanya ada window.AppInventor)
+        if (window.AppInventor) {
+          // Metode resmi App Inventor: setWebViewString(value)
+          if (typeof window.AppInventor.setWebViewString === 'function') {
+            window.AppInventor.setWebViewString(role);
+            statusEl.innerText = 'Pilihan terkirim, mohon tunggu...';
+          } 
+          // Alternatif: mengubah properti webViewString langsung (juga berfungsi di beberapa versi)
+          else if (window.AppInventor.webViewString !== undefined) {
+            window.AppInventor.webViewString = role;
+            statusEl.innerText = 'Pilihan terkirim, mohon tunggu...';
+          } else {
+            // Objek AppInventor ada tapi tidak memiliki properti yang diharapkan
+            statusEl.innerText = 'Lingkungan Kodular terdeteksi tetapi tidak dapat mengirim.';
+          }
+        } else {
+          // Fallback saat diuji di browser biasa (bukan di dalam WebView Kodular)
+          statusEl.innerText = `Anda memilih: ${role} (simulasi, karena tidak terdeteksi lingkungan Kodular)`;
+          // Opsional: bisa tambahkan redirect untuk memudahkan pengujian di browser
+          // window.location.href = role === 'penumpang' ? 'loginUser.html' : 'loginDriver.html';
+        }
+      }
+
+      // Event listener untuk tombol penumpang
+      document.getElementById('penumpangBtn').addEventListener('click', function() {
+        sendToKodular('penumpang');
+      });
+
+      // Event listener untuk tombol driver
+      document.getElementById('driverBtn').addEventListener('click', function() {
+        sendToKodular('driver');
+      });
+    })();
   </script>
 </body>
 </html>
