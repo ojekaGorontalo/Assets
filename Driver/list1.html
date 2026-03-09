@@ -1944,7 +1944,22 @@
     let autobidEnabled = false, driverLocation = { latitude: null, longitude: null };
     let locationWatchId = null, locationTrackingEnabled = false;
     let mapboxAccessToken = null;
-
+ function sendToKodular(action, message = '') {
+  const payload = JSON.stringify({
+    action: action,
+    message: message,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Untuk Kodular (WebView) atau App Inventor
+  if (window.AppInventor?.setWebViewString) {
+    window.AppInventor.setWebViewString(payload);
+  } else if (window.android?.receiveData) {
+    window.android.receiveData(payload);
+  } else {
+    console.log('📤 Notifikasi ke Kodular:', payload);
+  }
+}
     // Variabel countdown
     let countdownInterval = null;
     let countdownOrderId = null;
@@ -2027,95 +2042,91 @@
     }
 
     // ==================== FUNGSI UTAMA ====================
-    function loadOrders() {
-      const ordersList = document.getElementById('ordersList');
-      if (!ordersList) return;
-      ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-      if (!checkDriverData() || !database) return;
-      if (ordersListener && ordersRef) ordersRef.off('value', ordersListener);
-      ordersRef = database.ref('orders');
-      ordersListener = ordersRef.on('value', (snapshot) => {
-        const orders = snapshot.val();
-        ordersList.innerHTML = '';
-        if (!orders || Object.keys(orders).length === 0) {
-          ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order saat ini</p></div>';
-          return;
-        }
-
-        const driverVehicleType = currentDriverData?.vehicleType;
-        if (!driverVehicleType) {
-          ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Data kendaraan driver tidak ditemukan. Silakan daftar ulang.</p></div>';
-          return;
-        }
-
-        const allOrders = Object.entries(orders)
-          .map(([id, order]) => ({ id, ...order }))
-          .filter(order => order.status === 'searching');
-
-        // Filter berdasarkan preferensi kurir
-        const filteredOrders = allOrders.filter(order => {
-          if (acceptKurirEnabled) {
-            // Jika driver motor, terima motor dan kurir_motor
-            if (driverVehicleType === 'motor') {
-              return order.vehicle === 'motor' || order.vehicle === 'kurir_motor';
-            }
-            // Jika driver bentor, terima bentor dan kurir_bentor
-            if (driverVehicleType === 'bentor') {
-              return order.vehicle === 'bentor' || order.vehicle === 'kurir_bentor';
-            }
-            // Untuk tipe lain (misal mobil) tetap sama persis
-            return order.vehicle === driverVehicleType;
-          } else {
-            // Hanya terima yang sama persis
-            return order.vehicle === driverVehicleType;
-          }
-        });
-
-        // Deteksi order baru
-        const newOrderIds = new Set(filteredOrders.map(o => o.id));
-        const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
-        previousOrderIds = newOrderIds;
-
-        // Kirim notifikasi ke Kodular untuk setiap order baru
-        addedOrders.forEach(order => {
-          const payload = JSON.stringify({
-            action: 'new_order',
-            orderId: order.id,
-            message: 'Order baru masuk'
-          });
-          if (window.AppInventor?.setWebViewString) {
-            window.AppInventor.setWebViewString(payload);
-          } else if (window.android?.receiveData) {
-            window.android.receiveData(payload);
-          }
-
-          // Cek jarak dan tampilkan modal jika <3 km
-          if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
-            const dist = calculateDistance(
-              driverLocation.latitude, driverLocation.longitude,
-              order.from_lat, order.from_lng
-            );
-            if (dist !== null && dist < 3) {
-              // Tampilkan modal detail order dengan fromAuto = true (karena muncul otomatis)
-              showOrderDetail(order, true);
-            }
-          }
-        });
-
-        if (filteredOrders.length === 0) {
-          let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
-          if (acceptKurirEnabled) msg += ' (termasuk kurir)';
-          ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>${msg}</p></div>`;
-          return;
-        }
-
-        const sortedOrders = filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-        renderOrdersList(sortedOrders, ordersList);
-      }, (error) => {
-        console.error('❌ Error loading orders:', error);
-        ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Gagal terhubung ke server</p></div>';
-      });
+function loadOrders() {
+  const ordersList = document.getElementById('ordersList');
+  if (!ordersList) return;
+  ordersList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  if (!checkDriverData() || !database) return;
+  if (ordersListener && ordersRef) ordersRef.off('value', ordersListener);
+  ordersRef = database.ref('orders');
+  ordersListener = ordersRef.on('value', (snapshot) => {
+    const orders = snapshot.val();
+    ordersList.innerHTML = '';
+    if (!orders || Object.keys(orders).length === 0) {
+      ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order saat ini</p></div>';
+      sendToKodular('orders_empty', 'Tidak ada order sama sekali');
+      return;
     }
+
+    const driverVehicleType = currentDriverData?.vehicleType;
+    if (!driverVehicleType) {
+      ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Data kendaraan driver tidak ditemukan. Silakan daftar ulang.</p></div>';
+      return;
+    }
+
+    const allOrders = Object.entries(orders)
+      .map(([id, order]) => ({ id, ...order }))
+      .filter(order => order.status === 'searching');
+
+    // Filter berdasarkan preferensi kurir
+    const filteredOrders = allOrders.filter(order => {
+      if (acceptKurirEnabled) {
+        if (driverVehicleType === 'motor') {
+          return order.vehicle === 'motor' || order.vehicle === 'kurir_motor';
+        }
+        if (driverVehicleType === 'bentor') {
+          return order.vehicle === 'bentor' || order.vehicle === 'kurir_bentor';
+        }
+        return order.vehicle === driverVehicleType;
+      } else {
+        return order.vehicle === driverVehicleType;
+      }
+    });
+
+    // Deteksi order baru
+    const newOrderIds = new Set(filteredOrders.map(o => o.id));
+    const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
+    previousOrderIds = newOrderIds;
+
+    // Kirim notifikasi ke Kodular untuk setiap order baru
+    addedOrders.forEach(order => {
+      const payload = JSON.stringify({
+        action: 'new_order',
+        orderId: order.id,
+        message: 'Order baru masuk'
+      });
+      if (window.AppInventor?.setWebViewString) {
+        window.AppInventor.setWebViewString(payload);
+      } else if (window.android?.receiveData) {
+        window.android.receiveData(payload);
+      }
+
+      // Cek jarak dan tampilkan modal jika <3 km
+      if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
+        const dist = calculateDistance(
+          driverLocation.latitude, driverLocation.longitude,
+          order.from_lat, order.from_lng
+        );
+        if (dist !== null && dist < 3) {
+          showOrderDetail(order, true);
+        }
+      }
+    });
+
+    if (filteredOrders.length === 0) {
+      let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
+      if (acceptKurirEnabled) msg += ' (termasuk kurir)';
+      ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>${msg}</p></div>`;
+      return;
+    }
+
+    const sortedOrders = filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    renderOrdersList(sortedOrders, ordersList);
+  }, (error) => {
+    console.error('❌ Error loading orders:', error);
+    ordersList.innerHTML = '<div class="empty-state"><div>⚠️</div><p>Gagal terhubung ke server</p></div>';
+  });
+}
 
     function renderOrdersList(orders, ordersList) {
       orders.forEach(order => {
