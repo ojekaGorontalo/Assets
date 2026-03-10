@@ -1,0 +1,143 @@
+/* radar.css - Gaya untuk animasi radar (diambil dari radar.html) */
+:root {
+  --primary: #FF9800;        /* Orange utama */
+  --secondary: #FFB74D;      /* Orange lebih terang */
+  --accent: #FF5722;         /* Orange tua untuk aksen */
+}
+
+#radarContainer {
+  position: fixed;
+  top: 70px;                 /* Sama dengan tinggi header */
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 130px); /* 100vh - header(70px) - bottom-nav(60px) */
+  background: linear-gradient(135deg, #06141f 0%, #0a1a2a 100%);
+  display: none;             /* Awalnya disembunyikan, akan ditampilkan lewat class body */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 90;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* Saat body memiliki class radar-active, tampilkan radar */
+body.radar-active #radarContainer {
+  display: flex !important;
+}
+
+/* Radar utama */
+.radar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 180vmin;
+  height: 180vmin;
+  border-radius: 50%;
+  border: 4px solid var(--primary);
+  box-shadow: 0 0 60px var(--primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Lingkaran konsentris */
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+}
+
+.c1 { width: 80%; height: 80%; }
+.c2 { width: 60%; height: 60%; }
+.c3 { width: 40%; height: 40%; }
+.c4 { width: 20%; height: 20%; }
+
+/* Garis pemindai */
+.scan {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), transparent);
+  transform-origin: left center;
+  animation: spin 3s linear infinite;
+  border-radius: 3px;
+  filter: drop-shadow(0 0 15px var(--primary));
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Titik-titik penumpang */
+.dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 50%;
+  box-shadow: 0 0 15px var(--primary);
+  animation: blink 1.5s infinite alternate;
+}
+
+@keyframes blink {
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+
+.dot1 { top: 20%; left: 80%; }
+.dot2 { top: 75%; left: 25%; }
+.dot3 { top: 30%; left: 30%; }
+.dot4 { top: 70%; left: 70%; }
+.dot5 { top: 85%; left: 50%; }
+
+/* Teks bergantian */
+.radar-text {
+  position: absolute;
+  top: 12%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: var(--primary);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-shadow: 0 0 15px var(--primary);
+  z-index: 20;
+  animation: fade 2s infinite;
+  transform: translateY(-50%);
+}
+
+@keyframes fade {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
+}
+
+/* Media queries untuk layar kecil */
+@media (max-width: 768px) {
+  #radarContainer {
+    top: 65px;
+    height: calc(100vh - 125px);
+  }
+  .radar-text { font-size: 18px; }
+  .radar { width: 170vmin; height: 170vmin; }
+}
+
+@media (max-width: 576px) {
+  #radarContainer {
+    top: 60px;
+    height: calc(100vh - 114px);
+  }
+  .radar-text { font-size: 16px; top: 10%; }
+  .radar { width: 160vmin; height: 160vmin; }
+  .dot { width: 8px; height: 8px; }
+}
