@@ -10,7 +10,10 @@
   <!-- Mapbox GL -->
   <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+  <!-- Radar CSS (baru) -->
+  <link rel="stylesheet" href="radar.css">
   <style>
+    /* ==================== CSS LAMA (tetap dipertahankan, kecuali bagian radar yang sudah dipindah) ==================== */
     :root {
       --primary: #FF9800;        /* Orange utama */
       --secondary: #FFB74D;      /* Orange lebih terang */
@@ -38,227 +41,9 @@
       overflow-x: hidden;
     }
 
-    /* ==================== FIX BACKGROUND RADAR ==================== */
-    body.radar-active {
-      background: linear-gradient(135deg, #ff6b35 0%, #ff8e53 100%) !important;
-      overflow: hidden;
-    }
-
+    /* Class untuk menampilkan radar (tanpa mengganggu tata letak lain) */
     body.radar-active .container {
       display: none !important;
-    }
-
-    /* ==================== RADAR CONTAINER FIXED FULLSCREEN ==================== */
-    #radarContainer {
-      position: fixed;
-      top: 70px; /* Sama dengan tinggi header */
-      left: 0;
-      width: 100%;
-      height: calc(100vh - 130px); /* 100vh - header(70px) - bottom-nav(60px) */
-      background: linear-gradient(135deg, #ff6b35 0%, #ff8e53 100%);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 90; /* DIBAWAH HEADER (100) DAN BOTTOM NAV (99) */
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-      border: none;
-      box-shadow: none;
-    }
-
-    /* Radar Main Container */
-    .radar-main {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
-    .radar-circle {
-      position: relative;
-      width: 95vmin;
-      height: 95vmin;
-      max-width: 95%;
-      max-height: 95%;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 
-        0 0 60px rgba(255, 107, 53, 0.3),
-        inset 0 0 40px rgba(255, 255, 255, 0.05);
-      overflow: hidden;
-    }
-
-    .concentric-circle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transform: translate(-50%, -50%);
-    }
-
-    .circle-1 { width: 80%; height: 80%; }
-    .circle-2 { width: 60%; height: 60%; }
-    .circle-3 { width: 40%; height: 40%; }
-
-    .radar-axis {
-      position: absolute;
-      background: rgba(255, 255, 255, 0.1);
-      transform-origin: center;
-    }
-
-    .axis-horizontal { width: 100%; height: 1px; top: 50%; left: 0; }
-    .axis-vertical { width: 1px; height: 100%; top: 0; left: 50%; }
-    .axis-diagonal-1 {
-      width: 140%; height: 1px; top: 50%; left: -20%; transform: rotate(45deg);
-    }
-    .axis-diagonal-2 {
-      width: 140%; height: 1px; top: 50%; left: -20%; transform: rotate(-45deg);
-    }
-
-    .radar-sweep {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      animation: radarSpin 3s linear infinite;
-    }
-
-    .sweep-line {
-      position: absolute;
-      width: 50%;
-      height: 2px;
-      top: 50%;
-      left: 50%;
-      background: linear-gradient(90deg, 
-        rgba(255, 255, 255, 0) 0%, 
-        rgba(255, 255, 255, 0.8) 50%, 
-        rgba(255, 107, 53, 0.8) 100%);
-      transform-origin: left center;
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
-    }
-
-    .sweep-dot {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #FF9800;
-      top: 50%;
-      left: 100%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 20px #FF9800;
-    }
-
-    .radar-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 30px;
-      height: 30px;
-      z-index: 5;
-    }
-
-    .center-dot {
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #FFFFFF;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 20px #FFFFFF;
-    }
-
-    .center-pulse {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.6);
-      transform: translate(-50%, -50%);
-      animation: centerPulse 2s ease-out infinite;
-    }
-
-    .pulse-1 { width: 40px; height: 40px; animation-delay: 0s; }
-    .pulse-2 { width: 60px; height: 60px; animation-delay: 0.5s; }
-
-    .radar-point {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #4CAF50, #8BC34A);
-      box-shadow: 0 0 15px #4CAF50;
-      animation: pointBlink 2s ease-in-out infinite;
-      z-index: 2;
-    }
-
-    .point-1 { top: 30%; left: 30%; animation-delay: 0s; }
-    .point-2 { top: 40%; left: 70%; animation-delay: 0.3s; }
-    .point-3 { top: 65%; left: 25%; animation-delay: 0.6s; }
-    .point-4 { top: 75%; left: 60%; animation-delay: 0.9s; }
-
-    .radar-status {
-      text-align: center;
-      padding: 20px;
-      color: white;
-      z-index: 3;
-      margin-top: 20px;
-    }
-
-    .radar-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: white;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    .radar-subtitle {
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.8);
-      margin-bottom: 15px;
-    }
-
-    .radar-loading {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .loading-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.8);
-      animation: loadingBounce 1.4s ease-in-out infinite;
-    }
-
-    .dot-1 { animation-delay: 0s; }
-    .dot-2 { animation-delay: 0.2s; }
-    .dot-3 { animation-delay: 0.4s; }
-
-    @keyframes radarSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes centerPulse {
-      0% { width: 20px; height: 20px; opacity: 1; }
-      100% { width: 80px; height: 80px; opacity: 0; }
-    }
-    @keyframes pointBlink {
-      0%, 100% { opacity: 0.3; transform: scale(0.8); }
-      50% { opacity: 1; transform: scale(1.1); }
-    }
-    @keyframes loadingBounce {
-      0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
-      40% { transform: translateY(-10px); opacity: 1; }
     }
 
     /* ==================== HEADER STYLES ==================== */
@@ -1501,40 +1286,10 @@
       z-index: 3000;
     }
 
-    /* ==================== FIX BACKGROUND LEAK ==================== */
-    body.radar-active::before {
-      content: '';
-      position: fixed;
-      top: 70px;
-      left: 0;
-      width: 100%;
-      height: calc(100vh - 130px);
-      background: linear-gradient(135deg, #ff6b35 0%, #ff8e53 100%);
-      z-index: 89;
-      pointer-events: none;
-    }
-
-    body.radar-active .orders-list,
-    body.radar-active .empty-state,
-    body.radar-active .loading {
-      display: none !important;
-    }
-
+    /* Hapus atau biarkan saja style radar lama yang tidak dipakai */
     /* ==================== MEDIA QUERIES ==================== */
     @media (max-width: 768px) {
       body { font-size: 0.8rem; }
-      #radarContainer { top: 65px; height: calc(100vh - 125px); }
-      body.radar-active::before { top: 65px; height: calc(100vh - 125px); }
-      .radar-circle { width: 90vmin; height: 90vmin; max-width: 90%; max-height: 90%; }
-      .radar-title { font-size: 1.2rem; }
-      .radar-subtitle { font-size: 0.85rem; }
-      .order-item { padding: 10px; }
-      .route-info-with-photo { gap: 7px; }
-      .order-details { font-size: 0.75rem; grid-template-columns: repeat(4, 1fr); }
-      .detail-value { font-size: 0.7rem; }
-      .detail-label { font-size: 0.6rem; }
-      .modal-content { width: 98%; max-height: 95vh; }
-      .modal-map { height: 40vh; min-height: 180px; max-height: 250px; }
       .location-toggle-btn, .autobid-btn, .refresh-btn { padding: 6px 12px; font-size: 0.75rem; }
       .bottom-nav { padding: 8px 0; height: 56px; }
       .nav-icon { font-size: 1.1rem; }
@@ -1553,18 +1308,11 @@
       .customer-name-left { font-size: 0.58rem; }
       .customer-rating { font-size: 0.53rem; }
       .order-time { font-size: 0.48rem; }
-      .radar-point { width: 12px; height: 12px; }
-      .sweep-dot { width: 10px; height: 10px; }
     }
 
     @media (max-width: 576px) {
       body { padding-bottom: 60px; }
       .container { padding: 10px; }
-      #radarContainer { top: 60px; height: calc(100vh - 114px); }
-      body.radar-active::before { top: 60px; height: calc(100vh - 114px); }
-      .radar-circle { width: 88vmin; height: 88vmin; max-width: 88%; max-height: 88%; }
-      .radar-title { font-size: 1.1rem; }
-      .radar-subtitle { font-size: 0.8rem; }
       .header { height: 60px; padding: 12px 15px; }
       .order-details { grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 0.7rem; }
       .detail-value { font-size: 0.65rem; }
@@ -1595,8 +1343,6 @@
       .large-customer-photo { max-width: 200px; }
       .customer-rating { font-size: 0.52rem; }
       .order-time { font-size: 0.48rem; }
-      .radar-point { width: 10px; height: 10px; }
-      .sweep-dot { width: 8px; height: 8px; }
     }
   </style>
 </head>
@@ -1645,40 +1391,20 @@
     </div>
   </div>
 
-  <!-- Radar Container (animasi pencarian) -->
+  <!-- Radar Container (baru, dari radar.html) -->
   <div id="radarContainer">
-    <div class="radar-main">
-      <div class="radar-circle">
-        <div class="concentric-circle circle-1"></div>
-        <div class="concentric-circle circle-2"></div>
-        <div class="concentric-circle circle-3"></div>
-        <div class="radar-axis axis-horizontal"></div>
-        <div class="radar-axis axis-vertical"></div>
-        <div class="radar-axis axis-diagonal-1"></div>
-        <div class="radar-axis axis-diagonal-2"></div>
-        <div class="radar-sweep">
-          <div class="sweep-line"></div>
-          <div class="sweep-dot"></div>
-        </div>
-        <div class="radar-center">
-          <div class="center-dot"></div>
-          <div class="center-pulse pulse-1"></div>
-          <div class="center-pulse pulse-2"></div>
-        </div>
-        <div class="radar-point point-1"></div>
-        <div class="radar-point point-2"></div>
-        <div class="radar-point point-3"></div>
-        <div class="radar-point point-4"></div>
-      </div>
-    </div>
-    <div class="radar-status">
-      <div class="radar-title">Mencari Driver Terdekat</div>
-      <div class="radar-subtitle">Memindai area sekitar...</div>
-      <div class="radar-loading">
-        <div class="loading-dot dot-1"></div>
-        <div class="loading-dot dot-2"></div>
-        <div class="loading-dot dot-3"></div>
-      </div>
+    <div class="radar">
+      <div class="circle c1"></div>
+      <div class="circle c2"></div>
+      <div class="circle c3"></div>
+      <div class="circle c4"></div>
+      <div class="scan"></div>
+      <div class="dot dot1"></div>
+      <div class="dot dot2"></div>
+      <div class="dot dot3"></div>
+      <div class="dot dot4"></div>
+      <div class="dot dot5"></div>
+      <div class="radar-text" id="rotatingText">Mencari di area yang lebih luas...</div>
     </div>
   </div>
 
@@ -1979,6 +1705,9 @@
     // Untuk menyimpan marker map
     let mapMarkers = [];
 
+    // Variabel untuk animasi teks radar
+    let radarTextInterval;
+
     // ==================== FUNGSI HAVERSINE ====================
     function calculateDistance(lat1, lon1, lat2, lon2) {
       if (!lat1 || !lon1 || !lat2 || !lon2) return null;
@@ -2044,6 +1773,34 @@
       }
     }
 
+    // ==================== FUNGSI RADAR TEXT ====================
+    function startRadarTextAnimation() {
+      const texts = [
+        "Mencari di area yang lebih luas...",
+        "Mencari Penumpang Terdekat…",
+        "Mencari Order di Sekitar Anda…",
+        "Memindai Area Sekitar…",
+        "Menunggu Permintaan Perjalanan…",
+        "Sedang Mencari Order…"
+      ];
+      let index = 0;
+      const textElement = document.getElementById('rotatingText');
+      if (!textElement) return;
+      // Hentikan interval sebelumnya jika ada
+      if (radarTextInterval) clearInterval(radarTextInterval);
+      radarTextInterval = setInterval(() => {
+        index = (index + 1) % texts.length;
+        textElement.textContent = texts[index];
+      }, 2000);
+    }
+
+    function stopRadarTextAnimation() {
+      if (radarTextInterval) {
+        clearInterval(radarTextInterval);
+        radarTextInterval = null;
+      }
+    }
+
     // ==================== FUNGSI UTAMA ====================
     function loadOrders() {
       const ordersList = document.getElementById('ordersList');
@@ -2056,7 +1813,9 @@
         const orders = snapshot.val();
         ordersList.innerHTML = '';
         if (!orders || Object.keys(orders).length === 0) {
-          ordersList.innerHTML = '<div class="empty-state"><div>📭</div><p>Tidak ada permintaan order saat ini</p></div>';
+          // Tampilkan radar
+          document.body.classList.add('radar-active');
+          startRadarTextAnimation();
           sendToKodular('orders_empty', 'Tidak ada order sama sekali');
           return;
         }
@@ -2117,11 +1876,17 @@
         });
 
         if (filteredOrders.length === 0) {
+          // Tampilkan radar
+          document.body.classList.add('radar-active');
+          startRadarTextAnimation();
           let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
           if (acceptKurirEnabled) msg += ' (termasuk kurir)';
-          ordersList.innerHTML = `<div class="empty-state"><div>🛵</div><p>${msg}</p></div>`;
-          sendToKodular('no_matching_orders', msg);   // <--- TAMBAHKAN INI
+          sendToKodular('no_matching_orders', msg);
           return;
+        } else {
+          // Sembunyikan radar
+          document.body.classList.remove('radar-active');
+          stopRadarTextAnimation();
         }
 
         const sortedOrders = filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -2795,6 +2560,7 @@
 
     window.addEventListener('beforeunload', () => {
       if (locationWatchId) navigator.geolocation.clearWatch(locationWatchId);
+      stopRadarTextAnimation();
     });
   </script>
 </body>
