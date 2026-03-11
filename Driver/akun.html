@@ -1449,41 +1449,42 @@
     // FUNGSI LOAD ORDERS (DIPERBAIKI)
     // ================================================
     async function loadDriverOrders(uid) {
-      try {
-        const ordersSnap = await database.ref('orders').once('value');
-        const ordersData = ordersSnap.val();
-        driverOrders = [];
-        
-        if (ordersData) {
-          Object.entries(ordersData).forEach(([orderId, order]) => {
-            // Deteksi apakah order milik driver ini (dari berbagai kemungkinan field)
-            const isDriverOrder = 
-              (order.selected_driver && 
-                (order.selected_driver.id === uid || 
-                 order.selected_driver.driver_id === uid)) ||
-              (order.driver && 
-                (order.driver.id === uid || 
-                 order.driver.driver_id === uid)) ||
-              order.driverId === uid ||
-              order.driver_id === uid;
+  try {
+    const ordersSnap = await database.ref('orders').once('value');
+    const ordersData = ordersSnap.val();
+    driverOrders = [];
+    
+    if (ordersData) {
+      Object.entries(ordersData).forEach(([orderId, order]) => {
+        // Deteksi apakah order milik driver ini (dari berbagai kemungkinan field)
+        const isDriverOrder = 
+          order.accepted_driver_id === uid ||                     // <-- TAMBAHKAN INI
+          (order.selected_driver && 
+            (order.selected_driver.id === uid || 
+             order.selected_driver.driver_id === uid)) ||
+          (order.driver && 
+            (order.driver.id === uid || 
+             order.driver.driver_id === uid)) ||
+          order.driverId === uid ||
+          order.driver_id === uid;
 
-            // Hanya ambil order yang sudah selesai (status completed)
-            if (isDriverOrder && order.status === 'completed') {
-              driverOrders.push({
-                ...order,
-                completed_at: order.completed_at || order.finished_at || order.updated_at || order.created_at
-              });
-            }
+        // Hanya ambil order yang sudah selesai (status completed)
+        if (isDriverOrder && order.status === 'completed') {
+          driverOrders.push({
+            ...order,
+            completed_at: order.completed_at || order.finished_at || order.updated_at || order.created_at
           });
         }
-        
-        console.log(`📦 Ditemukan ${driverOrders.length} order selesai untuk driver ${uid}`);
-        updateTodayEarnings();
-        updateOrderStats();
-      } catch (error) {
-        console.error('Error load orders:', error);
-      }
+      });
     }
+    
+    console.log(`📦 Ditemukan ${driverOrders.length} order selesai untuk driver ${uid}`);
+    updateTodayEarnings();
+    updateOrderStats();
+  } catch (error) {
+    console.error('Error load orders:', error);
+  }
+}
 
     // ================================================
     // FUNGSI UPDATE PENDAPATAN HARI INI (DIPERBAIKI)
