@@ -1408,12 +1408,12 @@
           hideRadar();
           return;
         }
-        if (order.status === 'accepted' && (order.driver || order.selected_driver)) {
-          currentDriverData = order.driver || order.selected_driver;
+        if (order.status === 'accepted' && order.accepted_driver_id) {
+          // Driver accepted, redirect ke halaman order diterima
           const existing = getActiveOrderFromLocalStorage();
-          if (existing) saveActiveOrderToLocalStorage({ ...existing, status: 'accepted', driver: currentDriverData, selected_driver: currentDriverData });
+          if (existing) saveActiveOrderToLocalStorage({ ...existing, status: 'accepted', accepted_driver_id: order.accepted_driver_id });
           hideRadar();
-          window.location.href = 'orderAcceptedForCS.html';
+          window.location.href = 'orderAcceptedForCS.html?id=' + orderId;
           resetSearchButton();
         } else if (order.status === 'searching') {
           showRadar('Mencari driver...');
@@ -1527,17 +1527,38 @@
       if (!currentOrderId) { showPopup('Tidak ada order aktif', "Error", "error"); return; }
       const orderRef = database.ref('orders/' + currentOrderId);
       const offerRef = database.ref(`orders/${currentOrderId}/driver_offers/${offerId}`);
+
+      // Cek apakah offer masih ada
       const snap = await offerRef.once('value');
       const offer = snap.val();
       if (!offer) { showPopup('Penawaran tidak ditemukan', "Error", "error"); return; }
-      const completeDriver = await getCompleteDriverDataFromFirebase(offerId) || offer;
-      const selected = { ...completeDriver, ...offer, offer_id: offerId, selected_at: new Date().toISOString(), final_price: offer.offered_price || currentRouteData?.harga_total };
-      await offerRef.update({ status: 'accepted', accepted_at: new Date().toISOString() });
-      await orderRef.update({ status: 'accepted', selected_driver: selected, driver: selected, updated_at: new Date().toISOString() });
+
+      // Tandai offer sebagai diterima
+      await offerRef.update({ 
+        status: 'accepted', 
+        accepted_at: new Date().toISOString() 
+      });
+
+      // Update order: cukup simpan ID driver yang diterima
+      await orderRef.update({ 
+        status: 'accepted', 
+        accepted_driver_id: offerId,
+        updated_at: new Date().toISOString() 
+      });
+
+      // Tutup panel penawaran
       document.getElementById('driverOffers').style.display = 'none';
+
+      // Simpan ke localStorage (cukup ID)
       const existing = getActiveOrderFromLocalStorage();
-      if (existing) saveActiveOrderToLocalStorage({ ...existing, status: 'accepted', selected_driver: selected, driver: selected });
-      window.location.href = 'orderAcceptedForCS.html';
+      if (existing) saveActiveOrderToLocalStorage({ 
+        ...existing, 
+        status: 'accepted', 
+        accepted_driver_id: offerId 
+      });
+
+      // Redirect ke halaman order diterima
+      window.location.href = 'orderAcceptedForCS.html?id=' + currentOrderId;
     }
 
     async function rejectDriverOffer(offerId) {
@@ -1795,10 +1816,10 @@
             listenForDriver(currentOrderId);
             listenDriverOffers(currentOrderId);
             startPriceIncreaseTimer();
-          } else if (active.status === 'accepted' && (active.driver || active.selected_driver)) {
-            currentDriverData = active.driver || active.selected_driver;
-            saveActiveOrderToLocalStorage({ ...active, currentRouteData, driver_data: currentDriverData });
-            window.location.href = 'orderAcceptedForCS.html';
+          } else if (active.status === 'accepted' && active.accepted_driver_id) {
+            // Order sudah diterima, redirect ke halaman orderAcceptedForCS.html
+            saveActiveOrderToLocalStorage({ ...active, currentRouteData, accepted_driver_id: active.accepted_driver_id });
+            window.location.href = 'orderAcceptedForCS.html?id=' + active.orderId;
           }
           if (active.status !== 'accepted') showRouteDetails(currentRouteData);
         } else {
