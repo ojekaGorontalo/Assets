@@ -10,6 +10,7 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
+    /* ... (CSS tidak berubah, sama seperti sebelumnya) ... */
     :root {
       --primary: #FF9800;    /* Orange */
       --secondary: #FF5722;   /* Red-Orange */
@@ -1261,8 +1262,8 @@
       const chatName = document.getElementById('chatName');
       const chatAvatar = document.getElementById('chatAvatar');
       chatName.textContent = driverData.name || 'Driver';
-      if (driverData.profile_photo_url) {
-        chatAvatar.innerHTML = `<img src="${driverData.profile_photo_url}" alt="${driverData.name}">`;
+      if (driverData.profile_photo_url || driverData.profilePhotoUrl) {
+        chatAvatar.innerHTML = `<img src="${driverData.profile_photo_url || driverData.profilePhotoUrl}" alt="${driverData.name}">`;
       } else {
         chatAvatar.innerHTML = '';
         chatAvatar.style.backgroundImage = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23006699\"><path d=\"M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\"/></svg>')";
@@ -1320,18 +1321,58 @@
       } catch { return null; }
     }
 
-    function loadFromLocalStorage() {
-      const active = getActiveOrderFromLocalStorage();
-      if (active && active.is_active) {
-        orderId = active.order_id;
-        driverData = active.selected_driver || active.driver || active.driver_data;
-        routeData = active.currentRouteData || active;
-        userData = active.user_data;
-        displayDriverData();
-        if (orderId) listenToOrderUpdates(orderId);
-        return true;
+    // Fungsi untuk mengambil data driver dari node drivers
+    async function fetchDriverData(driverId) {
+      if (!driverId) return null;
+      try {
+        const snap = await database.ref('drivers/' + driverId).once('value');
+        const driver = snap.val();
+        if (driver) {
+          // Map field yang umum digunakan
+          return {
+            name: driver.name || driver.fullName,
+            profile_photo_url: driver.profilePhotoUrl || driver.fotoProfilURL,
+            profilePhotoUrl: driver.profilePhotoUrl || driver.fotoProfilURL,
+            avgRating: driver.avgRating || driver.rating,
+            rating: driver.rating || driver.avgRating,
+            vehicle_brand: driver.vehicleBrand,
+            vehicle_type: driver.vehicleType,
+            plate_number: driver.plateNumber,
+            ...driver // sisanya
+          };
+        }
+      } catch (e) {
+        console.error('Gagal mengambil data driver:', e);
       }
-      return false;
+      return null;
+    }
+
+    // Fungsi untuk memuat data dari localStorage dan mengambil driver jika perlu
+    async function loadFromLocalStorage() {
+      const active = getActiveOrderFromLocalStorage();
+      if (!active || !active.is_active) return false;
+
+      orderId = active.order_id;
+      routeData = active.currentRouteData || active;
+      userData = active.user_data;
+
+      // Jika ada accepted_driver_id, ambil data driver dari Firebase
+      if (active.accepted_driver_id) {
+        const driver = await fetchDriverData(active.accepted_driver_id);
+        if (driver) {
+          driverData = driver;
+        } else {
+          // Fallback ke data yang mungkin ada di localStorage (untuk order lama)
+          driverData = active.selected_driver || active.driver || active.driver_data;
+        }
+      } else {
+        // Order lama: coba ambil dari selected_driver/driver
+        driverData = active.selected_driver || active.driver || active.driver_data;
+      }
+
+      displayDriverData();
+      if (orderId) listenToOrderUpdates(orderId);
+      return true;
     }
 
     // ==================== RATING ====================
@@ -1503,22 +1544,37 @@
       return msgs[status] || 'Status diperbarui';
     }
 
-    function listenToOrderUpdates(orderId) {
+    async function listenToOrderUpdates(orderId) {
       if (orderRef && orderUpdateHandler) orderRef.off('value', orderUpdateHandler);
       orderRef = database.ref('orders/' + orderId);
-      orderUpdateHandler = (snapshot) => {
+      orderUpdateHandler = async (snapshot) => {
         const od = snapshot.val();
         if (od) {
           sendToKodular({ action: 'order_updated', order_id: orderId, new_status: od.status });
-          let newDriver = null;
-          if (od.selected_driver) newDriver = od.selected_driver;
-          else if (od.driver) newDriver = od.driver;
-          else if (od.driver_offers) {
-            const keys = Object.keys(od.driver_offers);
-            if (keys.length) newDriver = od.driver_offers[keys[0]];
+
+          // Ambil data driver jika ada accepted_driver_id
+          if (od.accepted_driver_id && (!driverData || driverData.id !== od.accepted_driver_id)) {
+            const driver = await fetchDriverData(od.accepted_driver_id);
+            if (driver) driverData = driver;
+          } else if (od.selected_driver || od.driver) {
+            // Fallback untuk order lama
+            driverData = od.selected_driver || od.driver;
+          } else if (od.driver_offers) {
+            // Coba ambil dari driver_offers yang accepted
+            const offers = od.driver_offers;
+            const acceptedOffer = Object.values(offers).find(o => o.status === 'accepted');
+            if (acceptedOffer) {
+              // Minimal data dari offer, tapi kita tetap coba fetch full driver
+              driverData = acceptedOffer;
+              if (acceptedOffer.id) {
+                const fullDriver = await fetchDriverData(acceptedOffer.id);
+                if (fullDriver) driverData = fullDriver;
+              }
+            }
           }
-          updateDriverStatus(od.status, newDriver);
-          if (newDriver) updateDriverData(newDriver);
+
+          // Update status dan data rute
+          updateDriverStatus(od.status, driverData);
           if (od.alamat_a || od.alamat_b) updateRouteData(od);
         } else {
           if (!loadFromLocalStorage()) showError('Data perjalanan tidak ditemukan');
@@ -1598,17 +1654,20 @@
     }
 
     function updateDriverData(driver) {
-  if (driver.name) document.getElementById('driverName').textContent = driver.name;
-  
-  // Prioritas: avgRating (nilai rata-rata) > avg_rating > rating > 0
-  const ratingValue = driver.avgRating || driver.avg_rating || driver.rating || 0;
-  document.getElementById('driverRating').textContent = ratingValue;
-  
-  if (driver.vehicle_brand) document.getElementById('driverVehicleBrand').textContent = driver.vehicle_brand;
-  if (driver.vehicle_type) document.getElementById('driverVehicleType').textContent = driver.vehicle_type;
-  if (driver.plate_number) document.getElementById('driverPlate').textContent = driver.plate_number;
-  document.getElementById('driverPhoto').src = driver.profilePhotoUrl || driver.profile_photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-}
+      if (driver.name) document.getElementById('driverName').textContent = driver.name;
+      
+      // Prioritas: avgRating (nilai rata-rata) > avg_rating > rating > 0
+      const ratingValue = driver.avgRating || driver.avg_rating || driver.rating || 0;
+      document.getElementById('driverRating').textContent = ratingValue;
+      
+      if (driver.vehicle_brand) document.getElementById('driverVehicleBrand').textContent = driver.vehicle_brand;
+      if (driver.vehicle_type) document.getElementById('driverVehicleType').textContent = driver.vehicle_type;
+      if (driver.plate_number) document.getElementById('driverPlate').textContent = driver.plate_number;
+      
+      // Foto profil
+      const photoUrl = driver.profilePhotoUrl || driver.profile_photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+      document.getElementById('driverPhoto').src = photoUrl;
+    }
 
     function updateRouteData(route) {
       document.getElementById('pickupAddress').textContent = route.alamat_a || '-';
@@ -1736,13 +1795,16 @@
       setupBackButtonHandler();
 
       const urlParams = new URLSearchParams(window.location.search);
-      const directOrderId = urlParams.get('order_id');
+      const directOrderId = urlParams.get('order_id'); // bisa juga 'id'
       if (directOrderId) {
         orderId = directOrderId;
         listenToOrderUpdates(directOrderId);
         dataTimeout = setTimeout(() => { if (!driverData && !loadFromLocalStorage()) showError('Data tidak ditemukan'); }, 5000);
       } else {
-        if (!loadFromLocalStorage()) dataTimeout = setTimeout(() => { if (!driverData) showError('Tidak ada data'); }, 5000);
+        // Coba dari localStorage
+        loadFromLocalStorage().then(success => {
+          if (!success) dataTimeout = setTimeout(() => showError('Tidak ada data'), 5000);
+        });
       }
     };
   </script>
