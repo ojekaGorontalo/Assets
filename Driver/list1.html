@@ -11,6 +11,7 @@
   <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
   <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
   <style>
+    /* ... (CSS sama seperti sebelumnya, tidak diubah) ... */
     :root {
       --primary: #FF9800;        /* Orange utama */
       --secondary: #FFB74D;      /* Orange lebih terang */
@@ -2430,17 +2431,17 @@
           closeModal(); return;
         }
         const driverData = {
-  id: driverId,
-  name: currentDriverData.fullName,
-  plate_number: currentDriverData.plateNumber,
-  vehicle_type: currentDriverData.vehicleType,
-  rating: currentDriverData.rating,
-  avg_rating: currentDriverData.rating,          // <-- tambahkan
-  profile_photo_url: currentDriverData.profilePhotoUrl, // <-- tambahkan
-  profilePhotoUrl: currentDriverData.profilePhotoUrl,   // <-- (opsional) untuk kompatibilitas
-  offered_at: new Date().toISOString(),
-  status: 'offered'
-};
+          id: driverId,
+          name: currentDriverData.fullName,
+          plate_number: currentDriverData.plateNumber,
+          vehicle_type: currentDriverData.vehicleType,
+          rating: currentDriverData.rating,
+          // Tambahkan foto profil dan rating rata-rata untuk ditampilkan di customer
+          profile_photo_url: currentDriverData.profilePhotoUrl || currentDriverData.fotoProfilURL || '',
+          avg_rating: currentDriverData.rating,
+          offered_at: new Date().toISOString(),
+          status: 'offered'
+        };
         database.ref('orders/' + orderId + '/driver_offers/' + driverId).set(driverData)
           .then(() => {
             ambilBtn.textContent = 'Menunggu Konfirmasi';
@@ -2541,8 +2542,8 @@
         }
 
         if (order.status === 'accepted') {
-          const acceptedDriverId = order.selected_driver?.id || order.driver?.id;
-          if (acceptedDriverId === driverId) {
+          // Cek apakah driver yang diterima adalah kita (menggunakan accepted_driver_id atau backward compatibility)
+          if (order.accepted_driver_id === driverId) {
             stopCountdown();
             showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
             localStorage.setItem('jego_driver_active_order', orderId);
@@ -2558,6 +2559,14 @@
               window.android.receiveData(acceptedPayload);
             }
 
+            setTimeout(() => {
+              window.location.href = 'orderAccepted.html?id=' + orderId;
+            }, 1500);
+          } else if (order.selected_driver?.id === driverId || order.driver?.id === driverId) {
+            // Backward compatibility untuk order lama
+            stopCountdown();
+            showPopup('Sukses', 'Penawaran Anda diterima!', 'success');
+            localStorage.setItem('jego_driver_active_order', orderId);
             setTimeout(() => {
               window.location.href = 'orderAccepted.html?id=' + orderId;
             }, 1500);
@@ -2613,7 +2622,7 @@
             fullName: driverData.name,
             phoneNumber: driverData.phone,
             email: driverData.email,
-            profilePhotoUrl: driverData.fotoProfilURL || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+            profilePhotoUrl: driverData.fotoProfilURL || driverData.profilePhotoUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
             vehicleType: driverData.vehicleType,
             plateNumber: driverData.plateNumber,
             vehicleBrand: driverData.vehicleBrand,
