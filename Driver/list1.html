@@ -2088,9 +2088,13 @@
         });
 
         // Deteksi order baru
+// Deteksi order baru
 const newOrderIds = new Set(filteredOrders.map(o => o.id));
 const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
 previousOrderIds = newOrderIds;
+
+// ===== TAMBAHKAN: Ambil daftar order yang sudah pernah memunculkan popup dari sessionStorage =====
+let shownPopupOrderIds = new Set(JSON.parse(sessionStorage.getItem('shownPopupOrderIds') || '[]'));
 
 // Kirim notifikasi ke Kodular untuk setiap order baru
 addedOrders.forEach(order => {
@@ -2106,14 +2110,18 @@ addedOrders.forEach(order => {
     window.android.receiveData(payload);
   }
 
-  // Cek jarak dan tampilkan modal hanya jika TRACKING AKTIF dan jarak < 3 km
+  // Cek jarak dan tampilkan modal hanya jika TRACKING AKTIF, jarak < 3 km, dan BELUM PERNAH DITAMPILKAN
   if (locationTrackingEnabled && driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
     const dist = calculateDistance(
       driverLocation.latitude, driverLocation.longitude,
       order.from_lat, order.from_lng
     );
-    if (dist !== null && dist < 3) {
+    // ===== TAMBAHKAN PENGECEKAN !shownPopupOrderIds.has(order.id) =====
+    if (dist !== null && dist < 3 && !shownPopupOrderIds.has(order.id)) {
       showOrderDetail(order, true);
+      // Tandai order ini sebagai sudah ditampilkan
+      shownPopupOrderIds.add(order.id);
+      sessionStorage.setItem('shownPopupOrderIds', JSON.stringify(Array.from(shownPopupOrderIds)));
     }
   }
 });
