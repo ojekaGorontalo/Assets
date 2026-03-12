@@ -2088,34 +2088,35 @@
         });
 
         // Deteksi order baru
-        const newOrderIds = new Set(filteredOrders.map(o => o.id));
-        const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
-        previousOrderIds = newOrderIds;
+const newOrderIds = new Set(filteredOrders.map(o => o.id));
+const addedOrders = filteredOrders.filter(o => !previousOrderIds.has(o.id));
+previousOrderIds = newOrderIds;
 
-        // Kirim notifikasi ke Kodular untuk setiap order baru
-        addedOrders.forEach(order => {
-          const payload = JSON.stringify({
-            action: 'new_order',
-            orderId: order.id,
-            message: 'Order baru masuk'
-          });
-          if (window.AppInventor?.setWebViewString) {
-            window.AppInventor.setWebViewString(payload);
-          } else if (window.android?.receiveData) {
-            window.android.receiveData(payload);
-          }
+// Kirim notifikasi ke Kodular untuk setiap order baru
+addedOrders.forEach(order => {
+  // Kirim notifikasi ke Kodular (tetap dikirim meskipun tracking off)
+  const payload = JSON.stringify({
+    action: 'new_order',
+    orderId: order.id,
+    message: 'Order baru masuk'
+  });
+  if (window.AppInventor?.setWebViewString) {
+    window.AppInventor.setWebViewString(payload);
+  } else if (window.android?.receiveData) {
+    window.android.receiveData(payload);
+  }
 
-          // Cek jarak dan tampilkan modal jika <3 km
-          if (driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
-            const dist = calculateDistance(
-              driverLocation.latitude, driverLocation.longitude,
-              order.from_lat, order.from_lng
-            );
-            if (dist !== null && dist < 3) {
-              showOrderDetail(order, true);
-            }
-          }
-        });
+  // Cek jarak dan tampilkan modal hanya jika TRACKING AKTIF dan jarak < 3 km
+  if (locationTrackingEnabled && driverLocation.latitude && driverLocation.longitude && order.from_lat && order.from_lng) {
+    const dist = calculateDistance(
+      driverLocation.latitude, driverLocation.longitude,
+      order.from_lat, order.from_lng
+    );
+    if (dist !== null && dist < 3) {
+      showOrderDetail(order, true);
+    }
+  }
+});
 
         if (filteredOrders.length === 0) {
           let msg = `Tidak ada permintaan order untuk kendaraan ${driverVehicleType}`;
