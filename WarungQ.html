@@ -6,7 +6,6 @@
     <title>Lapak Inayah - Order Online</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* (CSS sama seperti sebelumnya, tidak diubah) */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f8f9fa; color: #333; line-height: 1.6; }
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
@@ -119,7 +118,6 @@
         }
         .loading { text-align: center; padding: 30px; font-size: 1rem; color: #666; }
         .error { color: #e74c3c; padding: 15px; background: #ffeaea; border-radius: 8px; margin: 10px 0; }
-        /* Toast sederhana untuk notifikasi */
         .toast-notif {
             position: fixed;
             bottom: 80px;
@@ -218,7 +216,7 @@
                 notifyButton: { enable: false },
                 allowLocalhostAsSecureOrigin: true,
             });
-            console.log("OneSignal diinisialisasi dengan App ID:", OneSignalAppId);
+            console.log("✅ OneSignal diinisialisasi dengan App ID:", OneSignalAppId);
         });
 
         async function saveOneSignalPlayerId(phoneNumber) {
@@ -246,7 +244,7 @@
             }
         }
 
-        // ========== NOTIFIKASI (TOAST FALLBACK) ==========
+        // ========== NOTIFIKASI (TOAST + KONSOL) ==========
         function showToastMessage(message) {
             const existingToast = document.querySelector('.toast-notif');
             if (existingToast) existingToast.remove();
@@ -267,7 +265,7 @@
             };
             const title = `📦 Pesanan ${orderId}`;
             const body = `Status: ${statusText[newStatus] || newStatus}`;
-            console.log(`🔔 Notifikasi: ${title} - ${body}`);
+            console.log(`🔔 NOTIFIKASI: ${title} - ${body}`);
             showToastMessage(`${title} - ${body}`);
         }
 
@@ -426,8 +424,7 @@
                 localStorage.setItem('lapak_customer_phone', phone);
                 currentActivePhone = phone;
                 initActiveOrdersListener(phone);
-                // Simpan OneSignal ID (opsional, tidak mengganggu)
-                saveOneSignalPlayerId(phone).catch(e => console.warn("OneSignal save gagal, abaikan:", e));
+                await saveOneSignalPlayerId(phone);
                 // Reset cart & form
                 cart = {}; updateCart();
                 document.getElementById('customerName').value = '';
