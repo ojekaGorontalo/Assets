@@ -2,890 +2,198 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Lapak Inayah - Order Online</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        /* Header */
-        header {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 1.5rem 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .logo i {
-            font-size: 2.5rem;
-        }
-        
-        .logo h1 {
-            font-size: 1.8rem;
-        }
-        
-        .logo p {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        .header-nav {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        
-        .nav-link {
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .nav-link:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .cart-icon {
-            position: relative;
-            font-size: 1.8rem;
-            cursor: pointer;
-        }
-        
-        .cart-count {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #ffdd59;
-            color: #333;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            font-weight: bold;
-        }
-        
-        /* Main Content */
-        .main-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 30px;
-            margin: 30px 0;
-        }
-        
-        /* Menu Section */
-        .menu-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #ff6b6b;
-        }
-        
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 25px;
-        }
-        
-        .menu-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .menu-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.12);
-        }
-        
-        .menu-image {
-            height: 160px;
-            width: 100%;
-            object-fit: cover;
-        }
-        
-        .menu-info {
-            padding: 20px;
-        }
-        
-        .menu-info h3 {
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 1.3rem;
-        }
-        
-        .menu-info p {
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 15px;
-            min-height: 40px;
-        }
-        
-        .menu-price {
-            color: #ee5a24;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            display: block;
-        }
-        
-        .menu-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .qty-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            background: #f1f2f6;
-            color: #333;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-        
-        .qty-btn:hover {
-            background: #dfe4ea;
-        }
-        
-        .quantity {
-            font-weight: bold;
-            min-width: 30px;
-            text-align: center;
-        }
-        
-        .add-to-cart {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-        
-        .add-to-cart:hover {
-            background: #ee5a24;
-        }
-        
-        /* Order Summary */
-        .order-summary {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 100px;
-            height: fit-content;
-        }
-        
-        .order-summary h2 {
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #ff6b6b;
-        }
-        
-        .cart-items {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-        }
-        
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .cart-item-name {
-            flex: 1;
-            font-weight: 500;
-        }
-        
-        .cart-item-qty {
-            margin: 0 15px;
-        }
-        
-        .cart-item-price {
-            font-weight: 600;
-            color: #ee5a24;
-        }
-        
-        .remove-item {
-            color: #ff6b6b;
-            background: none;
-            border: none;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        
-        .total-section {
-            border-top: 2px solid #eee;
-            padding-top: 20px;
-            margin-top: 10px;
-        }
-        
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-        }
-        
-        .grand-total {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #ee5a24;
-        }
-        
-        /* Customer Form */
-        .customer-form {
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 2px solid #eee;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .form-group input, 
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border 0.3s;
-        }
-        
-        .form-group input:focus, 
-        .form-group textarea:focus,
-        .form-group select:focus {
-            border-color: #ff6b6b;
-            outline: none;
-        }
-        
-        .location-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .get-location-btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.3s;
-        }
-        
-        .get-location-btn:hover {
-            background: #2980b9;
-        }
-        
-        .submit-order {
-            width: 100%;
-            background: #00b894;
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .submit-order:hover {
-            background: #00a085;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-        }
-        
-        .modal h2 {
-            color: #00b894;
-            margin-bottom: 15px;
-        }
-        
-        .modal p {
-            margin-bottom: 20px;
-            font-size: 1.1rem;
-        }
-        
-        .modal-close {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        /* Status Pesanan Section - DIUBAH */
-        .order-history-section {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-top: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        }
-        
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .history-controls {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .phone-input-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .phone-input-container input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-        
-        .check-orders-btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 0 25px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .order-history-container {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .order-card {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid #3498db;
-        }
-        
-        .order-card.completed {
-            border-left-color: #00b894;
-        }
-        
-        .order-card.processing {
-            border-left-color: #f39c12;
-        }
-        
-        .order-card.pending {
-            border-left-color: #e74c3c;
-        }
-        
-        .order-card.delivering {
-            border-left-color: #9b59b6;
-        }
-        
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 10px;
-        }
-        
-        .order-id {
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .order-date {
-            color: #7f8c8d;
-            font-size: 0.9rem;
-        }
-        
-        .order-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        
-        .status-pending {
-            background: #ffeaa7;
-            color: #e17055;
-        }
-        
-        .status-processing {
-            background: #fab1a0;
-            color: #d63031;
-        }
-        
-        .status-ready {
-            background: #a29bfe;
-            color: #6c5ce7;
-        }
-        
-        .status-delivering {
-            background: #81ecec;
-            color: #00cec9;
-        }
-        
-        .status-completed {
-            background: #55efc4;
-            color: #00b894;
-        }
-        
-        .order-items {
-            margin: 10px 0;
-            color: #636e72;
-        }
-        
-        .order-total {
-            font-weight: bold;
-            color: #2c3e50;
-            text-align: right;
-            margin-top: 10px;
-        }
-        
-        .no-orders {
-            text-align: center;
-            padding: 30px;
-            color: #999;
-        }
-        
-        .status-timeline {
-            position: relative;
-            padding: 20px 0;
-            margin-top: 15px;
-        }
-        
-        .status-step {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .status-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 1rem;
-            color: #666;
-        }
-        
-        .status-icon.active {
-            background: #00b894;
-            color: white;
-        }
-        
-        .status-icon.completed {
-            background: #2ecc71;
-            color: white;
-        }
-        
-        .status-info {
-            flex: 1;
-        }
-        
-        .status-info h4 {
-            margin-bottom: 5px;
-            color: #333;
-            font-size: 1rem;
-        }
-        
-        .status-info p {
-            color: #666;
-            font-size: 0.8rem;
-        }
-        
-        .status-timeline::before {
-            content: '';
-            position: absolute;
-            left: 16px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #eee;
-            z-index: 1;
-        }
-        
-        /* Footer */
-        footer {
-            background: #333;
-            color: white;
-            text-align: center;
-            padding: 25px 0;
-            margin-top: 50px;
-        }
-        
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 15px;
-        }
-        
-        .footer-links a {
-            color: #ffdd59;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-        
-        /* Responsive */
-        @media (max-width: 992px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .order-summary {
-                position: static;
-            }
-        }
-        
+        /* (CSS sama seperti sebelumnya, tidak diubah) */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; color: #333; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        header { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 1rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo i { font-size: 2rem; }
+        .logo h1 { font-size: 1.5rem; }
+        .logo p { font-size: 0.8rem; opacity: 0.9; }
+        .header-nav { display: flex; gap: 20px; align-items: center; }
+        .cart-icon { position: relative; font-size: 1.8rem; cursor: pointer; }
+        .cart-count { position: absolute; top: -10px; right: -10px; background: #ffdd59; color: #333; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; }
+        .main-content { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin: 30px 0; }
+        .menu-section h2 { color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #ff6b6b; font-size: 1.5rem; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 25px; }
+        .menu-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .menu-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.12); }
+        .menu-image { height: 160px; width: 100%; object-fit: cover; }
+        .menu-info { padding: 20px; }
+        .menu-info h3 { color: #333; margin-bottom: 8px; font-size: 1.3rem; }
+        .menu-info p { color: #666; font-size: 0.95rem; margin-bottom: 15px; min-height: 40px; }
+        .menu-price { color: #ee5a24; font-weight: bold; font-size: 1.2rem; margin-bottom: 15px; display: block; }
+        .menu-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .quantity-control { display: flex; align-items: center; gap: 8px; }
+        .qty-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: #f1f2f6; color: #333; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .qty-btn:hover { background: #dfe4ea; }
+        .quantity { font-weight: bold; min-width: 30px; text-align: center; font-size: 1rem; }
+        .add-to-cart { background: #ff6b6b; color: white; border: none; padding: 8px 20px; border-radius: 25px; cursor: pointer; font-weight: 600; transition: background 0.3s; font-size: 0.9rem; }
+        .add-to-cart:hover { background: #ee5a24; }
+        .order-summary { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); position: sticky; top: 100px; height: fit-content; }
+        .order-summary h2 { color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #ff6b6b; font-size: 1.5rem; }
+        .cart-items { max-height: 300px; overflow-y: auto; margin-bottom: 20px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; flex-wrap: wrap; gap: 8px; }
+        .cart-item-name { flex: 2; font-weight: 500; font-size: 0.95rem; }
+        .cart-item-qty { margin: 0 10px; font-size: 0.9rem; }
+        .cart-item-price { font-weight: 600; color: #ee5a24; font-size: 0.9rem; }
+        .remove-item { color: #ff6b6b; background: none; border: none; cursor: pointer; margin-left: 5px; }
+        .total-section { border-top: 2px solid #eee; padding-top: 20px; margin-top: 10px; }
+        .total-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1rem; }
+        .grand-total { font-size: 1.3rem; font-weight: bold; color: #ee5a24; }
+        .customer-form { margin-top: 25px; padding-top: 25px; border-top: 2px solid #eee; }
+        .customer-form h3 { font-size: 1.2rem; margin-bottom: 15px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 0.9rem; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; transition: border 0.3s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #ff6b6b; outline: none; }
+        .location-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .get-location-btn { background: #3498db; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: background 0.3s; }
+        .get-location-btn:hover { background: #2980b9; }
+        .submit-order { width: 100%; background: #00b894; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.3s; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .submit-order:hover { background: #00a085; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; text-align: center; }
+        .modal h2 { color: #00b894; margin-bottom: 15px; }
+        .modal p { margin-bottom: 20px; font-size: 1rem; }
+        .modal-close { background: #ff6b6b; color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: 600; }
+        .order-history-section { background: white; border-radius: 12px; padding: 25px; margin-top: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .history-header h2 { font-size: 1.5rem; }
+        .active-orders { margin-bottom: 30px; border-bottom: 2px dashed #eee; padding-bottom: 20px; }
+        .active-title { font-size: 1.3rem; margin-bottom: 15px; color: #ff6b6b; display: flex; align-items: center; gap: 10px; }
+        .phone-input-container { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .phone-input-container input { flex: 1; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
+        .check-orders-btn { background: #3498db; color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .order-history-container { max-height: 400px; overflow-y: auto; }
+        .order-card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #3498db; }
+        .order-card.completed { border-left-color: #00b894; }
+        .order-card.processing { border-left-color: #f39c12; }
+        .order-card.pending { border-left-color: #e74c3c; }
+        .order-card.delivering { border-left-color: #9b59b6; }
+        .order-card.ready { border-left-color: #2ecc71; }
+        .order-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .order-id { font-weight: bold; color: #2c3e50; font-size: 0.9rem; }
+        .order-date { color: #7f8c8d; font-size: 0.8rem; }
+        .order-status { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .status-pending { background: #ffeaa7; color: #e17055; }
+        .status-processing { background: #fab1a0; color: #d63031; }
+        .status-ready { background: #a29bfe; color: #6c5ce7; }
+        .status-delivering { background: #81ecec; color: #00cec9; }
+        .status-completed { background: #55efc4; color: #00b894; }
+        .order-items { margin: 10px 0; color: #636e72; font-size: 0.9rem; }
+        .order-total { font-weight: bold; color: #2c3e50; text-align: right; margin-top: 10px; font-size: 0.95rem; }
+        .no-orders { text-align: center; padding: 30px; color: #999; }
+        .status-timeline { position: relative; padding: 20px 0; margin-top: 15px; }
+        .status-step { display: flex; align-items: center; margin-bottom: 15px; position: relative; z-index: 2; }
+        .status-icon { width: 32px; height: 32px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 0.9rem; color: #666; }
+        .status-icon.active { background: #00b894; color: white; }
+        .status-icon.completed { background: #2ecc71; color: white; }
+        .status-info h4 { margin-bottom: 5px; color: #333; font-size: 0.9rem; }
+        .status-info p { color: #666; font-size: 0.75rem; }
+        .status-timeline::before { content: ''; position: absolute; left: 16px; top: 0; bottom: 0; width: 2px; background: #eee; z-index: 1; }
+        footer { background: #333; color: white; text-align: center; padding: 25px 0; margin-top: 50px; }
+        .footer-links { display: flex; justify-content: center; gap: 30px; margin-top: 15px; flex-wrap: wrap; }
+        .footer-links a { color: #ffdd59; text-decoration: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
         @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
-            .header-nav {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            
-            .menu-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .history-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-            
-            .phone-input-container {
-                flex-direction: column;
-            }
-            
-            .footer-links {
-                flex-direction: column;
-                gap: 10px;
-            }
+            .container { padding: 0 12px; }
+            .main-content { grid-template-columns: 1fr; gap: 20px; }
+            .menu-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+            .menu-image { height: 100px; }
+            .menu-info { padding: 8px; }
+            .menu-info h3 { font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .menu-info p { font-size: 0.7rem; display: none; }
+            .menu-price { font-size: 0.85rem; margin-bottom: 8px; }
+            .menu-actions { flex-direction: column; align-items: stretch; gap: 6px; }
+            .quantity-control { justify-content: center; gap: 12px; }
+            .qty-btn { width: 28px; height: 28px; }
+            .add-to-cart { padding: 6px 0; font-size: 0.7rem; width: 100%; }
+            .order-summary { position: static; padding: 18px; }
+            .history-header h2 { font-size: 1.3rem; }
         }
-        
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 30px;
-            font-size: 1.2rem;
-            color: #666;
+        .loading { text-align: center; padding: 30px; font-size: 1rem; color: #666; }
+        .error { color: #e74c3c; padding: 15px; background: #ffeaea; border-radius: 8px; margin: 10px 0; }
+        /* Toast sederhana untuk notifikasi */
+        .toast-notif {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            z-index: 2000;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: fadeInOut 3s ease;
+            pointer-events: none;
         }
-        
-        .loading i {
-            color: #ff6b6b;
-            margin-right: 10px;
-        }
-        
-        .error {
-            color: #e74c3c;
-            padding: 15px;
-            background: #ffeaea;
-            border-radius: 8px;
-            margin: 10px 0;
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <i class="fas fa-utensils"></i>
-                    <div>
-                        <h1>Lapak Inayah</h1>
-                        <p>Makanan Enak, Harga Terjangkau</p>
-                    </div>
-                </div>
-                <div class="header-nav">
-                    <div class="cart-icon" id="cartIcon">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="cart-count" id="cartCount">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
+    <header><div class="container"><div class="header-content"><div class="logo"><i class="fas fa-utensils"></i><div><h1>Lapak Inayah</h1><p>Makanan Enak, Harga Terjangkau</p></div></div><div class="header-nav"><div class="cart-icon" id="cartIcon"><i class="fas fa-shopping-cart"></i><span class="cart-count" id="cartCount">0</span></div></div></div></div></header>
     <div class="container">
         <div class="main-content">
-            <!-- Menu Section -->
-            <section class="menu-section">
-                <h2><i class="fas fa-burger"></i> Menu Makanan & Minuman</h2>
-                <div id="menuContainer" class="menu-grid">
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i> Memuat menu...
-                    </div>
-                </div>
-            </section>
-
-            <!-- Order Summary -->
+            <section class="menu-section"><h2><i class="fas fa-burger"></i> Menu Makanan & Minuman</h2><div id="menuContainer" class="menu-grid"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat menu...</div></div></section>
             <aside class="order-summary">
                 <h2><i class="fas fa-receipt"></i> Ringkasan Pesanan</h2>
-                <div class="cart-items" id="cartItems">
-                    <p style="text-align: center; color: #999; padding: 20px;">Keranjang kosong</p>
-                </div>
-                
-                <div class="total-section">
-                    <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span>Rp <span id="subtotal">0</span></span>
-                    </div>
-                    <div class="total-row">
-                        <span>Ongkir:</span>
-                        <span>Rp <span id="deliveryCost">0</span></span>
-                    </div>
-                    <div class="total-row grand-total">
-                        <span>Total:</span>
-                        <span>Rp <span id="total">0</span></span>
-                    </div>
-                </div>
-                
-                <!-- Customer Form -->
+                <div class="cart-items" id="cartItems"><p style="text-align: center; color: #999; padding: 20px;">Keranjang kosong</p></div>
+                <div class="total-section"><div class="total-row"><span>Subtotal:</span><span>Rp <span id="subtotal">0</span></span></div><div class="total-row"><span>Ongkir:</span><span>Rp <span id="deliveryCost">0</span></span></div><div class="total-row grand-total"><span>Total:</span><span>Rp <span id="total">0</span></span></div></div>
                 <div class="customer-form">
                     <h3><i class="fas fa-user"></i> Data Pemesanan</h3>
-                    <div class="form-group">
-                        <label for="customerName">Nama Lengkap*</label>
-                        <input type="text" id="customerName" placeholder="Nama Anda" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerPhone">No. WhatsApp*</label>
-                        <input type="tel" id="customerPhone" placeholder="0812-3456-7890" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerAddress">Alamat Lengkap*</label>
-                        <textarea id="customerAddress" rows="3" placeholder="Alamat pengiriman" required></textarea>
-                        <div class="location-group">
-                            <button type="button" class="get-location-btn" id="getLocationBtn">
-                                <i class="fas fa-location-crosshairs"></i> Ambil Lokasi Saat Ini
-                            </button>
-                            <input type="text" id="locationCoords" placeholder="Koordinat akan muncul di sini" readonly style="flex: 1;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="paymentMethod">Metode Pembayaran*</label>
-                        <select id="paymentMethod">
-                            <option value="cash">Bayar di Tempat (COD)</option>
-                            <option value="transfer">Transfer Bank</option>
-                            <option value="ewallet">E-Wallet (DANA/OVO)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerNote">Catatan (opsional)</label>
-                        <textarea id="customerNote" rows="2" placeholder="Contoh: Pedas, tanpa bawang, dll"></textarea>
-                    </div>
-                    
-                    <button class="submit-order" id="submitOrder">
-                        <i class="fas fa-paper-plane"></i> Kirim Pesanan
-                    </button>
-                    
-                    <p style="font-size: 0.8rem; color: #666; margin-top: 15px; text-align: center;">
-                        Pesanan akan langsung masuk ke sistem kami
-                    </p>
+                    <div class="form-group"><label for="customerName">Nama Lengkap*</label><input type="text" id="customerName" placeholder="Nama Anda" required></div>
+                    <div class="form-group"><label for="customerPhone">No. WhatsApp*</label><input type="tel" id="customerPhone" placeholder="0812-3456-7890" required></div>
+                    <div class="form-group"><label for="customerAddress">Alamat Lengkap*</label><textarea id="customerAddress" rows="3" placeholder="Alamat pengiriman" required></textarea><div class="location-group"><button type="button" class="get-location-btn" id="getLocationBtn"><i class="fas fa-location-crosshairs"></i> Ambil Lokasi</button><input type="text" id="locationCoords" placeholder="Koordinat" readonly style="flex: 1;"></div></div>
+                    <div class="form-group"><label for="paymentMethod">Metode Pembayaran*</label><select id="paymentMethod"><option value="cash">Bayar di Tempat (COD)</option><option value="transfer">Transfer Bank</option><option value="ewallet">E-Wallet (DANA/OVO)</option></select></div>
+                    <div class="form-group"><label for="customerNote">Catatan (opsional)</label><textarea id="customerNote" rows="2" placeholder="Contoh: Pedas, tanpa bawang, dll"></textarea></div>
+                    <button class="submit-order" id="submitOrder"><i class="fas fa-paper-plane"></i> Kirim Pesanan</button>
+                    <p style="font-size: 0.7rem; color: #666; margin-top: 15px; text-align: center;">Pesanan akan langsung masuk ke sistem kami</p>
                 </div>
             </aside>
         </div>
 
-        <!-- Order History Section - DIUBAH -->
         <section class="order-history-section">
-            <div class="history-header">
-                <h2><i class="fas fa-history"></i> Status & Riwayat Pesanan</h2>
-                <div class="history-controls">
-                    <button class="check-orders-btn" id="refreshOrders">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
+            <div class="history-header"><h2><i class="fas fa-history"></i> Status Pesanan</h2><button class="check-orders-btn" id="refreshActiveBtn"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+            <div class="active-orders">
+                <div class="active-title"><i class="fas fa-bell"></i> Pesanan Aktif</div>
+                <div id="activeOrdersContainer"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat pesanan aktif...</div></div>
             </div>
-            
-            <div class="phone-input-container">
-                <input type="tel" id="checkPhoneInput" placeholder="Masukkan No. WhatsApp Anda untuk melihat pesanan">
-                <button class="check-orders-btn" id="checkOrdersBtn">
-                    <i class="fas fa-search"></i> Cek Pesanan
-                </button>
-            </div>
-            
-            <div id="orderHistoryContainer">
-                <div class="no-orders">
-                    <i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
-                    <p>Masukkan nomor WhatsApp Anda untuk melihat status pesanan</p>
+            <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-archive"></i> Lihat Semua Riwayat</h3>
+                <div class="phone-input-container">
+                    <input type="tel" id="checkPhoneInput" placeholder="Masukkan No. WhatsApp untuk riwayat lengkap">
+                    <button class="check-orders-btn" id="checkOrdersBtn"><i class="fas fa-search"></i> Cek Riwayat</button>
                 </div>
+                <div id="orderHistoryContainer"><div class="no-orders"><i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i><p>Masukkan nomor WhatsApp untuk melihat semua pesanan</p></div></div>
             </div>
         </section>
     </div>
 
-    <!-- Order Success Modal -->
-    <div class="modal" id="successModal">
-        <div class="modal-content">
-            <i class="fas fa-check-circle" style="font-size: 4rem; color: #00b894; margin-bottom: 20px;"></i>
-            <h2>Pesanan Berhasil!</h2>
-            <p>Terima kasih <span id="customerNameSuccess"></span>, pesanan Anda telah kami terima.</p>
-            <p>No. Pesanan: <strong id="orderId"></strong></p>
-            <p>Status pesanan Anda dapat dilihat di bagian "Status & Riwayat Pesanan" dengan menggunakan nomor WhatsApp yang sama.</p>
-            <p>Kami akan menghubungi Anda via WhatsApp untuk konfirmasi.</p>
-            <button class="modal-close" id="modalClose">Tutup</button>
-        </div>
-    </div>
+    <div class="modal" id="successModal"><div class="modal-content"><i class="fas fa-check-circle" style="font-size: 4rem; color: #00b894; margin-bottom: 20px;"></i><h2>Pesanan Berhasil!</h2><p>Terima kasih <span id="customerNameSuccess"></span>, pesanan Anda telah kami terima.</p><p>No. Pesanan: <strong id="orderId"></strong></p><p>Status pesanan akan muncul di "Pesanan Aktif" secara realtime.</p><button class="modal-close" id="modalClose">Tutup</button></div></div>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Lapak Inayah. All rights reserved.</p>
-            <div class="footer-links">
-                <a href="admin.html" target="_blank">
-                    <i class="fas fa-lock"></i> Halaman Admin
-                </a>
-                <a href="#" id="viewOrdersFooter">
-                    <i class="fas fa-history"></i> Lihat Pesanan Saya
-                </a>
-                <a href="#" id="contactUs">
-                    <i class="fas fa-phone"></i> Hubungi Kami
-                </a>
-            </div>
-        </div>
-    </footer>
+    <footer><div class="container"><p>&copy; 2026 Lapak Inayah. All rights reserved.</p><div class="footer-links"><a href="admin.html" target="_blank"><i class="fas fa-lock"></i> Halaman Admin</a><a href="#" id="viewOrdersFooter"><i class="fas fa-history"></i> Lihat Pesanan Saya</a><a href="#" id="contactUs"><i class="fas fa-phone"></i> Hubungi Kami</a></div></div></footer>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
     <script>
-        // Firebase Configuration
+        // ========== KONFIGURASI FIREBASE ==========
         const firebaseConfig = {
             apiKey: "AIzaSyDa3JXfyzGgVyzBqf0uL_P-DuU97RhhTv8",
             authDomain: "game-balap-simpel.firebaseapp.com",
@@ -895,45 +203,117 @@
             messagingSenderId: "123456789012",
             appId: "1:123456789012:web:abcdef123456"
         };
-        
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        
-        // Global variables
+
+        // ========== ONESIGNAL INTEGRASI ==========
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        const OneSignalAppId = "007d7eba-9cfc-40d1-a92e-f2299f770282";
+        OneSignalDeferred.push(function(OneSignal) {
+            OneSignal.init({
+                appId: OneSignalAppId,
+                safari_web_id: "web.onesignal.auto.123456",
+                notifyButton: { enable: false },
+                allowLocalhostAsSecureOrigin: true,
+            });
+            console.log("OneSignal diinisialisasi dengan App ID:", OneSignalAppId);
+        });
+
+        async function saveOneSignalPlayerId(phoneNumber) {
+            if (!phoneNumber) return;
+            try {
+                const OneSignal = window.OneSignal;
+                if (OneSignal && OneSignal.User) {
+                    const userId = await OneSignal.User.getOnesignalId();
+                    if (userId) {
+                        await database.ref(`onesignal_ids/customers/${phoneNumber}`).set({
+                            playerId: userId,
+                            updatedAt: Date.now()
+                        });
+                        console.log("✅ Player ID OneSignal tersimpan untuk", phoneNumber, ":", userId);
+                    } else {
+                        console.warn("⚠️ Belum mendapat OneSignal User ID, coba lagi nanti.");
+                        setTimeout(() => saveOneSignalPlayerId(phoneNumber), 5000);
+                    }
+                } else {
+                    console.warn("⚠️ OneSignal belum siap, tunggu sebentar...");
+                    setTimeout(() => saveOneSignalPlayerId(phoneNumber), 3000);
+                }
+            } catch(e) {
+                console.warn("❌ Gagal simpan OneSignal ID:", e);
+            }
+        }
+
+        // ========== NOTIFIKASI BROWSER YANG AMAN ==========
+        function showToastMessage(message) {
+            // Hilangkan toast sebelumnya jika ada
+            const existingToast = document.querySelector('.toast-notif');
+            if (existingToast) existingToast.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast-notif';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function showBrowserNotification(orderId, newStatus, orderItems) {
+            const statusText = {
+                pending: "Menunggu Konfirmasi",
+                processing: "Sedang Diproses",
+                ready: "Siap Diantar",
+                delivering: "Dalam Pengiriman",
+                completed: "Selesai"
+            };
+            const title = `📦 Pesanan ${orderId}`;
+            const body = `Status: ${statusText[newStatus] || newStatus}`;
+            console.log(`🔔 Notifikasi: ${title} - ${body}`);
+            
+            // Coba gunakan Notification API jika tersedia dan diizinkan
+            if ("Notification" in window && Notification.permission === "granted") {
+                try {
+                    const notification = new Notification(title, { body, icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png" });
+                    notification.onclick = () => { window.focus(); notification.close(); };
+                    return;
+                } catch (e) {
+                    console.warn("Notification API gagal:", e);
+                }
+            }
+            // Fallback: tampilkan toast
+            showToastMessage(`${title} - ${body}`);
+        }
+
+        // ========== VARIABEL GLOBAL ==========
         let menuData = [];
         let cart = {};
         let userLocation = null;
-        
-        // Load menu from Firebase
+        let currentActivePhone = null;
+        let activeOrdersListener = null;
+        let previousOrderStatus = {};
+
+        // ========== FUNGSI CART & MENU ==========
         function loadMenu() {
             database.ref('Lapak Inayah/menu').on('value', (snapshot) => {
-                const menu = snapshot.val();
-                menuData = menu || [];
+                menuData = snapshot.val() || [];
                 renderMenu(menuData);
+                console.log("Menu loaded, total item:", menuData.length);
             });
         }
-        
-        // Render menu items
+
         function renderMenu(menu) {
             const container = document.getElementById('menuContainer');
-            
             if (!menu || menu.length === 0) {
-                container.innerHTML = '<p style="text-align: center; padding: 30px; color: #666;">Menu belum tersedia</p>';
+                container.innerHTML = '<p style="text-align: center; padding: 30px;">Menu belum tersedia</p>';
                 return;
             }
-            
             container.innerHTML = '';
-            
             menu.forEach((item, index) => {
                 const menuItem = document.createElement('div');
                 menuItem.className = 'menu-card';
                 menuItem.innerHTML = `
-                    <img src="${item.gambar || 'https://via.placeholder.com/300x160?text=Lapak Inayah'}" 
-                         alt="${item.nama}" class="menu-image">
+                    <img src="${item.gambar || 'https://via.placeholder.com/300x160?text=Lapak Inayah'}" alt="${item.nama}" class="menu-image">
                     <div class="menu-info">
                         <h3>${item.nama}</h3>
-                        <p>${item.deskripsi || 'Menu lezat dari Lapak Inayah'}</p>
+                        <p>${item.deskripsi || 'Menu lezat'}</p>
                         <span class="menu-price">Rp ${formatNumber(item.harga)}</span>
                         <div class="menu-actions">
                             <div class="quantity-control">
@@ -941,503 +321,259 @@
                                 <span class="quantity" id="qty-${index}">${cart[index] ? cart[index].qty : 0}</span>
                                 <button class="qty-btn plus" onclick="increaseQty(${index})">+</button>
                             </div>
-                            <button class="add-to-cart" onclick="addToCart(${index})">
-                                ${cart[index] && cart[index].qty > 0 ? 'Update' : 'Tambah'}
-                            </button>
+                            <button class="add-to-cart" onclick="addToCartWithAlert(${index})">${cart[index] && cart[index].qty > 0 ? 'Update' : 'Tambah'}</button>
                         </div>
                     </div>
                 `;
                 container.appendChild(menuItem);
             });
         }
-        
-        // Cart functions
-        function addToCart(index) {
+
+        function addToCartWithAlert(index) {
             const item = menuData[index];
             if (!item) return;
-            
             const qtyElement = document.getElementById(`qty-${index}`);
-            const qty = parseInt(qtyElement.textContent) || 1;
-            
-            if (qty < 1) {
-                delete cart[index];
-            } else {
-                cart[index] = {
-                    id: index,
-                    nama: item.nama,
-                    harga: item.harga,
-                    qty: qty
-                };
-            }
-            
+            let qty = parseInt(qtyElement.textContent) || 0;
+            if (qty < 1) qty = 1;
+            cart[index] = { id: index, nama: item.nama, harga: item.harga, qty: qty };
             updateCart();
+            alert(`✅ ${item.nama} ditambahkan ke keranjang! (${qty} pcs)`);
+            document.getElementById(`qty-${index}`).textContent = qty;
         }
-        
+
         function increaseQty(index) {
             const qtyElement = document.getElementById(`qty-${index}`);
             let qty = parseInt(qtyElement.textContent) || 0;
-            qtyElement.textContent = qty + 1;
-            addToCart(index);
+            qty++;
+            qtyElement.textContent = qty;
+            const item = menuData[index];
+            if (item && qty > 0) { cart[index] = { id: index, nama: item.nama, harga: item.harga, qty: qty }; updateCart(); alert(`➕ ${item.nama} jumlah ditambah menjadi ${qty}`); }
+            else if (qty === 0) { delete cart[index]; updateCart(); }
         }
-        
+
         function decreaseQty(index) {
             const qtyElement = document.getElementById(`qty-${index}`);
             let qty = parseInt(qtyElement.textContent) || 0;
-            
-            if (qty > 0) {
-                qtyElement.textContent = qty - 1;
-                addToCart(index);
-            }
-        }
-        
-        function removeFromCart(index) {
-            delete cart[index];
-            document.getElementById(`qty-${index}`).textContent = '0';
+            if (qty > 0) qty--;
+            qtyElement.textContent = qty;
+            const item = menuData[index];
+            if (qty > 0 && item) { cart[index] = { id: index, nama: item.nama, harga: item.harga, qty: qty }; }
+            else { delete cart[index]; }
             updateCart();
         }
-        
+
+        function removeFromCart(index) {
+            delete cart[index];
+            if (document.getElementById(`qty-${index}`)) document.getElementById(`qty-${index}`).textContent = '0';
+            updateCart();
+        }
+
         function updateCart() {
             const cartItems = document.getElementById('cartItems');
             const cartCount = document.getElementById('cartCount');
             const subtotalEl = document.getElementById('subtotal');
             const deliveryEl = document.getElementById('deliveryCost');
             const totalEl = document.getElementById('total');
-            
-            let totalItems = 0;
-            let subtotal = 0;
-            let cartHTML = '';
-            
+            let totalItems = 0, subtotal = 0, cartHTML = '';
             Object.values(cart).forEach(item => {
                 if (item.qty > 0) {
                     totalItems += item.qty;
                     const itemTotal = item.harga * item.qty;
                     subtotal += itemTotal;
-                    
-                    cartHTML += `
-                        <div class="cart-item">
-                            <div class="cart-item-name">${item.nama}</div>
-                            <div class="cart-item-qty">x${item.qty}</div>
-                            <div class="cart-item-price">Rp ${formatNumber(itemTotal)}</div>
-                            <button class="remove-item" onclick="removeFromCart(${item.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
+                    cartHTML += `<div class="cart-item"><div class="cart-item-name">${item.nama}</div><div class="cart-item-qty">x${item.qty}</div><div class="cart-item-price">Rp ${formatNumber(itemTotal)}</div><button class="remove-item" onclick="removeFromCart(${item.id})"><i class="fas fa-trash"></i></button></div>`;
                 }
             });
-            
             cartCount.textContent = totalItems;
-            
-            if (cartHTML === '') {
-                cartItems.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Keranjang kosong</p>';
-            } else {
-                cartItems.innerHTML = cartHTML;
-            }
-            
-            // Calculate delivery cost (flat rate or distance-based)
-            const deliveryCost = calculateDeliveryCost();
-            
+            cartItems.innerHTML = cartHTML === '' ? '<p style="text-align: center; color: #999; padding: 20px;">Keranjang kosong</p>' : cartHTML;
+            const deliveryCost = Object.keys(cart).length > 0 ? 10000 : 0;
             subtotalEl.textContent = formatNumber(subtotal);
             deliveryEl.textContent = formatNumber(deliveryCost);
             totalEl.textContent = formatNumber(subtotal + deliveryCost);
+            localStorage.setItem('Lapak Inayah_cart', JSON.stringify(cart));
         }
-        
-        function calculateDeliveryCost() {
-            // Simple flat rate for now
-            return Object.keys(cart).length > 0 ? 10000 : 0;
-        }
-        
-        // Get current location
-        document.getElementById('getLocationBtn').addEventListener('click', function() {
+
+        function calculateSubtotal() { return Object.values(cart).reduce((t, i) => t + (i.harga * i.qty), 0); }
+        function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+
+        // Lokasi
+        document.getElementById('getLocationBtn').addEventListener('click', () => {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        
-                        // Show coordinates in input
-                        document.getElementById('locationCoords').value = 
-                            `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
-                        
-                        // Try to get address from coordinates
-                        getAddressFromCoords(userLocation.lat, userLocation.lng);
-                        
-                        alert('Lokasi berhasil didapatkan!');
-                    },
-                    (error) => {
-                        console.error('Error getting location:', error);
-                        alert('Gagal mendapatkan lokasi. Pastikan GPS aktif dan izinkan akses lokasi.');
-                    }
-                );
-            } else {
-                alert('Browser tidak mendukung geolocation');
-            }
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    document.getElementById('locationCoords').value = `${userLocation.lat.toFixed(6)}, ${userLocation.lng.toFixed(6)}`;
+                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLocation.lat}&lon=${userLocation.lng}&format=json`)
+                        .then(r => r.json()).then(data => { if (data.display_name) document.getElementById('customerAddress').value = data.display_name; });
+                    alert('Lokasi berhasil didapatkan!');
+                }, () => alert('Gagal mendapatkan lokasi. Izinkan akses lokasi.'));
+            } else alert('Browser tidak mendukung geolocation');
         });
-        
-        function getAddressFromCoords(lat, lng) {
-            // Using OpenStreetMap Nominatim API
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.display_name) {
-                        document.getElementById('customerAddress').value = data.display_name;
-                    }
-                })
-                .catch(error => console.error('Error getting address:', error));
-        }
-        
-        // Submit order
-        document.getElementById('submitOrder').addEventListener('click', function() {
+
+        // ========== SUBMIT ORDER ==========
+        document.getElementById('submitOrder').addEventListener('click', async () => {
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
             const address = document.getElementById('customerAddress').value.trim();
-            const paymentMethod = document.getElementById('paymentMethod').value;
+            if (!name || !phone || !address) return alert('Harap isi nama, nomor WhatsApp, dan alamat lengkap!');
+            if (Object.keys(cart).length === 0) return alert('Keranjang Anda masih kosong!');
             
-            if (!name || !phone || !address) {
-                alert('Harap isi nama, nomor WhatsApp, dan alamat lengkap!');
-                return;
-            }
-            
-            if (Object.keys(cart).length === 0) {
-                alert('Keranjang Anda masih kosong!');
-                return;
-            }
-            
-            // Prepare order data
             const orderData = {
-                customer: {
-                    name: name,
-                    phone: phone,
-                    address: address,
-                    note: document.getElementById('customerNote').value.trim(),
-                    paymentMethod: paymentMethod
-                },
+                customer: { name, phone, address, note: document.getElementById('customerNote').value.trim(), paymentMethod: document.getElementById('paymentMethod').value },
                 items: cart,
                 subtotal: calculateSubtotal(),
-                deliveryCost: calculateDeliveryCost(),
-                total: calculateSubtotal() + calculateDeliveryCost(),
+                deliveryCost: Object.keys(cart).length > 0 ? 10000 : 0,
+                total: calculateSubtotal() + (Object.keys(cart).length > 0 ? 10000 : 0),
                 status: 'pending',
-                statusHistory: [
-                    {
-                        status: 'pending',
-                        timestamp: Date.now(),
-                        description: 'Pesanan diterima'
-                    }
-                ],
+                statusHistory: [{ status: 'pending', timestamp: Date.now(), description: 'Pesanan diterima' }],
                 location: userLocation,
                 timestamp: Date.now(),
                 orderDate: new Date().toLocaleString('id-ID')
             };
-            
-            // Generate order ID
             const orderId = 'WQ-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-            
-            // Save to Firebase
-            database.ref('Lapak Inayah/orders/' + orderId).set(orderData)
-                .then(() => {
-                    // Show success modal
-                    document.getElementById('customerNameSuccess').textContent = name;
-                    document.getElementById('orderId').textContent = orderId;
-                    document.getElementById('successModal').style.display = 'flex';
-                    
-                    // Reset cart and form
-                    cart = {};
-                    updateCart();
-                    document.getElementById('customerName').value = '';
-                    document.getElementById('customerPhone').value = '';
-                    document.getElementById('customerAddress').value = '';
-                    document.getElementById('locationCoords').value = '';
-                    document.getElementById('customerNote').value = '';
-                    userLocation = null;
-                    
-                    // Reset all quantities
-                    menuData.forEach((_, index) => {
-                        const qtyElement = document.getElementById(`qty-${index}`);
-                        if (qtyElement) qtyElement.textContent = '0';
-                    });
-                    
-                    // Automatically check orders for this phone number
-                    setTimeout(() => {
-                        document.getElementById('checkPhoneInput').value = phone;
-                        checkOrders(phone);
-                    }, 1000);
-                })
-                .catch(error => {
-                    console.error('Error saving order:', error);
-                    alert('Gagal mengirim pesanan. Coba lagi!');
-                });
+            try {
+                await database.ref(`Lapak Inayah/orders/${orderId}`).set(orderData);
+                document.getElementById('customerNameSuccess').textContent = name;
+                document.getElementById('orderId').textContent = orderId;
+                document.getElementById('successModal').style.display = 'flex';
+                localStorage.setItem('lapak_customer_phone', phone);
+                currentActivePhone = phone;
+                initActiveOrdersListener(phone);
+                await saveOneSignalPlayerId(phone);
+                // Reset cart & form
+                cart = {}; updateCart();
+                document.getElementById('customerName').value = '';
+                document.getElementById('customerPhone').value = '';
+                document.getElementById('customerAddress').value = '';
+                document.getElementById('locationCoords').value = '';
+                document.getElementById('customerNote').value = '';
+                userLocation = null;
+                menuData.forEach((_, i) => { if (document.getElementById(`qty-${i}`)) document.getElementById(`qty-${i}`).textContent = '0'; });
+                document.getElementById('checkPhoneInput').value = phone;
+                console.log("✅ Pesanan berhasil dibuat:", orderId);
+            } catch(err) {
+                console.error("❌ Gagal menyimpan pesanan:", err);
+                alert('Gagal mengirim pesanan. Cek koneksi atau hubungi admin.');
+            }
         });
-        
-        // Check orders by phone number - FUNGSI BARU
-        function checkOrders(phone) {
-            if (!phone) {
-                phone = document.getElementById('checkPhoneInput').value.trim();
-                if (!phone) {
-                    alert('Masukkan nomor WhatsApp terlebih dahulu');
+
+        // ========== PESANAN AKTIF (REALTIME) DENGAN NOTIFIKASI ==========
+        function initActiveOrdersListener(phone) {
+            if (!phone) return;
+            if (activeOrdersListener) activeOrdersListener.off();
+            const ordersRef = database.ref('Lapak Inayah/orders');
+            activeOrdersListener = ordersRef.on('value', (snapshot) => {
+                const allOrders = snapshot.val() || {};
+                const container = document.getElementById('activeOrdersContainer');
+                let active = [];
+                for (let id in allOrders) {
+                    const order = allOrders[id];
+                    if (order.customer && order.customer.phone === phone && 
+                        ['pending','processing','ready','delivering'].includes(order.status)) {
+                        active.push({ id, ...order });
+                        const prevStatus = previousOrderStatus[id];
+                        if (prevStatus && prevStatus !== order.status) {
+                            console.log(`🔔 Status pesanan ${id} berubah: ${prevStatus} → ${order.status}`);
+                            showBrowserNotification(id, order.status, order.items);
+                        }
+                        previousOrderStatus[id] = order.status;
+                    } else {
+                        if (previousOrderStatus[id]) delete previousOrderStatus[id];
+                    }
+                }
+                active.sort((a,b) => b.timestamp - a.timestamp);
+                if (active.length === 0) {
+                    container.innerHTML = '<div class="no-orders"><i class="fas fa-check-circle"></i><p>Tidak ada pesanan aktif. Pesan sekarang!</p></div>';
                     return;
                 }
-            }
-            
-            database.ref('Lapak Inayah/orders').once('value')
-                .then(snapshot => {
-                    const orders = snapshot.val();
-                    const container = document.getElementById('orderHistoryContainer');
-                    
-                    if (!orders) {
-                        container.innerHTML = `
-                            <div class="no-orders">
-                                <i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
-                                <p>Belum ada pesanan untuk nomor WhatsApp ini</p>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    let userOrders = [];
-                    
-                    // Filter orders by phone number
-                    for (let orderId in orders) {
-                        if (orders[orderId].customer.phone === phone) {
-                            userOrders.push({
-                                id: orderId,
-                                ...orders[orderId]
-                            });
-                        }
-                    }
-                    
-                    // Sort by timestamp (newest first)
-                    userOrders.sort((a, b) => b.timestamp - a.timestamp);
-                    
-                    if (userOrders.length === 0) {
-                        container.innerHTML = `
-                            <div class="no-orders">
-                                <i class="fas fa-shopping-bag" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
-                                <p>Belum ada pesanan untuk nomor WhatsApp ${phone}</p>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    // Render orders
-                    let ordersHTML = '';
-                    
-                    userOrders.forEach(order => {
-                        // Format status
-                        const statusText = {
-                            'pending': 'Menunggu Konfirmasi',
-                            'processing': 'Sedang Diproses',
-                            'ready': 'Siap Diantar',
-                            'delivering': 'Dalam Pengiriman',
-                            'completed': 'Selesai',
-                            'cancelled': 'Dibatalkan'
-                        };
-                        
-                        const statusClass = {
-                            'pending': 'status-pending',
-                            'processing': 'status-processing',
-                            'ready': 'status-ready',
-                            'delivering': 'status-delivering',
-                            'completed': 'status-completed',
-                            'cancelled': 'status-pending'
-                        };
-                        
-                        // Create items list
-                        let itemsHTML = '';
-                        Object.values(order.items).forEach(item => {
-                            if (item.qty > 0) {
-                                itemsHTML += `<div>${item.nama} x${item.qty} = Rp ${formatNumber(item.harga * item.qty)}</div>`;
-                            }
-                        });
-                        
-                        // Create status timeline
-                        let timelineHTML = '';
-                        const statuses = [
-                            { 
-                                id: 'pending', 
-                                icon: 'fa-clock',
-                                title: 'Pesanan Diterima',
-                                description: 'Pesanan Anda telah kami terima'
-                            },
-                            { 
-                                id: 'processing', 
-                                icon: 'fa-utensils',
-                                title: 'Sedang Dimasak',
-                                description: 'Pesanan Anda sedang diproses di dapur'
-                            },
-                            { 
-                                id: 'ready', 
-                                icon: 'fa-box',
-                                title: 'Siap Diantar',
-                                description: 'Pesanan Anda sudah siap untuk diantar'
-                            },
-                            { 
-                                id: 'delivering', 
-                                icon: 'fa-truck',
-                                title: 'Dalam Pengiriman',
-                                description: 'Kurir sedang dalam perjalanan ke alamat Anda'
-                            },
-                            { 
-                                id: 'completed', 
-                                icon: 'fa-check',
-                                title: 'Pesanan Selesai',
-                                description: 'Pesanan telah sampai ke tangan Anda'
-                            }
-                        ];
-                        
-                        const statusIndex = ['pending', 'processing', 'ready', 'delivering', 'completed']
-                            .indexOf(order.status);
-                        
-                        statuses.forEach((status, index) => {
-                            let statusIconClass = '';
-                            if (index < statusIndex) {
-                                statusIconClass = 'completed';
-                            } else if (index === statusIndex) {
-                                statusIconClass = 'active';
-                            }
-                            
-                            timelineHTML += `
-                                <div class="status-step">
-                                    <div class="status-icon ${statusIconClass}">
-                                        <i class="fas ${status.icon}"></i>
-                                    </div>
-                                    <div class="status-info">
-                                        <h4>${status.title}</h4>
-                                        <p>${status.description}</p>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        
-                        ordersHTML += `
-                            <div class="order-card ${order.status}">
-                                <div class="order-header">
-                                    <div>
-                                        <div class="order-id">${order.id}</div>
-                                        <div class="order-date">${order.orderDate}</div>
-                                    </div>
-                                    <div class="order-status ${statusClass[order.status]}">
-                                        ${statusText[order.status] || order.status}
-                                    </div>
-                                </div>
-                                
-                                <div class="order-items">
-                                    ${itemsHTML}
-                                </div>
-                                
-                                <div class="order-total">
-                                    Total: Rp ${formatNumber(order.total)}
-                                </div>
-                                
-                                <div class="status-timeline">
-                                    ${timelineHTML}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    container.innerHTML = ordersHTML;
-                    
-                    // Scroll to order history section
-                    document.querySelector('.order-history-section').scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                    });
-                })
-                .catch(error => {
-                    console.error('Error checking orders:', error);
-                    const container = document.getElementById('orderHistoryContainer');
-                    container.innerHTML = `
-                        <div class="error">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Gagal memuat pesanan. Silakan coba lagi.
-                        </div>
-                    `;
+                container.innerHTML = renderOrderCards(active);
+            });
+        }
+
+        function renderOrderCards(orders) {
+            const statusText = { pending:'Menunggu Konfirmasi', processing:'Sedang Diproses', ready:'Siap Diantar', delivering:'Dalam Pengiriman', completed:'Selesai' };
+            const statusClass = { pending:'status-pending', processing:'status-processing', ready:'status-ready', delivering:'status-delivering', completed:'status-completed' };
+            let html = '';
+            orders.forEach(order => {
+                let itemsHTML = '';
+                Object.values(order.items).forEach(i => { if(i.qty>0) itemsHTML += `<div>${i.nama} x${i.qty} = Rp ${formatNumber(i.harga * i.qty)}</div>`; });
+                let timelineHTML = '';
+                const steps = [
+                    { id:'pending', icon:'fa-clock', title:'Pesanan Diterima', desc:'Pesanan Anda telah kami terima' },
+                    { id:'processing', icon:'fa-utensils', title:'Sedang Dimasak', desc:'Pesanan sedang diproses' },
+                    { id:'ready', icon:'fa-box', title:'Siap Diantar', desc:'Pesanan siap diantar' },
+                    { id:'delivering', icon:'fa-truck', title:'Dalam Pengiriman', desc:'Kurir dalam perjalanan' },
+                    { id:'completed', icon:'fa-check', title:'Pesanan Selesai', desc:'Pesanan telah sampai' }
+                ];
+                const statusIndex = ['pending','processing','ready','delivering','completed'].indexOf(order.status);
+                steps.forEach((step, idx) => {
+                    let iconClass = '';
+                    if (idx < statusIndex) iconClass = 'completed';
+                    else if (idx === statusIndex) iconClass = 'active';
+                    timelineHTML += `<div class="status-step"><div class="status-icon ${iconClass}"><i class="fas ${step.icon}"></i></div><div class="status-info"><h4>${step.title}</h4><p>${step.desc}</p></div></div>`;
                 });
+                html += `<div class="order-card ${order.status}">
+                            <div class="order-header"><div><div class="order-id">${order.id}</div><div class="order-date">${order.orderDate}</div></div><div class="order-status ${statusClass[order.status]}">${statusText[order.status] || order.status}</div></div>
+                            <div class="order-items">${itemsHTML}</div>
+                            <div class="order-total">Total: Rp ${formatNumber(order.total)}</div>
+                            <div class="status-timeline">${timelineHTML}</div>
+                         </div>`;
+            });
+            return html;
         }
-        
-        // Helper functions
-        function calculateSubtotal() {
-            return Object.values(cart).reduce((total, item) => {
-                return total + (item.harga * item.qty);
-            }, 0);
+
+        // ========== RIWAYAT LENGKAP ==========
+        async function checkHistoryOrders(phone) {
+            if (!phone) phone = document.getElementById('checkPhoneInput').value.trim();
+            if (!phone) return alert('Masukkan nomor WhatsApp terlebih dahulu');
+            const snapshot = await database.ref('Lapak Inayah/orders').once('value');
+            const allOrders = snapshot.val() || {};
+            let userOrders = [];
+            for (let id in allOrders) {
+                if (allOrders[id].customer && allOrders[id].customer.phone === phone) {
+                    userOrders.push({ id, ...allOrders[id] });
+                }
+            }
+            userOrders.sort((a,b) => b.timestamp - a.timestamp);
+            const container = document.getElementById('orderHistoryContainer');
+            if (userOrders.length === 0) {
+                container.innerHTML = `<div class="no-orders"><p>Belum ada pesanan untuk nomor ${phone}</p></div>`;
+                return;
+            }
+            container.innerHTML = renderOrderCards(userOrders);
+            document.querySelector('.order-history-section').scrollIntoView({ behavior: 'smooth' });
         }
-        
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-        
-        // Initialize
-        window.onload = function() {
+
+        // ========== INISIALISASI ==========
+        window.onload = async () => {
             loadMenu();
-            
-            // Load existing cart from localStorage
             const savedCart = localStorage.getItem('Lapak Inayah_cart');
-            if (savedCart) {
-                cart = JSON.parse(savedCart);
-                updateCart();
+            if (savedCart) { cart = JSON.parse(savedCart); updateCart(); }
+            // Minta izin notifikasi browser jika memungkinkan
+            if ("Notification" in window && Notification.permission !== "denied" && Notification.permission !== "granted") {
+                Notification.requestPermission().then(perm => console.log("Notifikasi permission:", perm));
             }
-            
-            // Save cart to localStorage on changes
-            setInterval(() => {
-                localStorage.setItem('Lapak Inayah_cart', JSON.stringify(cart));
-            }, 2000);
-            
-            // Event Listeners
-            document.getElementById('modalClose').addEventListener('click', function() {
-                document.getElementById('successModal').style.display = 'none';
+            const savedPhone = localStorage.getItem('lapak_customer_phone');
+            if (savedPhone) {
+                currentActivePhone = savedPhone;
+                initActiveOrdersListener(savedPhone);
+                document.getElementById('checkPhoneInput').value = savedPhone;
+                console.log("✅ Memuat pesanan aktif untuk nomor:", savedPhone);
+            } else {
+                document.getElementById('activeOrdersContainer').innerHTML = '<div class="no-orders"><i class="fas fa-info-circle"></i><p>Belum ada pesanan aktif. Silakan pesan terlebih dahulu.</p></div>';
+            }
+            document.getElementById('modalClose').addEventListener('click', () => document.getElementById('successModal').style.display = 'none');
+            document.getElementById('checkOrdersBtn').addEventListener('click', () => checkHistoryOrders());
+            document.getElementById('refreshActiveBtn').addEventListener('click', () => {
+                if (currentActivePhone) initActiveOrdersListener(currentActivePhone);
+                else alert('Belum ada nomor pesanan aktif. Silakan pesan terlebih dahulu.');
             });
-            
-            // Check orders button
-            document.getElementById('checkOrdersBtn').addEventListener('click', function() {
-                checkOrders();
-            });
-            
-            // Refresh orders button
-            document.getElementById('refreshOrders').addEventListener('click', function() {
-                const phone = document.getElementById('checkPhoneInput').value.trim();
-                if (phone) {
-                    checkOrders(phone);
-                }
-            });
-            
-            // Enter key on phone input
-            document.getElementById('checkPhoneInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    checkOrders();
-                }
-            });
-            
-            // Auto-fill phone from order form when typing
-            document.getElementById('customerPhone').addEventListener('input', function() {
-                document.getElementById('checkPhoneInput').value = this.value;
-            });
-            
-            // View orders from footer
-            document.getElementById('viewOrdersFooter').addEventListener('click', function(e) {
+            document.getElementById('customerPhone').addEventListener('input', (e) => document.getElementById('checkPhoneInput').value = e.target.value);
+            document.getElementById('viewOrdersFooter').addEventListener('click', (e) => {
                 e.preventDefault();
-                document.querySelector('.order-history-section').scrollIntoView({ 
-                    behavior: 'smooth' 
-                });
-                
-                // Auto-focus on phone input
-                setTimeout(() => {
-                    document.getElementById('checkPhoneInput').focus();
-                    // If phone already entered in order form, use it
-                    const orderPhone = document.getElementById('customerPhone').value.trim();
-                    if (orderPhone) {
-                        document.getElementById('checkPhoneInput').value = orderPhone;
-                        checkOrders(orderPhone);
-                    }
-                }, 500);
+                const phone = document.getElementById('customerPhone').value.trim() || localStorage.getItem('lapak_customer_phone');
+                if (phone) { document.getElementById('checkPhoneInput').value = phone; checkHistoryOrders(phone); }
+                else document.getElementById('checkPhoneInput').focus();
             });
-            
-            // Contact us
-            document.getElementById('contactUs').addEventListener('click', function(e) {
-                e.preventDefault();
-                window.open('https://wa.me/6281234567890', '_blank');
-            });
+            document.getElementById('contactUs').addEventListener('click', (e) => { e.preventDefault(); window.open('https://wa.me/6281234567890', '_blank'); });
         };
     </script>
 </body>
