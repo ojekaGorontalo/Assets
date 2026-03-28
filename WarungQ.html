@@ -226,9 +226,14 @@
                 const permission = await OneSignal.Notifications.permission;
                 console.log("🔔 Status izin notifikasi:", permission);
                 
-                // Perbaikan: Player ID di OneSignal v16 adalah properti, bukan fungsi
-                let subscriptionId = OneSignal.User.PushSubscription.id;
-                console.log("🆔 Player ID saat init:", subscriptionId);
+                // Perbaikan: cek ketersediaan PushSubscription
+                let subscriptionId = null;
+                if (OneSignal.User && OneSignal.User.PushSubscription) {
+                    subscriptionId = OneSignal.User.PushSubscription.id;
+                    console.log("🆔 Player ID saat init:", subscriptionId);
+                } else {
+                    console.warn("⚠️ PushSubscription belum tersedia saat init");
+                }
                 
                 const phone = localStorage.getItem('lapak_customer_phone');
                 if (phone && subscriptionId) {
@@ -238,22 +243,27 @@
                     });
                     console.log("✅ Player ID tersimpan untuk nomor", phone);
                 } else if (!subscriptionId) {
-                    console.warn("⚠️ Player ID belum tersedia (user belum subscribe)");
+                    console.warn("⚠️ Player ID belum tersedia (user belum subscribe atau SDK belum siap)");
                 }
                 
-                OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
-                    console.log("🔄 Subscription berubah:", event);
-                    const newId = OneSignal.User.PushSubscription.id;
-                    console.log("🆔 Player ID baru:", newId);
-                    const phone = localStorage.getItem('lapak_customer_phone');
-                    if (phone && newId) {
-                        await database.ref(`onesignal_ids/customers/${phone}`).set({
-                            playerId: newId,
-                            updatedAt: Date.now()
-                        });
-                        console.log("✅ Player ID diperbarui untuk nomor", phone);
-                    }
-                });
+                // Event listener perubahan subscription
+                if (OneSignal.User && OneSignal.User.PushSubscription) {
+                    OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+                        console.log("🔄 Subscription berubah:", event);
+                        const newId = OneSignal.User.PushSubscription.id;
+                        console.log("🆔 Player ID baru:", newId);
+                        const phone = localStorage.getItem('lapak_customer_phone');
+                        if (phone && newId) {
+                            await database.ref(`onesignal_ids/customers/${phone}`).set({
+                                playerId: newId,
+                                updatedAt: Date.now()
+                            });
+                            console.log("✅ Player ID diperbarui untuk nomor", phone);
+                        }
+                    });
+                } else {
+                    console.warn("⚠️ Tidak dapat menambahkan listener karena PushSubscription belum tersedia");
+                }
             } catch (error) {
                 console.error("❌ Error inisialisasi OneSignal:", error);
             }
@@ -272,8 +282,11 @@
                 console.log("✅ Hasil permintaan izin:", permission);
                 if (permission === "granted") {
                     showToastMessage("✅ Notifikasi diizinkan! Anda akan menerima update pesanan.");
-                    const subscriptionId = OneSignal.User.PushSubscription.id;
-                    console.log("🆔 Player ID setelah izin:", subscriptionId);
+                    let subscriptionId = null;
+                    if (OneSignal.User && OneSignal.User.PushSubscription) {
+                        subscriptionId = OneSignal.User.PushSubscription.id;
+                        console.log("🆔 Player ID setelah izin:", subscriptionId);
+                    }
                     const phone = localStorage.getItem('lapak_customer_phone');
                     if (phone && subscriptionId) {
                         await database.ref(`onesignal_ids/customers/${phone}`).set({
@@ -472,6 +485,7 @@
                 localStorage.setItem('lapak_customer_phone', phone);
                 currentActivePhone = phone;
                 initActiveOrdersListener(phone);
+                // Simpan Player ID OneSignal (dengan penanganan error yang lebih baik)
                 await saveOneSignalPlayerId(phone);
                 // Reset cart & form
                 cart = {}; updateCart();
@@ -490,17 +504,24 @@
             }
         });
 
-        // Perbaikan: fungsi saveOneSignalPlayerId menggunakan properti yang benar
+        // Fungsi saveOneSignalPlayerId yang aman (tidak melempar error)
         async function saveOneSignalPlayerId(phoneNumber) {
             if (!phoneNumber) return;
             try {
                 const OneSignal = window.OneSignal;
                 if (OneSignal && OneSignal.User) {
-                    // OneSignal v16: subscription id adalah properti
-                    let userId = OneSignal.User.PushSubscription.id;
-                    if (!userId) {
-                        console.warn("⚠️ Player ID belum tersedia, coba lagi nanti...");
+                    // Pastikan PushSubscription tersedia sebelum mengambil id
+                    let userId = null;
+                    if (OneSignal.User.PushSubscription) {
+                        userId = OneSignal.User.PushSubscription.id;
+                    } else {
+                        console.warn("⚠️ PushSubscription belum tersedia, coba lagi nanti...");
                         setTimeout(() => saveOneSignalPlayerId(phoneNumber), 3000);
+                        return;
+                    }
+                    if (!userId) {
+                        console.warn("⚠️ Player ID belum tersedia (user belum subscribe), coba lagi nanti...");
+                        setTimeout(() => saveOneSignalPlayerId(phoneNumber), 5000);
                         return;
                     }
                     await database.ref(`onesignal_ids/customers/${phoneNumber}`).set({
@@ -513,6 +534,7 @@
                     setTimeout(() => saveOneSignalPlayerId(phoneNumber), 3000);
                 }
             } catch(e) {
+                // Jangan lempar error ke luar, cukup log
                 console.warn("❌ Gagal simpan OneSignal ID:", e);
             }
         }
