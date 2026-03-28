@@ -226,7 +226,8 @@
                 const permission = await OneSignal.Notifications.permission;
                 console.log("🔔 Status izin notifikasi:", permission);
                 
-                let subscriptionId = await OneSignal.User.PushSubscription.id;
+                // Perbaikan: Player ID di OneSignal v16 adalah properti, bukan fungsi
+                let subscriptionId = OneSignal.User.PushSubscription.id;
                 console.log("🆔 Player ID saat init:", subscriptionId);
                 
                 const phone = localStorage.getItem('lapak_customer_phone');
@@ -242,7 +243,7 @@
                 
                 OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
                     console.log("🔄 Subscription berubah:", event);
-                    const newId = await OneSignal.User.PushSubscription.id;
+                    const newId = OneSignal.User.PushSubscription.id;
                     console.log("🆔 Player ID baru:", newId);
                     const phone = localStorage.getItem('lapak_customer_phone');
                     if (phone && newId) {
@@ -271,7 +272,7 @@
                 console.log("✅ Hasil permintaan izin:", permission);
                 if (permission === "granted") {
                     showToastMessage("✅ Notifikasi diizinkan! Anda akan menerima update pesanan.");
-                    const subscriptionId = await OneSignal.User.PushSubscription.id;
+                    const subscriptionId = OneSignal.User.PushSubscription.id;
                     console.log("🆔 Player ID setelah izin:", subscriptionId);
                     const phone = localStorage.getItem('lapak_customer_phone');
                     if (phone && subscriptionId) {
@@ -489,22 +490,24 @@
             }
         });
 
+        // Perbaikan: fungsi saveOneSignalPlayerId menggunakan properti yang benar
         async function saveOneSignalPlayerId(phoneNumber) {
             if (!phoneNumber) return;
             try {
                 const OneSignal = window.OneSignal;
                 if (OneSignal && OneSignal.User) {
-                    const userId = await OneSignal.User.getOnesignalId();
-                    if (userId) {
-                        await database.ref(`onesignal_ids/customers/${phoneNumber}`).set({
-                            playerId: userId,
-                            updatedAt: Date.now()
-                        });
-                        console.log("✅ Player ID OneSignal tersimpan untuk", phoneNumber, ":", userId);
-                    } else {
-                        console.warn("⚠️ Belum mendapat OneSignal User ID, coba lagi nanti.");
-                        setTimeout(() => saveOneSignalPlayerId(phoneNumber), 5000);
+                    // OneSignal v16: subscription id adalah properti
+                    let userId = OneSignal.User.PushSubscription.id;
+                    if (!userId) {
+                        console.warn("⚠️ Player ID belum tersedia, coba lagi nanti...");
+                        setTimeout(() => saveOneSignalPlayerId(phoneNumber), 3000);
+                        return;
                     }
+                    await database.ref(`onesignal_ids/customers/${phoneNumber}`).set({
+                        playerId: userId,
+                        updatedAt: Date.now()
+                    });
+                    console.log("✅ Player ID OneSignal tersimpan untuk", phoneNumber, ":", userId);
                 } else {
                     console.warn("⚠️ OneSignal belum siap, tunggu sebentar...");
                     setTimeout(() => saveOneSignalPlayerId(phoneNumber), 3000);
