@@ -209,10 +209,12 @@
         // ========== ONESIGNAL INTEGRASI ==========
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         const OneSignalAppId = "007d7eba-9cfc-40d1-a92e-f2299f770282";
+        const serviceWorkerPath = "https://masjid-arrahman.netlify.app/OneSignalSDKWorker.js";
         OneSignalDeferred.push(function(OneSignal) {
             OneSignal.init({
                 appId: OneSignalAppId,
-                safari_web_id: "web.onesignal.auto.123456",
+                serviceWorkerParam: { scope: "/" },
+                serviceWorkerPath: serviceWorkerPath,
                 notifyButton: { enable: false },
                 allowLocalhostAsSecureOrigin: true,
             });
@@ -244,9 +246,8 @@
             }
         }
 
-        // ========== NOTIFIKASI BROWSER YANG AMAN ==========
+        // ========== NOTIFIKASI (TOAST FALLBACK) ==========
         function showToastMessage(message) {
-            // Hilangkan toast sebelumnya jika ada
             const existingToast = document.querySelector('.toast-notif');
             if (existingToast) existingToast.remove();
             const toast = document.createElement('div');
@@ -256,7 +257,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        function showBrowserNotification(orderId, newStatus, orderItems) {
+        function showStatusNotification(orderId, newStatus) {
             const statusText = {
                 pending: "Menunggu Konfirmasi",
                 processing: "Sedang Diproses",
@@ -267,18 +268,6 @@
             const title = `📦 Pesanan ${orderId}`;
             const body = `Status: ${statusText[newStatus] || newStatus}`;
             console.log(`🔔 Notifikasi: ${title} - ${body}`);
-            
-            // Coba gunakan Notification API jika tersedia dan diizinkan
-            if ("Notification" in window && Notification.permission === "granted") {
-                try {
-                    const notification = new Notification(title, { body, icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png" });
-                    notification.onclick = () => { window.focus(); notification.close(); };
-                    return;
-                } catch (e) {
-                    console.warn("Notification API gagal:", e);
-                }
-            }
-            // Fallback: tampilkan toast
             showToastMessage(`${title} - ${body}`);
         }
 
@@ -437,7 +426,8 @@
                 localStorage.setItem('lapak_customer_phone', phone);
                 currentActivePhone = phone;
                 initActiveOrdersListener(phone);
-                await saveOneSignalPlayerId(phone);
+                // Simpan OneSignal ID (opsional, tidak mengganggu)
+                saveOneSignalPlayerId(phone).catch(e => console.warn("OneSignal save gagal, abaikan:", e));
                 // Reset cart & form
                 cart = {}; updateCart();
                 document.getElementById('customerName').value = '';
@@ -472,7 +462,7 @@
                         const prevStatus = previousOrderStatus[id];
                         if (prevStatus && prevStatus !== order.status) {
                             console.log(`🔔 Status pesanan ${id} berubah: ${prevStatus} → ${order.status}`);
-                            showBrowserNotification(id, order.status, order.items);
+                            showStatusNotification(id, order.status);
                         }
                         previousOrderStatus[id] = order.status;
                     } else {
@@ -547,10 +537,6 @@
             loadMenu();
             const savedCart = localStorage.getItem('Lapak Inayah_cart');
             if (savedCart) { cart = JSON.parse(savedCart); updateCart(); }
-            // Minta izin notifikasi browser jika memungkinkan
-            if ("Notification" in window && Notification.permission !== "denied" && Notification.permission !== "granted") {
-                Notification.requestPermission().then(perm => console.log("Notifikasi permission:", perm));
-            }
             const savedPhone = localStorage.getItem('lapak_customer_phone');
             if (savedPhone) {
                 currentActivePhone = savedPhone;
