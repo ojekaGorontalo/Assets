@@ -607,7 +607,7 @@
     let currentPhone = '';
     let otpTimer = null;
     let otpCountdown = 60;
-    let driverData = null; // data driver dari database setelah login sukses
+    let driverData = null;
 
     // ================= ELEMEN DOM =================
     const phoneForm = document.getElementById('phoneForm');
@@ -634,6 +634,22 @@
     const modalCancelBtn = document.getElementById('modalCancelBtn');
     const loadingModal = document.getElementById('loadingModal');
     const loadingText = document.getElementById('loadingText');
+
+    // ================= FUNGSI KOMUNIKASI DENGAN KODULAR =================
+    function sendToKodular(action, data = {}) {
+      const payload = JSON.stringify({ action: action, ...data, timestamp: new Date().toISOString() });
+      console.log('📤 Mengirim ke Kodular:', payload);
+      
+      if (window.AppInventor && typeof window.AppInventor.setWebViewString === 'function') {
+        window.AppInventor.setWebViewString(payload);
+      } else if (window.android && typeof window.android.receiveData === 'function') {
+        window.android.receiveData(payload);
+      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.observe) {
+        window.webkit.messageHandlers.observe.postMessage(payload);
+      } else {
+        console.warn('❌ Tidak ada metode komunikasi dengan Kodular');
+      }
+    }
 
     // ================= FUNGSI UTILITAS =================
     function showPopup(title, message, type = 'info', options = {}) {
@@ -684,9 +700,6 @@
         phoneStatus.classList.add('registered');
         phoneStatusIcon.textContent = 'ℹ️';
         phoneStatusText.textContent = message;
-        if (phoneInfo) {
-          // tidak perlu tombol di sini, akan ditangani di pengecekan setelah klik kirim OTP
-        }
       } else if (type === 'error') {
         phoneStatus.classList.add('error');
         phoneStatusIcon.textContent = '❌';
@@ -823,7 +836,7 @@
       } catch (e) { console.error(e); return { exists: false, error: e.message }; }
     }
 
-    // ================= FUNGSI HANDLE STATUS DRIVER =================
+    // ================= FUNGSI HANDLE STATUS DRIVER (DIUBAH) =================
     function handleDriverStatus(driverData, driverId) {
       const status = driverData.status || driverData.driverStatus || 'pending';
       const ketGagal = driverData.ketGagal || driverData.rejectionReason || driverData.blockReason || 'Tidak ada keterangan.';
@@ -832,33 +845,36 @@
         case 'accepted':
         case 'approved':
         case 'active':
-          // Login berhasil
+          // Siapkan data session
           const sessionDriver = {
-  userId: driverId,
-  uid: driverId,
-  name: driverData.name || driverData.fullName || '',
-  phone: driverData.phone || '',
-  email: driverData.email || '',
-  address: driverData.address || '',
-  status: 'active',
-  role: 'driver',
-  fotoProfilURL: driverData.fotoProfilURL || driverData.profilePhotoUrl || '',
-  vehicleType: driverData.vehicleType || '',           // TAMBAHKAN
-  plateNumber: driverData.plateNumber || '',           // TAMBAHKAN
-  vehicleBrand: driverData.vehicleBrand || '',         // TAMBAHKAN
-  idCardNumber: driverData.idCardNumber || '',         // OPSIONAL
-  rating: driverData.rating || 5,
-  perjalanan: driverData.perjalanan || 0,
-  Balance: driverData.Balance || 0,                    // OPSIONAL
-  Potongan: driverData.Potongan || 0,                  // OPSIONAL
-  createdAt: driverData.createdAt || new Date().toISOString()
-};
+            userId: driverId,
+            uid: driverId,
+            name: driverData.name || driverData.fullName || '',
+            phone: driverData.phone || '',
+            email: driverData.email || '',
+            address: driverData.address || '',
+            status: 'active',
+            role: 'driver',
+            fotoProfilURL: driverData.fotoProfilURL || driverData.profilePhotoUrl || '',
+            vehicleType: driverData.vehicleType || '',
+            plateNumber: driverData.plateNumber || '',
+            vehicleBrand: driverData.vehicleBrand || '',
+            idCardNumber: driverData.idCardNumber || '',
+            rating: driverData.rating || 5,
+            perjalanan: driverData.perjalanan || 0,
+            Balance: driverData.Balance || 0,
+            Potongan: driverData.Potongan || 0,
+            createdAt: driverData.createdAt || new Date().toISOString()
+          };
           localStorage.setItem('jego_logged_in_driver', JSON.stringify(sessionDriver));
-          showSuccessMessage('Login berhasil! Mengalihkan...', true);
-          setTimeout(() => {
-            // Redirect ke dashboard driver (ganti sesuai halaman tujuan)
-            window.location.href = '#0/index.html';
-          }, 1500);
+
+          // Kirim data ke Kodular
+          sendToKodular('login_success', { driver: sessionDriver });
+
+          // Tampilkan pesan sukses (opsional)
+          showSuccessMessage('Login berhasil!', true);
+          // TIDAK ADA REDIRECT KE HALAMAN HTML
+          // Biarkan Kodular yang menangani navigasi screen
           break;
 
         case 'rejected':
@@ -980,6 +996,8 @@
 
       // Handle status driver
       handleDriverStatus(info.data, info.id);
+      // Nonaktifkan tombol verifikasi setelah berhasil (opsional)
+      verifyOtpBtn.disabled = true;
     });
 
     resendOtpLink.addEventListener('click', async function() {
@@ -996,6 +1014,8 @@
       phoneForm.style.display = 'block';
       otpSection.style.display = 'none';
       currentPhone = '';
+      verifyOtpBtn.disabled = false;
+      verifyOtpBtn.textContent = 'Verifikasi OTP';
     });
 
     registerBtn.addEventListener('click', function() {
@@ -1014,8 +1034,10 @@
         try {
           const driver = JSON.parse(loggedInDriver);
           if (driver.status === 'active') {
+            // Kirim ke Kodular bahwa driver sudah login
+            sendToKodular('already_logged_in', { driver: driver });
             showInfoMessage('Anda sudah login. Mengalihkan...', true);
-            setTimeout(() => window.location.href = '#0/index.html', 1500);
+            // Tidak redirect, biarkan Kodular menangani
           } else {
             localStorage.removeItem('jego_logged_in_driver');
           }
