@@ -194,7 +194,7 @@
       firebaseDatabase = firebase.database();
     }
 
-    // ================= LOGIKA OTP (sama dengan login) =================
+    // ================= LOGIKA OTP =================
     async function canSendOTP(phone) {
       const ref = firebaseDatabase.ref('otp_verification/' + phone.replace(/\+/g, '_'));
       const snap = await ref.child('requests').once('value');
@@ -283,7 +283,6 @@
         const usersRef = firebaseDatabase.ref('users');
         const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
         
-        // 🔴 CEK APAKAH NOMOR SUDAH TERDAFTAR (termasuk yang status delete_account)
         if (snapshot.exists()) {
           const users = snapshot.val();
           const uid = Object.keys(users)[0];
@@ -340,9 +339,9 @@
           email: registrationData.email || '',
           address: registrationData.address || '',
           gender: registrationData.gender || '',
-          uid,
+          uid: uid,
           status: 'active',
-          fotoProfilURL: '',
+          photoURL: '',     // ← sinkron dengan field yang dibaca rute.html & jenis_kenderaan.html
           rating: 5,
           perjalanan: 0,
           createdAt: new Date().toISOString()
@@ -350,7 +349,7 @@
         await newUserRef.set(userData);
 
         const session = {
-          userId: uid, uid,
+          userId: uid, uid: uid,
           name: userData.name,
           phone: userData.phone,
           email: userData.email,
