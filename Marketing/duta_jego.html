@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JeGo - Manajemen Duta JEGO</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header h1 { font-size: 1.6rem; }
+        .header a { color: white; background: rgba(0,0,0,0.2); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden; }
+        .card-header { background: #f8f9fa; padding: 12px 20px; border-bottom: 1px solid #e9ecef; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .card-body { padding: 20px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background: #FF9800; color: white; }
+        .btn-primary:hover { background: #F57C00; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f1f3f5; font-weight: 600; }
+        .status-badge { padding: 4px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
+        .status-aktif { background: #d4edda; color: #155724; }
+        .status-nonaktif { background: #f8d7da; color: #721c24; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-disetujui { background: #d1ecf1; color: #0c5460; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; border-radius: 12px; width: 500px; max-width: 90%; padding: 20px; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 1.3rem; font-weight: bold; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .stat-box { background: #fff3e0; border-left: 4px solid #FF9800; padding: 15px; border-radius: 8px; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #FF9800; }
+        .search-box { padding: 6px 12px; border: 1px solid #ddd; border-radius: 20px; width: 250px; }
+        @media (max-width: 768px) { .table-wrapper { overflow-x: auto; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-star"></i> Manajemen Duta JEGO</h1>
+        <a href="admin_jego.html"><i class="fas fa-tachometer-alt"></i> Kembali ke Admin Panel</a>
+    </div>
+
+    <div class="grid-2" id="summaryCards">
+        <div class="stat-box">Total Duta: <span class="stat-number" id="totalDuta">0</span></div>
+        <div class="stat-box">Laporan Pending: <span class="stat-number" id="totalPending">0</span></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-users"></i> Daftar Duta JEGO</span>
+            <div>
+                <input type="text" id="searchDuta" class="search-box" placeholder="Cari duta...">
+                <button class="btn btn-primary" id="btnTambahDuta"><i class="fas fa-plus"></i> Tambah Duta</button>
+            </div>
+        </div>
+        <div class="card-body table-wrapper">
+            <table id="tblDuta">
+                <thead><tr><th>Nama</th><th>No HP</th><th>PIN</th><th>Status</th><th>Total Bonus</th><th>Bergabung</th><th>Aksi</th></tr></thead>
+                <tbody id="listDuta"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-file-alt"></i> Laporan Duta (Pending)</span>
+            <button class="btn btn-primary" id="btnTambahLaporan"><i class="fas fa-plus"></i> Tambah Laporan Manual</button>
+        </div>
+        <div class="card-body table-wrapper">
+            <table id="tblLaporan">
+                <thead><tr><th>Duta</th><th>Jenis</th><th>Nama Target</th><th>Kontak Target</th><th>Tanggal Lapor</th><th>Status</th><th>Aksi</th></tr></thead>
+                <tbody id="listLaporan"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah/Edit Duta -->
+<div id="modalDuta" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><span id="modalDutaTitle">Tambah Duta</span><span style="cursor:pointer" onclick="closeModal('modalDuta')">&times;</span></div>
+        <form id="formDuta">
+            <input type="hidden" id="dutaId">
+            <div class="form-group"><label>Nama Lengkap</label><input type="text" id="dutaNama" required></div>
+            <div class="form-group"><label>No WhatsApp</label><input type="text" id="dutaNoHp" required></div>
+            <div class="form-group"><label>PIN (4 digit untuk login Duta)</label><input type="text" id="dutaPin" maxlength="4" required placeholder="Misal: 1234"></div>
+            <div class="form-group"><label>Status</label><select id="dutaStatus"><option value="aktif">Aktif</option><option value="nonaktif">Nonaktif</option></select></div>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modalDuta')">Batal</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Tambah Laporan Manual -->
+<div id="modalLaporan" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><span>Tambah Laporan Duta</span><span style="cursor:pointer" onclick="closeModal('modalLaporan')">&times;</span></div>
+        <form id="formLaporan">
+            <div class="form-group"><label>Pilih Duta</label><select id="laporanDutaId" required></select></div>
+            <div class="form-group"><label>Jenis Keberhasilan</label><select id="laporanJenis" required>
+                <option value="user_baru">User Baru</option>
+                <option value="driver_baru">Driver Baru</option>
+                <option value="konten">Konten Promosi</option>
+            </select></div>
+            <div class="form-group"><label>Nama Target</label><input type="text" id="laporanNamaTarget" required></div>
+            <div class="form-group"><label>Kontak Target</label><input type="text" id="laporanKontakTarget" required></div>
+            <div class="form-group"><label>Bukti (URL foto/screenshot)</label><input type="text" id="laporanBukti" placeholder="https://..."></div>
+            <button type="submit" class="btn btn-primary">Simpan Laporan</button>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('modalLaporan')">Batal</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCD0pgeZio-LdKqYDtWxcdXcZwyL4ngYQI",
+        authDomain: "jego-35a2b.firebaseapp.com",
+        databaseURL: "https://jego-35a2b-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "jego-35a2b",
+        storageBucket: "jego-35a2b.firebasestorage.app",
+        messagingSenderId: "600037007040",
+        appId: "1:600037007040:web:ac3243ad9b472647ffd725"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    async function loadDutaList() {
+        const snap = await database.ref('duta_jego').once('value');
+        const duta = snap.val() || {};
+        const list = [];
+        for (let id in duta) list.push({ id, ...duta[id] });
+        return list;
+    }
+
+    async function renderDutaTable() {
+        let dutaList = await loadDutaList();
+        const keyword = document.getElementById('searchDuta')?.value.toLowerCase() || '';
+        if (keyword) dutaList = dutaList.filter(d => d.nama?.toLowerCase().includes(keyword) || d.no_hp?.includes(keyword));
+        const tbody = document.getElementById('listDuta');
+        tbody.innerHTML = '';
+        for (const d of dutaList) {
+            const row = tbody.insertRow();
+            row.insertCell(0).innerText = d.nama || '-';
+            row.insertCell(1).innerText = d.no_hp || '-';
+            row.insertCell(2).innerText = d.pin || '-';
+            const statusCell = row.insertCell(3);
+            statusCell.innerHTML = `<span class="status-badge ${d.status === 'aktif' ? 'status-aktif' : 'status-nonaktif'}">${d.status}</span>`;
+            row.insertCell(4).innerText = (d.total_bonus || 0).toLocaleString();
+            row.insertCell(5).innerText = d.tgl_gabung ? new Date(d.tgl_gabung).toLocaleDateString() : '-';
+            const aksiCell = row.insertCell(6);
+            aksiCell.innerHTML = `<button class="btn btn-primary" style="padding:4px 8px; margin-right:4px;" onclick="editDuta('${d.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" style="padding:4px 8px;" onclick="hapusDuta('${d.id}')"><i class="fas fa-trash"></i></button>`;
+        }
+        document.getElementById('totalDuta').innerText = dutaList.length;
+    }
+
+    window.editDuta = async (id) => {
+        const snap = await database.ref(`duta_jego/${id}`).once('value');
+        const d = snap.val();
+        if (!d) return;
+        document.getElementById('dutaId').value = id;
+        document.getElementById('dutaNama').value = d.nama || '';
+        document.getElementById('dutaNoHp').value = d.no_hp || '';
+        document.getElementById('dutaPin').value = d.pin || '';
+        document.getElementById('dutaStatus').value = d.status || 'aktif';
+        document.getElementById('modalDutaTitle').innerText = 'Edit Duta';
+        openModal('modalDuta');
+    };
+
+    window.hapusDuta = async (id) => {
+        if (confirm('Yakin hapus duta ini?')) {
+            await database.ref(`duta_jego/${id}`).remove();
+            renderDutaTable();
+            renderLaporanTable();
+        }
+    };
+
+    document.getElementById('formDuta').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('dutaId').value;
+        const data = {
+            nama: document.getElementById('dutaNama').value,
+            no_hp: document.getElementById('dutaNoHp').value,
+            pin: document.getElementById('dutaPin').value,
+            status: document.getElementById('dutaStatus').value
+        };
+        if (id) {
+            await database.ref(`duta_jego/${id}`).update(data);
+        } else {
+            data.tgl_gabung = new Date().toISOString();
+            data.total_bonus = 0;
+            await database.ref('duta_jego').push(data);
+        }
+        closeModal('modalDuta');
+        renderDutaTable();
+        document.getElementById('dutaId').value = '';
+    });
+
+    async function loadLaporanList() {
+        const snap = await database.ref('laporan_duta').once('value');
+        const laporan = snap.val() || {};
+        const list = [];
+        for (let id in laporan) list.push({ id, ...laporan[id] });
+        list.sort((a,b) => (b.tgl_lapor || '').localeCompare(a.tgl_lapor || ''));
+        return list;
+    }
+
+    async function renderLaporanTable() {
+        const laporanList = await loadLaporanList();
+        const dutaMap = {};
+        const dutaSnap = await database.ref('duta_jego').once('value');
+        dutaSnap.forEach(child => { dutaMap[child.key] = child.val().nama; });
+
+        const tbody = document.getElementById('listLaporan');
+        tbody.innerHTML = '';
+        let pendingCount = 0;
+        for (const l of laporanList) {
+            const row = tbody.insertRow();
+            row.insertCell(0).innerText = dutaMap[l.duta_id] || l.duta_id;
+            row.insertCell(1).innerText = l.jenis || '-';
+            row.insertCell(2).innerText = l.nama_target || '-';
+            row.insertCell(3).innerText = l.kontak_target || '-';
+            row.insertCell(4).innerText = l.tgl_lapor ? new Date(l.tgl_lapor).toLocaleString() : '-';
+            const statusCell = row.insertCell(5);
+            let statusText = l.status_verifikasi || 'pending';
+            let statusClass = 'status-pending';
+            if (statusText === 'disetujui') statusClass = 'status-disetujui';
+            if (statusText === 'ditolak') statusClass = 'status-nonaktif';
+            statusCell.innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+            const aksiCell = row.insertCell(6);
+            if (statusText === 'pending') {
+                aksiCell.innerHTML = `<button class="btn btn-success" style="padding:4px 8px;" onclick="verifikasiLaporan('${l.id}', true)"><i class="fas fa-check"></i> Setujui</button> <button class="btn btn-danger" style="padding:4px 8px;" onclick="verifikasiLaporan('${l.id}', false)"><i class="fas fa-times"></i> Tolak</button>`;
+                pendingCount++;
+            } else {
+                aksiCell.innerHTML = `Bonus: Rp ${(l.bonus_diberikan || 0).toLocaleString()}`;
+            }
+        }
+        document.getElementById('totalPending').innerText = pendingCount;
+    }
+
+    window.verifikasiLaporan = async (laporanId, setuju) => {
+        if (!setuju) {
+            await database.ref(`laporan_duta/${laporanId}`).update({ status_verifikasi: 'ditolak', tgl_verifikasi: new Date().toISOString() });
+            renderLaporanTable();
+            return;
+        }
+        const snap = await database.ref(`laporan_duta/${laporanId}`).once('value');
+        const laporan = snap.val();
+        if (!laporan) return;
+        let bonus = 0;
+        switch (laporan.jenis) {
+            case 'user_baru': bonus = 2000; break;
+            case 'driver_baru': bonus = 50000; break;
+            case 'konten': bonus = 5000; break;
+            default: bonus = 0;
+        }
+        await database.ref(`laporan_duta/${laporanId}`).update({ status_verifikasi: 'disetujui', bonus_diberikan: bonus, tgl_verifikasi: new Date().toISOString() });
+        const dutaRef = database.ref(`duta_jego/${laporan.duta_id}`);
+        const dutaSnap = await dutaRef.once('value');
+        const duta = dutaSnap.val();
+        const totalBonusBaru = (duta.total_bonus || 0) + bonus;
+        await dutaRef.update({ total_bonus: totalBonusBaru });
+        renderLaporanTable();
+        renderDutaTable();
+    };
+
+    document.getElementById('formLaporan').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const duta_id = document.getElementById('laporanDutaId').value;
+        if (!duta_id) return alert('Pilih duta');
+        const laporan = {
+            duta_id: duta_id,
+            jenis: document.getElementById('laporanJenis').value,
+            nama_target: document.getElementById('laporanNamaTarget').value,
+            kontak_target: document.getElementById('laporanKontakTarget').value,
+            bukti: document.getElementById('laporanBukti').value || '',
+            tgl_lapor: new Date().toISOString(),
+            status_verifikasi: 'pending',
+            bonus_diberikan: 0
+        };
+        await database.ref('laporan_duta').push(laporan);
+        closeModal('modalLaporan');
+        renderLaporanTable();
+        document.getElementById('formLaporan').reset();
+    });
+
+    async function populateDutaDropdown() {
+        const dutaList = await loadDutaList();
+        const select = document.getElementById('laporanDutaId');
+        select.innerHTML = '<option value="">-- Pilih Duta --</option>';
+        for (const d of dutaList) if (d.status === 'aktif') select.innerHTML += `<option value="${d.id}">${d.nama} (${d.no_hp})</option>`;
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
+
+    document.getElementById('btnTambahDuta').onclick = () => {
+        document.getElementById('dutaId').value = '';
+        document.getElementById('dutaNama').value = '';
+        document.getElementById('dutaNoHp').value = '';
+        document.getElementById('dutaPin').value = '';
+        document.getElementById('dutaStatus').value = 'aktif';
+        document.getElementById('modalDutaTitle').innerText = 'Tambah Duta';
+        openModal('modalDuta');
+    };
+    document.getElementById('btnTambahLaporan').onclick = async () => { await populateDutaDropdown(); openModal('modalLaporan'); };
+    document.getElementById('searchDuta').addEventListener('input', () => renderDutaTable());
+
+    async function refreshAll() { await renderDutaTable(); await renderLaporanTable(); }
+
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) { window.location.href = 'login_admin.html'; return; }
+        const adminSnap = await database.ref(`admins/${user.uid}`).once('value');
+        if (!adminSnap.exists()) { await auth.signOut(); window.location.href = 'login_admin.html'; return; }
+        refreshAll();
+        setInterval(refreshAll, 30000);
+    });
+</script>
+</body>
+</html>
