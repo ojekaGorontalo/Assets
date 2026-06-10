@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - JeGo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #2a2a3b);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .login-container {
+            background: #2a2a3b;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            border-left: 4px solid #FF9800;
+        }
+        h2 {
+            color: #FF9800;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #eee;
+            font-weight: 500;
+        }
+        /* Wrapper untuk password: flex agar tombol mata di samping */
+        .password-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .password-wrapper input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #FF9800;
+            background: #0f0f1a;
+            color: white;
+            font-size: 16px;
+        }
+        .toggle-password {
+            background: #FF9800;
+            border: none;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 18px;
+            cursor: pointer;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: normal;
+            transition: background 0.3s;
+        }
+        .toggle-password:hover {
+            background: #ffb74d;
+        }
+        button[type="button"].login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #FF9800;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 5px;
+        }
+        button[type="button"].login-btn:hover {
+            background: #ffb74d;
+        }
+        .error-message {
+            color: #ff6666;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .info {
+            color: #aaa;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+</head>
+<body>
+<div class="login-container">
+    <h2>🔐 Admin JeGo</h2>
+    <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="admin@jego.com">
+    </div>
+    <div class="input-group">
+        <label>Password</label>
+        <div class="password-wrapper">
+            <input type="password" id="password" placeholder="********">
+            <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+        </div>
+    </div>
+    <button type="button" class="login-btn" id="loginBtn">Login</button>
+    <div id="errorMsg" class="error-message"></div>
+    <div class="info">Hanya untuk admin. Pastikan akun sudah terdaftar di Firebase Authentication.</div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCD0pgeZio-LdKqYDtWxcdXcZwyL4ngYQI",
+        authDomain: "jego-35a2b.firebaseapp.com",
+        databaseURL: "https://jego-35a2b-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "jego-35a2b",
+        storageBucket: "jego-35a2b.firebasestorage.app",
+        messagingSenderId: "600037007040",
+        appId: "1:600037007040:web:ac3243ad9b472647ffd725"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    togglePassword.addEventListener('click', function () {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    document.getElementById('loginBtn').onclick = async () => {
+        const email = document.getElementById('email').value.trim();
+        const password = passwordInput.value;
+        const errorDiv = document.getElementById('errorMsg');
+        errorDiv.textContent = '';
+
+        if (!email || !password) {
+            errorDiv.textContent = 'Email dan password harus diisi.';
+            return;
+        }
+        try {
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            const adminSnap = await database.ref(`admins/${user.uid}`).once('value');
+            if (!adminSnap.exists()) {
+                await auth.signOut();
+                errorDiv.textContent = 'Akun Anda tidak terdaftar sebagai admin. Hubungi super admin.';
+                return;
+            }
+            window.location.href = 'admin_jego.html';
+        } catch (err) {
+            console.error(err);
+            errorDiv.textContent = 'Login gagal: ' + (err.message || 'Periksa email/password');
+        }
+    };
+</script>
+</body>
+</html>
