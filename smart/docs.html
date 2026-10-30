@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault — File Manager</title>
+<style>
+/* =========================================================
+   DESIGN TOKENS
+   ========================================================= */
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-soft: #eef2ff;
+  --danger: #ef4444;
+  --danger-soft: #fee2e2;
+  --success: #10b981;
+  --success-soft: #d1fae5;
+  --warning: #f59e0b;
+  --warning-soft: #fef3c7;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --surface: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-soft: #94a3b8;
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+  --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-lg: 0 10px 25px rgba(15,23,42,.08);
+  --radius: 12px;
+  --radius-lg: 16px;
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #cbd5e1;
+  --sidebar-hover: #1e293b;
+  --transition: .2s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dark"] {
+  --primary: #818cf8;
+  --primary-hover: #a5b4fc;
+  --primary-soft: #1e1b4b;
+  --bg: #0b1220;
+  --card: #111c2e;
+  --surface: #1e293b;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-soft: #64748b;
+  --sidebar-bg: #060b15;
+  --sidebar-hover: #111c2e;
+  --danger-soft: #450a0a;
+  --success-soft: #064e3b;
+  --warning-soft: #451a03;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); overflow-x: hidden; transition: background var(--transition), color var(--transition); }
+button { cursor: pointer; border: none; font-family: inherit; transition: all var(--transition); }
+input, select, textarea { font-family: inherit; }
+[hidden] { display: none !important; }
+
+/* =========================================================
+   LOGIN PAGE
+   ========================================================= */
+.login-page {
+  position: fixed; inset: 0; z-index: 100; display: flex;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  animation: fadeIn .4s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.login-split {
+  display: grid; grid-template-columns: 1.1fr 1fr;
+  width: 100%; max-width: 1100px; margin: auto; height: 90vh; max-height: 680px;
+  background: var(--card); border-radius: 24px; overflow: hidden;
+  box-shadow: 0 30px 80px rgba(15,23,42,.35);
+  animation: slideUp .5s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+.login-hero {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;
+  padding: 56px 48px; display: flex; flex-direction: column; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.login-hero::before {
+  content: ''; position: absolute; width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(255,255,255,.15), transparent 70%);
+  top: -150px; right: -150px; border-radius: 50%;
+}
+.login-hero::after {
+  content: ''; position: absolute; width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,.1), transparent 70%);
+  bottom: -100px; left: -100px; border-radius: 50%;
+}
+.hero-logo { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 32px; position: relative; z-index: 1; }
+.login-hero h1 { font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; position: relative; z-index: 1; }
+.login-hero > p { font-size: 15px; opacity: .85; line-height: 1.6; margin-bottom: 32px; position: relative; z-index: 1; }
+.hero-features { list-style: none; position: relative; z-index: 1; }
+.hero-features li { padding: 8px 0; font-size: 14px; opacity: .92; display: flex; align-items: center; gap: 10px; }
+.login-form-wrap { padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
+.login-form h2 { font-size: 26px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.login-form > p { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.field input {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 14px; background: var(--card); color: var(--text); transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.login-error {
+  background: var(--danger-soft); color: var(--danger); padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 16px; display: none;
+}
+.login-error.show { display: block; animation: shake .3s; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.btn-primary {
+  background: var(--primary); color: #fff; padding: 12px 20px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.4); }
+.btn-primary:active { transform: translateY(0); }
+.btn-block { width: 100%; padding: 13px; margin-top: 4px; }
+.login-hint { margin-top: 20px; text-align: center; font-size: 12px; color: var(--text-muted); }
+.login-hint strong { color: var(--primary); }
+
+@media (max-width: 800px) {
+  .login-split { grid-template-columns: 1fr; max-width: 420px; height: auto; margin: 20px; max-height: none; }
+  .login-hero { padding: 36px 28px; }
+  .login-hero h1 { font-size: 22px; }
+  .hero-features { display: none; }
+  .login-form-wrap { padding: 36px 28px; }
+}
+
+/* =========================================================
+   APP LAYOUT
+   ========================================================= */
+.app { display: flex; min-height: 100vh; animation: fadeIn .3s; }
+
+/* Sidebar */
+.sidebar {
+  width: 260px; background: var(--sidebar-bg); color: var(--sidebar-text);
+  display: flex; flex-direction: column; padding: 24px 16px; flex-shrink: 0;
+  position: sticky; top: 0; height: 100vh; transition: transform .3s;
+  z-index: 50;
+}
+.brand { font-size: 20px; font-weight: 800; color: #fff; padding: 8px 12px 24px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+.brand small { font-size: 11px; font-weight: 500; opacity: .6; background: rgba(255,255,255,.1); padding: 2px 8px; border-radius: 6px; margin-left: auto; }
+.sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+  border-radius: 10px; color: var(--sidebar-text); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all var(--transition); border: none; background: none;
+  width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,.4); }
+.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.sidebar-footer { padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+.user-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; margin-bottom: 10px;
+}
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 14px;
+  flex-shrink: 0;
+}
+.user-name { font-size: 13px; font-weight: 600; color: #fff; }
+.user-role { font-size: 11px; color: var(--text-soft); }
+.btn-logout {
+  width: 100%; padding: 10px; border-radius: 10px; background: rgba(239,68,68,.15);
+  color: #fca5a5; font-size: 13px; font-weight: 600; text-align: center;
+}
+.btn-logout:hover { background: rgba(239,68,68,.25); color: #fff; }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  padding: 20px 32px; background: var(--card); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 40; backdrop-filter: blur(10px);
+}
+.topbar h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 10px; background: var(--surface);
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
+.icon-btn:hover { background: var(--border); transform: scale(1.05); }
+.menu-toggle { display: none; }
+
+.content { padding: 28px 32px; flex: 1; }
+.view { display: none; animation: fadeIn .25s; }
+.view.active { display: block; }
+
+/* Card */
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px; margin-bottom: 20px; box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+}
+.card:hover { box-shadow: var(--shadow); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+.card-title { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+.card-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: var(--radius-lg); padding: 40px 20px;
+  text-align: center; cursor: pointer; transition: all var(--transition); background: var(--surface);
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--primary); background: var(--primary-soft); transform: translateY(-2px); }
+.dropzone .icon { font-size: 48px; margin-bottom: 12px; }
+.dropzone .dz-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.dropzone .dz-sub { font-size: 13px; color: var(--text-muted); }
+
+/* Storage */
+.storage-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: var(--text-muted); flex-wrap: wrap; gap: 6px; }
+.storage-head strong { color: var(--text); }
+.bar { height: 10px; background: var(--surface); border-radius: 99px; overflow: hidden; }
+.bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #10b981, #059669); transition: width .6s cubic-bezier(.4,0,.2,1); border-radius: 99px; }
+.bar > span.warn { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.bar > span.danger { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+/* Toolbar */
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.toolbar input[type=text] {
+  flex: 1; min-width: 200px; padding: 11px 14px 11px 40px;
+  border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px;
+  background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath d='M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z' stroke='%2394a3b8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 14px center;
+  color: var(--text); transition: border-color var(--transition);
+}
+.toolbar input[type=text]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.toolbar select {
+  padding: 11px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 14px; background: var(--card); color: var(--text); cursor: pointer;
+}
+
+/* File cards grid */
+.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.file-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; transition: all var(--transition); position: relative;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.file-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+.file-preview {
+  height: 100px; background: var(--surface); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; overflow: hidden; position: relative;
+}
+.file-preview img { width: 100%; height: 100%; object-fit: cover; }
+.file-name { font-size: 13px; font-weight: 600; word-break: break-all; line-height: 1.4; margin-bottom: 2px; }
+.file-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.file-type-badge {
+  background: var(--primary-soft); color: var(--primary); padding: 2px 8px;
+  border-radius: 99px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+}
+.file-actions { display: flex; gap: 4px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border); }
+.file-actions button {
+  flex: 1; padding: 7px 4px; border-radius: 8px; font-size: 12px; font-weight: 500;
+  background: var(--surface); color: var(--text-muted);
+}
+.file-actions button:hover { background: var(--primary-soft); color: var(--primary); }
+.file-actions button.btn-del:hover { background: var(--danger-soft); color: var(--danger); }
+
+.empty {
+  text-align: center; padding: 60px 20px; color: var(--text-muted);
+}
+.empty .icon { font-size: 56px; display: block; margin-bottom: 12px; opacity: .4; }
+.empty h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.empty p { font-size: 13px; }
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.settings-grid .card { margin-bottom: 0; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+.setting-row:first-child { padding-top: 0; }
+.setting-label { font-size: 14px; font-weight: 500; }
+.setting-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.btn-secondary {
+  background: var(--surface); color: var(--text); padding: 9px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+.theme-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-option {
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 13px; background: var(--card); color: var(--text); font-weight: 500;
+}
+.theme-option.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.theme-option:hover { border-color: var(--primary); }
+
+.form-input {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 14px; background: var(--card); color: var(--text);
+}
+.form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.field-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.field-row .form-input { flex: 1; min-width: 180px; }
+
+@media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
+
+/* =========================================================
+   SURAT MENYURAT
+   ========================================================= */
+.surat-layout { display: grid; grid-template-columns: 400px 1fr; gap: 20px; align-items: start; }
+.surat-layout .card { margin-bottom: 0; }
+
+.surat-form { display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 160px); overflow-y: auto; }
+.surat-form::-webkit-scrollbar { width: 6px; }
+.surat-form::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.form-group textarea.form-input { resize: vertical; min-height: 70px; font-family: inherit; }
+.form-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.surat-form .form-actions { display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border); margin-top: 6px; flex-wrap: wrap; }
+.surat-form .form-actions button { flex: 1; min-width: 110px; }
+
+.surat-preview-wrap { position: sticky; top: 88px; }
+.surat-paper-wrap { background: var(--surface); padding: 20px; border-radius: 10px; display: flex; justify-content: center; overflow-x: auto; }
+.surat-paper {
+  background: #fff; color: #0f172a; width: 100%; max-width: 720px;
+  padding: 36px 44px; border-radius: 6px; font-family: 'Times New Roman', Times, serif;
+  font-size: 14px; line-height: 1.7; box-shadow: 0 4px 20px rgba(0,0,0,.1); min-height: 480px;
+}
+.surat-kop { display: flex; align-items: center; gap: 16px; padding-bottom: 10px; }
+.surat-kop-logo { font-size: 44px; line-height: 1; }
+.surat-kop-text { flex: 1; text-align: center; }
+.surat-kop-instansi { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.surat-kop-alamat { font-size: 11px; margin-top: 2px; }
+.surat-kop-line { height: 3px; background: #0f172a; margin-bottom: 22px; position: relative; }
+.surat-kop-line::after { content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px; background: #0f172a; }
+
+.surat-title { text-align: center; font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 2px; text-decoration: underline; }
+.surat-nomor { text-align: center; font-size: 12px; margin-bottom: 24px; }
+.surat-content p { margin: 0 0 12px; text-align: justify; }
+.surat-data { margin: 12px 0 12px 24px; border-collapse: collapse; }
+.surat-data td { padding: 3px 0; vertical-align: top; }
+.surat-data td:first-child { width: 110px; }
+.surat-ttd { margin-top: 40px; text-align: right; padding-right: 20px; }
+.surat-ttd .ttd-tempat { font-size: 13px; margin-bottom: 64px; }
+.surat-ttd .ttd-nama { font-weight: 700; text-decoration: underline; }
+.surat-ttd .ttd-jabatan { font-size: 12px; margin-top: 2px; }
+
+.surat-empty { color: var(--text-soft); text-align: center; padding: 80px 20px; font-family: 'Segoe UI', sans-serif; }
+.surat-empty .icon { font-size: 56px; display: block; margin-bottom: 12px; opacity: .4; }
+
+@media (max-width: 1100px) {
+  .surat-layout { grid-template-columns: 1fr; }
+  .surat-preview-wrap { position: static; }
+  .surat-form { max-height: none; }
+}
+
+/* Print — hanya berlaku saat mencetak surat */
+@media print {
+  body.printing-surat * { visibility: hidden; }
+  body.printing-surat #suratPreview,
+  body.printing-surat #suratPreview * { visibility: visible; }
+  body.printing-surat #suratPreview {
+    position: absolute; left: 0; top: 0; width: 100%;
+    box-shadow: none !important; padding: 0 !important; border-radius: 0 !important;
+  }
+  body.printing-surat .app,
+  body.printing-surat .main,
+  body.printing-surat .content,
+  body.printing-surat .view { overflow: visible !important; }
+  @page { size: A4; margin: 15mm; }
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+.modal {
+  position: fixed; inset: 0; background: rgba(15,23,42,.65); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100;
+}
+.modal.open { display: flex; animation: fadeIn .2s; }
+.modal-box {
+  background: var(--card); border-radius: var(--radius-lg); width: 100%; max-width: 860px;
+  max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+  animation: slideUp .25s cubic-bezier(.4,0,.2,1); box-shadow: var(--shadow-lg);
+}
+.modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 20px; border-bottom: 1px solid var(--border); gap: 12px;
+}
+.modal-head span { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-head button { background: transparent; font-size: 20px; color: var(--text-muted); padding: 4px 8px; border-radius: 6px; }
+.modal-head button:hover { background: var(--surface); }
+.modal-body { flex: 1; overflow: auto; padding: 20px; display: flex; justify-content: center; align-items: center; background: var(--surface); }
+.modal-body img { max-width: 100%; max-height: 70vh; border-radius: 8px; }
+.modal-body iframe { width: 100%; height: 70vh; border: none; background: #fff; border-radius: 8px; }
+.modal-body pre {
+  width: 100%; max-height: 70vh; overflow: auto; background: #0f172a; color: #e2e8f0;
+  padding: 16px; border-radius: 8px; font-size: 13px; text-align: left;
+}
+
+/* Loading */
+.loading {
+  position: fixed; inset: 0; background: rgba(15,23,42,.35); backdrop-filter: blur(3px);
+  display: none; align-items: center; justify-content: center; z-index: 150;
+  flex-direction: column; gap: 14px; font-weight: 600; color: #fff;
+}
+.loading.show { display: flex; animation: fadeIn .2s; }
+.spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: #0f172a; color: #fff; padding: 12px 20px; border-radius: 10px;
+  font-size: 14px; opacity: 0; transition: all .3s; z-index: 200;
+  max-width: 90vw; text-align: center; box-shadow: var(--shadow-lg);
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.ok { background: var(--success); }
+.toast.err { background: var(--danger); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed; left: 0; top: 0; transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .menu-toggle { display: flex; }
+  .topbar { padding: 16px 20px; }
+  .topbar h2 { font-size: 17px; }
+  .content { padding: 20px; }
+  .file-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     LOGIN PAGE
+     ========================================================= -->
+<div id="loginPage" class="login-page">
+  <div class="login-split">
+    <div class="login-hero">
+      <div class="hero-logo">🗂️ Vault</div>
+      <h1>Simpan & kelola file Anda dengan aman.</h1>
+      <p>File manager modern berbasis IndexedDB — cepat, offline-first, tanpa server.</p>
+      <ul class="hero-features">
+        <li>✅ Simpan PDF, gambar, video, dokumen</li>
+        <li>✅ Kapasitas hingga GB, tanpa Base64</li>
+        <li>✅ Preview langsung di browser</li>
+        <li>✅ Buat surat otomatis & cetak PDF</li>
+      </ul>
+    </div>
+    <div class="login-form-wrap">
+      <form class="login-form" id="loginForm">
+        <h2>Selamat datang 👋</h2>
+        <p>Masuk untuk mengelola file Anda.</p>
+        <div class="field">
+          <label for="loginUser">Username</label>
+          <input type="text" id="loginUser" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" autocomplete="current-password" required>
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="btn-primary btn-block">Masuk →</button>
+        <div class="login-hint">Demo: <strong>admin</strong> / <strong>admin123</strong></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MAIN APP
+     ========================================================= -->
+<div id="appPage" class="app" hidden>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">🗂️ Vault <small>v1.1</small></div>
+    <nav>
+      <button class="nav-item active" data-view="files">
+        <span class="nav-icon">📁</span><span>File Saya</span>
+      </button>
+      <button class="nav-item" data-view="surat">
+        <span class="nav-icon">✉️</span><span>Buat Surat</span>
+      </button>
+      <button class="nav-item" data-view="settings">
+        <span class="nav-icon">⚙️</span><span>Pengaturan</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" id="userAvatar">A</div>
+        <div>
+          <div class="user-name" id="userNameDisplay">Administrator</div>
+          <div class="user-role">Administrator</div>
+        </div>
+      </div>
+      <button class="btn-logout" id="logoutBtn">↩ Keluar</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:12px">
+        <button class="icon-btn menu-toggle" id="menuToggle">☰</button>
+        <h2 id="viewTitle">File Saya</h2>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeToggle" title="Ganti tema">🌙</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ==================== VIEW: FILES ==================== -->
+      <section id="viewFiles" class="view active">
+
+        <div class="card">
+          <div class="dropzone" id="dropzone">
+            <div class="icon">⬆️</div>
+            <div class="dz-title">Klik untuk pilih file, atau tarik & lepas di sini</div>
+            <div class="dz-sub">Mendukung PDF, gambar, video, audio, dokumen — bisa banyak file sekaligus</div>
+            <input type="file" id="fileInput" multiple hidden>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="storage-head">
+            <span>💾 <strong>Penyimpanan</strong></span>
+            <span id="storageText">Menghitung…</span>
+          </div>
+          <div class="bar"><span id="storageBar"></span></div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:10px" id="storageDetail"></div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="search" placeholder="Cari nama file...">
+            <select id="sortBy">
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+              <option value="name">Nama (A–Z)</option>
+              <option value="size">Ukuran Terbesar</option>
+            </select>
+            <button class="btn-primary" onclick="document.getElementById('fileInput').click()">+ Tambah</button>
+          </div>
+          <div class="file-grid" id="fileGrid"></div>
+          <div id="emptyState" class="empty" style="display:none">
+            <span class="icon">📭</span>
+            <h3>Belum ada file</h3>
+            <p>Klik area upload di atas untuk menambahkan file pertama Anda.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: SURAT ==================== -->
+      <section id="viewSurat" class="view">
+        <div class="surat-layout">
+
+          <div class="card surat-form">
+            <div class="card-header">
+              <div>
+                <div class="card-title">✉️ Buat Surat Otomatis</div>
+                <div class="card-sub">Isi data, surat siap dicetak</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Jenis Surat</label>
+              <select id="suratJenis" class="form-input">
+                <option value="keterangan">Surat Keterangan</option>
+                <option value="undangan">Surat Undangan</option>
+                <option value="tugas">Surat Tugas</option>
+                <option value="izin">Surat Izin</option>
+                <option value="pengantar">Surat Pengantar</option>
+              </select>
+            </div>
+
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>Nomor Surat</label>
+                <input type="text" id="suratNomor" class="form-input" placeholder="001/INST/XI/2026">
+              </div>
+              <div class="form-group">
+                <label>Tanggal Surat</label>
+                <input type="date" id="suratTanggal" class="form-input">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Nama Instansi (Kop)</label>
+              <input type="text" id="suratInstansi" class="form-input" value="UNIVERSITAS NUSANTARA">
+            </div>
+
+            <div class="form-group">
+              <label>Alamat Instansi</label>
+              <input type="text" id="suratAlamatInstansi" class="form-input" value="Jl. Pendidikan No. 1, Jakarta • Telp: (021) 1234567">
+            </div>
+
+            <div class="form-group">
+              <label>Nama Penerima / Pihak</label>
+              <input type="text" id="suratNama" class="form-input" placeholder="Nama lengkap">
+            </div>
+
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>NIK / NIM</label>
+                <input type="text" id="suratNik" class="form-input" placeholder="123456789">
+              </div>
+              <div class="form-group">
+                <label>Jabatan / Status</label>
+                <input type="text" id="suratJabatanPenerima" class="form-input" placeholder="Mahasiswa / Karyawan">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Alamat Penerima</label>
+              <input type="text" id="suratAlamat" class="form-input" placeholder="Alamat lengkap">
+            </div>
+
+            <div class="form-group">
+              <label>Keperluan / Isi Surat</label>
+              <textarea id="suratKeperluan" class="form-input" rows="3" placeholder="Contoh: mengikuti kegiatan seminar nasional"></textarea>
+            </div>
+
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>Tanggal Acara</label>
+                <input type="date" id="suratTanggalAcara" class="form-input">
+              </div>
+              <div class="form-group">
+                <label>Waktu</label>
+                <input type="text" id="suratWaktu" class="form-input" placeholder="09.00 WIB">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Tempat Acara</label>
+              <input type="text" id="suratTempat" class="form-input" placeholder="Aula Gedung A">
+            </div>
+
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>Nama Penandatangan</label>
+                <input type="text" id="suratTtdNama" class="form-input" placeholder="Nama penandatangan">
+              </div>
+              <div class="form-group">
+                <label>Jabatan Penandatangan</label>
+                <input type="text" id="suratTtdJabatan" class="form-input" placeholder="Dekan / Direktur">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Kota Penandatangan</label>
+              <input type="text" id="suratTtdKota" class="form-input" value="Jakarta">
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" id="printSuratBtn">🖨️ Cetak / PDF</button>
+              <button class="btn-secondary" id="saveSuratBtn">💾 Simpan ke Arsip</button>
+              <button class="btn-secondary" id="resetSuratBtn">↺ Reset</button>
+            </div>
+          </div>
+
+          <div class="card surat-preview-wrap">
+            <div class="card-header">
+              <div>
+                <div class="card-title">👁️ Pratinjau Surat</div>
+                <div class="card-sub">Hasil surat akan tampil di sini</div>
+              </div>
+            </div>
+            <div class="surat-paper-wrap">
+              <div class="surat-paper" id="suratPreview">
+                <div class="surat-empty">
+                  <span class="icon">✉️</span>
+                  <p>Isi form di samping untuk melihat pratinjau surat.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: SETTINGS ==================== -->
+      <section id="viewSettings" class="view">
+
+        <div class="settings-grid">
+
+          <!-- PROFIL -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">👤 Profil</div>
+                <div class="card-sub">Nama tampilan Anda</div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Nama tampilan</div>
+                <div class="setting-desc">Ditampilkan di sidebar</div>
+              </div>
+            </div>
+            <input type="text" class="form-input" id="inputDisplayName" placeholder="Nama Anda">
+            <div class="field-row">
+              <button class="btn-primary" id="saveProfileBtn">Simpan</button>
+            </div>
+          </div>
+
+          <!-- KEAMANAN -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🔒 Keamanan</div>
+                <div class="card-sub">Ubah password akun Anda</div>
+              </div>
+            </div>
+            <input type="password" class="form-input" id="oldPass" placeholder="Password lama">
+            <div class="field-row">
+              <input type="password" class="form-input" id="newPass" placeholder="Password baru">
+              <input type="password" class="form-input" id="confirmPass" placeholder="Konfirmasi password">
+            </div>
+            <div class="field-row">
+              <button class="btn-primary" id="changePassBtn">Ubah Password</button>
+            </div>
+          </div>
+
+          <!-- TAMPILAN -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🎨 Tampilan</div>
+                <div class="card-sub">Sesuaikan tema aplikasi</div>
+              </div>
+            </div>
+            <div class="theme-selector">
+              <button class="theme-option" data-theme="light">☀️ Terang</button>
+              <button class="theme-option" data-theme="dark">🌙 Gelap</button>
+              <button class="theme-option" data-theme="auto">🖥️ Otomatis</button>
+            </div>
+          </div>
+
+          <!-- PENYIMPANAN -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">💾 Penyimpanan</div>
+                <div class="card-sub">Kelola data yang tersimpan</div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Ekspor semua file</div>
+                <div class="setting-desc">Unduh sebagai file JSON (backup)</div>
+              </div>
+              <button class="btn-secondary" id="exportBtn">Ekspor</button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Hapus semua file</div>
+                <div class="setting-desc">Tindakan ini tidak bisa dibatalkan</div>
+              </div>
+              <button class="btn-danger" id="clearBtn">Hapus</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TENTANG -->
+        <div class="card" style="margin-top:20px">
+          <div class="card-header">
+            <div>
+              <div class="card-title">ℹ️ Tentang Aplikasi</div>
+              <div class="card-sub">Vault File Manager v1.1</div>
+            </div>
+          </div>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.7">
+            Vault adalah file manager berbasis web yang menyimpan file langsung di browser menggunakan
+            <strong>IndexedDB</strong>. Data Anda tidak pernah meninggalkan perangkat — 100% offline & privat.
+            Mendukung penyimpanan hingga GB tanpa konversi Base64. Dilengkapi modul <strong>Buat Surat Otomatis</strong>
+            untuk membuat surat resmi siap cetak (A4 / PDF).
+          </p>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- =========================================================
+     MODAL PREVIEW
+     ========================================================= -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span id="modalTitle">Preview</span>
+      <button onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <span id="loadingText">Memproses…</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   1. KONFIGURASI & STATE
+   ========================================================= */
+const DB_NAME = 'VaultDB';
+const DB_VERSION = 1;
+const STORE = 'files';
+const KEY_USERS = 'vault_users';
+const KEY_SESSION = 'vault_session';
+const KEY_THEME = 'vault_theme';
+
+let db = null;
+let currentPreviewURL = null;
+let currentFiles = [];
+
+/* =========================================================
+   2. UTILITAS
+   ========================================================= */
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+  return (bytes / 1073741824).toFixed(2) + ' GB';
+}
+function fileIcon(mime = '') {
+  if (mime.startsWith('image/')) return '🖼️';
+  if (mime === 'application/pdf') return '📄';
+  if (mime.startsWith('video/')) return '🎬';
+  if (mime.startsWith('audio/')) return '🎵';
+  if (mime.includes('word')) return '📝';
+  if (mime.includes('sheet') || mime.includes('excel')) return '📊';
+  if (mime.includes('presentation') || mime.includes('powerpoint')) return '📽️';
+  if (mime.includes('zip') || mime.includes('rar') || mime.includes('7z')) return '🗜️';
+  if (mime === 'text/html') return '✉️';
+  if (mime.startsWith('text/')) return '📃';
+  return '📎';
+}
+function formatDate(iso) {
+  return new Date(iso).toLocaleString('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+function escapeHtml(str = '') {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast ' + type, 3000);
+}
+function setLoading(show, text = 'Memproses…') {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loading').classList.toggle('show', show);
+}
+
+/* =========================================================
+   3. THEME
+   ========================================================= */
+function applyTheme(theme) {
+  let effective = theme;
+  if (theme === 'auto') {
+    effective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', effective);
+  document.getElementById('themeToggle').textContent = effective === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem(KEY_THEME, theme);
+  document.querySelectorAll('.theme-option').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+}
+function initTheme() {
+  const saved = localStorage.getItem(KEY_THEME) || 'light';
+  applyTheme(saved);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (localStorage.getItem(KEY_THEME) === 'auto') applyTheme('auto');
+  });
+}
+
+/* =========================================================
+   4. AUTH (SHA-256 hash)
+   ========================================================= */
+async function hashPassword(password) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function ensureDefaultUser() {
+  const users = JSON.parse(localStorage.getItem(KEY_USERS) || 'null');
+  if (!users) {
+    const hash = await hashPassword('admin123');
+    localStorage.setItem(KEY_USERS, JSON.stringify({
+      admin: { name: 'Administrator', hash }
+    }));
+  }
+}
+function getUsers() { return JSON.parse(localStorage.getItem(KEY_USERS) || '{}'); }
+function setUsers(users) { localStorage.setItem(KEY_USERS, JSON.stringify(users)); }
+function getSession() {
+  try { return JSON.parse(localStorage.getItem(KEY_SESSION) || 'null'); }
+  catch { return null; }
+}
+function setSession(username) {
+  localStorage.setItem(KEY_SESSION, JSON.stringify({ username, loginAt: new Date().toISOString() }));
+}
+function clearSession() { localStorage.removeItem(KEY_SESSION); }
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+
+  const users = getUsers();
+  const record = users[user];
+  if (!record) {
+    errEl.textContent = 'Username tidak ditemukan.';
+    errEl.classList.add('show');
+    return;
+  }
+  const hash = await hashPassword(pass);
+  if (hash !== record.hash) {
+    errEl.textContent = 'Password salah. Coba lagi.';
+    errEl.classList.add('show');
+    return;
+  }
+  setSession(user);
+  enterApp();
+}
+
+function enterApp() {
+  const session = getSession();
+  const users = getUsers();
+  const userData = users[session.username] || { name: session.username };
+
+  document.getElementById('loginPage').hidden = true;
+  document.getElementById('appPage').hidden = false;
+
+  document.getElementById('userNameDisplay').textContent = userData.name || session.username;
+  document.getElementById('userAvatar').textContent = (userData.name || session.username).charAt(0).toUpperCase();
+  document.getElementById('inputDisplayName').value = userData.name || '';
+
+  initApp();
+}
+
+function logout() {
+  if (!confirm('Keluar dari akun?')) return;
+  clearSession();
+  closeModal();
+  document.getElementById('appPage').hidden = true;
+  document.getElementById('loginPage').hidden = false;
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').classList.remove('show');
+}
+
+/* =========================================================
+   5. INDEXEDDB
+   ========================================================= */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const database = e.target.result;
+      if (!database.objectStoreNames.contains(STORE)) {
+        const store = database.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('name', 'name', { unique: false });
+        store.createIndex('uploadedAt', 'uploadedAt', { unique: false });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+function store(mode = 'readonly') { return db.transaction(STORE, mode).objectStore(STORE); }
+function idbAdd(r) { return new Promise((res, rej) => { const x = store('readwrite').add(r); x.onsuccess = () => res(x.result); x.onerror = () => rej(x.error); }); }
+function idbPut(r) { return new Promise((res, rej) => { const x = store('readwrite').put(r); x.onsuccess = () => res(x.result); x.onerror = () => rej(x.error); }); }
+function idbGetAll() { return new Promise((res, rej) => { const x = store().getAll(); x.onsuccess = () => res(x.result || []); x.onerror = () => rej(x.error); }); }
+function idbGet(id) { return new Promise((res, rej) => { const x = store().get(id); x.onsuccess = () => res(x.result); x.onerror = () => rej(x.error); }); }
+function idbDelete(id) { return new Promise((res, rej) => { const x = store('readwrite').delete(id); x.onsuccess = () => res(); x.onerror = () => rej(x.error); }); }
+function idbClear() { return new Promise((res, rej) => { const x = store('readwrite').clear(); x.onsuccess = () => res(); x.onerror = () => rej(x.error); }); }
+
+/* =========================================================
+   6. FILE OPERATIONS
+   ========================================================= */
+async function handleFiles(fileList) {
+  const files = [...fileList];
+  if (!files.length) return;
+
+  setLoading(true, `Menyimpan ${files.length} file…`);
+  let added = 0, failed = 0;
+
+  for (const file of files) {
+    try {
+      await idbAdd({
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        blob: file
+      });
+      added++;
+    } catch (err) {
+      console.error(err);
+      failed++;
+    }
+  }
+  setLoading(false);
+  if (added) showToast(`${added} file berhasil disimpan ✔`, 'ok');
+  if (failed) showToast(`${failed} file gagal disimpan`, 'err');
+  await renderFiles();
+}
+
+async function renderFiles() {
+  const keyword = document.getElementById('search').value.trim().toLowerCase();
+  const sortBy = document.getElementById('sortBy').value;
+
+  let files = await idbGetAll();
+  currentFiles = files;
+  if (keyword) files = files.filter(f => f.name.toLowerCase().includes(keyword));
+
+  files.sort((a, b) => {
+    switch (sortBy) {
+      case 'oldest': return new Date(a.uploadedAt) - new Date(b.uploadedAt);
+      case 'name': return a.name.localeCompare(b.name);
+      case 'size': return b.size - a.size;
+      default: return new Date(b.uploadedAt) - new Date(a.uploadedAt);
+    }
+  });
+
+  const grid = document.getElementById('fileGrid');
+  grid.innerHTML = '';
+  document.getElementById('emptyState').style.display = files.length ? 'none' : 'block';
+
+  files.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+
+    const preview = document.createElement('div');
+    preview.className = 'file-preview';
+
+    if (f.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      const url = URL.createObjectURL(f.blob);
+      img.src = url;
+      img.onload = () => URL.revokeObjectURL(url);
+      img.onerror = () => URL.revokeObjectURL(url);
+      preview.appendChild(img);
+    } else {
+      preview.textContent = fileIcon(f.type);
+    }
+
+    const info = document.createElement('div');
+    info.innerHTML = `
+      <div class="file-name">${escapeHtml(f.name)}</div>
+      <div class="file-meta">
+        <span class="file-type-badge">${(f.type.split('/')[1] || f.type).slice(0,6).toUpperCase()}</span>
+        <span>${formatSize(f.size)}</span>
+      </div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+    actions.innerHTML = `
+      <button data-act="preview">Preview</button>
+      <button data-act="download">Unduh</button>
+      <button data-act="rename">Rename</button>
+      <button class="btn-del" data-act="delete">Hapus</button>
+    `;
+    actions.addEventListener('click', e => {
+      const act = e.target.dataset.act;
+      if (!act) return;
+      if (act === 'preview') previewFile(f.id);
+      if (act === 'download') downloadFile(f.id);
+      if (act === 'rename') renameFile(f.id);
+      if (act === 'delete') deleteFile(f.id);
+    });
+
+    card.append(preview, info, actions);
+    grid.appendChild(card);
+  });
+
+  updateStorageBar(currentFiles);
+}
+
+async function updateStorageBar(allFiles = []) {
+  const totalFileSize = allFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+  let used = totalFileSize, quota = 0;
+  if (navigator.storage?.estimate) {
+    try {
+      const est = await navigator.storage.estimate();
+      used = Math.max(est.usage || 0, totalFileSize);
+      quota = est.quota || 0;
+    } catch {}
+  }
+  const pct = quota ? Math.min((used / quota) * 100, 100) : 0;
+  const bar = document.getElementById('storageBar');
+  bar.style.width = (quota ? pct : Math.min(totalFileSize / (100 * 1024 * 1024) * 100, 100)) + '%';
+  bar.className = pct > 85 ? 'danger' : pct > 60 ? 'warn' : '';
+
+  document.getElementById('storageText').textContent =
+    `${formatSize(used)}${quota ? ' / ' + formatSize(quota) : ''}${quota ? ` (${pct.toFixed(1)}%)` : ''}`;
+  document.getElementById('storageDetail').textContent =
+    `Total ${allFiles.length} file • ${formatSize(totalFileSize)} tersimpan`;
+}
+
+async function previewFile(id) {
+  const file = await idbGet(id);
+  if (!file) return;
+  if (currentPreviewURL) { URL.revokeObjectURL(currentPreviewURL); currentPreviewURL = null; }
+  const url = URL.createObjectURL(file.blob);
+  currentPreviewURL = url;
+  document.getElementById('modalTitle').textContent = file.name;
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '';
+
+  if (file.type.startsWith('image/')) {
+    const img = new Image(); img.src = url; body.appendChild(img);
+  } else if (file.type === 'application/pdf') {
+    const fr = document.createElement('iframe'); fr.src = url; body.appendChild(fr);
+  } else if (file.type === 'text/html') {
+    const fr = document.createElement('iframe'); fr.src = url; body.appendChild(fr);
+  } else if (file.type.startsWith('video/')) {
+    const v = document.createElement('video'); v.src = url; v.controls = true; v.style.maxHeight = '70vh'; body.appendChild(v);
+  } else if (file.type.startsWith('audio/')) {
+    const a = document.createElement('audio'); a.src = url; a.controls = true; body.appendChild(a);
+  } else if (file.type.startsWith('text/') || file.type === 'application/json') {
+    const text = await file.blob.text();
+    const pre = document.createElement('pre'); pre.textContent = text; body.appendChild(pre);
+  } else {
+    body.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px">
+      <div style="font-size:56px">📎</div>
+      <p style="margin-top:12px">Preview tidak tersedia untuk tipe ini.<br>Silakan unduh file.</p>
+    </div>`;
+  }
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('modalBody').innerHTML = '';
+  if (currentPreviewURL) { URL.revokeObjectURL(currentPreviewURL); currentPreviewURL = null; }
+}
+async function downloadFile(id) {
+  const file = await idbGet(id);
+  if (!file) return;
+  const url = URL.createObjectURL(file.blob);
+  const a = document.createElement('a'); a.href = url; a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('File diunduh ✔', 'ok');
+}
+async function renameFile(id) {
+  const file = await idbGet(id);
+  if (!file) return;
+  const baru = prompt('Nama file baru:', file.name);
+  if (baru === null) return;
+  const trim = baru.trim();
+  if (!trim) { showToast('Nama tidak boleh kosong', 'err'); return; }
+  file.name = trim;
+  await idbPut(file);
+  await renderFiles();
+  showToast('Nama diperbarui ✔', 'ok');
+}
+async function deleteFile(id) {
+  if (!confirm('Hapus file ini secara permanen?')) return;
+  await idbDelete(id);
+  await renderFiles();
+  showToast('File dihapus ✔', 'ok');
+}
+
+/* =========================================================
+   7. SETTINGS ACTIONS
+   ========================================================= */
+async function saveProfile() {
+  const name = document.getElementById('inputDisplayName').value.trim();
+  if (!name) { showToast('Nama tidak boleh kosong', 'err'); return; }
+  const session = getSession();
+  const users = getUsers();
+  users[session.username].name = name;
+  setUsers(users);
+  document.getElementById('userNameDisplay').textContent = name;
+  document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+  showToast('Profil disimpan ✔', 'ok');
+}
+
+async function changePassword() {
+  const oldPass = document.getElementById('oldPass').value;
+  const newPass = document.getElementById('newPass').value;
+  const confirmPass = document.getElementById('confirmPass').value;
+
+  if (!oldPass || !newPass) { showToast('Isi semua kolom', 'err'); return; }
+  if (newPass.length < 6) { showToast('Password minimal 6 karakter', 'err'); return; }
+  if (newPass !== confirmPass) { showToast('Konfirmasi password tidak cocok', 'err'); return; }
+
+  const session = getSession();
+  const users = getUsers();
+  const oldHash = await hashPassword(oldPass);
+  if (oldHash !== users[session.username].hash) {
+    showToast('Password lama salah', 'err');
+    return;
+  }
+  users[session.username].hash = await hashPassword(newPass);
+  setUsers(users);
+  document.getElementById('oldPass').value = '';
+  document.getElementById('newPass').value = '';
+  document.getElementById('confirmPass').value = '';
+  showToast('Password berhasil diubah ✔', 'ok');
+}
+
+async function exportAll() {
+  const files = await idbGetAll();
+  if (!files.length) { showToast('Belum ada file untuk diekspor', 'err'); return; }
+
+  setLoading(true, 'Menyiapkan ekspor…');
+  const data = await Promise.all(files.map(async f => ({
+    name: f.name,
+    type: f.type,
+    size: f.size,
+    uploadedAt: f.uploadedAt,
+    data: await new Promise(res => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result);
+      reader.readAsDataURL(f.blob);
+    })
+  })));
+  setLoading(false);
+
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), files: data }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vault-backup-${Date.now()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Backup diekspor ✔', 'ok');
+}
+
+async function clearAllData() {
+  if (!confirm('Hapus SEMUA file? Tindakan ini tidak bisa dibatalkan.')) return;
+  if (!confirm('Yakin? Data akan benar-benar hilang.')) return;
+  await idbClear();
+  await renderFiles();
+  showToast('Semua file dihapus', 'ok');
+}
+
+/* =========================================================
+   8. SURAT MENYURAT
+   ========================================================= */
+const SURAT_FIELDS = {
+  nomor: 'suratNomor', tanggal: 'suratTanggal',
+  instansi: 'suratInstansi', alamatInstansi: 'suratAlamatInstansi',
+  nama: 'suratNama', nik: 'suratNik', jabatanPenerima: 'suratJabatanPenerima',
+  alamat: 'suratAlamat', keperluan: 'suratKeperluan',
+  tanggalAcara: 'suratTanggalAcara', waktu: 'suratWaktu', tempat: 'suratTempat',
+  ttdNama: 'suratTtdNama', ttdJabatan: 'suratTtdJabatan', ttdKota: 'suratTtdKota'
+};
+const SURAT_TITLES = {
+  keterangan: 'SURAT KETERANGAN',
+  undangan: 'SURAT UNDANGAN',
+  tugas: 'SURAT TUGAS',
+  izin: 'SURAT IZIN',
+  pengantar: 'SURAT PENGANTAR'
+};
+
+function getSuratData() {
+  const data = {};
+  for (const [key, id] of Object.entries(SURAT_FIELDS)) {
+    data[key] = (document.getElementById(id)?.value || '').trim();
+  }
+  data.jenis = document.getElementById('suratJenis').value;
+  return data;
+}
+
+function formatTanggalIndo(iso) {
+  if (!iso) return '................';
+  return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function generateSuratBody(d) {
+  const tglAcara = formatTanggalIndo(d.tanggalAcara);
+  const n = v => v || '................';
+
+  switch (d.jenis) {
+    case 'keterangan':
+      return `
+        <p>Yang bertanda tangan di bawah ini, <strong>${n(d.ttdJabatan)}</strong>, dengan ini menerangkan bahwa:</p>
+        <table class="surat-data">
+          <tr><td>Nama</td><td>: <strong>${escapeHtml(n(d.nama))}</strong></td></tr>
+          <tr><td>NIK / NIM</td><td>: ${escapeHtml(n(d.nik))}</td></tr>
+          <tr><td>Jabatan/Status</td><td>: ${escapeHtml(n(d.jabatanPenerima))}</td></tr>
+          <tr><td>Alamat</td><td>: ${escapeHtml(n(d.alamat))}</td></tr>
+        </table>
+        <p>Benar-benar <strong>${escapeHtml(n(d.keperluan))}</strong>.</p>
+        <p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>`;
+    case 'undangan':
+      return `
+        <p>Dengan hormat,</p>
+        <p>Sehubungan dengan <strong>${escapeHtml(n(d.keperluan))}</strong>, kami dengan ini mengundang Bapak/Ibu/Saudara <strong>${escapeHtml(n(d.nama))}</strong>${d.jabatanPenerima ? ` (${escapeHtml(d.jabatanPenerima)})` : ''} untuk hadir pada:</p>
+        <table class="surat-data">
+          <tr><td>Hari/Tanggal</td><td>: ${tglAcara}</td></tr>
+          <tr><td>Waktu</td><td>: ${escapeHtml(n(d.waktu))}</td></tr>
+          <tr><td>Tempat</td><td>: ${escapeHtml(n(d.tempat))}</td></tr>
+        </table>
+        <p>Mengingat pentingnya acara tersebut, kami sangat mengharapkan kehadiran Bapak/Ibu/Saudara tepat pada waktunya.</p>
+        <p>Demikian undangan ini kami sampaikan, atas perhatian dan kerja samanya kami ucapkan terima kasih.</p>`;
+    case 'tugas':
+      return `
+        <p>Yang bertanda tangan di bawah ini, <strong>${n(d.ttdJabatan)}</strong>, dengan ini menugaskan:</p>
+        <table class="surat-data">
+          <tr><td>Nama</td><td>: <strong>${escapeHtml(n(d.nama))}</strong></td></tr>
+          <tr><td>NIK / NIM</td><td>: ${escapeHtml(n(d.nik))}</td></tr>
+          <tr><td>Jabatan</td><td>: ${escapeHtml(n(d.jabatanPenerima))}</td></tr>
+        </table>
+        <p>Untuk melaksanakan <strong>${escapeHtml(n(d.keperluan))}</strong> pada tanggal <strong>${tglAcara}</strong> di ${escapeHtml(n(d.tempat))}.</p>
+        <p>Demikian surat tugas ini dibuat untuk dilaksanakan dengan penuh tanggung jawab dan sebaik-baiknya.</p>`;
+    case 'izin':
+      return `
+        <p>Yang bertanda tangan di bawah ini, <strong>${n(d.ttdJabatan)}</strong>, dengan ini memberikan izin kepada:</p>
+        <table class="surat-data">
+          <tr><td>Nama</td><td>: <strong>${escapeHtml(n(d.nama))}</strong></td></tr>
+          <tr><td>NIK / NIM</td><td>: ${escapeHtml(n(d.nik))}</td></tr>
+          <tr><td>Jabatan/Status</td><td>: ${escapeHtml(n(d.jabatanPenerima))}</td></tr>
+        </table>
+        <p>Untuk <strong>${escapeHtml(n(d.keperluan))}</strong> pada tanggal <strong>${tglAcara}</strong>.</p>
+        <p>Demikian surat izin ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>`;
+    default:
+      return `
+        <p>Dengan hormat,</p>
+        <p>Yang bertanda tangan di bawah ini, <strong>${n(d.ttdJabatan)}</strong>, dengan ini mengantarkan <strong>${escapeHtml(n(d.nama))}</strong>${d.jabatanPenerima ? `, ${escapeHtml(d.jabatanPenerima)}` : ''}, untuk keperluan <strong>${escapeHtml(n(d.keperluan))}</strong>.</p>
+        <p>Kami mohon Bapak/Ibu dapat menerima dan memproses keperluan yang bersangkutan sebagaimana mestinya.</p>
+        <p>Demikian surat pengantar ini kami buat, atas perhatian dan kerja samanya kami ucapkan terima kasih.</p>`;
+  }
+}
+
+function renderSuratPreview() {
+  const d = getSuratData();
+  const preview = document.getElementById('suratPreview');
+  if (!d.nama && !d.keperluan && !d.nomor) {
+    preview.innerHTML = `<div class="surat-empty"><span class="icon">✉️</span><p>Isi form di samping untuk melihat pratinjau surat.</p></div>`;
+    return;
+  }
+  preview.innerHTML = `
+    <div class="surat-kop">
+      <div class="surat-kop-logo">🏛️</div>
+      <div class="surat-kop-text">
+        <div class="surat-kop-instansi">${escapeHtml(d.instansi || 'NAMA INSTANSI')}</div>
+        <div class="surat-kop-alamat">${escapeHtml(d.alamatInstansi || 'Alamat instansi')}</div>
+      </div>
+    </div>
+    <div class="surat-kop-line"></div>
+    <div class="surat-title">${SURAT_TITLES[d.jenis] || 'SURAT'}</div>
+    <div class="surat-nomor">Nomor: ${escapeHtml(d.nomor || '................')}</div>
+    <div class="surat-content">${generateSuratBody(d)}</div>
+    <div class="surat-ttd">
+      <div class="ttd-tempat">${escapeHtml(d.ttdKota || '................')}, ${formatTanggalIndo(d.tanggal)}</div>
+      <div class="ttd-nama">${escapeHtml(d.ttdNama || '................')}</div>
+      <div class="ttd-jabatan">${escapeHtml(d.ttdJabatan || '................')}</div>
+    </div>`;
+}
+
+function printSurat() {
+  const d = getSuratData();
+  if (!d.nama && !d.keperluan) {
+    showToast('Isi minimal nama atau keperluan surat', 'err');
+    return;
+  }
+  renderSuratPreview();
+  document.body.classList.add('printing-surat');
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => document.body.classList.remove('printing-surat'), 500);
+  }, 150);
+}
+
+async function saveSuratToArchive() {
+  const d = getSuratData();
+  if (!d.nama && !d.keperluan) {
+    showToast('Isi form surat terlebih dahulu', 'err');
+    return;
+  }
+  renderSuratPreview();
+
+  const title = SURAT_TITLES[d.jenis] || 'Surat';
+  const filename = `${title.replace(/\s+/g, '-')}_${(d.nama || 'tanpa-nama').replace(/\s+/g, '-')}_${Date.now()}.html`;
+  const previewHTML = document.getElementById('suratPreview').outerHTML;
+
+  const fullHTML = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+<title>${escapeHtml(title)} - ${escapeHtml(d.nama || '')}</title><style>
+body{font-family:'Times New Roman',Times,serif;margin:0;padding:20mm;background:#f1f5f9;color:#0f172a}
+.surat-paper{background:#fff;max-width:720px;margin:0 auto;padding:36px 44px;box-shadow:0 4px 20px rgba(0,0,0,.1);font-size:14px;line-height:1.7}
+.surat-kop{display:flex;align-items:center;gap:16px;padding-bottom:10px}
+.surat-kop-logo{font-size:44px}.surat-kop-text{flex:1;text-align:center}
+.surat-kop-instansi{font-size:18px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.surat-kop-alamat{font-size:11px;margin-top:2px}
+.surat-kop-line{height:3px;background:#0f172a;margin-bottom:22px;position:relative}
+.surat-kop-line::after{content:'';position:absolute;left:0;right:0;bottom:-3px;height:1px;background:#0f172a}
+.surat-title{text-align:center;font-weight:700;font-size:16px;text-transform:uppercase;text-decoration:underline;letter-spacing:1px;margin:14px 0 2px}
+.surat-nomor{text-align:center;font-size:12px;margin-bottom:24px}
+.surat-content p{margin:0 0 12px;text-align:justify}
+.surat-data{margin:12px 0 12px 24px;border-collapse:collapse}
+.surat-data td{padding:3px 0;vertical-align:top}.surat-data td:first-child{width:110px}
+.surat-ttd{margin-top:40px;text-align:right;padding-right:20px}
+.surat-ttd .ttd-tempat{font-size:13px;margin-bottom:64px}
+.surat-ttd .ttd-nama{font-weight:700;text-decoration:underline}
+.surat-ttd .ttd-jabatan{font-size:12px;margin-top:2px}
+@media print{body{background:#fff;padding:15mm}.surat-paper{box-shadow:none;padding:0}@page{size:A4;margin:15mm}}
+</style></head><body>${previewHTML}</body></html>`;
+
+  const blob = new Blob([fullHTML], { type: 'text/html' });
+  const file = new File([blob], filename, { type: 'text/html' });
+
+  try {
+    await idbAdd({
+      name: filename,
+      type: 'text/html',
+      size: blob.size,
+      uploadedAt: new Date().toISOString(),
+      blob: file
+    });
+    showToast('Surat disimpan ke arsip ✔', 'ok');
+    await renderFiles();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal menyimpan surat', 'err');
+  }
+}
+
+function resetSuratForm() {
+  document.getElementById('suratJenis').value = 'keterangan';
+  ['suratNomor','suratNama','suratNik','suratJabatanPenerima','suratAlamat',
+   'suratKeperluan','suratWaktu','suratTempat','suratTtdNama','suratTtdJabatan',
+   'suratTanggal','suratTanggalAcara'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderSuratPreview();
+  showToast('Form direset', 'ok');
+}
+
+/* =========================================================
+   9. VIEW SWITCHING
+   ========================================================= */
+const viewNames = { files: 'File Saya', surat: 'Buat Surat', settings: 'Pengaturan' };
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v =>
+    v.classList.toggle('active', v.id === 'view' + name.charAt(0).toUpperCase() + name.slice(1))
+  );
+  document.querySelectorAll('.nav-item').forEach(n =>
+    n.classList.toggle('active', n.dataset.view === name)
+  );
+  document.getElementById('viewTitle').textContent = viewNames[name] || name;
+  document.getElementById('sidebar').classList.remove('open');
+  if (name === 'files') renderFiles();
+  if (name === 'surat') renderSuratPreview();
+  if (name === 'settings') {
+    const theme = localStorage.getItem(KEY_THEME) || 'light';
+    document.querySelectorAll('.theme-option').forEach(b =>
+      b.classList.toggle('active', b.dataset.theme === theme)
+    );
+  }
+}
+
+/* =========================================================
+   10. INIT
+   ========================================================= */
+async function initApp() {
+  try {
+    setLoading(true, 'Membuka database…');
+    await openDB();
+    await renderFiles();
+    setLoading(false);
+  } catch (err) {
+    setLoading(false);
+    console.error(err);
+    showToast('Gagal membuka database', 'err');
+  }
+}
+
+/* =========================================================
+   11. EVENT BINDING
+   ========================================================= */
+// Auth
+document.getElementById('loginForm').addEventListener('submit', handleLogin);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+// Sidebar nav
+document.querySelectorAll('.nav-item').forEach(n =>
+  n.addEventListener('click', () => switchView(n.dataset.view))
+);
+
+// Theme
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = localStorage.getItem(KEY_THEME) || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+});
+
+// Menu toggle mobile
+document.getElementById('menuToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+
+// Dropzone
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { handleFiles(e.target.files); e.target.value = ''; });
+['dragenter', 'dragover'].forEach(ev =>
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+);
+['dragleave', 'drop'].forEach(ev =>
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+);
+dropzone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+
+// Search & sort
+document.getElementById('search').addEventListener('input', renderFiles);
+document.getElementById('sortBy').addEventListener('change', renderFiles);
+
+// Settings
+document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+document.getElementById('changePassBtn').addEventListener('click', changePassword);
+document.getElementById('exportBtn').addEventListener('click', exportAll);
+document.getElementById('clearBtn').addEventListener('click', clearAllData);
+document.querySelectorAll('.theme-option').forEach(b =>
+  b.addEventListener('click', () => applyTheme(b.dataset.theme))
+);
+
+// Surat — live preview
+[...Object.values(SURAT_FIELDS), 'suratJenis'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', renderSuratPreview);
+    el.addEventListener('change', renderSuratPreview);
+  }
+});
+document.getElementById('printSuratBtn').addEventListener('click', printSurat);
+document.getElementById('saveSuratBtn').addEventListener('click', saveSuratToArchive);
+document.getElementById('resetSuratBtn').addEventListener('click', resetSuratForm);
+
+// Modal
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* =========================================================
+   12. BOOT
+   ========================================================= */
+(async function boot() {
+  initTheme();
+  await ensureDefaultUser();
+  const session = getSession();
+  if (session) enterApp();
+})();
+</script>
+</body>
+</html>
