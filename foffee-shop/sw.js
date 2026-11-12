@@ -1,4 +1,4 @@
-const CACHE = 'kasir-fnb-v2';
+const CACHE = 'kasir-fnb-v3';
 const ASSETS = [
   './',
   './index.html',
